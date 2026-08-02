@@ -1,0 +1,797 @@
+// ============================================================
+// Library: ballerinax/hubspot.crm.obj.lineitems
+// [HubSpot](https://www.hubspot.com) is an AI-powered customer relationship management (CRM) platform.
+// ============================================================
+import ballerinax/hubspot.crm.obj.lineitems;
+
+// --- README ---
+## Overview
+
+[HubSpot](https://www.hubspot.com) is an AI-powered customer relationship management (CRM) platform.
+
+The HubSpot CRM Line Items connector provides APIs to connect and interact with the [HubSpot CRM Line Items API](https://developers.hubspot.com/docs/reference/api/crm/objects/line-items) endpoints, specifically based on the [HubSpot REST API v3](https://developers.hubspot.com/docs/reference/api).
+
+### Key Features
+
+- Create, read, update, and delete line item records in HubSpot CRM
+- Associate line items with deals and other CRM objects
+- Manage line item properties such as price, quantity, and name
+- Batch operations for bulk line item management
+
+## Setup guide
+
+To use the HubSpot Line items connector, you must have access to the HubSpot API through a HubSpot developer account and a HubSpot App under it. Therefore, you need to register for a developer account at HubSpot if you don't have one already.
+
+### Step 01 : Create/Login to a HubSpot Developer Account
+
+ If you have an account already go to the [HubSpot account portal](https://app.hubspot.com/myaccounts-beta)
+
+ If you don't have a developer account, register for a free HubSpot developer account.[(click here)](https://app.hubspot.com/signup-hubspot/developers?_ga=2.207749649.2047916093.1734412948-232493525.1734412948&step=landing_page)
+
+### Step 02 (Optional) : Create a Developer test account:
+
+Within app developer accounts, you can create [Developer test accounts](https://developers.hubspot.com/beta-docs/getting-started/account-types#developer-test-accounts) to test apps and integrations without affecting any real HubSpot data.
+
+Note: These accounts are only for development and testing purposes. In production you should not use Developer Test Accounts.
+
+1. Go to Test Account section from the left sidebar.
+
+   ![HubSpot Developer Portal](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.lineitems/main/docs/setup/resources/test_acc_1.png)
+
+2. Click Create developer test account.
+
+   ![HubSpot Developer Test Account](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.lineitems/main/docs/setup/resources/test_acc_2.png)
+
+3. Create developer test account by providing a name
+
+### Step 03 : Create a HubSpot App under your account
+
+1. In your developer account, navigate to the [Apps](https://app.hubspot.com/developer/48567544/applications) section.
+Click on `Create App`
+   ![create app](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.lineitems/main/docs/setup/resources/create_app_1.png)
+
+2. Provide the necessary details, including the app name and description.
+
+### Step 04 : Configure the Authentication Flow
+
+1. Move to the Auth tab.
+
+   ![alt text](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.lineitems/main/docs/setup/resources/image.png)
+
+2. In the Scopes section, add necessary scopes for your app using the "Add new scope" button. For line items API connector we will have to add the following 3 scopes in addition to the existing `oauth` scope.
+
+   * `e-commerce`
+   * `crm.objects.line_items.read`
+   * `crm.objects.line_items.write`
+
+   ![HubSpot set scope](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.lineitems/main/docs/setup/resources/image-2.png)
+
+3. Add your Redirect URI in the relevant section. You can also use localhost addresses for local development purposes. Click Create App.
+   ![HubSpot create app final](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.lineitems/main/docs/setup/resources/create_app_final.png)
+
+### Step 5: Get your Client ID and Client Secret
+
+- Navigate to the Auth section of your app. Make sure to save the provided Client ID and Client Secret.
+  ![HubSpot get credentials](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.lineitems/main/docs/setup/resources/get_credentials.png)
+
+### Step 6: Setup Authentication Flow
+
+Before proceeding with the Quickstart, ensure you have obtained the Access Token using the following steps:
+
+1. Create an authorization URL using the following format:
+
+   ```
+   https://app.hubspot.com/oauth/authorize?client_id=<YOUR_CLIENT_ID>&scope=<YOUR_SCOPES>&redirect_uri=<YOUR_REDIRECT_URI>
+   ```
+
+   Replace `<YOUR_CLIENT_ID>`, `<YOUR_REDIRECT_URI>`, and `<YOUR_SCOPES>` with your specific value.
+
+2. Paste it in the browser and select your developer test account to install the app when prompted.
+
+3. A code will be displayed in the browser. Copy the code.
+
+4. Run the following curl command. Replace `<YOUR_CLIENT_ID>`, `<YOUR_REDIRECT_URI>`, and `<YOUR_CLIENT_SECRET>` with your specific value. Use the code you received in the above step 3 as the `<CODE>`.
+
+   - Linux/macOS
+
+     ```bash
+     curl --request POST \
+     --url https://api.hubapi.com/oauth/v1/token \
+     --header 'content-type: application/x-www-form-urlencoded' \
+     --data 'grant_type=authorization_code&code=<CODE>&redirect_uri=<YOUR_REDIRECT_URI>&client_id=<YOUR_CLIENT_ID>&client_secret=<YOUR_CLIENT_SECRET>'
+     ```
+
+   - Windows
+
+     ```bash
+     curl --request POST ^
+     --url https://api.hubapi.com/oauth/v1/token ^
+     --header 'content-type: application/x-www-form-urlencoded' ^
+     --data 'grant_type=authorization_code&code=<CODE>&redirect_uri=<YOUR_REDIRECT_URI>&client_id=<YOUR_CLIENT_ID>&client_secret=<YOUR_CLIENT_SECRET>'
+     ```
+
+   This command will return the access token necessary for API calls.
+
+   ```json
+   {
+     "token_type": "bearer",
+     "refresh_token": "<Refresh Token>",
+     "access_token": "<Access Token>",
+     "expires_in": 1800
+   }
+   ```
+
+5. Store the access token securely for use in your application.
+
+## Quickstart
+
+To use the `HubSpot CRM Object Line items` connector in your Ballerina application, update the `.bal` file as follows:
+
+### Step 1: Import the module
+
+Import the `ballerinax/hubspot.crm.obj.lineitems` module and `oauth2` module.
+
+```ballerina
+import ballerinax/hubspot.crm.obj.lineitems as hslineitems;
+import ballerina/oauth2;
+```
+
+### Step 2: Instantiate a new connector
+
+1. Instantiate a `OAuth2RefreshTokenGrantConfig` with the obtained credentials and initialize the connector with it.
+
+    ```ballerina
+   configurable string clientId = ?;
+   configurable string clientSecret = ?;
+   configurable string refreshToken = ?;
+
+   hslineitems:OAuth2RefreshTokenGrantConfig auth = {
+      clientId,
+      clientSecret,
+      refreshToken,
+      credentialBearer: oauth2:POST_BODY_BEARER
+   };
+
+   final hslineitems:Client hubSpotLineItems = check new ({ auth });
+   ```
+
+2. Create a `Config.toml` file and, configure the obtained credentials obtained in the above steps as follows:
+
+   ```toml
+    clientId = <Client Id>
+    clientSecret = <Client Secret>
+    refreshToken = <Refresh Token>
+   ```
+
+### Step 3: Invoke the connector operation
+
+Now, utilize the available connector operations. A sample use case is shown below.
+
+#### Create a New Line item
+
+```ballerina
+public function main() returns error? {
+    hslineitems:SimplePublicObjectInputForCreate payload = {
+        "associations": [
+            {
+                "types": [
+                    {
+                        "associationCategory": "HUBSPOT_DEFINED",
+                        "associationTypeId": 20
+                    }
+                ],
+                "to": {
+                    "id": "31232284502"
+                }
+            }
+        ],
+        "objectWriteTraceId": "2",
+        "properties": {
+            "price": "400.00",
+            "quantity": "10",
+            "name": "Item 6"
+        }
+    };
+    hslineitems::SimplePublicObject response = check hubSpotLineItems->/crm/v3/objects/line_items.post(payload);
+}
+```
+
+### Step 4 : Run the Ballerina application
+
+```bash
+bal run
+```
+
+## Examples
+
+The `Ballerina HubSpot CRM Lineitems Connector` connector provides practical examples illustrating usage in various scenarios. Explore these [examples](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.lineitems/tree/main/examples/), covering the following use cases:
+
+1. [Customer Order fulfillment](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.lineitems/tree/main/examples/customer-order-fulfillment) - Manage customer orders in a warehouse system
+2. [Inventory management](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.lineitems/tree/main/examples/inventory-management) - Manage inventory for an operational deal in an E-commerce platform
+
+// --- END README ---
+
+// --- Types ---
+
+# Standard error response object returned by the API
+
+type StandardError record {
+    # Optional sub-category providing additional error classification
+    record {|anydata...;|} subCategory?;
+    # Contextual metadata map with string array values for the error
+    record {|string[]...;|} context;
+    # Map of relevant links associated with the error
+    record {|string...;|} links;
+    # Unique identifier for the error instance
+    string id?;
+    # High-level category classifying the error type
+    string category;
+    # Human-readable description of the error
+    string message;
+    # List of detailed error entries associated with this error
+    ErrorDetail[] errors;
+    # HTTP status code or status label for the error response
+    string status;
+};
+
+# Detailed information about a specific error encountered in a request
+
+type ErrorDetail record {
+    # A specific category that contains more specific detail about the error
+    string subCategory?;
+    # The status code associated with the error detail
+    string code?;
+    # The name of the field or parameter in which the error was found
+    string 'in?;
+    # Context about the error condition
+    record {|string[]...;|} context?;
+    # A human readable message describing the error along with remediation steps where appropriate
+    string message;
+};
+
+# Paginated collection of associated object IDs
+
+type CollectionResponseAssociatedId record {
+    # Contains cursors for navigating to the next or previous page of results
+    Paging paging?;
+    # Array of associated object IDs returned in the response
+    AssociatedId[] results;
+};
+
+# Contains cursors for navigating to the next or previous page of results
+
+type Paging record {
+    # Pagination cursor object for retrieving the next page of results
+    NextPage next?;
+    # Pagination cursor and link referencing the previous page of results
+    PreviousPage prev?;
+};
+
+# Pagination cursor object for retrieving the next page of results
+
+type NextPage record {
+    # The full query string link to the next page of results
+    string link?;
+    # Cursor token used to fetch the next page of results
+    string after;
+};
+
+# Pagination cursor and link referencing the previous page of results
+
+type PreviousPage record {
+    # Cursor token representing the start of the previous page
+    string before;
+    # URL link to retrieve the previous page of results
+    string link?;
+};
+
+# Represents an associated object with its ID and association type
+
+type AssociatedId record {
+    # The unique identifier of the associated object
+    string id;
+    # The type of association between the objects
+    string 'type;
+};
+
+# Represents the Queries record for the operation: get-/crm/v3/objects/line_items/{lineItemId}_getById
+
+type GetCrmV3ObjectsLineItemsLineItemIdGetByIdQueries record {
+    # A comma separated list of object types to retrieve associated IDs for. If any of the specified associations do not exist, they will be ignored
+    string[] associations?;
+    # Whether to return only results that have been archived
+    boolean archived?;
+    # A comma separated list of the properties to be returned along with their history of previous values. If any of the specified properties are not present on the requested object(s), they will be ignored
+    string[] propertiesWithHistory?;
+    # The name of a property whose values are unique for this object type
+    string idProperty?;
+    # A comma separated list of the properties to be returned in the response. If any of the specified properties are not present on the requested object(s), they will be ignored
+    string[] properties?;
+};
+
+# Defines association targets and relationship types for an object
+
+type PublicAssociationsForObject record {
+    # List of association type specifications for the relationship
+    AssociationSpec[] types;
+    # Represents a public object identifier containing a unique ID string
+    PublicObjectId to;
+};
+
+# Defines the category and type of an association between two CRM objects
+
+type AssociationSpec record {
+    # The category of the association: HUBSPOT_DEFINED, USER_DEFINED, or INTEGRATOR_DEFINED
+    "HUBSPOT_DEFINED"|"USER_DEFINED"|"INTEGRATOR_DEFINED" associationCategory;
+    # Numeric identifier specifying the association type within its category
+    ballerina/lang.int:0.0.0:Signed32 associationTypeId;
+};
+
+# Represents a public object identifier containing a unique ID string
+
+type PublicObjectId record {
+    # Unique identifier of the public object
+    string id;
+};
+
+# Batch operation response containing results and execution timestamps
+
+type BatchResponseSimplePublicObject record {
+    # Timestamp indicating when the batch operation completed
+    string completedAt;
+    # Timestamp indicating when the batch operation was requested
+    string requestedAt?;
+    # Timestamp indicating when the batch operation started processing
+    string startedAt;
+    # Map of relevant links related to the batch response
+    record {|string...;|} links?;
+    # Array of line item objects returned by the batch operation
+    SimplePublicObject[] results;
+    # Current processing status of the batch request
+    "PENDING"|"PROCESSING"|"CANCELED"|"COMPLETE" status;
+};
+
+# Represents a line item object with its properties, timestamps, and archival state
+
+type SimplePublicObject record {
+    # Timestamp when the line item was created
+    string createdAt;
+    # Indicates whether the line item is archived
+    boolean archived?;
+    # Timestamp when the line item was archived
+    string archivedAt?;
+    # Map of property names to their historical values with timestamps
+    record {|ballerinax/hubspot.crm.obj.lineitems:2.0.2:ValueWithTimestamp[]...;|} propertiesWithHistory?;
+    # Unique identifier of the line item
+    string id;
+    # Map of line item property names to their current values
+    record {|string?...;|} properties;
+    # Timestamp when the line item was last updated
+    string updatedAt;
+};
+
+# Represents a property value paired with its source metadata and the timestamp of the last update
+
+type ValueWithTimestamp record {
+    # Identifier of the source that set this property value
+    string sourceId?;
+    # The type of source that last updated this property value
+    string sourceType;
+    # Human-readable label describing the source of the value
+    string sourceLabel?;
+    # ID of the user who last updated this property value
+    ballerina/lang.int:0.0.0:Signed32 updatedByUserId?;
+    # The property value stored for this line item
+    string value;
+    # Timestamp indicating when this property value was last updated
+    string timestamp;
+};
+
+# A logical grouping of filters applied to a search query
+
+type FilterGroup record {
+    # Array of filter conditions within this group
+    Filter[] filters;
+};
+
+# Defines a filter condition used to narrow search results by property value and operator
+
+type Filter record {
+    # Upper bound value for BETWEEN range filter comparisons
+    string highValue?;
+    # The name of the property to filter on
+    string propertyName;
+    # List of values to match against for multi-value operators
+    string[] values?;
+    # The single value to compare against the filtered property
+    string value?;
+    # The comparison operator used to evaluate the filter condition
+    "EQ"|"NEQ"|"LT"|"LTE"|"GT"|"GTE"|"BETWEEN"|"IN"|"NOT_IN"|"HAS_PROPERTY"|"NOT_HAS_PROPERTY"|"CONTAINS_TOKEN"|"NOT_CONTAINS_TOKEN" operator;
+};
+
+# Pagination metadata for forward-only cursor-based navigation
+
+type ForwardPaging record {
+    # Pagination cursor object for retrieving the next page of results
+    NextPage next?;
+};
+
+# A minimal object representation containing only a unique identifier
+
+type SimplePublicObjectId record {
+    # The unique identifier of the object
+    string id;
+};
+
+# Batch upsert response containing results, status, and any errors encountered
+
+type BatchResponseSimplePublicUpsertObjectWithErrors record {
+    # Timestamp when the batch operation completed
+    string completedAt;
+    # Total number of errors encountered during the batch operation
+    ballerina/lang.int:0.0.0:Signed32 numErrors?;
+    # Timestamp when the batch operation was requested
+    string requestedAt?;
+    # Timestamp when the batch operation began processing
+    string startedAt;
+    # Map of relevant hypermedia links associated with the batch response
+    record {|string...;|} links?;
+    # Array of upserted line item objects from the batch operation
+    SimplePublicUpsertObject[] results;
+    # Array of errors encountered for individual items in the batch
+    StandardError[] errors?;
+    # Current processing status of the batch upsert request
+    "PENDING"|"PROCESSING"|"CANCELED"|"COMPLETE" status;
+};
+
+# Represents a line item returned from an upsert operation, indicating whether it was newly created
+
+type SimplePublicUpsertObject record {
+    # Timestamp when the line item was created
+    string createdAt;
+    # Indicates whether the line item is archived
+    boolean archived?;
+    # Timestamp when the line item was archived
+    string archivedAt?;
+    # Indicates whether the line item was newly created by the upsert
+    boolean 'new;
+    # Map of property names to their historical values with timestamps
+    record {|ballerinax/hubspot.crm.obj.lineitems:2.0.2:ValueWithTimestamp[]...;|} propertiesWithHistory?;
+    # The unique identifier of the line item
+    string id;
+    # Map of property names to their current values for the line item
+    record {|string...;|} properties;
+    # Timestamp when the line item was last updated
+    string updatedAt;
+};
+
+# Input schema for reading a batch of line items by their IDs
+
+type BatchReadInputSimplePublicObjectId record {
+    # List of properties to return along with their historical values
+    string[] propertiesWithHistory;
+    # The property to use as the unique identifier for lookups
+    string idProperty?;
+    # Array of object IDs to retrieve in the batch read request
+    SimplePublicObjectId[] inputs;
+    # List of property names to include in the response
+    string[] properties;
+};
+
+# Response object containing the status and results of a batch upsert operation on line items
+
+type BatchResponseSimplePublicUpsertObject record {
+    # Timestamp indicating when the batch operation completed
+    string completedAt;
+    # Timestamp indicating when the batch operation was requested
+    string requestedAt?;
+    # Timestamp indicating when the batch operation started processing
+    string startedAt;
+    # Map of related resource links associated with the batch response
+    record {|string...;|} links?;
+    # Array of upserted line item objects returned by the batch operation
+    SimplePublicUpsertObject[] results;
+    # Current status of the batch operation: PENDING, PROCESSING, CANCELED, or COMPLETE
+    "PENDING"|"PROCESSING"|"CANCELED"|"COMPLETE" status;
+};
+
+# Input schema containing an array of object IDs for a batch operation on line items
+
+type BatchInputSimplePublicObjectId record {
+    # Array of line item object IDs to process in the batch request
+    SimplePublicObjectId[] inputs;
+};
+
+# OAuth2 Refresh Token Grant Configs
+
+type OAuth2RefreshTokenGrantConfig record {
+    # Refresh URL
+    string refreshUrl?;
+    string refreshToken;
+    string clientId;
+    string clientSecret;
+    string|string[] scopes?;
+    decimal defaultTokenExpTime?;
+    decimal clockSkew?;
+    map<string> optionalParams?;
+    oauth2:CredentialBearer credentialBearer?; // Special Agent Note: CredentialBearer FROM ballerina/oauth2 package
+    oauth2:ClientConfiguration clientConfig?; // Special Agent Note: ClientConfiguration FROM ballerina/oauth2 package
+};
+
+# Input schema containing an array of line item objects to create or update in a batch upsert operation
+
+type BatchInputSimplePublicObjectBatchInputUpsert record {
+    # Array of line item upsert input objects to process in batch
+    SimplePublicObjectBatchInputUpsert[] inputs;
+};
+
+# Input payload for upserting a single line item in a batch operation, identified by ID and property values
+
+type SimplePublicObjectBatchInputUpsert record {
+    # The property name used as the unique identifier for upsert
+    string idProperty?;
+    # Trace identifier for tracking the object write operation
+    string objectWriteTraceId?;
+    # The unique identifier of the line item to upsert
+    string id;
+    # Key-value map of line item property names and their values
+    record {|string...;|} properties;
+};
+
+# A paginated collection of line items with a total count and forward paging cursor
+
+type CollectionResponseWithTotalSimplePublicObjectForwardPaging record {
+    # Total number of line items matching the request
+    ballerina/lang.int:0.0.0:Signed32 total;
+    # Pagination metadata for forward-only cursor-based navigation
+    ForwardPaging paging?;
+    # Array of line item objects returned in the current page
+    SimplePublicObject[] results;
+};
+
+# Represents the Queries record for the operation: patch-/crm/v3/objects/line_items/{lineItemId}_update
+
+type PatchCrmV3ObjectsLineItemsLineItemIdUpdateQueries record {
+    # The name of a property whose values are unique for this object type
+    string idProperty?;
+};
+
+# Provides a set of configurations for controlling the behaviours when communicating with a remote HTTP endpoint
+
+type ConnectionConfig record {
+    # Provides Auth configurations needed when communicating with a remote HTTP endpoint
+    http:BearerTokenConfig|OAuth2RefreshTokenGrantConfig|ApiKeysConfig auth; // Special Agent Note: BearerTokenConfig FROM ballerina/http package
+    # The HTTP version understood by the client
+    http:HttpVersion httpVersion?; // Special Agent Note: HttpVersion FROM ballerina/http package
+    # Configurations related to HTTP/1.x protocol
+    http:ClientHttp1Settings http1Settings?; // Special Agent Note: ClientHttp1Settings FROM ballerina/http package
+    # Configurations related to HTTP/2 protocol
+    http:ClientHttp2Settings http2Settings?; // Special Agent Note: ClientHttp2Settings FROM ballerina/http package
+    # The maximum time to wait (in seconds) for a response before closing the connection
+    decimal timeout?;
+    # The choice of setting `forwarded`/`x-forwarded` header
+    string forwarded?;
+    # Configurations associated with Redirection
+    http:FollowRedirects followRedirects?; // Special Agent Note: FollowRedirects FROM ballerina/http package
+    # Configurations associated with request pooling
+    http:PoolConfiguration poolConfig?; // Special Agent Note: PoolConfiguration FROM ballerina/http package
+    # HTTP caching related configurations
+    http:CacheConfig cache?; // Special Agent Note: CacheConfig FROM ballerina/http package
+    # Specifies the way of handling compression (`accept-encoding`) header
+    http:Compression compression?; // Special Agent Note: Compression FROM ballerina/http package
+    # Configurations associated with the behaviour of the Circuit Breaker
+    http:CircuitBreakerConfig circuitBreaker?; // Special Agent Note: CircuitBreakerConfig FROM ballerina/http package
+    # Configurations associated with retrying
+    http:RetryConfig retryConfig?; // Special Agent Note: RetryConfig FROM ballerina/http package
+    # Configurations associated with cookies
+    http:CookieConfig cookieConfig?; // Special Agent Note: CookieConfig FROM ballerina/http package
+    # Configurations associated with inbound response size limits
+    http:ResponseLimitConfigs responseLimits?; // Special Agent Note: ResponseLimitConfigs FROM ballerina/http package
+    # SSL/TLS-related options
+    http:ClientSecureSocket secureSocket?; // Special Agent Note: ClientSecureSocket FROM ballerina/http package
+    # Proxy server related options
+    http:ProxyConfig proxy?; // Special Agent Note: ProxyConfig FROM ballerina/http package
+    # Provides settings related to client socket configuration
+    http:ClientSocketConfig socketConfig?; // Special Agent Note: ClientSocketConfig FROM ballerina/http package
+    # Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default
+    boolean validation?;
+    # Enables relaxed data binding on the client side. When enabled, `nil` values are treated as optional, 
+and absent fields are handled as `nilable` types. Enabled by default
+    boolean laxDataBinding?;
+};
+
+# Provides API key configurations needed when communicating with a remote HTTP endpoint
+
+type ApiKeysConfig record {
+    string privateAppLegacy;
+    string privateApp;
+};
+
+# Represents the Queries record for the operation: post-/crm/v3/objects/line_items/batch/read_read
+
+type PostCrmV3ObjectsLineItemsBatchReadReadQueries record {
+    # Whether to return only results that have been archived
+    boolean archived?;
+};
+
+# Request payload for searching line items with filters, sorting, and pagination
+
+type PublicObjectSearchRequest record {
+    # Full-text search query string to match against line items
+    string query?;
+    # Maximum number of results to return per page
+    ballerina/lang.int:0.0.0:Signed32 'limit?;
+    # Cursor token for retrieving the next page of results
+    string after?;
+    # List of property names to sort results by
+    string[] sorts?;
+    # List of property names to include in the response
+    string[] properties?;
+    # Groups of filters to apply to narrow search results
+    FilterGroup[] filterGroups?;
+};
+
+# Batch operation response containing processed line item results, status, timestamps, and any errors encountered
+
+type BatchResponseSimplePublicObjectWithErrors record {
+    # Timestamp when the batch operation completed
+    string completedAt;
+    # Total number of errors encountered during the batch operation
+    ballerina/lang.int:0.0.0:Signed32 numErrors?;
+    # Timestamp when the batch operation was requested
+    string requestedAt?;
+    # Timestamp when the batch operation began processing
+    string startedAt;
+    # Map of relevant link names to associated URIs
+    record {|string...;|} links?;
+    # Collection of successfully processed line item objects
+    SimplePublicObject[] results;
+    # List of errors for individual records that failed processing
+    StandardError[] errors?;
+    # Current processing status of the batch operation
+    "PENDING"|"PROCESSING"|"CANCELED"|"COMPLETE" status;
+};
+
+# Input payload for creating or updating a line item, containing property values and optional association definitions
+
+type SimplePublicObjectInput record {
+    # Trace identifier for auditing or debugging the write operation
+    string objectWriteTraceId?;
+    # Key-value map of line item property names and their string values
+    record {|string...;|} properties;
+};
+
+# Paginated collection of line items, each including associated object references
+
+type CollectionResponseSimplePublicObjectWithAssociationsForwardPaging record {
+    # Pagination metadata for forward-only cursor-based navigation
+    ForwardPaging paging?;
+    # Array of line item objects returned in the current page, each with associations
+    SimplePublicObjectWithAssociations[] results;
+};
+
+# A line item object including its properties, timestamps, and related object associations
+
+type SimplePublicObjectWithAssociations record {
+    # Map of associated CRM objects, keyed by association type label
+    record {|ballerinax/hubspot.crm.obj.lineitems:2.0.2:CollectionResponseAssociatedId...;|} associations?;
+    # Timestamp indicating when the line item was created
+    string createdAt;
+    # Indicates whether the line item has been archived
+    boolean archived?;
+    # Timestamp indicating when the line item was archived
+    string archivedAt?;
+    # Map of property names to their historical values with timestamps
+    record {|ballerinax/hubspot.crm.obj.lineitems:2.0.2:ValueWithTimestamp[]...;|} propertiesWithHistory?;
+    # Unique identifier of the line item
+    string id;
+    # Key-value map of the line item's current property names and values
+    record {|string?...;|} properties;
+    # Timestamp indicating when the line item was last updated
+    string updatedAt;
+};
+
+# Batch input wrapper containing an array of line item creation payloads
+
+type BatchInputSimplePublicObjectInputForCreate record {
+    # Array of line item input objects to create
+    SimplePublicObjectInputForCreate[] inputs;
+};
+
+# Input schema for creating a new line item with properties and associations
+
+type SimplePublicObjectInputForCreate record {
+    # List of associations linking the new line item to other CRM objects
+    PublicAssociationsForObject[] associations;
+    # Trace ID for tracking the write operation
+    string objectWriteTraceId?;
+    # Key-value pairs of properties to set on the new line item
+    record {|string...;|} properties;
+};
+
+# Batch input wrapper containing an array of line item update payloads
+
+type BatchInputSimplePublicObjectBatchInput record {
+    # Array of line item batch input objects to update
+    SimplePublicObjectBatchInput[] inputs;
+};
+
+# Input schema for updating a single line item in a batch operation
+
+type SimplePublicObjectBatchInput record {
+    # The property name used as the unique identifier for the record
+    string idProperty?;
+    # Trace ID for tracking the write operation
+    string objectWriteTraceId?;
+    # The unique identifier of the line item to update
+    string id;
+    # Key-value pairs of line item properties to update
+    record {|string...;|} properties;
+};
+
+# Represents the Queries record for the operation: get-/crm/v3/objects/line_items_getPage
+
+type GetCrmV3ObjectsLineItemsGetPageQueries record {
+    # A comma separated list of object types to retrieve associated IDs for. If any of the specified associations do not exist, they will be ignored
+    string[] associations?;
+    # Whether to return only results that have been archived
+    boolean archived?;
+    # A comma separated list of the properties to be returned along with their history of previous values. If any of the specified properties are not present on the requested object(s), they will be ignored. Usage of this parameter will reduce the maximum number of objects that can be read by a single request
+    string[] propertiesWithHistory?;
+    # The maximum number of results to display per page
+    ballerina/lang.int:0.0.0:Signed32 'limit?;
+    # The paging cursor token of the last successfully read resource will be returned as the `paging.next.after` JSON property of a paged response containing more results
+    string after?;
+    # A comma separated list of the properties to be returned in the response. If any of the specified properties are not present on the requested object(s), they will be ignored
+    string[] properties?;
+};
+
+// --- Client ---
+
+client class Client {
+    function init(ConnectionConfig config, string serviceUrl = "https://api.hubapi.com/crm/v3/objects/line_items") returns error?;
+
+    # Read line items by ID or property
+    # 
+    resource function post batch/read(BatchReadInputSimplePublicObjectId payload, map<string|string[]> headers = {}, boolean archived = false, anydata Additional Values, PostCrmV3ObjectsLineItemsBatchReadReadQueries queries) returns BatchResponseSimplePublicObject|BatchResponseSimplePublicObjectWithErrors|error;
+
+    # Retrieve a line item by ID
+    # 
+    resource function get [string lineItemId](map<string|string[]> headers = {}, string[] associations = [], boolean archived = false, string[] propertiesWithHistory = [], string idProperty = "", string[] properties = [], anydata Additional Values, GetCrmV3ObjectsLineItemsLineItemIdGetByIdQueries queries) returns SimplePublicObjectWithAssociations|error;
+
+    # Archive a line item by ID
+    # 
+    resource function delete [string lineItemId](map<string|string[]> headers = {}) returns error?;
+
+    # Update a line item by ID
+    # 
+    resource function patch [string lineItemId](SimplePublicObjectInput payload, map<string|string[]> headers = {}, string idProperty = "", anydata Additional Values, PatchCrmV3ObjectsLineItemsLineItemIdUpdateQueries queries) returns SimplePublicObject|error;
+
+    # Archive a batch of line items by ID
+    # 
+    resource function post batch/archive(BatchInputSimplePublicObjectId payload, map<string|string[]> headers = {}) returns error?;
+
+    # Create a batch of line items
+    # 
+    resource function post batch/create(BatchInputSimplePublicObjectInputForCreate payload, map<string|string[]> headers = {}) returns BatchResponseSimplePublicObject|BatchResponseSimplePublicObjectWithErrors|error;
+
+    # Update line items by ID or property
+    # 
+    resource function post batch/update(BatchInputSimplePublicObjectBatchInput payload, map<string|string[]> headers = {}) returns BatchResponseSimplePublicObject|BatchResponseSimplePublicObjectWithErrors|error;
+
+    # List a page of line items
+    # 
+    resource function get (map<string|string[]> headers = {}, string[] associations = [], boolean archived = false, string[] propertiesWithHistory = [], int:Signed32 limit = 0, string after = "", string[] properties = [], anydata Additional Values, GetCrmV3ObjectsLineItemsGetPageQueries queries) returns CollectionResponseSimplePublicObjectWithAssociationsForwardPaging|error;
+
+    # Create a line item
+    # 
+    resource function post (SimplePublicObjectInputForCreate payload, map<string|string[]> headers = {}) returns SimplePublicObject|error;
+
+    # Upsert line items by property
+    # 
+    resource function post batch/upsert(BatchInputSimplePublicObjectBatchInputUpsert payload, map<string|string[]> headers = {}) returns BatchResponseSimplePublicUpsertObject|BatchResponseSimplePublicUpsertObjectWithErrors|error;
+
+    # Search line items
+    # 
+    resource function post search(PublicObjectSearchRequest payload, map<string|string[]> headers = {}) returns CollectionResponseWithTotalSimplePublicObjectForwardPaging|error;
+}

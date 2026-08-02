@@ -1,0 +1,1578 @@
+// ============================================================
+// Library: ballerina/graphql
+// This module provides APIs for connecting and interacting with GraphQL endpoints.
+// ============================================================
+import ballerina/graphql;
+
+// --- README ---
+## Overview
+
+This module provides APIs for connecting and interacting with GraphQL endpoints.
+
+GraphQL is an open-source data query and manipulation language for APIs. GraphQL allows clients to define the structure of the data required and the same structure of the data is returned from the server, preventing the returning of excessively large amounts of data or reducing the number of requests sent to the server.
+
+The Ballerina GraphQL implementation is using HTTP as the underlying protocol.
+
+## Listener
+
+The `graphql:Listener` is used to listen to a given IP/Port. To create a `graphql:Listener`, an `http:Listener` or a port number can be used.
+
+### Create a standalone `graphql:Listener`
+
+```ballerina
+import ballerina/graphql;
+
+listener graphql:Listener graphqlListener = check new(4000);
+```
+
+### Create a `graphql:Listener` using an `http:Listener`
+
+```ballerina
+import ballerina/graphql;
+import ballerina/http;
+
+listener http:Listener httpListener = check new(4000);
+listener graphql:Listener graphqlListener = check new(httpListener);
+```
+
+## Service
+
+The Ballerina GraphQL service represents the GraphQL schema. When a service is attached to a `graphql:Listener`, a GraphQL schema will be auto-generated.
+
+The GraphQL services are exposed through a single endpoint. The path of the GraphQL service endpoint can be provided via the service path of the GraphQL service. The endpoint of the following Ballerina GraphQL service will be `/graphql`.
+
+```ballerina
+import ballerina/graphql;
+
+service graphql:Service /graphql on graphqlListener {
+    // ...
+}
+```
+
+The GraphQL service endpoint URL will be `<host>:<port>/graphql`.
+
+Alternatively, a Ballerina graphql service can not have a path, in which case the endpoint will be the host URL and the port as following example.
+
+```ballerina
+import ballerina/graphql;
+
+service graphql:Service on graphqlListener {
+    // ...
+}
+```
+
+The GraphQL service endpoint URL will be `<host>:<port>`
+
+Alternatively, the listener and service initialization can be combined into a single statement as follows:
+
+```ballerina
+service graphql:Service on new graphql:Listener(9090) {
+
+}
+```
+
+### Query type
+
+The `resource` functions inside the GraphQL service can represent the resolvers of the `Query` root type.
+
+When a `resource` function is defined inside a GraphQL service with the `get` accessor, the generated schema will have a `Query` root type and the `resource` function will be a field of the `Query` object.
+
+>**Note:** A GraphQL service must have at least one resource function defined. Otherwise, it will result in a compilation error.
+
+The `resource` method must use the `get` accessor for a field to be considered as a `Query` field. The `resource` function name will become the name of the particular field in the GraphQL schema. The return type of the `resource` function will be the type of the corresponding field.
+
+```ballerina
+import ballerina/graphql;
+
+service graphql:Service /graphql on new graphql:Listener(4000) {
+    resource function get greeting(string name) returns string {
+        return "Hello, " + name;
+    }
+}
+```
+
+The above can be queried using the GraphQL document below:
+
+```graphql
+{
+    greeting(name: "John")
+}
+```
+
+The result will be the following JSON.
+
+```json
+{
+    "data": {
+        "greeting": "Hello, John"
+    }
+}
+```
+
+### Mutation type
+
+The `remote` functions inside the GraphQL service represent the resolvers of the `Mutation` root type.
+
+When a `remote` function is defined inside a GraphQL service, the schema will have a `Mutation` operation and the `remote` function will be a field of the `Mutation` object.
+
+For example, consider the following service that has a `Person` record named `profile`. It has a `Query` field named `profile`, which returns the `Person` record. It also has two `remote` functions named `updateName` and `updateCity`, which are used as mutations.
+
+```ballerina
+import ballerina/graphql;
+
+public type Person record {|
+    string name;
+    int age;
+    string city;
+|};
+
+service /graphql on new graphql:Listener(4000) {
+    private Person profile;
+
+    function init() {
+        self.profile = { name: "Walter White", age: 50, city: "Albuquerque" };
+    }
+
+    resource function get profile() returns Person {
+        return self.profile;
+    }
+
+    remote function updateName(string name) returns Person {
+        self.profile.name = name;
+        return self.profile;
+    }
+
+    remote function updateCity(string city) returns Person {
+        self.profile.city = city;
+        return self.profile;
+    }
+}
+```
+
+This will generate the following schema:
+
+```graphql
+type Query {
+    profile: Person!
+}
+
+type Mutation {
+    updateName(name: String!): Person!
+    updateCity(city: String!): Person!
+}
+
+type Person {
+    name: String!
+    age: Int!
+    city: String!
+}
+```
+
+>**Note:** A GraphQL schema must have a root `Query` type. Therefore, a Ballerina GraphQL service must have at least one `resource` function defined.
+
+This can be mutated using the following document.
+
+```graphql
+mutation updatePerson {
+    updateName(name: "Mr. Lambert") {
+        ... ProfileFragment
+    }
+    updateCity(city: "New Hampshire") {
+        ... ProfileFragment
+    }
+}
+
+fragment ProfileFragment on Person {
+    name
+    city
+}
+```
+
+>**Note:** This document uses two mutations and each mutation requests the same fields from the service using a fragment (`ProfileFragment`).
+
+Result:
+
+```json
+{
+    "data": {
+        "updateName": {
+            "name": "Mr. Lambert",
+            "city": "Albuquerque"
+        },
+        "updateCity": {
+            "name": "Mr. Lambert",
+            "city": "New Hampshire"
+        }
+    }
+}
+```
+
+See how the result changes the `Person` record. The first mutation changes only the name and it populates the result of the `updateName` field. Then, it will execute the `updateCity` operation and populate the result. This is because the execution of the mutation operations will be done serially in the same order as they are specified in the document.
+
+### Subscription Type
+
+The subscription type can be used to continuously fetch the data from a GraphQL service.
+
+The `resource` functions inside the GraphQL service with the `subscribe` accessor can represent the resolvers of the `Subscription` root type.
+
+When a `resource` function is defined inside a GraphQL service with the `subscribe` accessor, the generated schema will have a `Subscription` root type and the `resource` function will be a field of the `Subscription` object.
+
+The `resource` method must use the `subscribe` accessor for a field to be considered as a `Subscription` field. The `resource` function name will become the name of the particular field in the GraphQL schema. The return type of the `resource` function will be the type of the corresponding field.
+
+The `resource` functions that belong to `Subscription` type must return a stream of `any` type. Any other return type will result in a compilation error.
+
+The return type
+
+```ballerina
+import ballerina/graphql;
+
+service graphql:Service /graphql on new graphql:Listener(4000) {
+    resource function subscribe messages() returns stream<string> {
+        return ["Walter", "Jesse", "Mike"].toStream();
+    }
+}
+```
+
+The above can be queried using the GraphQL document below:
+
+```graphql
+subscription {
+    messages
+}
+```
+
+When a subscription type is defined, a WebSocket service will be created to call the subscription. The above service
+will create the service as follows:
+
+```none
+ws://<host>:4000/graphql
+```
+
+This can be accessed using a WebSocket client. When the returned stream has a new entry, it will be broadcast to the subscribers.
+
+## Types
+
+The Ballerina GraphQL resolver (`resource`/`remote`) methods can return the following types:
+
+### Return types
+
+#### Scalar types
+
+When a Ballerina primitive type is returned from a `resource` or a `remote` method, it will be mapped to a GraphQL `NON_NULL` type of the corresponding GraphQL scalar type.
+
+The following Ballerina types are considered as Scalar types:
+
+* `int`
+* `string`
+* `boolean`
+* `float`
+
+```ballerina
+resource function get greeting() returns string {
+    return "Hello, World";
+}
+```
+
+This can be queried using the following document:
+
+```graphql
+{
+    greeting
+}
+```
+
+Result:
+
+```json
+{
+    "data": {
+        "greeting": "Hello, World"
+    }
+}
+```
+
+#### Enums
+
+When a `resource` or a `remote` function returns an `enum` value, it will be mapped to a GraphQL `ENUM` type.
+
+```ballerina
+import ballerina/graphql;
+
+public enum Color {
+    RED,
+    GREEN,
+    BLUE
+}
+
+service on new graphql:Listener(4000) {
+    resource function get color(int code) returns Color {
+        // ...
+    }
+}
+```
+
+The above service will generate the following GraphQL schema.
+
+```graphql
+type Query {
+    color: Color!
+}
+
+enum Color {
+    RED
+    GREEN
+    BLUE
+}
+```
+
+#### Record types
+
+When a `resource` or `remote` method is returning a `record` type, each field of the record can be queried separately.
+Each `record` type is mapped to a GraphQL `OBJECT` type and the fields of the `record` type are mapped to the fields of the `OBJECT` type.
+
+```ballerina
+public type Person record {|
+    string name;
+    int age;
+|};
+
+resource function get profile() returns Person {
+    return { name: "Walter White", age: 51 };
+}
+```
+
+This will generate the following schema.
+
+```graphql
+type Query {
+    profile: Person!
+}
+
+type Person {
+    name: String!
+    age: Int!
+}
+```
+
+This can be queried using the following document:
+
+```graphql
+{
+    profile {
+        name
+        age
+    }
+}
+```
+
+Result:
+
+```json
+{
+    "data": {
+        "profile": {
+            "name": "Walter White",
+            "age": 51
+        }
+    }
+}
+```
+
+Each field can be queried separately as shown in the following document:
+
+```graphql
+{
+    profile {
+        name
+    }
+}
+```
+
+Result:
+
+```json
+{
+    "data": {
+        "profile": {
+            "name": "Walter White"
+        }
+    }
+}
+```
+
+#### Service types
+
+When a `resource` function returns a service type, the service type is mapped to a GraphQL `OBJECT` type and the `resource` methods of the service type will be mapped as the fields of the `OBJECT`.
+
+When a service type is returned from a `graphql:Service`, the returning service type should also follow the rules of the `graphql:Service` explained above.
+
+```ballerina
+import ballerina/graphql;
+
+service graphql:Service /graphql on new graphql:Listener(4000) {
+    resource function get profile() returns Person {
+        return new("Walter White", 51);
+    }
+}
+
+service class Person {
+    private string name;
+    private int age;
+
+    public function init(string name, int age) {
+        self.name = name;
+        self.age = age;
+    }
+
+    resource function get name() returns string => self.name;
+
+    resource function get age() returns int => self.age;
+}
+```
+
+This will generate the following schema:
+
+```graphql
+type Query {
+    profile: Person!
+}
+
+type Person {
+    name: String!
+    age: Int!
+}
+```
+
+This can be queried using the following document:
+
+```graphql
+query getProfile {
+    profile {
+        name
+    }
+}
+```
+
+The above will result in the following JSON:
+
+```json
+{
+    "data": {
+        "profile": {
+            "name": "Walter White"
+        }
+    }
+}
+```
+
+#### Arrays
+
+A GraphQL `resource` function can return an array of the types mentioned above. When a `resource` method returns an array, the corresponding GraphQL field will be the type of `LIST`.
+
+```ballerina
+public type Person record {|
+    string name;
+    int age;
+|};
+
+resource function get people() returns Person[] {
+    Person p1 = { name: "Walter White", age: 51 };
+    Person p2 = { name: "James Moriarty", age: 45 };
+    Person p3 = { name: "Tom Marvolo Riddle", age: 71 };
+    return [p1, p2, p3];
+}
+```
+
+This will generate the following schema:
+
+```graphql
+type Query {
+    profile: [Person!]!
+}
+
+type Person {
+    name: String!
+    age: Int!
+}
+```
+
+This can be queried using the following document:
+
+```graphql
+{
+    people {
+        name
+    }
+}
+```
+
+Result:
+
+```json
+{
+    "data": {
+        "people": [
+            {
+                "name": "Walter White"
+            },
+            {
+                "name": "James Moriarty"
+            },
+            {
+                "name": "Tom Marvolo Riddle"
+            }
+        ]
+    }
+}
+```
+
+> **Note:** Each element in the array consists only of the required `name` field.
+
+#### Nullable types
+
+A Ballerina GraphQL `resource` function can return a union of a type and nil. When a `resource` method returns a union of a type and nil, the corresponding GraphQL field will be of a nullable type.
+
+```ballerina
+public type Person record {|
+    string name;
+    int age;
+|};
+
+resource function get profile(int id) returns Person? {
+    if (id == 1) {
+        return { name: "Walter White", age: 51 };
+    }
+}
+```
+
+This will generate the following schema:
+
+```graphql
+type Query {
+    profile: Person
+}
+
+type Person {
+    name: String!
+    age: Int!
+}
+```
+
+This can be queried using the following document:
+
+```graphql
+{
+    profile(id: 1) {
+        name
+    }
+}
+```
+
+Result:
+
+```json
+{
+    "data": {
+        "profile": {
+            "name": "Walter White"
+        }
+    }
+}
+```
+
+If the following document is used:
+
+```graphql
+{
+    profile(id: 4) {
+        name
+    }
+}
+```
+
+This will be the result:
+
+```json
+{
+    "data": {
+        "profile": null
+    }
+}
+```
+
+#### Union types
+
+The Ballerina GraphQL service can return a union of distinct service types. This will be mapped to a GraphQL `UNION` type.
+
+> **Note:** If a union type is returned directly without providing a type name (`returns T1|T2|T3`), the type name will be `T1_T2_T3`.
+
+```ballerina
+import ballerina/graphql;
+
+public type Profile Student|Teacher;
+
+service /graphql on new graphql:Listener(4000) {
+    resource function get profile(int purity) returns Profile {
+        if (purity < 90) {
+            return new Student(1, "Jesse Pinkman");
+        } else {
+            return new Teacher(737, "Walter White", "Chemistry");
+        }
+    }
+}
+
+distinct service class Student {
+    private int id;
+    private string name;
+
+    public function init(int id, string name) {
+        self.id = id;
+        self.name = name;
+    }
+
+    resource function get id() returns int {
+        return self.id;
+    }
+
+    resource function get name() returns string {
+        return self.name;
+    }
+}
+
+distinct service class Teacher {
+    private int id;
+    private string name;
+    private string subject;
+
+    public function init(int id, string name, string subject) {
+        self.id = id;
+        self.name = name;
+        self.subject = subject;
+    }
+
+    resource function get id() returns int {
+        return self.id;
+    }
+
+    resource function get name() returns string {
+        return self.name;
+    }
+
+    resource function get subject() returns string {
+        return self.subject;
+    }
+}
+```
+
+This will generate the following schema:
+
+```graphql
+type Query {
+    profile(purity: Int!): Profile!
+}
+
+type Student {
+    id: Int!
+    name: String!
+}
+
+type Teacher {
+    id: Int!
+    name: String!
+    subject: String!
+}
+
+union Profile = Student|Teacher
+```
+
+This can be queried using the following document:
+
+```graphql
+query {
+    profile(purity: 75) {
+        ... on Student {
+            name
+        }
+        ... on Teacher {
+            name
+            subject
+        }
+    }
+}
+```
+
+The result will be:
+
+```json
+{
+    "data": {
+        "profile": {
+            "name": "Jesse Pinkman"
+        }
+    }
+}
+```
+
+If the following document is used:
+
+```graphql
+query {
+    profile(purity: 99) {
+        ... on Student {
+            name
+        }
+        ... on Teacher {
+            name
+            subject
+        }
+    }
+}
+```
+
+The result will be:
+
+```json
+{
+    "data": {
+        "profile": {
+            "name": "Walter White",
+            "subject": "Chemistry"
+        }
+    }
+}
+```
+
+#### Errors
+
+A Ballerina GraphQL `resource` or `remote` method can return an `error` with the union of the types mentioned above.
+
+> **Note:** A `resource` or a `remote` function cannot return only an `error`, any subtype of an `error`, or, an `error?`, which will result in a compilation error.
+
+```ballerina
+public type Person record {|
+    string name;
+    int age;
+|};
+
+resource function get profile(int id) returns Person|error {
+    if (id == 1) {
+        return { name: "Walter White", age: 51 };
+    } else {
+        return error(string `Invalid ID provided: ${id}`);
+    }
+}
+```
+
+This can be queried using the following document:
+
+```graphql
+{
+    profile(id: 5) {
+        name
+    }
+}
+```
+
+Result:
+
+```json
+{
+    "errors": [
+        {
+            "message": "Invalid ID provided: 5",
+            "locations": [
+                {
+                    "line": 2,
+                    "column": 4
+                }
+            ]
+        }
+    ]
+}
+```
+
+> **Note:** The error message will be logged to the console and the error will be returned to the client.
+
+### Hierarchical resource paths
+
+A `resource` method inside a GraphQL service can have hierarchical paths.
+
+When a hierarchical path is present, each level of the hierarchical path maps to the GraphQL field of the same name, and the type of that field will be mapped to an `OBJECT` type with the same name.
+
+```ballerina
+import ballerina/graphql;
+
+service graphql:Service /graphql on new graphq:Listener(4000) {
+    resource function profile/name/first() returns string {
+        return "Walter";
+    }
+
+    resource function profile/name/last() returns string {
+        return "White"
+    }
+
+    resource function profile/age() returns int {
+        return 51;
+    }
+}
+```
+
+The above service will create the following schema:
+
+```graphql
+type Query {
+    profile: profile!
+}
+
+type profile {
+    name: name!
+    age: Int!
+}
+
+type name {
+    first: String!
+    last: String!
+}
+```
+
+> **Note:** The field name and the type names are equal.
+
+Refer to the [Ballerina GraphQL specification](https://ballerina.io/spec/graphql) for more information.
+
+// --- END README ---
+
+// --- Types ---
+
+# The prefix used to denote the Basic authentication scheme.
+const string AUTH_SCHEME_BASIC = "Basic";
+
+# The prefix used to denote the Bearer authentication scheme.
+const string AUTH_SCHEME_BEARER = "Bearer";
+
+const string SCALAR = "SCALAR";
+
+const string OBJECT = "OBJECT";
+
+const string ENUM = "ENUM";
+
+const string NON_NULL = "NON_NULL";
+
+const string LIST = "LIST";
+
+const string UNION = "UNION";
+
+const string INTERFACE = "INTERFACE";
+
+const string INPUT_OBJECT = "INPUT_OBJECT";
+
+# When service behaves as a HTTP gateway inbound request/response accept-encoding option is set as the
+# outbound request/response accept-encoding/content-encoding option.
+const string COMPRESSION_AUTO = "AUTO";
+
+# Always set accept-encoding/content-encoding in outbound request/response.
+const string COMPRESSION_ALWAYS = "ALWAYS";
+
+# Never set accept-encoding/content-encoding header in outbound request/response.
+const string COMPRESSION_NEVER = "NEVER";
+
+# Provides a set of configurations for the GraphQL service.
+
+type GraphqlServiceConfig record {
+    # The maximum depth allowed for a query
+    int maxQueryDepth?;
+    # Listener authentication configurations
+    ListenerAuthConfig[] auth?;
+    # Function to initialize the context. If not provided, an empty context will be created
+    ContextInit contextInit?;
+    # The cross origin resource sharing configurations for the service
+    CorsConfig cors?;
+    # GraphiQL client configurations
+    Graphiql graphiql?;
+    # The generated schema. This is auto-generated at the compile-time. Providing a value for this field will end up in
+a compilation error.
+    string schemaString?;
+    # GraphQL service level interceptors
+    (ballerina/graphql:1.17.0:Interceptor & readonly)|(ballerina/graphql:1.17.0:Interceptor & readonly)[] & readonly interceptors?;
+    # Whether to enable or disable the introspection on the service
+    boolean introspection?;
+    # Whether to enable or disable the constraint validation
+    boolean validation?;
+    # The cache configurations for the operations
+    ServerCacheConfig cacheConfig?;
+    # The field cache config derived from the resource annotations. This is auto-generated at the compile time
+    ServerCacheConfig|() fieldCacheConfig?;
+    # The query complexity configuration for the service.
+    QueryComplexityConfig queryComplexityConfig?;
+    # The document cache configurations for the service
+    DocumentCacheConfig documentCacheConfig?;
+};
+
+# Represents the auth annotation for file user store configurations with scopes.
+# 
+
+type FileUserStoreConfigWithScopes record {
+    # File user store configurations for Basic Auth authentication
+    FileUserStoreConfig fileUserStoreConfig;
+    # Scopes allowed for authorization
+    string|string[] scopes?;
+};
+
+# Represents file user store configurations for Basic Auth authentication.
+
+type FileUserStoreConfig record {
+};
+
+# Represents the auth annotation for LDAP user store configurations with scopes.
+# 
+
+type LdapUserStoreConfigWithScopes record {
+    # LDAP user store configurations for Basic Auth authentication
+    LdapUserStoreConfig ldapUserStoreConfig;
+    # Scopes allowed for authorization
+    string|string[] scopes?;
+};
+
+# Represents LDAP user store configurations for Basic Auth authentication.
+
+type LdapUserStoreConfig record {
+    string domainName;
+    string connectionUrl;
+    string connectionName;
+    string connectionPassword;
+    string userSearchBase;
+    string userEntryObjectClass;
+    string userNameAttribute;
+    string userNameSearchFilter;
+    string userNameListFilter;
+    string[] groupSearchBase;
+    string groupEntryObjectClass;
+    string groupNameAttribute;
+    string groupNameSearchFilter;
+    string groupNameListFilter;
+    string membershipAttribute;
+    boolean userRolesCacheEnabled?;
+    boolean connectionPoolingEnabled?;
+    decimal connectionTimeout?;
+    decimal readTimeout?;
+    auth:SecureSocket secureSocket?; // Special Agent Note: SecureSocket FROM ballerina/auth package
+};
+
+# Represents the auth annotation for JWT validator configurations with scopes.
+# 
+
+type JwtValidatorConfigWithScopes record {
+    # JWT validator configurations for JWT authentication
+    JwtValidatorConfig jwtValidatorConfig;
+    # Scopes allowed for authorization
+    string|string[] scopes?;
+};
+
+# Represents JWT validator configurations for JWT authentication.
+# 
+
+type JwtValidatorConfig record {
+    # The key used to fetch the scopes
+    string scopeKey?;
+    string issuer?;
+    string username?;
+    string|string[] audience?;
+    string jwtId?;
+    string keyId?;
+    map<json> customClaims?;
+    decimal clockSkew?;
+    jwt:ValidatorSignatureConfig signatureConfig?; // Special Agent Note: ValidatorSignatureConfig FROM ballerina/jwt package
+    cache:CacheConfig cacheConfig?; // Special Agent Note: CacheConfig FROM ballerina/cache package
+};
+
+# Represents the auth annotation for OAuth2 introspection server configurations with scopes.
+# 
+
+type OAuth2IntrospectionConfigWithScopes record {
+    # OAuth2 introspection server configurations for OAuth2 authentication
+    OAuth2IntrospectionConfig oauth2IntrospectionConfig;
+    # Scopes allowed for authorization
+    string|string[] scopes?;
+};
+
+# Represents OAuth2 introspection server configurations for OAuth2 authentication.
+# 
+
+type OAuth2IntrospectionConfig record {
+    # The key used to fetch the scopes
+    string scopeKey?;
+    string url;
+    string tokenTypeHint?;
+    map<string> optionalParams?;
+    cache:CacheConfig cacheConfig?; // Special Agent Note: CacheConfig FROM ballerina/cache package
+    decimal defaultTokenExpTime?;
+    oauth2:ClientConfiguration clientConfig?; // Special Agent Note: ClientConfiguration FROM ballerina/oauth2 package
+};
+
+# Defines the authentication configurations for the GraphQL listener.
+type ListenerAuthConfig ballerina/graphql:1.17.0:FileUserStoreConfigWithScopes|ballerina/graphql:1.17.0:LdapUserStoreConfigWithScopes|ballerina/graphql:1.17.0:JwtValidatorConfigWithScopes|ballerina/graphql:1.17.0:OAuth2IntrospectionConfigWithScopes;
+
+// Unknown type: Context
+
+# Represents an error in GraphQL.
+
+type ErrorDetail record {
+    string message;
+    parser:Location[] locations?; // Special Agent Note: Location FROM ballerina/graphql.parser package
+    (int|string)[] path?;
+    map<anydata> extensions?;
+};
+
+# Represents a GraphQL schema type.
+
+type __Type record {
+    # The `__TypeKind` of the type
+    __TypeKind kind;
+    # The name of the type. This can be nil if the type is `NON_NULL` or `LIST`
+    string? name?;
+    # The description of the type
+    string? description?;
+    # The fields of the type. This only applies if the `kind` is `OBJECT` or `INTERFACE`. Otherwise,
+this will be nil.
+    __Field[]|() fields?;
+    # The interfaces of the type. This only applies if the `kind` is `OBJECT` or `INTERFACE`. Otherwise,
+this will be nil.
+    __Type[]|() interfaces?;
+    # The possible types of the type. This only applies if the `kind` is `UNION` or `INTERFACE`.
+Otherwise, this will be nil.
+    __Type[]|() possibleTypes?;
+    # The enum values of the type. This only applies if the `kind` is `ENUM`. Otherwise, this will be nil.
+    __EnumValue[]|() enumValues?;
+    # The input fields of the type. This only applies if the `kind` is `INPUT_OBJECT`. Otherwise,
+this will be nil.
+    __InputValue[]|() inputFields?;
+    # The type of the type. This only applies if the `kind` is `NON_NULL` or `LIST`. Otherwise, this will be nil.
+    __Type|() ofType?;
+};
+
+# Represents a GraphQL type kind. This is used to represent the kind of a GraphQL type.
+enum __TypeKind {
+    INPUT_OBJECT,
+    INTERFACE,
+    UNION,
+    LIST,
+    NON_NULL,
+    ENUM,
+    OBJECT,
+    SCALAR
+}
+
+# Represents a GraphQL field.
+
+type __Field record {
+    # The name of the field
+    string name;
+    # The description of the field
+    string? description?;
+    # The arguments of the field
+    __InputValue[] args;
+    __Type 'type;
+    # Whether the field is deprecated
+    boolean isDeprecated?;
+    # The reason for deprecation of the field
+    string? deprecationReason?;
+};
+
+# Represents a GraphQL input value.
+
+type __InputValue record {
+    # The name of the input value
+    string name;
+    # The description of the input value
+    string? description?;
+    __Type 'type;
+    # The default value of the input value, if there is one
+    string? defaultValue?;
+};
+
+# Represents a GraphQL enum value.
+
+type __EnumValue record {
+    # The name of the enum value
+    string name;
+    # The description of the enum value
+    string? description?;
+    # Whether the enum value is deprecated
+    boolean isDeprecated?;
+    # The reason for deprecation of the enum value
+    string? deprecationReason?;
+};
+
+# Represent a GraphQL interceptor
+class Interceptor {
+}
+
+# Represent the cache configurations of GraphQL server.
+# 
+
+type ServerCacheConfig record {
+    # State of the caching
+    boolean enabled?;
+    # TTL of the cache in seconds
+    decimal maxAge?;
+    # Maximum number of cache entries
+    int maxSize?;
+};
+
+# Defines the query complexity configuration for the GraphQL service.
+
+type QueryComplexityConfig record {
+    int maxComplexity?;
+    int defaultFieldComplexity?;
+    boolean warnOnly?;
+};
+
+// Unknown type: ContextInit
+
+# Represent CORS configurations for internal HTTP service
+
+type CorsConfig record {
+    string[] allowHeaders?;
+    string[] allowMethods?;
+    string[] allowOrigins?;
+    string[] exposeHeaders?;
+    boolean allowCredentials?;
+    decimal maxAge?;
+};
+
+# Represent GraphiQL client configurations
+# 
+
+type Graphiql record {
+    # Status of the client
+    boolean enabled?;
+    # Path for the client
+    string path?;
+    # Enable/disable printing the GraphiQL client URL to the stdout
+    boolean printUrl?;
+};
+
+# Represent the document cache configurations of GraphQL server.
+# 
+
+type DocumentCacheConfig record {
+    # State of the document caching
+    boolean enabled?;
+    # Maximum number of cache entries
+    int maxSize?;
+};
+
+# Provides a set of configurations for the GraphQL resolvers.
+
+type GraphqlResourceConfig record {
+    # GraphQL field level interceptors
+    (ballerina/graphql:1.17.0:Interceptor & readonly)|(ballerina/graphql:1.17.0:Interceptor & readonly)[] & readonly interceptors?;
+    # The name of the instance method to be used for prefetching
+    string prefetchMethodName?;
+    # The cache configurations for the fields
+    ServerCacheConfig cacheConfig?;
+    # The complexity value of the field
+    int complexity?;
+};
+
+# Provides a set of configurations for the GraphQL interceptors.
+
+type GraphqlInterceptorConfig record {
+    # Scope of the interceptor. If `true`, the interceptor will be applied to all the resolvers.
+    boolean global?;
+};
+
+# Represents credentials for Basic Auth authentication.
+
+type CredentialsConfig record {
+    string username;
+    string password;
+};
+
+# Represents token for Bearer token authentication.
+
+type BearerTokenConfig record {
+    string token;
+};
+
+# Represents JWT issuer configurations for JWT authentication.
+
+type JwtIssuerConfig record {
+    string issuer?;
+    string username?;
+    string|string[] audience?;
+    string jwtId?;
+    string keyId?;
+    map<json> customClaims?;
+    decimal expTime?;
+    jwt:IssuerSignatureConfig signatureConfig?; // Special Agent Note: IssuerSignatureConfig FROM ballerina/jwt package
+};
+
+# Represents OAuth2 client credentials grant configurations for OAuth2 authentication.
+
+type OAuth2ClientCredentialsGrantConfig record {
+    string tokenUrl;
+    string clientId;
+    string clientSecret;
+    string|string[] scopes?;
+    decimal defaultTokenExpTime?;
+    decimal clockSkew?;
+    map<string> optionalParams?;
+    oauth2:CredentialBearer credentialBearer?; // Special Agent Note: CredentialBearer FROM ballerina/oauth2 package
+    oauth2:ClientConfiguration clientConfig?; // Special Agent Note: ClientConfiguration FROM ballerina/oauth2 package
+};
+
+# Represents OAuth2 password grant configurations for OAuth2 authentication.
+
+type OAuth2PasswordGrantConfig record {
+    string tokenUrl;
+    string username;
+    string password;
+    string clientId?;
+    string clientSecret?;
+    string|string[] scopes?;
+    oauth2:RefreshConfig|"INFER_REFRESH_CONFIG" refreshConfig?; // Special Agent Note: RefreshConfig FROM ballerina/oauth2 package
+    decimal defaultTokenExpTime?;
+    decimal clockSkew?;
+    map<string> optionalParams?;
+    oauth2:CredentialBearer credentialBearer?; // Special Agent Note: CredentialBearer FROM ballerina/oauth2 package
+    oauth2:ClientConfiguration clientConfig?; // Special Agent Note: ClientConfiguration FROM ballerina/oauth2 package
+};
+
+# Represents OAuth2 refresh token grant configurations for OAuth2 authentication.
+
+type OAuth2RefreshTokenGrantConfig record {
+    string refreshUrl;
+    string refreshToken;
+    string clientId;
+    string clientSecret;
+    string|string[] scopes?;
+    decimal defaultTokenExpTime?;
+    decimal clockSkew?;
+    map<string> optionalParams?;
+    oauth2:CredentialBearer credentialBearer?; // Special Agent Note: CredentialBearer FROM ballerina/oauth2 package
+    oauth2:ClientConfiguration clientConfig?; // Special Agent Note: ClientConfiguration FROM ballerina/oauth2 package
+};
+
+# Represents OAuth2 JWT bearer grant configurations for OAuth2 authentication.
+
+type OAuth2JwtBearerGrantConfig record {
+    string tokenUrl;
+    string assertion;
+    string clientId?;
+    string clientSecret?;
+    string|string[] scopes?;
+    decimal defaultTokenExpTime?;
+    decimal clockSkew?;
+    map<string> optionalParams?;
+    oauth2:CredentialBearer credentialBearer?; // Special Agent Note: CredentialBearer FROM ballerina/oauth2 package
+    oauth2:ClientConfiguration clientConfig?; // Special Agent Note: ClientConfiguration FROM ballerina/oauth2 package
+};
+
+# Represents OAuth2 grant configurations for OAuth2 authentication.
+type OAuth2GrantConfig ballerina/graphql:1.17.0:OAuth2ClientCredentialsGrantConfig|ballerina/graphql:1.17.0:OAuth2PasswordGrantConfig|ballerina/graphql:1.17.0:OAuth2RefreshTokenGrantConfig|ballerina/graphql:1.17.0:OAuth2JwtBearerGrantConfig;
+
+# Defines the authentication configurations for the GraphQL client.
+type ClientAuthConfig ballerina/graphql:1.17.0:CredentialsConfig|ballerina/graphql:1.17.0:BearerTokenConfig|ballerina/graphql:1.17.0:JwtIssuerConfig|ballerina/graphql:1.17.0:OAuth2ClientCredentialsGrantConfig|ballerina/graphql:1.17.0:OAuth2PasswordGrantConfig|ballerina/graphql:1.17.0:OAuth2RefreshTokenGrantConfig|ballerina/graphql:1.17.0:OAuth2JwtBearerGrantConfig;
+
+// Unknown type: Error
+
+// Unknown type: AuthnError
+
+// Unknown type: AuthzError
+
+// Unknown type: ClientError
+
+// Unknown type: RequestError
+
+// Unknown type: HttpError
+
+// Unknown type: InvalidDocumentError
+
+// Unknown type: ServerError
+
+// Unknown type: PayloadBindingError
+
+# Provides a set of configurations for configure the underlying HTTP listener of the GraphQL listener.
+
+type ListenerConfiguration record {
+    string host?;
+    http:ListenerHttp1Settings http1Settings?; // Special Agent Note: ListenerHttp1Settings FROM ballerina/http package
+    http:ListenerSecureSocket|() secureSocket?; // Special Agent Note: ListenerSecureSocket FROM ballerina/http package
+    http:HttpVersion httpVersion?; // Special Agent Note: HttpVersion FROM ballerina/http package
+    decimal timeout?;
+    string? server?;
+    http:RequestLimitConfigs requestLimits?; // Special Agent Note: RequestLimitConfigs FROM ballerina/http package
+    decimal gracefulStopTimeout?;
+    http:ServerSocketConfig socketConfig?; // Special Agent Note: ServerSocketConfig FROM ballerina/http package
+    int http2InitialWindowSize?;
+    decimal minIdleTimeInStaleState?;
+    decimal timeBetweenStaleEviction?;
+};
+
+# Provides settings related to HTTP/1.x protocol, when using HTTP 1.x as the underlying protocol for the GraphQL
+# service.
+
+type ListenerHttp1Settings record {
+    http:KeepAlive keepAlive?; // Special Agent Note: KeepAlive FROM ballerina/http package
+    int maxPipelinedRequests?;
+};
+
+# Configures the SSL/TLS options to be used for the underlying HTTP service used in GraphQL service.
+
+type ListenerSecureSocket record {
+    crypto:KeyStore|http:CertKey key; // Special Agent Note: KeyStore FROM ballerina/crypto package, CertKey FROM ballerina/http package
+    record {|ballerina/http:2.16.6:VerifyClient verifyClient; ballerina/crypto:2.12.1:TrustStore|string cert;|} mutualSsl?;
+    record {|ballerina/http:2.16.6:Protocol name; string[] versions;|} protocol?;
+    record {|ballerina/http:2.16.6:CertValidationType 'type; int cacheSize; int cacheValidityPeriod;|} certValidation?;
+    string[] ciphers?;
+    boolean shareSession?;
+    decimal handshakeTimeout?;
+    decimal sessionTimeout?;
+};
+
+# Provides inbound request URI, total header and entity body size threshold configurations.
+
+type RequestLimitConfigs record {
+    int maxUriLength?;
+    int maxHeaderSize?;
+    int maxEntityBodySize?;
+};
+
+# Provides settings related to HTTP/1.x protocol.
+
+type ClientHttp1Settings record {
+    http:KeepAlive keepAlive?; // Special Agent Note: KeepAlive FROM ballerina/http package
+    http:Chunking chunking?; // Special Agent Note: Chunking FROM ballerina/http package
+    http:ProxyConfig|() proxy?; // Special Agent Note: ProxyConfig FROM ballerina/http package
+};
+
+# Provides configurations for controlling the endpoint's behaviour in response to HTTP redirect related responses.
+
+type FollowRedirects record {
+    boolean enabled?;
+    int maxCount?;
+    boolean allowAuthHeaders?;
+};
+
+# Configurations for managing GraphQL client connection pool.
+
+type PoolConfiguration record {
+    int maxActiveConnections?;
+    int maxIdleConnections?;
+    decimal waitTime?;
+    int maxActiveStreamsPerConnection?;
+    decimal minEvictableIdleTime?;
+    decimal timeBetweenEvictionRuns?;
+    decimal minIdleTimeInStaleState?;
+    decimal timeBetweenStaleEviction?;
+};
+
+# Provides a set of configurations for controlling the caching behaviour of the endpoint.
+
+type CacheConfig record {
+    boolean enabled?;
+    boolean isShared?;
+    int capacity?;
+    float evictionFactor?;
+    http:CachingPolicy policy?; // Special Agent Note: CachingPolicy FROM ballerina/http package
+};
+
+# Provides a set of configurations for controlling the behaviour of the Circuit Breaker.
+
+type CircuitBreakerConfig record {
+    http:RollingWindow rollingWindow?; // Special Agent Note: RollingWindow FROM ballerina/http package
+    float failureThreshold?;
+    decimal resetTime?;
+    int[] statusCodes?;
+};
+
+# Provides configurations for controlling the retrying behavior in failure scenarios.
+
+type RetryConfig record {
+    int count?;
+    decimal interval?;
+    float backOffFactor?;
+    decimal maxWaitInterval?;
+    int[] statusCodes?;
+};
+
+# Client configuration for cookies.
+
+type CookieConfig record {
+    boolean enabled?;
+    int maxCookiesPerDomain?;
+    int maxTotalCookieCount?;
+    boolean blockThirdPartyCookies?;
+    http:PersistentCookieHandler persistentCookieHandler?; // Special Agent Note: PersistentCookieHandler FROM ballerina/http package
+};
+
+# Provides inbound response status line, total header and entity body size threshold configurations.
+
+type ResponseLimitConfigs record {
+    int maxStatusLineLength?;
+    int maxHeaderSize?;
+    int maxEntityBodySize?;
+};
+
+# Provides configurations for facilitating secure communication with a remote GraphQL endpoint.
+
+type ClientSecureSocket record {
+    boolean enable?;
+    crypto:TrustStore|string cert?; // Special Agent Note: TrustStore FROM ballerina/crypto package
+    crypto:KeyStore|http:CertKey key?; // Special Agent Note: KeyStore FROM ballerina/crypto package, CertKey FROM ballerina/http package
+    record {|ballerina/http:2.16.6:Protocol name; string[] versions;|} protocol?;
+    record {|ballerina/http:2.16.6:CertValidationType 'type; int cacheSize; int cacheValidityPeriod;|} certValidation?;
+    string[] ciphers?;
+    boolean verifyHostName?;
+    boolean shareSession?;
+    decimal handshakeTimeout?;
+    decimal sessionTimeout?;
+    string serverName?;
+};
+
+# Proxy server configurations to be used with the GraphQL client endpoint.
+
+type ProxyConfig record {
+    string host?;
+    int port?;
+    string userName?;
+    string password?;
+};
+
+# Provides a set of configurations for controlling the behaviour of the GraphQL client when communicating with
+# the GraphQL server that operates over HTTP.
+# 
+
+type ClientConfiguration record {
+    # Configurations related to HTTP/1.1 protocol
+    ClientHttp1Settings http1Settings?;
+    # The maximum time to wait (in seconds) for a response before closing the connection
+    decimal timeout?;
+    # The choice of setting `forwarded`/`x-forwarded` header
+    string forwarded?;
+    # Configurations associated with Redirection
+    FollowRedirects|() followRedirects?;
+    # Configurations associated with request pooling
+    PoolConfiguration|() poolConfig?;
+    # HTTP caching related configurations
+    CacheConfig cache?;
+    # Specifies the way of handling compression (`accept-encoding`) header
+    Compression compression?;
+    # Configurations related to client authentication
+    CredentialsConfig|BearerTokenConfig|JwtIssuerConfig|OAuth2ClientCredentialsGrantConfig|OAuth2PasswordGrantConfig|OAuth2RefreshTokenGrantConfig|OAuth2JwtBearerGrantConfig|() auth?;
+    # Configurations associated with the behaviour of the Circuit Breaker
+    CircuitBreakerConfig|() circuitBreaker?;
+    # Configurations associated with retrying
+    RetryConfig|() retryConfig?;
+    # Configurations associated with cookies
+    CookieConfig|() cookieConfig?;
+    # Configurations associated with inbound response size limits
+    ResponseLimitConfigs responseLimits?;
+    # SSL/TLS-related options
+    ClientSecureSocket|() secureSocket?;
+    # Proxy server related options
+    ProxyConfig|() proxy?;
+    # Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default
+    boolean validation?;
+};
+
+# Options to compress using gzip or deflate.
+type Compression "AUTO"|"ALWAYS"|"NEVER";
+
+# Represents a location in a GraphQL document.
+
+type Location record {
+    int line;
+    int column;
+};
+
+# Represents the Scalar types supported by the Ballerina GraphQL module.
+type Scalar boolean|int|float|string|decimal;
+
+# Represents a GraphQL service.
+class Service {
+}
+
+# The input parameter type used for file uploads in GraphQL mutations.
+# 
+
+type Upload record {
+    # Name of the file
+    string fileName;
+    # File mime type according to the content
+    string mimeType;
+    # File stream encoding
+    string encoding;
+    # File content as a stream of `byte[]`
+    stream<byte[], ballerina/io:1.8.1:Error?> byteStream;
+};
+
+# Represents the target type binding record with data and extensions of a GraphQL response for `executeWithType` method.
+# 
+
+type GenericResponse record {
+    # Meta information on protocol extensions from the GraphQL server
+    map<json?> extensions?;
+    # The requested data from the GraphQL server
+    record {|anydata...;|}|map<json?> data?;
+};
+
+# Represents the target type binding record with data, extensions and errors of a GraphQL response for `execute` method.
+# 
+
+type GenericResponseWithErrors record {
+    # The errors occurred (if present) while processing the GraphQL request.
+    ErrorDetail[] errors?;
+    map<json?> extensions?;
+    record {|anydata...;|}|map<json?> data?;
+};
+
+// Unknown type: Field
+
+// Unknown type: Listener
+
+// --- Client ---
+
+# The Ballerina GraphQL client that can be used to communicate with GraphQL APIs.
+client class Client {
+    function init(string serviceUrl, ClientHttp1Settings http1Settings = {}, decimal timeout = 60, string forwarded = "disable", FollowRedirects|() followRedirects = (), PoolConfiguration|() poolConfig = (), CacheConfig cache = {}, Compression compression = AUTO, CredentialsConfig|BearerTokenConfig|JwtIssuerConfig|OAuth2ClientCredentialsGrantConfig|OAuth2PasswordGrantConfig|OAuth2RefreshTokenGrantConfig|OAuth2JwtBearerGrantConfig|() auth = (), CircuitBreakerConfig|() circuitBreaker = (), RetryConfig|() retryConfig = (), CookieConfig|() cookieConfig = (), ResponseLimitConfigs responseLimits = {}, ClientSecureSocket|() secureSocket = (), ProxyConfig|() proxy = (), boolean validation = true, ClientConfiguration clientConfig) returns ballerina/graphql:1.17.0:ClientError?;
+
+    # Executes a GraphQL document and data binds the GraphQL response to a record with data and extensions
+    # which is a subtype of GenericResponse.
+    # 
+    @deprecated
+    remote function executeWithType(string document, map<anydata>|() variables = (), string|() operationName = (), map<string|string[]>|() headers = (), GenericResponse|record {|anydata...;|}|json targetType = graphql:GenericResponse|record {|anydata...;|}|json) returns targetType|ClientError;
+
+    # Executes a GraphQL document and data binds the GraphQL response to a record with data, extensions and errors
+    # which is a subtype of GenericResponseWithErrors.
+    # 
+    remote function execute(string document, map<anydata>|() variables = (), string|() operationName = (), map<string|string[]>|() headers = (), GenericResponseWithErrors|record {|anydata...;|}|json targetType = graphql:GenericResponseWithErrors|record {|anydata...;|}|json) returns targetType|ClientError;
+}
+
+// --- Functions ---
+
+# Adds an error to the GraphQL response. Using this to add an error is not recommended.
+# 
+# + context - The context of the GraphQL request.
+# + errorDetail - The error to be added to the response.
+function __addError(Context context, ErrorDetail errorDetail) returns ();
+
+# Obtains the schema representation of a federated subgraph, expressed in the SDL format.
+# + encodedSchemaString - Compile time auto generated schema
+# + return - Subgraph schema in SDL format as a string on success, or an error otherwise
+function getSdlString(string encodedSchemaString) returns string|error;
+
+// --- Service ---
+
+// --- Service (generic) ---
+// Service Type: Service
+// Listener: graphql:Listener(int|http:Listener listenTo, ListenerConfiguration configuration)
+// Instructions:
+
+// --- Annotations ---
+
+# Define service configurations such as maximum query depth.
+public annotation GraphqlServiceConfig ServiceConfig on service;
+
+# Define configurations such as field level cache.
+public annotation GraphqlResourceConfig ResourceConfig on service_function;

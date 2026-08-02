@@ -1,0 +1,612 @@
+// ============================================================
+// Library: ballerinax/solace
+// Solace PubSub+ is a powerful event broker that supports multiple protocols and messaging patterns. It provides high-performance, reliable, and scalable messaging for modern event-driven architectures. The Solace connector allows you to integrate with Solace event brokers, enabling efficient event distribution across various environments.
+// ============================================================
+import ballerinax/solace;
+
+// --- README ---
+## Overview
+
+[Solace PubSub+](https://docs.solace.com/) is an advanced event-broker platform that enables event-driven communication across distributed applications using multiple messaging patterns such as publish/subscribe, request/reply, and queue-based messaging. It supports standard messaging protocols, including JMS, MQTT, AMQP, and REST, enabling seamless integration across diverse systems and environments.
+
+The `ballerinax/solace` package provides APIs to interact with Solace PubSub+ brokers through the JMS API. It allows developers to programmatically produce and consume messages, manage topics and queues, and implement robust, event-driven solutions that leverage Solace’s high-performance messaging capabilities within Ballerina applications.
+
+## Quickstart
+
+### Step 1: Import the module
+
+Import the `solace` module into the Ballerina project.
+
+```ballerina
+import ballerinax/solace;
+```
+
+### Step 2: Instantiate a new connector
+
+#### Initialize a `solace:MessageProducer`
+
+```ballerina
+configurable string brokerUrl = ?;
+configurable string messageVpn = ?;
+configurable string queueName = ?;
+configurable string username = ?;
+configurable string password = ?;
+
+solace:MessageProducer producer = check new (brokerUrl,
+    destination = {
+        queueName
+    },
+    messageVpn = messageVpn,
+    auth = {
+        username,
+        password
+    }
+);
+```
+
+#### Initialize a `solace:MessageConsumer`
+
+```ballerina
+configurable string brokerUrl = ?;
+configurable string messageVpn = ?;
+configurable string queueName = ?;
+configurable string username = ?;
+configurable string password = ?;
+
+solace:MessageConsumer consumer = check new (brokerUrl,
+    destination = {
+        queueName
+    },
+    messageVpn = messageVpn,
+    auth = {
+        username,
+        password
+    }
+);
+```
+
+### Step 3: Invoke the connector operation
+
+Now, you can use the available connector operations to interact with Solace broker.
+
+#### Produce message to a queue
+
+```ballerina
+check producer->send({
+    payload: "This is a sample message"
+});
+```
+
+#### Retrieve a message from a queue
+
+```ballerina
+solace:Message? receivedMessage = check consumer->receive(5.0);
+```
+
+### Step 4: Run the Ballerina application
+
+Save the changes and run the Ballerina application using the following command.
+
+```bash
+bal run
+```
+
+
+// --- END README ---
+
+// --- Types ---
+
+# Indicates that the session will use a local transaction which may subsequently 
+# be committed or rolled back by calling the session's `commit` or `rollback` methods. 
+const string SESSION_TRANSACTED = "SESSION_TRANSACTED";
+
+# Indicates that the session automatically acknowledges a client's receipt of a message 
+# either when the session has successfully returned from a call to `receive` or when 
+# the message listener the session has called to process the message successfully returns.
+const string AUTO_ACKNOWLEDGE = "AUTO_ACKNOWLEDGE";
+
+# Indicates that the client acknowledges a consumed message by calling the 
+# MessageConsumer's or Caller's `acknowledge` method. Acknowledging a consumed message 
+# acknowledges all messages that the session has consumed.
+const string CLIENT_ACKNOWLEDGE = "CLIENT_ACKNOWLEDGE";
+
+# Indicates that the session to lazily acknowledge the delivery of messages. 
+# This is likely to result in the delivery of some duplicate messages if the JMS provider fails, 
+# so it should only be used by consumers that can tolerate duplicate messages. 
+# Use of this mode can reduce session overhead by minimizing the work the session does to prevent duplicates.
+const string DUPS_OK_ACKNOWLEDGE = "DUPS_OK_ACKNOWLEDGE";
+
+# Represents JMS durable subscriber
+const string DURABLE = "DURABLE";
+
+# Represents JMS default consumer
+const string DEFAULT = "DEFAULT";
+
+# SSL protocol version 3.0
+const string SSLv30 = "sslv3";
+
+# TLS protocol version 1.0
+const string TLSv10 = "tlsv1";
+
+# TLS protocol version 1.1
+const string TLSv11 = "tlsv11";
+
+# TLS protocol version 1.2
+const string TLSv12 = "tlsv12";
+
+# Cipher suite: TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384
+const string ECDHE_RSA_AES256_CBC_SHA384 = "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384";
+
+# Cipher suite: TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+const string ECDHE_RSA_AES256_CBC_SHA = "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA";
+
+# Cipher suite: TLS_RSA_WITH_AES_256_CBC_SHA256
+const string RSA_AES256_CBC_SHA256 = "TLS_RSA_WITH_AES_256_CBC_SHA256";
+
+# Cipher suite: TLS_RSA_WITH_AES_256_CBC_SHA
+const string RSA_AES256_CBC_SHA = "TLS_RSA_WITH_AES_256_CBC_SHA";
+
+# Cipher suite: TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA
+const string ECDHE_RSA_3DES_EDE_CBC_SHA = "TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA";
+
+# Cipher suite: SSL_RSA_WITH_3DES_EDE_CBC_SHA
+const string RSA_3DES_EDE_CBC_SHA = "SSL_RSA_WITH_3DES_EDE_CBC_SHA";
+
+# Cipher suite: TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+const string ECDHE_RSA_AES128_CBC_SHA = "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA";
+
+# Cipher suite: TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+const string ECDHE_RSA_AES128_CBC_SHA256 = "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256";
+
+# Cipher suite: TLS_RSA_WITH_AES_128_CBC_SHA256
+const string RSA_AES128_CBC_SHA256 = "TLS_RSA_WITH_AES_128_CBC_SHA256";
+
+# Cipher suite: TLS_RSA_WITH_AES_128_CBC_SHA
+const string RSA_AES128_CBC_SHA = "TLS_RSA_WITH_AES_128_CBC_SHA";
+
+# Java KeyStore format
+const string JKS = "jks";
+
+# PKCS12 format
+const string PKCS12 = "pkcs12";
+
+# A boolean property of Solace message to denote the text payload set in the message is an XML
+const string SOLACE_JMS_PROP_ISXML = "JMS_Solace_isXML";
+
+// Unknown type: Error
+
+# The Solace service type.
+class Service {
+}
+
+# Defines the JMS session acknowledgement modes.
+enum AcknowledgementMode {
+    DUPS_OK_ACKNOWLEDGE,
+    CLIENT_ACKNOWLEDGE,
+    AUTO_ACKNOWLEDGE,
+    SESSION_TRANSACTED
+}
+
+# Defines the supported JMS message consumer types.
+enum ConsumerType {
+    DEFAULT,
+    DURABLE
+}
+
+# Represents configurations for a Solace queue subscription.
+# 
+
+type QueueConfig record {
+    # The name of the queue to consume messages from
+    string queueName;
+    AcknowledgementMode sessionAckMode?;
+    string messageSelector?;
+};
+
+# Represents configurations for Solace topic subscription.
+# 
+
+type TopicConfig record {
+    # The name of the topic to subscribe to
+    string topicName;
+    # The message consumer type
+    ConsumerType consumerType?;
+    # the name used to identify the subscription
+If this value is not set that indicates that there is no message selector for the message consumer
+For example, to only receive messages with a property `priority` set to `'high'`, use:
+`"priority = 'high'"`. If this value is not set, all messages in the queue will be delivered.
+    string subscriberName?;
+    # If true then any messages published to the topic using this session's connection, or any other connection
+with the same client identifier, will not be added to the durable subscription.
+    boolean noLocal?;
+    AcknowledgementMode sessionAckMode?;
+    string messageSelector?;
+};
+
+# Represents configurations for a service configurations related to solace queue subscription.
+# 
+
+type QueueServiceConfig record {
+    # The name of the queue to consume messages from
+    string queueName;
+    decimal pollingInterval?;
+    decimal receiveTimeout?;
+    AcknowledgementMode sessionAckMode?;
+    string messageSelector?;
+};
+
+# Represents configurations for a service configurations related to solace topic subscription.
+# 
+
+type TopicServiceConfig record {
+    # The name of the topic to subscribe to
+    string topicName;
+    # The message consumer type
+    ConsumerType consumerType?;
+    # the name used to identify the subscription
+If this value is not set that indicates that there is no message selector for the message consumer
+For example, to only receive messages with a property `priority` set to `'high'`, use:
+`"priority = 'high'"`. If this value is not set, all messages in the queue will be delivered.
+    string subscriberName?;
+    # If true then any messages published to the topic using this session's connection, or any other connection
+with the same client identifier, will not be added to the durable subscription.
+    boolean noLocal?;
+    decimal pollingInterval?;
+    decimal receiveTimeout?;
+    AcknowledgementMode sessionAckMode?;
+    string messageSelector?;
+};
+
+# The service configuration type for the `solace:Service`.
+type ServiceConfiguration ballerinax/solace:0.3.0:QueueServiceConfig|ballerinax/solace:0.3.0:TopicServiceConfig;
+
+# Represents a topic destination for publish/subscribe messaging.
+
+type Topic record {
+    # The name of the topic. Topics support wildcard subscriptions and multi-level hierarchies 
+using '/' as a delimiter (e.g., "orders/retail/usa")
+    string topicName;
+};
+
+# Represents a queue destination for point-to-point messaging.
+
+type Queue record {
+    # The name of the queue
+    string queueName;
+};
+
+# Represents a message destination in Solace.
+# Can be either a Topic for publish/subscribe messaging or a Queue for point-to-point messaging.
+type Destination ballerinax/solace:0.3.0:Topic|ballerinax/solace:0.3.0:Queue;
+
+# Represents the basic authentication credentials for connecting to a Solace broker.
+
+type BasicAuthConfig record {
+    # The username for authentication
+    string username;
+    # The password for authentication
+    string password?;
+};
+
+# Represents the Kerberos (GSS-KRB) authentication configuration for connecting to a Solace broker
+
+type KerberosConfig record {
+    # The Kerberos service name used during authentication
+    string serviceName?;
+    # The JAAS login context name to use for authentication
+    string jaasLoginContext?;
+    # Specifies whether to enable Kerberos mutual authentication
+    boolean mutualAuthentication?;
+    # Specifies whether to enable automatic reload of the JAAS configuration file
+    boolean jaasConfigReloadEnabled?;
+};
+
+# Represents the OAuth 2.0 authentication configuration for connecting to a Solace broker
+
+type OAuth2Config record {
+    # The OAuth 2.0 issuer identifier URI
+    string issuer;
+    # The OAuth 2.0 access token for authentication
+    string accessToken?;
+    # The OpenID Connect (OIDC) ID token for authentication
+    string oidcToken?;
+};
+
+# Represents the SSL/TLS configuration for secure connections to a Solace broker
+
+type SecureSocket record {
+    # The trust store configuration containing trusted CA certificates
+    TrustStore trustStore?;
+    # The key store configuration containing the client's private key and certificate.
+When configured, enables client certificate authentication
+    KeyStore keyStore?;
+    # The list of SSL/TLS protocol versions to enable for the connection.
+It is recommended to use only TLSv12 or higher for security
+    Protocol[] protocols?;
+    # The list of cipher suites to enable for the connection.
+If not specified, the default cipher suites for the JVM are used
+    SslCipherSuite[] cipherSuites?;
+    # The list of acceptable common names for broker certificate validation.
+If specified, the broker certificate's common name must match one of these values
+    string[] trustedCommonNames?;
+    # The certificate validation settings
+    record {|boolean enabled; boolean validateDate; boolean validateHost;|} validation?;
+};
+
+# Represents a trust store containing trusted CA certificates.
+
+type TrustStore record {
+    # The URL or path of the truststore file
+    string location;
+    # The password for the trust store
+    string password;
+    # The format of the trust store file
+    SslStoreFormat format?;
+};
+
+# Represents the supported SSL store formats.
+type SslStoreFormat "jks"|"pkcs12";
+
+# Represents a key store containing the client's private key and certificate.
+
+type KeyStore record {
+    # The URL or path of the keystore file
+    string location;
+    # The password for the key store
+    string password;
+    # The password for the private key within the key store.
+If not specified, the key store password is used
+    string keyPassword?;
+    # The alias of the private key to use from the key store.
+If not specified, the first private key found is used
+    string keyAlias?;
+    # The format of the key store file
+    SslStoreFormat format?;
+};
+
+# Represents the supported SSL/TLS protocol versions.
+type Protocol "sslv3"|"tlsv1"|"tlsv11"|"tlsv12";
+
+# The SSL Cipher Suite to be used for secure communication with the Solace broker.
+type SslCipherSuite "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384"|"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA"|"TLS_RSA_WITH_AES_256_CBC_SHA256"|"TLS_RSA_WITH_AES_256_CBC_SHA"|"TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA"|"SSL_RSA_WITH_3DES_EDE_CBC_SHA"|"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA"|"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256"|"TLS_RSA_WITH_AES_128_CBC_SHA256"|"TLS_RSA_WITH_AES_128_CBC_SHA";
+
+# Represents the retry configuration for connection and reconnection attempts to a Solace broker
+
+type RetryConfig record {
+    # The number of times to retry connecting to the broker during initial connection.
+A value of -1 means retry forever, 0 means no retries (fail immediately on first failure)
+    int connectRetries?;
+    # The number of connection retries per host when multiple hosts are specified in the URL.
+This applies to each host in a comma-separated host list
+    int connectRetriesPerHost?;
+    # The number of times to retry reconnecting after an established connection is lost.
+A value of -1 means retry forever
+    int reconnectRetries?;
+    # The time to wait between reconnection attempts, in seconds
+    decimal reconnectRetryWait?;
+};
+
+# Represents the configuration for a Solace message producer.
+
+type ProducerConfiguration record {
+    # The destination (Topic or Queue) where messages will be published
+    Destination destination;
+    string messageVpn?;
+    BasicAuthConfig|KerberosConfig|OAuth2Config auth?;
+    SecureSocket secureSocket?;
+    boolean transacted?;
+    string clientId?;
+    string clientDescription?;
+    boolean allowDuplicateClientId?;
+    boolean enableDynamicDurables?;
+    boolean directTransport?;
+    boolean directOptimized?;
+    string localhost?;
+    decimal connectTimeout?;
+    decimal readTimeout?;
+    int compressionLevel?;
+    RetryConfig retryConfig?;
+};
+
+# Represents the configuration for a Solace message consumer.
+
+type ConsumerConfiguration record {
+    # The subscription configuration specifying either a queue or topic to consume messages from
+    QueueConfig|TopicConfig subscriptionConfig;
+    string messageVpn?;
+    BasicAuthConfig|KerberosConfig|OAuth2Config auth?;
+    SecureSocket secureSocket?;
+    boolean transacted?;
+    string clientId?;
+    string clientDescription?;
+    boolean allowDuplicateClientId?;
+    boolean enableDynamicDurables?;
+    boolean directTransport?;
+    boolean directOptimized?;
+    string localhost?;
+    decimal connectTimeout?;
+    decimal readTimeout?;
+    int compressionLevel?;
+    RetryConfig retryConfig?;
+};
+
+# Represents the listener configuration for Ballerina Solace listener.
+
+type ListenerConfiguration record {
+    string messageVpn?;
+    BasicAuthConfig|KerberosConfig|OAuth2Config auth?;
+    SecureSocket secureSocket?;
+    boolean transacted?;
+    string clientId?;
+    string clientDescription?;
+    boolean allowDuplicateClientId?;
+    boolean enableDynamicDurables?;
+    boolean directTransport?;
+    boolean directOptimized?;
+    string localhost?;
+    decimal connectTimeout?;
+    decimal readTimeout?;
+    int compressionLevel?;
+    RetryConfig retryConfig?;
+};
+
+# Represent the valid value types allowed in JMS message properties.
+type Property boolean|int|byte|float|string;
+
+# Represents the allowed value types for entries in the map content of a JMS MapMessage.
+type Value boolean|int|byte|float|string|byte[];
+
+# Represent the Message used to send and receive content from the Solace broker.
+
+type Message record {
+    # Message payload
+    anydata payload;
+    # Id which can be used to correlate multiple messages
+    string correlationId?;
+    # JMS destination to which a reply to this message should be sent
+    Destination replyTo?;
+    # Additional message properties
+    map<ballerinax/solace:0.3.0:Property> properties?;
+    # Unique identifier for a JMS message (Only set by the JMS provider)
+    string messageId?;
+    # Time a message was handed off to a provider to be sent (Only set by the JMS provider)
+    int timestamp?;
+    # JMS destination of this message (Only set by the JMS provider)
+    Destination destination?;
+    # Delivery mode of this message (Only set by the JMS provider)
+    int deliveryMode?;
+    # Indication of whether this message is being redelivered (Only set by the JMS provider)
+    boolean redelivered?;
+    # Message type identifier supplied by the client when the message was sent
+    string jmsType?;
+    # Message expiration time (Only set by the JMS provider)
+    int expiration?;
+    # Message priority level (Only set by the JMS provider)
+    int priority?;
+};
+
+// Unknown type: Listener
+
+// --- Client ---
+
+# Represents a Solace caller, which can be used to mark Solace message as received.
+client class Caller {
+    function init() returns ballerinax/solace:solace:Caller;
+
+    # Mark a Solace message as received.
+    # 
+    remote function acknowledge(Message message) returns Error|();
+
+    # Commits all messages received in this transaction and releases any locks currently held.
+    # ```ballerina
+    # check session->'commit();
+    # ```
+    # 
+    remote function 'commit() returns Error|();
+
+    # Rolls back any messages received in this transaction and releases any locks currently held.
+    # ```ballerina
+    # check session->'rollback();
+    # ```
+    # 
+    remote function 'rollback() returns Error|();
+}
+
+# Solace Message Consumer to receive messages from both queues and topics.
+client class MessageConsumer {
+    function init(string url, string messageVpn = "", BasicAuthConfig|KerberosConfig|OAuth2Config auth = {username: ""}, SecureSocket secureSocket = {}, boolean transacted = false, string clientId = "", string clientDescription = "", boolean allowDuplicateClientId = false, boolean enableDynamicDurables = false, boolean directTransport = false, boolean directOptimized = false, string localhost = "", decimal connectTimeout = 0.0d, decimal readTimeout = 0.0d, int compressionLevel = 0, RetryConfig retryConfig = {}, anydata Additional Values, QueueConfig|TopicConfig subscriptionConfig = {queueName: ""}, ConsumerConfiguration config) returns ballerinax/solace:0.3.0:Error?;
+
+    # Receives the next message from the Solace broker, waiting up to the specified timeout.
+    # ```ballerina
+    # solace:Message? message = check consumer->receive(5.0);
+    # ```
+    # 
+    remote function receive(decimal timeout = 0.0d, record {|anydata payload; string correlationId?; solace:Destination replyTo?; map<solace:Property> properties?; string messageId?; int timestamp?; solace:Destination destination?; int deliveryMode?; boolean redelivered?; string jmsType?; int expiration?; int priority?;|} T = solace:Message) returns T|Error|();
+
+    # Receives the next message from the Solace broker if one is immediately available, without waiting.
+    # ```ballerina
+    # solace:Message? message = check consumer->receiveNoWait();
+    # ```
+    # 
+    remote function receiveNoWait(record {|anydata payload; string correlationId?; solace:Destination replyTo?; map<solace:Property> properties?; string messageId?; int timestamp?; solace:Destination destination?; int deliveryMode?; boolean redelivered?; string jmsType?; int expiration?; int priority?;|} T = solace:Message) returns T|Error|();
+
+    # Acknowledges the specified message. This method should only be called when the consumer is configured
+    # with `sessionAckMode: CLIENT_ACKNOWLEDGE`.
+    # ```ballerina
+    # check consumer->acknowledge(message);
+    # ```
+    # 
+    remote function acknowledge(Message message) returns Error|();
+
+    # Commits all messages received in this transaction and releases any locks currently held.
+    # This method should only be called when the consumer is configured with `sessionAckMode: SESSION_TRANSACTED`.
+    # ```ballerina
+    # check consumer->'commit();
+    # ```
+    # 
+    remote function 'commit() returns Error|();
+
+    # Rolls back any messages received in this transaction and releases any locks currently held.
+    # This method should only be called when the consumer is configured with `sessionAckMode: SESSION_TRANSACTED`.
+    # ```ballerina
+    # check consumer->'rollback();
+    # ```
+    # 
+    remote function 'rollback() returns Error|();
+
+    # Closes the message consumer and releases all resources.
+    # ```ballerina
+    # check consumer->close();
+    # ```
+    # 
+    remote function close() returns Error|();
+}
+
+# Solace Message Producer to send messages to both queues and topics.
+client class MessageProducer {
+    function init(string url, string messageVpn = "", BasicAuthConfig|KerberosConfig|OAuth2Config auth = {username: ""}, SecureSocket secureSocket = {}, boolean transacted = false, string clientId = "", string clientDescription = "", boolean allowDuplicateClientId = false, boolean enableDynamicDurables = false, boolean directTransport = false, boolean directOptimized = false, string localhost = "", decimal connectTimeout = 0.0d, decimal readTimeout = 0.0d, int compressionLevel = 0, RetryConfig retryConfig = {}, anydata Additional Values, Destination destination = {topicName: ""}, ProducerConfiguration config) returns ballerinax/solace:0.3.0:Error?;
+
+    # Sends a message to the Solace broker.
+    # ```ballerina
+    # check producer->send(message);
+    # ```
+    # 
+    remote function send(Message message) returns Error|();
+
+    # Commits all messages sent in this transaction and releases any locks currently held.
+    # This method should only be called when the producer is configured with `transacted: true`.
+    # ```ballerina
+    # check producer->'commit();
+    # ```
+    # 
+    remote function 'commit() returns Error|();
+
+    # Rolls back any messages sent in this transaction and releases any locks currently held.
+    # This method should only be called when the producer is configured with `transacted: true`.
+    # ```ballerina
+    # check producer->'rollback();
+    # ```
+    # 
+    remote function 'rollback() returns Error|();
+
+    # Closes the message producer.
+    # ```ballerina
+    # check producer->close();
+    # ```
+    remote function close() returns Error|();
+}
+
+// --- Service ---
+
+service solace:Service on new solace:Listener(string url = "", ListenerConfiguration config = {}) {
+    # Triggers when a message is received from a Solace queue or topic
+    remote function onMessage(Message message, Caller caller) returns error?;
+
+    # Triggers when an error occurs during message processing
+    remote function onError(Error solaceError) returns error?;
+}
+
+// --- Annotations ---
+
+# Define advanced configurations like queue or topic name
+public annotation ServiceConfiguration ServiceConfig on service;

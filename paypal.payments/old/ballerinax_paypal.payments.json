@@ -1,0 +1,3369 @@
+{
+  "name": "ballerinax/paypal.payments",
+  "description": "[PayPal](https://www.paypal.com/) is a global online payment platform that enables individuals and businesses to securely send and receive money, process transactions, and access merchant services.",
+  "readme": "## Overview\n\n[PayPal](https://www.paypal.com/) is a global online payment platform that enables individuals and businesses to securely send and receive money, process transactions, and access merchant services.\n\nThe PayPal Payments connector offers APIs to connect and interact with the [PayPal Payments API v2](https://developer.paypal.com/docs/api/payments/v2/), enabling you to authorize, capture, refund, and manage payments within applications.\n\n### Key Features\n\n- Authorize and capture payments programmatically\n- Support for PayPal Payments API v2\n- Handle refunds and void authorizations\n- Manage payment lifecycles efficiently\n\n## Setup guide\n\nTo use the PayPal Payments connector, you must have access to a [PayPal Developer account](https://developer.paypal.com/).\n\n### Step 1: Create a business account\n\n1. Open the [PayPal Developer Dashboard](https://developer.paypal.com/dashboard).\n\n2. Click on \"Sandbox Accounts\" under \"Testing Tools\".\n\n   ![Sandbox accounts](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-paypal.payments/main/docs/setup/resources/sandbox-accounts.png)\n\n3. Create a Business account\n\n   \u003e Note: Some PayPal options and features may vary by region or country; check availability before creating an account.\n\n   ![Create business account](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-paypal.payments/main/docs/setup/resources/create-account.png)\n\n### Step 2: Create a REST API app\n\n1. Navigate to the \"Apps and Credentials\" tab and create a new merchant app.\n\n   Provide a name for the application and select the Business account you created earlier.\n\n   ![Create app](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-paypal.payments/main/docs/setup/resources/create-app.png)\n\n### Step 3: Obtain Client ID and Client Secret\n\n1. After creating your new app, you will see your **Client ID** and **Client Secret**. Make sure to copy and securely store these credentials.\n\n   ![Credentials](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-paypal.payments/main/docs/setup/resources/get-credentials.png)\n\n## Quickstart\n\nTo use the `paypal.payments` connector in your Ballerina application, update the `.bal` file as follows:\n\n### Step 1: Import the module\n\nImport the `paypal.payments` module.\n\n```ballerina\nimport ballerinax/paypal.payments as paypal;\n```\n\n### Step 2: Instantiate a new connector\n\n1. Create a `Config.toml` file and configure the obtained credentials in the above steps as follows:\n\n```toml\nclientId \u003d \"\u003ctest-client-id\u003e\"\nclientSecret \u003d \"\u003ctest-client-secret\u003e\"\n\n```\n\n2. Create a `paypal:ConnectionConfig` with the obtained credentials and initialize the connector with it.\n\n```ballerina\nconfigurable string clientId \u003d ?;\nconfigurable string clientSecret\u003d ?;\n\n```\n\n```ballerina\nfinal paypal:Client paypal \u003d check new ({\n    auth: {\n        clientId,\n        clientSecret\n    }\n}, serviceUrl);\n```\n\n### Step 3: Invoke the connector operation\n\nNow, utilize the available connector operations.\n\n#### Capture an authorized payment\n\n```ballerina\npublic function main() returns error? {\n    paypal:CaptureRequest captureRequest \u003d {\n        amount: {\n            currency_code: \"USD\",\n            value: \"100.00\"\n        },\n        final_capture: true\n    };\n    \n    paypal:Capture2 response \u003d check paypal-\u003e/authorizations/[authorizationId]/capture.post(captureRequest);\n}\n```\n\n### Step 4: Run the Ballerina application\n\n```bash\nbal run\n```\n\n## Examples\n\nThe `PayPal Payments` connector provides practical examples illustrating usage in various scenarios. Explore these [examples](https://github.com/ballerina-platform/module-ballerinax-paypal.payments/tree/main/examples/), covering the following use cases:\n\n1. [**Order creation**](https://github.com/ballerina-platform/module-ballerinax-paypal.payments/tree/main/examples/order-creation): Process a complete product purchase from order creation through payment authorization, capture, and partial refunds.\n\n2. [**Subscription management**](https://github.com/ballerina-platform/module-ballerinax-paypal.payments/tree/main/examples/subscription-management): Simulate a recurring billing flow with subscription-style orders, monthly payments, plan switching, and pro-rated refunds.\n",
+  "typeDefs": [
+    {
+      "name": "OAuth2ClientCredentialsGrantConfig",
+      "description": "OAuth2 Client Credentials Grant Configs",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "tokenUrl",
+          "description": "Token URL",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "clientId",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "clientSecret",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "scopes",
+          "description": "",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "defaultTokenExpTime",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "clockSkew",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "optionalParams",
+          "description": "",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "credentialBearer",
+          "description": "",
+          "type": {
+            "name": "CredentialBearer",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CredentialBearer",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "clientConfig",
+          "description": "",
+          "type": {
+            "name": "ClientConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientConfiguration",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Email",
+      "description": "The internationalized email address.\u003cblockquote\u003e\u003cstrong\u003eNote:\u003c/strong\u003e Up to 64 characters are allowed before and 255 characters are allowed after the \u003ccode\u003e@\u003c/code\u003e sign. However, the generally accepted maximum length for an email address is 254 characters. The pattern verifies that an unquoted \u003ccode\u003e@\u003c/code\u003e sign exists.\u003c/blockquote\u003e",
+      "type": "Other"
+    },
+    {
+      "name": "AccountId",
+      "description": "The account identifier for a PayPal account",
+      "type": "Other"
+    },
+    {
+      "name": "AuthorizationAllOf2",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "id",
+          "description": "The PayPal-generated ID for the authorized payment.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "amount",
+          "description": "The currency and amount for a financial transaction, such as a balance or payment due",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "invoice_id",
+          "description": "The API caller-provided external invoice number for this order. Appears in both the payer\u0027s transaction history and the emails that the payer receives.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "custom_id",
+          "description": "The API caller-provided external ID. Used to reconcile API caller-initiated transactions with PayPal transactions. Appears in transaction and settlement reports.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "network_transaction_reference",
+          "description": "Reference values used by the card network to identify a transaction",
+          "type": {
+            "name": "NetworkTransactionReference",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "NetworkTransactionReference"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "seller_protection",
+          "description": "The level of protection offered as defined by [PayPal Seller Protection for Merchants](https://www.paypal.com/us/webapps/mpp/security/seller-protection)",
+          "type": {
+            "name": "SellerProtection",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SellerProtection"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "expiration_time",
+          "description": "The date and time, in [Internet date and time format](https://tools.ietf.org/html/rfc3339#section-5.6). Seconds are required while fractional seconds are optional.\u003cblockquote\u003e\u003cstrong\u003eNote:\u003c/strong\u003e The regular expression provides guidance but does not reject all invalid dates.\u003c/blockquote\u003e",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "links",
+          "description": "An array of related [HATEOAS links](/docs/api/reference/api-responses/#hateoas-links).",
+          "type": {
+            "name": "LinkDescription[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "LinkDescription"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Money",
+      "description": "The currency and amount for a financial transaction, such as a balance or payment due",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "value",
+          "description": "The value, which might be:\u003cul\u003e\u003cli\u003eAn integer for currencies like `JPY` that are not typically fractional.\u003c/li\u003e\u003cli\u003eA decimal fraction for currencies like `TND` that are subdivided into thousandths.\u003c/li\u003e\u003c/ul\u003eFor the required number of decimal places for a currency code, see [Currency Codes](/api/rest/reference/currency-codes/)",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "currency_code",
+          "description": "",
+          "type": {
+            "name": "CurrencyCode",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CurrencyCode"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "CurrencyCode",
+      "description": "The [three-character ISO-4217 currency code](/api/rest/reference/currency-codes/) that identifies the currency",
+      "type": "Other"
+    },
+    {
+      "name": "NetworkTransactionReference",
+      "description": "Reference values used by the card network to identify a transaction",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "date",
+          "description": "The date that the transaction was authorized by the scheme. This field may not be returned for all networks. MasterCard refers to this field as \"BankNet reference date",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "acquirer_reference_number",
+          "description": "Reference ID issued for the card transaction. This ID can be used to track the transaction across processors, card brands and issuing banks",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "id",
+          "description": "Transaction reference id returned by the scheme. For Visa and Amex, this is the \"Tran id\" field in response. For MasterCard, this is the \"BankNet reference id\" field in response. For Discover, this is the \"NRID\" field in response. The pattern we expect for this field from Visa/Amex/CB/Discover is numeric, Mastercard/BNPP is alphanumeric and Paysecure is alphanumeric with special character -",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "network",
+          "description": "The card network or brand. Applies to credit, debit, gift, and payment cards",
+          "type": {
+            "name": "CardBrand",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CardBrand"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "CardBrand",
+      "description": "The card network or brand. Applies to credit, debit, gift, and payment cards",
+      "type": "Union",
+      "members": [
+        {
+          "name": "\"VISA\"",
+          "type": {
+            "name": "\"VISA\""
+          }
+        },
+        {
+          "name": "\"MASTERCARD\"",
+          "type": {
+            "name": "\"MASTERCARD\""
+          }
+        },
+        {
+          "name": "\"DISCOVER\"",
+          "type": {
+            "name": "\"DISCOVER\""
+          }
+        },
+        {
+          "name": "\"AMEX\"",
+          "type": {
+            "name": "\"AMEX\""
+          }
+        },
+        {
+          "name": "\"SOLO\"",
+          "type": {
+            "name": "\"SOLO\""
+          }
+        },
+        {
+          "name": "\"JCB\"",
+          "type": {
+            "name": "\"JCB\""
+          }
+        },
+        {
+          "name": "\"STAR\"",
+          "type": {
+            "name": "\"STAR\""
+          }
+        },
+        {
+          "name": "\"DELTA\"",
+          "type": {
+            "name": "\"DELTA\""
+          }
+        },
+        {
+          "name": "\"SWITCH\"",
+          "type": {
+            "name": "\"SWITCH\""
+          }
+        },
+        {
+          "name": "\"MAESTRO\"",
+          "type": {
+            "name": "\"MAESTRO\""
+          }
+        },
+        {
+          "name": "\"CB_NATIONALE\"",
+          "type": {
+            "name": "\"CB_NATIONALE\""
+          }
+        },
+        {
+          "name": "\"CONFIGOGA\"",
+          "type": {
+            "name": "\"CONFIGOGA\""
+          }
+        },
+        {
+          "name": "\"CONFIDIS\"",
+          "type": {
+            "name": "\"CONFIDIS\""
+          }
+        },
+        {
+          "name": "\"ELECTRON\"",
+          "type": {
+            "name": "\"ELECTRON\""
+          }
+        },
+        {
+          "name": "\"CETELEM\"",
+          "type": {
+            "name": "\"CETELEM\""
+          }
+        },
+        {
+          "name": "\"CHINA_UNION_PAY\"",
+          "type": {
+            "name": "\"CHINA_UNION_PAY\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "SellerProtection",
+      "description": "The level of protection offered as defined by [PayPal Seller Protection for Merchants](https://www.paypal.com/us/webapps/mpp/security/seller-protection)",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "dispute_categories",
+          "description": "An array of conditions that are covered for the transaction",
+          "type": {
+            "name": "(\"ITEM_NOT_RECEIVED\"|\"UNAUTHORIZED_TRANSACTION\")[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "status",
+          "description": "Indicates whether the transaction is eligible for seller protection. For information, see [PayPal Seller Protection for Merchants](https://www.paypal.com/us/webapps/mpp/security/seller-protection)",
+          "type": {
+            "name": "\"ELIGIBLE\"|\"PARTIALLY_ELIGIBLE\"|\"NOT_ELIGIBLE\""
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "DateTime",
+      "description": "The date and time, in [Internet date and time format](https://tools.ietf.org/html/rfc3339#section-5.6). Seconds are required while fractional seconds are optional.\u003cblockquote\u003e\u003cstrong\u003eNote:\u003c/strong\u003e The regular expression provides guidance but does not reject all invalid dates.\u003c/blockquote\u003e",
+      "type": "Other"
+    },
+    {
+      "name": "LinkDescription",
+      "description": "The request-related [HATEOAS link](/api/rest/responses/#hateoas-links) information",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "method",
+          "description": "The HTTP method required to make the related call",
+          "type": {
+            "name": "\"GET\"|\"POST\"|\"PUT\"|\"DELETE\"|\"HEAD\"|\"CONNECT\"|\"OPTIONS\"|\"PATCH\""
+          },
+          "optional": true
+        },
+        {
+          "name": "rel",
+          "description": "The [link relation type](https://tools.ietf.org/html/rfc5988#section-4), which serves as an ID for a link that unambiguously describes the semantics of the link. See [Link Relations](https://www.iana.org/assignments/link-relations/link-relations.xhtml)",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "href",
+          "description": "The complete target URL. To make the related call, combine the method with this [URI Template-formatted](https://tools.ietf.org/html/rfc6570) link. For pre-processing, include the `$`, `(`, and `)` characters. The `href` is the key HATEOAS component that links a completed call with a subsequent call",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SupplementaryPurchaseData",
+      "description": "The capture identification-related fields. Includes the invoice ID, custom ID, note to payer, and soft descriptor",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "invoice_id",
+          "description": "The API caller-provided external invoice number for this order. Appears in both the payer\u0027s transaction history and the emails that the payer receives",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "note_to_payer",
+          "description": "An informational note about this settlement. Appears in both the payer\u0027s transaction history and the emails that the payer receives",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "CaptureStatus",
+      "description": "The status of a captured payment",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "status_details",
+          "description": "",
+          "type": {
+            "name": "CaptureStatusDetails",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CaptureStatusDetails"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "status",
+          "description": "The status of the captured payment",
+          "type": {
+            "name": "\"COMPLETED\"|\"DECLINED\"|\"PARTIALLY_REFUNDED\"|\"PENDING\"|\"REFUNDED\"|\"FAILED\""
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "CaptureStatusDetails",
+      "description": "The details of the captured payment status",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "reason",
+          "description": "The reason why the captured payment status is `PENDING` or `DENIED`",
+          "type": {
+            "name": "\"BUYER_COMPLAINT\"|\"CHARGEBACK\"|\"ECHECK\"|\"INTERNATIONAL_WITHDRAWAL\"|\"OTHER\"|\"PENDING_REVIEW\"|\"RECEIVING_PREFERENCE_MANDATES_MANUAL_ACTION\"|\"REFUNDED\"|\"TRANSACTION_APPROVED_AWAITING_FUNDING\"|\"UNILATERAL\"|\"VERIFICATION_REQUIRED\""
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "CaptureAllOf2",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "id",
+          "description": "The PayPal-generated ID for the captured payment.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "amount",
+          "description": "The currency and amount for a financial transaction, such as a balance or payment due",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "invoice_id",
+          "description": "The API caller-provided external invoice number for this order. Appears in both the payer\u0027s transaction history and the emails that the payer receives.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "custom_id",
+          "description": "The API caller-provided external ID. Used to reconcile API caller-initiated transactions with PayPal transactions. Appears in transaction and settlement reports.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "network_transaction_reference",
+          "description": "Reference values used by the card network to identify a transaction",
+          "type": {
+            "name": "NetworkTransactionReference",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "NetworkTransactionReference"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "seller_protection",
+          "description": "The level of protection offered as defined by [PayPal Seller Protection for Merchants](https://www.paypal.com/us/webapps/mpp/security/seller-protection)",
+          "type": {
+            "name": "SellerProtection",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SellerProtection"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "final_capture",
+          "description": "Indicates whether you can make additional captures against the authorized payment. Set to `true` if you do not intend to capture additional payments against the authorization. Set to `false` if you intend to capture additional payments against the authorization.",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "seller_receivable_breakdown",
+          "description": "The detailed breakdown of the capture activity. This is not available for transactions that are in pending state",
+          "type": {
+            "name": "SellerReceivableBreakdown",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SellerReceivableBreakdown"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "disbursement_mode",
+          "description": "The funds that are held on behalf of the merchant",
+          "type": {
+            "name": "DisbursementMode",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DisbursementMode"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "links",
+          "description": "An array of related [HATEOAS links](/docs/api/reference/api-responses/#hateoas-links).",
+          "type": {
+            "name": "LinkDescription[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "LinkDescription"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "processor_response",
+          "description": "The processor response information for payment requests, such as direct credit card transactions",
+          "type": {
+            "name": "ProcessorResponse",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ProcessorResponse"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "SellerReceivableBreakdown",
+      "description": "The detailed breakdown of the capture activity. This is not available for transactions that are in pending state",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "platform_fees",
+          "description": "An array of platform or partner fees, commissions, or brokerage fees that associated with the captured payment",
+          "type": {
+            "name": "PlatformFee[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PlatformFee"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "exchange_rate",
+          "description": "",
+          "type": {
+            "name": "ExchangeRate",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ExchangeRate"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "paypal_fee",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "gross_amount",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          }
+        },
+        {
+          "name": "paypal_fee_in_receivable_currency",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "net_amount",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "receivable_amount",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "PlatformFee",
+      "description": "The platform or partner fee, commission, or brokerage fee that is associated with the transaction. Not a separate or isolated transaction leg from the external perspective. The platform fee is limited in scope and is always associated with the original payment for the purchase unit",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "payee",
+          "description": "The details for the merchant who receives the funds and fulfills the order. The merchant is also known as the payee",
+          "type": {
+            "name": "PayeeBase",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PayeeBase"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "amount",
+          "description": "The currency and amount for a financial transaction, such as a balance or payment due",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PayeeBase",
+      "description": "The details for the merchant who receives the funds and fulfills the order. The merchant is also known as the payee",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "email_address",
+          "description": "",
+          "type": {
+            "name": "Email",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Email"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "merchant_id",
+          "description": "",
+          "type": {
+            "name": "AccountId",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AccountId"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ExchangeRate",
+      "description": "The exchange rate that determines the amount to convert from one currency to another currency",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "source_currency",
+          "description": "",
+          "type": {
+            "name": "CurrencyCode",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CurrencyCode"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "target_currency",
+          "description": "",
+          "type": {
+            "name": "CurrencyCode",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CurrencyCode"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "value",
+          "description": "The target currency amount. Equivalent to one unit of the source currency. Formatted as integer or decimal value with one to 15 digits to the right of the decimal point",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "DisbursementMode",
+      "description": "The funds that are held on behalf of the merchant",
+      "type": "Union",
+      "members": [
+        {
+          "name": "\"INSTANT\"",
+          "type": {
+            "name": "\"INSTANT\""
+          }
+        },
+        {
+          "name": "\"DELAYED\"",
+          "type": {
+            "name": "\"DELAYED\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "ProcessorResponse",
+      "description": "The processor response information for payment requests, such as direct credit card transactions",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "cvv_code",
+          "description": "The card verification value code for for Visa, Discover, Mastercard, or American Express",
+          "type": {
+            "name": "\"E\"|\"I\"|\"M\"|\"N\"|\"P\"|\"S\"|\"U\"|\"X\"|\"All others\"|\"0\"|\"1\"|\"2\"|\"3\"|\"4\""
+          },
+          "optional": true
+        },
+        {
+          "name": "response_code",
+          "description": "Processor response code for the non-PayPal payment processor errors",
+          "type": {
+            "name": "\"0000\"|\"00N7\"|\"0100\"|\"0390\"|\"0500\"|\"0580\"|\"0800\"|\"0880\"|\"0890\"|\"0960\"|\"0R00\"|\"1000\"|\"10BR\"|\"1300\"|\"1310\"|\"1312\"|\"1317\"|\"1320\"|\"1330\"|\"1335\"|\"1340\"|\"1350\"|\"1352\"|\"1360\"|\"1370\"|\"1380\"|\"1382\"|\"1384\"|\"1390\"|\"1393\"|\"5100\"|\"5110\"|\"5120\"|\"5130\"|\"5135\"|\"5140\"|\"5150\"|\"5160\"|\"5170\"|\"5180\"|\"5190\"|\"5200\"|\"5210\"|\"5400\"|\"5500\"|\"5650\"|\"5700\"|\"5710\"|\"5800\"|\"5900\"|\"5910\"|\"5920\"|\"5930\"|\"5950\"|\"6300\"|\"7600\"|\"7700\"|\"7710\"|\"7800\"|\"7900\"|\"8000\"|\"8010\"|\"8020\"|\"8030\"|\"8100\"|\"8110\"|\"8220\"|\"9100\"|\"9500\"|\"9510\"|\"9520\"|\"9530\"|\"9540\"|\"9600\"|\"PCNR\"|\"PCVV\"|\"PP06\"|\"PPRN\"|\"PPAD\"|\"PPAB\"|\"PPAE\"|\"PPAG\"|\"PPAI\"|\"PPAR\"|\"PPAU\"|\"PPAV\"|\"PPAX\"|\"PPBG\"|\"PPC2\"|\"PPCE\"|\"PPCO\"|\"PPCR\"|\"PPCT\"|\"PPCU\"|\"PPD3\"|\"PPDC\"|\"PPDI\"|\"PPDV\"|\"PPDT\"|\"PPEF\"|\"PPEL\"|\"PPER\"|\"PPEX\"|\"PPFE\"|\"PPFI\"|\"PPFR\"|\"PPFV\"|\"PPGR\"|\"PPH1\"|\"PPIF\"|\"PPII\"|\"PPIM\"|\"PPIT\"|\"PPLR\"|\"PPLS\"|\"PPMB\"|\"PPMC\"|\"PPMD\"|\"PPNC\"|\"PPNL\"|\"PPNM\"|\"PPNT\"|\"PPPH\"|\"PPPI\"|\"PPPM\"|\"PPQC\"|\"PPRE\"|\"PPRF\"|\"PPRR\"|\"PPS0\"|\"PPS1\"|\"PPS2\"|\"PPS3\"|\"PPS4\"|\"PPS5\"|\"PPS6\"|\"PPSC\"|\"PPSD\"|\"PPSE\"|\"PPTE\"|\"PPTF\"|\"PPTI\"|\"PPTR\"|\"PPTT\"|\"PPTV\"|\"PPUA\"|\"PPUC\"|\"PPUE\"|\"PPUI\"|\"PPUP\"|\"PPUR\"|\"PPVC\"|\"PPVE\"|\"PPVT\""
+          },
+          "optional": true
+        },
+        {
+          "name": "payment_advice_code",
+          "description": "The declined payment transactions might have payment advice codes. The card networks, like Visa and Mastercard, return payment advice codes",
+          "type": {
+            "name": "\"01\"|\"02\"|\"03\"|\"21\""
+          },
+          "optional": true
+        },
+        {
+          "name": "avs_code",
+          "description": "The address verification code for Visa, Discover, Mastercard, or American Express transactions",
+          "type": {
+            "name": "\"A\"|\"B\"|\"C\"|\"D\"|\"E\"|\"F\"|\"G\"|\"I\"|\"M\"|\"N\"|\"P\"|\"R\"|\"S\"|\"U\"|\"W\"|\"X\"|\"Y\"|\"Z\"|\"Null\"|\"0\"|\"1\"|\"2\"|\"3\"|\"4\""
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ActivityTimestamps",
+      "description": "The date and time stamps that are common to authorized payment, captured payment, and refund transactions",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "update_time",
+          "description": "",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "create_time",
+          "description": "",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Capture",
+      "description": "A captured payment",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "status_details",
+          "description": "",
+          "type": {
+            "name": "CaptureStatusDetails",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CaptureStatusDetails"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "status",
+          "description": "",
+          "type": {
+            "name": "\"COMPLETED\"|\"DECLINED\"|\"PARTIALLY_REFUNDED\"|\"PENDING\"|\"REFUNDED\"|\"FAILED\""
+          },
+          "optional": true
+        },
+        {
+          "name": "id",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "amount",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "invoice_id",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "custom_id",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "network_transaction_reference",
+          "description": "",
+          "type": {
+            "name": "NetworkTransactionReference",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "NetworkTransactionReference"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "seller_protection",
+          "description": "",
+          "type": {
+            "name": "SellerProtection",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SellerProtection"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "final_capture",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "seller_receivable_breakdown",
+          "description": "",
+          "type": {
+            "name": "SellerReceivableBreakdown",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SellerReceivableBreakdown"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "disbursement_mode",
+          "description": "",
+          "type": {
+            "name": "DisbursementMode",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DisbursementMode"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "links",
+          "description": "",
+          "type": {
+            "name": "LinkDescription[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "LinkDescription"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "processor_response",
+          "description": "",
+          "type": {
+            "name": "ProcessorResponse",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ProcessorResponse"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "update_time",
+          "description": "",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "create_time",
+          "description": "",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "AuthorizationStatus",
+      "description": "The status fields for an authorized payment",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "status_details",
+          "description": "",
+          "type": {
+            "name": "AuthorizationStatusDetails",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AuthorizationStatusDetails"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "status",
+          "description": "The status for the authorized payment",
+          "type": {
+            "name": "\"CREATED\"|\"CAPTURED\"|\"DENIED\"|\"PARTIALLY_CAPTURED\"|\"VOIDED\"|\"PENDING\""
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "AuthorizationStatusDetails",
+      "description": "The details of the authorized payment status",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "reason",
+          "description": "The reason why the authorized status is `PENDING`",
+          "type": {
+            "name": "\"PENDING_REVIEW\""
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ConnectionConfig",
+      "description": "Provides a set of configurations for controlling the behaviours when communicating with a remote HTTP endpoint.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "auth",
+          "description": "Configurations related to client authentication",
+          "type": {
+            "name": "OAuth2ClientCredentialsGrantConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OAuth2ClientCredentialsGrantConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "httpVersion",
+          "description": "The HTTP version understood by the client",
+          "type": {
+            "name": "HttpVersion",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "HttpVersion",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "http1Settings",
+          "description": "Configurations related to HTTP/1.x protocol",
+          "type": {
+            "name": "ClientHttp1Settings",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientHttp1Settings",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "http2Settings",
+          "description": "Configurations related to HTTP/2 protocol",
+          "type": {
+            "name": "ClientHttp2Settings",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientHttp2Settings",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "timeout",
+          "description": "The maximum time to wait (in seconds) for a response before closing the connection",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "forwarded",
+          "description": "The choice of setting `forwarded`/`x-forwarded` header",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "followRedirects",
+          "description": "Configurations associated with Redirection",
+          "type": {
+            "name": "FollowRedirects",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "FollowRedirects",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "poolConfig",
+          "description": "Configurations associated with request pooling",
+          "type": {
+            "name": "PoolConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "PoolConfiguration",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "cache",
+          "description": "HTTP caching related configurations",
+          "type": {
+            "name": "CacheConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CacheConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "compression",
+          "description": "Specifies the way of handling compression (`accept-encoding`) header",
+          "type": {
+            "name": "Compression",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Compression",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "circuitBreaker",
+          "description": "Configurations associated with the behaviour of the Circuit Breaker",
+          "type": {
+            "name": "CircuitBreakerConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CircuitBreakerConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "retryConfig",
+          "description": "Configurations associated with retrying",
+          "type": {
+            "name": "RetryConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "RetryConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "cookieConfig",
+          "description": "Configurations associated with cookies",
+          "type": {
+            "name": "CookieConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CookieConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "responseLimits",
+          "description": "Configurations associated with inbound response size limits",
+          "type": {
+            "name": "ResponseLimitConfigs",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ResponseLimitConfigs",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "SSL/TLS-related options",
+          "type": {
+            "name": "ClientSecureSocket",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientSecureSocket",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "proxy",
+          "description": "Proxy server related options",
+          "type": {
+            "name": "ProxyConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ProxyConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "socketConfig",
+          "description": "Provides settings related to client socket configuration",
+          "type": {
+            "name": "ClientSocketConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientSocketConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "validation",
+          "description": "Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "laxDataBinding",
+          "description": "Enables relaxed data binding on the client side. When enabled, `nil` values are treated as optional, \nand absent fields are handled as `nilable` types. Enabled by default.",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "RefundStatus",
+      "description": "The refund status",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "status_details",
+          "description": "",
+          "type": {
+            "name": "RefundStatusDetails",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RefundStatusDetails"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "status",
+          "description": "The status of the refund",
+          "type": {
+            "name": "\"CANCELLED\"|\"FAILED\"|\"PENDING\"|\"COMPLETED\""
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "RefundStatusDetails",
+      "description": "The details of the refund status",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "reason",
+          "description": "The reason why the refund has the `PENDING` or `FAILED` status",
+          "type": {
+            "name": "\"ECHECK\""
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "AuthorizationsVoidHeaders",
+      "description": "Represents the Headers record for the operation: authorizations.void",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "PayPal\\-Auth\\-Assertion",
+          "description": "An API-caller-provided JSON Web Token (JWT) assertion that identifies the merchant. For details, see [PayPal-Auth-Assertion](/docs/api/reference/api-requests/#paypal-auth-assertion).\u003cblockquote\u003e\u003cstrong\u003eNote:\u003c/strong\u003eFor three party transactions in which a partner is managing the API calls on behalf of a merchant, the partner must identify the merchant using either a PayPal-Auth-Assertion header or an access token with target_subject.\u003c/blockquote\u003e",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "Prefer",
+          "description": "The preferred server response upon successful completion of the request. Value is:\u003cul\u003e\u003cli\u003e\u003ccode\u003ereturn\u003dminimal\u003c/code\u003e. The server returns a minimal response to optimize communication between the API caller and the server. A minimal response includes the \u003ccode\u003eid\u003c/code\u003e, \u003ccode\u003estatus\u003c/code\u003e and HATEOAS links.\u003c/li\u003e\u003cli\u003e\u003ccode\u003ereturn\u003drepresentation\u003c/code\u003e. The server returns a complete resource representation, including the current state of the resource.\u003c/li\u003e\u003c/ul\u003e",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Capture2AllOf2",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "supplementary_data",
+          "description": "The supplementary data",
+          "type": {
+            "name": "SupplementaryData",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SupplementaryData"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "payee",
+          "description": "The details for the merchant who receives the funds and fulfills the order. The merchant is also known as the payee",
+          "type": {
+            "name": "PayeeBase",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PayeeBase"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "SupplementaryData",
+      "description": "The supplementary data",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "related_ids",
+          "description": "",
+          "type": {
+            "name": "RelatedIds",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RelatedIds"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "RelatedIds",
+      "description": "Identifiers related to a specific resource",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "authorization_id",
+          "description": "Authorization ID related to the resource",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "capture_id",
+          "description": "Capture ID related to the resource",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "order_id",
+          "description": "Order ID related to the resource",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Capture2",
+      "description": "A captured payment",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "status_details",
+          "description": "",
+          "type": {
+            "name": "CaptureStatusDetails",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CaptureStatusDetails"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "status",
+          "description": "",
+          "type": {
+            "name": "\"COMPLETED\"|\"DECLINED\"|\"PARTIALLY_REFUNDED\"|\"PENDING\"|\"REFUNDED\"|\"FAILED\""
+          },
+          "optional": true
+        },
+        {
+          "name": "id",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "amount",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "invoice_id",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "custom_id",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "network_transaction_reference",
+          "description": "",
+          "type": {
+            "name": "NetworkTransactionReference",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "NetworkTransactionReference"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "seller_protection",
+          "description": "",
+          "type": {
+            "name": "SellerProtection",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SellerProtection"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "final_capture",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "seller_receivable_breakdown",
+          "description": "",
+          "type": {
+            "name": "SellerReceivableBreakdown",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SellerReceivableBreakdown"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "disbursement_mode",
+          "description": "",
+          "type": {
+            "name": "DisbursementMode",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DisbursementMode"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "links",
+          "description": "",
+          "type": {
+            "name": "LinkDescription[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "LinkDescription"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "processor_response",
+          "description": "",
+          "type": {
+            "name": "ProcessorResponse",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ProcessorResponse"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "update_time",
+          "description": "",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "create_time",
+          "description": "",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "supplementary_data",
+          "description": "",
+          "type": {
+            "name": "SupplementaryData",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SupplementaryData"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "payee",
+          "description": "",
+          "type": {
+            "name": "PayeeBase",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PayeeBase"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "RefundAllOf2",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "id",
+          "description": "The PayPal-generated ID for the refund.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "amount",
+          "description": "The currency and amount for a financial transaction, such as a balance or payment due",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "invoice_id",
+          "description": "The API caller-provided external invoice number for this order. Appears in both the payer\u0027s transaction history and the emails that the payer receives.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "custom_id",
+          "description": "The API caller-provided external ID. Used to reconcile API caller-initiated transactions with PayPal transactions. Appears in transaction and settlement reports.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "acquirer_reference_number",
+          "description": "Reference ID issued for the card transaction. This ID can be used to track the transaction across processors, card brands and issuing banks.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "note_to_payer",
+          "description": "The reason for the refund. Appears in both the payer\u0027s transaction history and the emails that the payer receives.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "seller_payable_breakdown",
+          "description": "The breakdown of the refund",
+          "type": {
+            "name": "MerchantPayableBreakdown",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "MerchantPayableBreakdown"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "payer",
+          "description": "The details for the merchant who receives the funds and fulfills the order. The merchant is also known as the payee",
+          "type": {
+            "name": "PayeeBase",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PayeeBase"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "links",
+          "description": "An array of related [HATEOAS links](/docs/api/reference/api-responses/#hateoas-links).",
+          "type": {
+            "name": "LinkDescription[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "LinkDescription"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "MerchantPayableBreakdown",
+      "description": "The breakdown of the refund",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "platform_fees",
+          "description": "An array of platform or partner fees, commissions, or brokerage fees for the refund",
+          "type": {
+            "name": "PlatformFee[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PlatformFee"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "net_amount_in_receivable_currency",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "total_refunded_amount",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "paypal_fee",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "gross_amount",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "paypal_fee_in_receivable_currency",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "net_amount",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "net_amount_breakdown",
+          "description": "An array of breakdown values for the net amount. Returned when the currency of the refund is different from the currency of the PayPal account where the payee holds their funds",
+          "type": {
+            "name": "NetAmountBreakdownItem[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "NetAmountBreakdownItem"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "NetAmountBreakdownItem",
+      "description": "The net amount. Returned when the currency of the refund is different from the currency of the PayPal account where the merchant holds their funds",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "exchange_rate",
+          "description": "",
+          "type": {
+            "name": "ExchangeRate",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ExchangeRate"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "converted_amount",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "payable_amount",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Refund",
+      "description": "The refund information",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "status_details",
+          "description": "",
+          "type": {
+            "name": "RefundStatusDetails",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RefundStatusDetails"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "status",
+          "description": "",
+          "type": {
+            "name": "\"CANCELLED\"|\"FAILED\"|\"PENDING\"|\"COMPLETED\""
+          },
+          "optional": true
+        },
+        {
+          "name": "id",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "amount",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "invoice_id",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "custom_id",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "acquirer_reference_number",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "note_to_payer",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "seller_payable_breakdown",
+          "description": "",
+          "type": {
+            "name": "MerchantPayableBreakdown",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "MerchantPayableBreakdown"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "payer",
+          "description": "",
+          "type": {
+            "name": "PayeeBase",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PayeeBase"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "links",
+          "description": "",
+          "type": {
+            "name": "LinkDescription[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "LinkDescription"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "update_time",
+          "description": "",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "create_time",
+          "description": "",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "AuthorizationsCaptureHeaders",
+      "description": "Represents the Headers record for the operation: authorizations.capture",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "PayPal\\-Request\\-Id",
+          "description": "The server stores keys for 45 days",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "Prefer",
+          "description": "The preferred server response upon successful completion of the request. Value is:\u003cul\u003e\u003cli\u003e\u003ccode\u003ereturn\u003dminimal\u003c/code\u003e. The server returns a minimal response to optimize communication between the API caller and the server. A minimal response includes the \u003ccode\u003eid\u003c/code\u003e, \u003ccode\u003estatus\u003c/code\u003e and HATEOAS links.\u003c/li\u003e\u003cli\u003e\u003ccode\u003ereturn\u003drepresentation\u003c/code\u003e. The server returns a complete resource representation, including the current state of the resource.\u003c/li\u003e\u003c/ul\u003e",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Authorization2AllOf2",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "supplementary_data",
+          "description": "The supplementary data",
+          "type": {
+            "name": "SupplementaryData",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SupplementaryData"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "payee",
+          "description": "The details for the merchant who receives the funds and fulfills the order. The merchant is also known as the payee",
+          "type": {
+            "name": "PayeeBase",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PayeeBase"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ReauthorizeRequest",
+      "description": "Reauthorizes an authorized PayPal account payment, by ID. To ensure that funds are still available, reauthorize a payment after its initial three-day honor period expires. You can reauthorize a payment only once from days four to 29.\u003cbr/\u003e\u003cbr/\u003eIf 30 days have transpired since the date of the original authorization, you must create an authorized payment instead of reauthorizing the original authorized payment.\u003cbr/\u003e\u003cbr/\u003eA reauthorized payment itself has a new honor period of three days.\u003cbr/\u003e\u003cbr/\u003eYou can reauthorize an authorized payment once. The allowed amount depends on context and geography, for example in US it is up to 115% of the original authorized amount, not to exceed an increase of $75 USD.\u003cbr/\u003e\u003cbr/\u003eSupports only the `amount` request parameter.\u003cblockquote\u003e\u003cstrong\u003eNote:\u003c/strong\u003e This request is currently not supported for Partner use cases.\u003c/blockquote\u003e",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "amount",
+          "description": "The currency and amount for a financial transaction, such as a balance or payment due",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "PaymentInstruction",
+      "description": "Any additional payment instructions to be consider during payment processing. This processing instruction is applicable for Capturing an order or Authorizing an Order",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "disbursement_mode",
+          "description": "",
+          "type": {
+            "name": "DisbursementMode",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DisbursementMode"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "platform_fees",
+          "description": "An array of various fees, commissions, tips, or donations. This field is only applicable to merchants that been enabled for PayPal Commerce Platform for Marketplaces and Platforms capability",
+          "type": {
+            "name": "PlatformFee[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PlatformFee"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "payee_receivable_fx_rate_id",
+          "description": "FX identifier generated returned by PayPal to be used for payment processing in order to honor FX rate (for eligible integrations) to be used when amount is settled/received into the payee account",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "payee_pricing_tier_id",
+          "description": "This field is only enabled for selected merchants/partners to use and provides the ability to trigger a specific pricing rate/plan for a payment transaction. The list of eligible \u0027payee_pricing_tier_id\u0027 would be provided to you by your Account Manager. Specifying values other than the one provided to you by your account manager would result in an error",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "AuthorizationsReauthorizeHeaders",
+      "description": "Represents the Headers record for the operation: authorizations.reauthorize",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "PayPal\\-Request\\-Id",
+          "description": "The server stores keys for 45 days",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "Prefer",
+          "description": "The preferred server response upon successful completion of the request. Value is:\u003cul\u003e\u003cli\u003e\u003ccode\u003ereturn\u003dminimal\u003c/code\u003e. The server returns a minimal response to optimize communication between the API caller and the server. A minimal response includes the \u003ccode\u003eid\u003c/code\u003e, \u003ccode\u003estatus\u003c/code\u003e and HATEOAS links.\u003c/li\u003e\u003cli\u003e\u003ccode\u003ereturn\u003drepresentation\u003c/code\u003e. The server returns a complete resource representation, including the current state of the resource.\u003c/li\u003e\u003c/ul\u003e",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Authorization",
+      "description": "The authorized payment transaction",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "status_details",
+          "description": "",
+          "type": {
+            "name": "AuthorizationStatusDetails",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AuthorizationStatusDetails"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "status",
+          "description": "",
+          "type": {
+            "name": "\"CREATED\"|\"CAPTURED\"|\"DENIED\"|\"PARTIALLY_CAPTURED\"|\"VOIDED\"|\"PENDING\""
+          },
+          "optional": true
+        },
+        {
+          "name": "id",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "amount",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "invoice_id",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "custom_id",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "network_transaction_reference",
+          "description": "",
+          "type": {
+            "name": "NetworkTransactionReference",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "NetworkTransactionReference"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "seller_protection",
+          "description": "",
+          "type": {
+            "name": "SellerProtection",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SellerProtection"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "expiration_time",
+          "description": "",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "links",
+          "description": "",
+          "type": {
+            "name": "LinkDescription[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "LinkDescription"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "update_time",
+          "description": "",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "create_time",
+          "description": "",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Authorization2",
+      "description": "The authorized payment transaction",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "status_details",
+          "description": "",
+          "type": {
+            "name": "AuthorizationStatusDetails",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AuthorizationStatusDetails"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "status",
+          "description": "",
+          "type": {
+            "name": "\"CREATED\"|\"CAPTURED\"|\"DENIED\"|\"PARTIALLY_CAPTURED\"|\"VOIDED\"|\"PENDING\""
+          },
+          "optional": true
+        },
+        {
+          "name": "id",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "amount",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "invoice_id",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "custom_id",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "network_transaction_reference",
+          "description": "",
+          "type": {
+            "name": "NetworkTransactionReference",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "NetworkTransactionReference"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "seller_protection",
+          "description": "",
+          "type": {
+            "name": "SellerProtection",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SellerProtection"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "expiration_time",
+          "description": "",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "links",
+          "description": "",
+          "type": {
+            "name": "LinkDescription[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "LinkDescription"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "update_time",
+          "description": "",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "create_time",
+          "description": "",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "supplementary_data",
+          "description": "",
+          "type": {
+            "name": "SupplementaryData",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SupplementaryData"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "payee",
+          "description": "",
+          "type": {
+            "name": "PayeeBase",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PayeeBase"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "CapturesRefundHeaders",
+      "description": "Represents the Headers record for the operation: captures.refund",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "PayPal\\-Request\\-Id",
+          "description": "The server stores keys for 45 days",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "PayPal\\-Auth\\-Assertion",
+          "description": "An API-caller-provided JSON Web Token (JWT) assertion that identifies the merchant. For details, see [PayPal-Auth-Assertion](/docs/api/reference/api-requests/#paypal-auth-assertion).\u003cblockquote\u003e\u003cstrong\u003eNote:\u003c/strong\u003eFor three party transactions in which a partner is managing the API calls on behalf of a merchant, the partner must identify the merchant using either a PayPal-Auth-Assertion header or an access token with target_subject.\u003c/blockquote\u003e",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "Prefer",
+          "description": "The preferred server response upon successful completion of the request. Value is:\u003cul\u003e\u003cli\u003e\u003ccode\u003ereturn\u003dminimal\u003c/code\u003e. The server returns a minimal response to optimize communication between the API caller and the server. A minimal response includes the \u003ccode\u003eid\u003c/code\u003e, \u003ccode\u003estatus\u003c/code\u003e and HATEOAS links.\u003c/li\u003e\u003cli\u003e\u003ccode\u003ereturn\u003drepresentation\u003c/code\u003e. The server returns a complete resource representation, including the current state of the resource.\u003c/li\u003e\u003c/ul\u003e",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "CaptureRequestAllOf2",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "amount",
+          "description": "The currency and amount for a financial transaction, such as a balance or payment due",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "invoice_id",
+          "description": "The API caller-provided external invoice number for this order. Appears in both the payer\u0027s transaction history and the emails that the payer receives.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "final_capture",
+          "description": "Indicates whether you can make additional captures against the authorized payment. Set to `true` if you do not intend to capture additional payments against the authorization. Set to `false` if you intend to capture additional payments against the authorization.",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "payment_instruction",
+          "description": "Any additional payment instructions to be consider during payment processing. This processing instruction is applicable for Capturing an order or Authorizing an Order",
+          "type": {
+            "name": "PaymentInstruction",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PaymentInstruction"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "note_to_payer",
+          "description": "An informational note about this settlement. Appears in both the payer\u0027s transaction history and the emails that the payer receives.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "soft_descriptor",
+          "description": "The payment descriptor on the payer\u0027s account statement.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "RefundRequest",
+      "description": "Refunds a captured payment, by ID. For a full refund, include an empty request body. For a partial refund, include an \u003ccode\u003eamount\u003c/code\u003e object in the request body",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "amount",
+          "description": "The currency and amount for a financial transaction, such as a balance or payment due",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "custom_id",
+          "description": "The API caller-provided external ID. Used to reconcile API caller-initiated transactions with PayPal transactions. Appears in transaction and settlement reports. The pattern is defined by an external party and supports Unicode",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "invoice_id",
+          "description": "The API caller-provided external invoice ID for this order. The pattern is defined by an external party and supports Unicode",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "note_to_payer",
+          "description": "The reason for the refund. Appears in both the payer\u0027s transaction history and the emails that the payer receives. The pattern is defined by an external party and supports Unicode",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "payment_instruction",
+          "description": "",
+          "type": {
+            "name": "PaymentInstruction2",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PaymentInstruction2"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "PaymentInstruction2",
+      "description": "Any additional payments instructions during refund payment processing. This object is only applicable to merchants that have been enabled for PayPal Commerce Platform for Marketplaces and Platforms capability. Please speak to your account manager if you want to use this capability",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "platform_fees",
+          "description": "Specifies the amount that the API caller will contribute to the refund being processed. The amount needs to be lower than platform_fees amount originally captured or the amount that is remaining if multiple refunds have been processed. This field is only applicable to merchants that have been enabled for PayPal Commerce Platform for Marketplaces and Platforms capability. Please speak to your account manager if you want to use this capability",
+          "type": {
+            "name": "PlatformFee[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PlatformFee"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "CaptureRequest",
+      "description": "Captures either a portion or the full authorized amount of an authorized payment",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "invoice_id",
+          "description": "The API caller-provided external invoice number for this order. Appears in both the payer\u0027s transaction history and the emails that the payer receives",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "note_to_payer",
+          "description": "An informational note about this settlement. Appears in both the payer\u0027s transaction history and the emails that the payer receives",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "amount",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "final_capture",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "payment_instruction",
+          "description": "",
+          "type": {
+            "name": "PaymentInstruction",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PaymentInstruction"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "soft_descriptor",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "name": "Client",
+      "description": "Call the Payments API to authorize payments, capture authorized payments, refund payments that have already been captured, and show payment information. Use the Payments API in conjunction with the \u003ca href\u003d\"/docs/api/orders/v2/\"\u003eOrders API\u003c/a\u003e. For more information, see the \u003ca href\u003d\"/docs/checkout/\"\u003ePayPal Checkout Overview\u003c/a\u003e.",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Gets invoked to initialize the `connector`.\n",
+          "parameters": [
+            {
+              "name": "config",
+              "description": "The configurations to be used when initializing the `connector` ",
+              "type": {
+                "name": "ConnectionConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ConnectionConfig"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "serviceUrl",
+              "description": "URL of the target service ",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"https://api-m.sandbox.paypal.com/v2/payments\""
+            }
+          ],
+          "return": {
+            "description": "An error if connector initialization failed ",
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Show details for authorized payment\n",
+          "accessor": "get",
+          "paths": [
+            "authorizations",
+            {
+              "name": "authorizationId",
+              "type": "string"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "authorizationId",
+              "description": "The PayPal-generated ID for the authorized payment to void",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "Authorization2|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Authorization2"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Capture authorized payment\n",
+          "accessor": "post",
+          "paths": [
+            "authorizations",
+            {
+              "name": "authorizationId",
+              "type": "string"
+            },
+            "capture"
+          ],
+          "parameters": [
+            {
+              "name": "authorizationId",
+              "description": "The PayPal-generated ID for the authorized payment to void",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "payload",
+              "type": {
+                "name": "CaptureRequest",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "CaptureRequest"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "AuthorizationsCaptureHeaders",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "AuthorizationsCaptureHeaders"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "Capture2|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Capture2"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Reauthorize authorized payment\n",
+          "accessor": "post",
+          "paths": [
+            "authorizations",
+            {
+              "name": "authorizationId",
+              "type": "string"
+            },
+            "reauthorize"
+          ],
+          "parameters": [
+            {
+              "name": "authorizationId",
+              "description": "The PayPal-generated ID for the authorized payment to void",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "payload",
+              "type": {
+                "name": "ReauthorizeRequest",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ReauthorizeRequest"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "AuthorizationsReauthorizeHeaders",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "AuthorizationsReauthorizeHeaders"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "Authorization2|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Authorization2"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Void authorized payment\n",
+          "accessor": "post",
+          "paths": [
+            "authorizations",
+            {
+              "name": "authorizationId",
+              "type": "string"
+            },
+            "void"
+          ],
+          "parameters": [
+            {
+              "name": "authorizationId",
+              "description": "The PayPal-generated ID for the authorized payment to void",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "AuthorizationsVoidHeaders",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "AuthorizationsVoidHeaders"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "Authorization2|error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Authorization2"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Show captured payment details\n",
+          "accessor": "get",
+          "paths": [
+            "captures",
+            {
+              "name": "captureId",
+              "type": "string"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "captureId",
+              "description": "The PayPal-generated ID for the captured payment to refund",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "Capture2|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Capture2"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Refund captured payment\n",
+          "accessor": "post",
+          "paths": [
+            "captures",
+            {
+              "name": "captureId",
+              "type": "string"
+            },
+            "refund"
+          ],
+          "parameters": [
+            {
+              "name": "captureId",
+              "description": "The PayPal-generated ID for the captured payment to refund",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "payload",
+              "type": {
+                "name": "RefundRequest",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "RefundRequest"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "CapturesRefundHeaders",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "CapturesRefundHeaders"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "Refund|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Refund"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Show refund details\n",
+          "accessor": "get",
+          "paths": [
+            "refunds",
+            {
+              "name": "refundId",
+              "type": "string"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "refundId",
+              "description": "The PayPal-generated ID for the refund for which to show details",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "Refund|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Refund"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "functions": [],
+  "services": [],
+  "annotations": []
+}

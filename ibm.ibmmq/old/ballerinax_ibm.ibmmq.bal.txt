@@ -1,0 +1,979 @@
+// ============================================================
+// Library: ballerinax/ibm.ibmmq
+// IBM MQ is a robust, reliable, and secure messaging middleware that enables applications to communicate across different platforms. It provides a proven infrastructure for distributed messaging in enterprise environments. The IBM MQ connector provides a comprehensive API to interact with IBM MQ queue managers, allowing you to manage queues and exchange messages efficiently.
+// ============================================================
+import ballerinax/ibm.ibmmq;
+
+// --- README ---
+## Overview
+
+IBM MQ is a robust, reliable, and secure messaging middleware that enables applications to communicate across different platforms. It provides a proven infrastructure for distributed messaging in enterprise environments. The IBM MQ connector provides a comprehensive API to interact with IBM MQ queue managers, allowing you to manage queues and exchange messages efficiently.
+
+### Key Features
+
+- Reliable and secure message delivery across diverse platforms
+- Comprehensive support for IBM MQ features and configurations
+- Manage queues and perform message operations programmatically
+- Support for various messaging patterns and message properties
+- Secure communication with SSL/TLS and authentication
+- GraalVM compatible for native image builds
+
+## Setup guide
+
+To use the Ballerina IBM MQ connector, you need to have an IBM MQ instance running or possess an IBM MQ cloud account.
+For setting up IBM MQ locally, you can refer to the [IBM MQ official documentation](https://www.ibm.com/docs/en/ibm-mq/9.3?topic=migrating-installing-uninstalling).
+Alternatively, to use IBM MQ on the cloud, [sign up](https://cloud.ibm.com/registration) for an IBM MQ cloud account.
+
+### Create a queue
+
+1. Log into IBM MQ console. If you are running an IBM MQ server locally you can navigate to `https://<host>:<port>/ibmmq/console` URL in your browser to access the IBM MQ console.
+
+2. Click on the `Create a queue` link.
+
+    <img src=https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-ibm.ibmmq/main/docs/setup/resources/select-create-queue.png alt="Create a queue" style="width: 70%;">
+
+3. Select the queue type.
+
+    <img src=https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-ibm.ibmmq/main/docs/setup/resources/select-queue-type.png alt="Select the queue type" style="width: 70%;">
+
+### Create a topic
+
+1. Go back to the home page and click on the `Manage` link on the sidebar.
+
+    <img src=https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-ibm.ibmmq/main/docs/setup/resources/click-manage-link.png alt="Click on manage" style="width: 70%;">
+
+2. Navigate to `Events` tab.
+
+    <img src=https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-ibm.ibmmq/main/docs/setup/resources/navigate-to-events-tab.png alt="Navigate to events tab" style="width: 70%;">
+
+3. Click on `Create`.
+
+    <img src=https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-ibm.ibmmq/main/docs/setup/resources/click-on-create.png alt="Click on create" style="width: 70%;">
+
+## Quickstart
+
+To use the IBM MQ connector in your Ballerina application, modify the `.bal` file as follows:
+
+### Step 1: Import the connector
+
+Import `ballerinax/ibm.ibmmq` module into your Ballerina project.
+
+```ballerina
+import ballerinax/ibm.ibmmq;
+```
+
+### Step 2: Add IBM MQ driver
+
+Add `com.ibm.mq.allclient` as a platform dependency to the `Ballerina.toml`.
+
+```toml
+[[platform.java21.dependency]]
+groupId = "com.ibm.mq"
+artifactId = "com.ibm.mq.allclient"
+version = "9.3.4.0"
+```
+
+### Step 3: Instantiate a new connector
+
+Create an `ibmmq:QueueManager` instance by giving IBM MQ configuration.
+
+```ballerina
+configurable string queueManagerName = ?;
+configurable string host = ?;
+configurable int port = ?;
+configurable string channel = ?;
+configurable string userID = ?;
+configurable string password = ?;
+
+ibmmq:QueueManager queueManager = check new (
+    name = queueManagerName, host = host, port = port, channel = channel, userID = userID, password = password
+);
+```
+
+Create an `ibmmq:Queue` or `ibmmq:Topic` using the `ibmmq:QueueManager` instance with relevant configurations.
+
+```ballerina
+configurable string queueName = ?;
+
+ibmmq:Queue queue = check queueManager.accessQueue(queueName, ibmmq:MQOO_OUTPUT | ibmmq:MQOO_INPUT_AS_Q_DEF);
+```
+
+Create an `ibmmq:Topic` using the `ibmmq:QueueManager` instance with relevant configurations.
+
+```ballerina
+configurable string topicName = ?;
+configurable string topicString = ?;
+
+ibmmq:Topic topic = check queueManager.accessTopic(
+    topicName, topicString, ibmmq:MQOO_OUTPUT | ibmmq:MQOO_INPUT_AS_Q_DEF
+);
+```
+
+### Step 4: Invoke the connector operations
+
+Now, utilize the available connector operations.
+
+#### Produce messages to an IBM MQ queue
+
+```ballerina
+check queue->put({
+    payload: "This is a sample message to IBM MQ queue".toBytes()
+});
+```
+
+#### Produce messages to an IBM MQ topic
+
+```ballerina
+check topic->put({
+    payload: "This is a sample message to IBM MQ topic".toBytes()
+});
+```
+
+#### Retrieve messages from an IBM MQ queue
+
+```ballerina
+ibmmq:Message? message = check queue->get();
+```
+
+#### Retrieve messages from an IBM MQ topic
+
+```ballerina
+ibmmq:Message? message = check topic->get();
+```
+
+### Step 5: Run the Ballerina application
+
+```Shell
+bal run
+```
+
+### Examples
+
+The following example shows how to use the `ibm.ibmmq` connector to produce and consume messages using an IBM MQ server.
+
+1. [Produce messages](https://github.com/ballerina-platform/module-ballerinax-ibm.ibmmq/tree/main/examples/produce-messages) - Produce messages to an IBM MQ queue.
+
+2. [Consume messages](https://github.com/ballerina-platform/module-ballerinax-ibm.ibmmq/tree/main/examples/consume-messages) - Consume messages from an IBM MQ queue.
+
+3. [Securing IBM MQ client](https://github.com/ballerina-platform/module-ballerinax-ibm.ibmmq/tree/main/examples/ibmmq-client-security) - Initiate secure communication between an IBM MQ client and an IBM MQ server.
+
+4. [Produce MQIIH headers](https://github.com/ballerina-platform/module-ballerinax-ibm.ibmmq/tree/main/examples/produce-mqiih-headers) - Produce IBM MQ messages to an IBM MQ queue with the MQIIH headers.
+
+5. [Consume MQIIH headers](https://github.com/ballerina-platform/module-ballerinax-ibm.ibmmq/tree/main/examples/consume-mqiih-headers) - Consume messages with the MQIIH header from an IBM MQ queue.
+
+6. [Produce MQRFH2 headers](https://github.com/ballerina-platform/module-ballerinax-ibm.ibmmq/tree/main/examples/produce-mqrfh2-headers) - Produce IBM MQ messages to an IBM MQ queue with the MQRFH2 headers.
+
+7. [Consume MQIIH headers](https://github.com/ballerina-platform/module-ballerinax-ibm.ibmmq/tree/main/examples/consume-mqrfh2-headers) - Consume messages with the MQRFH2 header from an IBM MQ queue.
+
+8. [Consume messages using a service](https://github.com/ballerina-platform/module-ballerinax-ibm.ibmmq/tree/main/examples/consume-messages-service) - Consume messages from an IBM MQ queue using a Ballerina service.
+
+## Report Issues
+
+To report bugs, request new features, start new discussions, view project boards, etc., go to the [Ballerina library parent repository](https://github.com/ballerina-platform/ballerina-library).
+
+## Useful Links
+
+- Chat live with us via our [Discord server](https://discord.gg/ballerinalang).
+- Post all technical questions on Stack Overflow with the [#ballerina](https://stackoverflow.com/questions/tagged/ballerina) tag.
+
+// --- END README ---
+
+// --- Types ---
+
+# Open topic as a subscription.
+const int OPEN_AS_SUBSCRIPTION = 1;
+
+# Open topic as a publication.
+const int OPEN_AS_PUBLICATION = 2;
+
+# Open the queue to browse messages.
+const int MQOO_BROWSE = 8;
+
+# Open the queue to get messages using the queue-defined default.
+const int MQOO_INPUT_AS_Q_DEF = 1;
+
+# Open the queue to get messages with exclusive access.
+const int MQOO_INPUT_EXCLUSIVE = 4;
+
+# Open the queue to get messages with shared access.
+const int MQOO_INPUT_SHARED = 2;
+
+# Enables the AlternateUserId field in the ObjDesc parameter contains a user identifier to use to validate this MQOPEN call.
+const int MQOO_ALTERNATE_USER_AUTHORITY = 4096;
+
+# The local queue manager binds the queue handle in the way defined by the DefBind queue attribute.
+const int MQOO_BIND_AS_Q_DEF = 0;
+
+# The MQOPEN call fails if the queue manager is in quiescing state. This option is valid for all types of object.
+const int MQOO_FAIL_IF_QUIESCING = 8192;
+
+# This allows the MQPMO_PASS_ALL_CONTEXT option to be specified in the PutMsgOpts parameter when a message is put on a queue.
+const int MQOO_PASS_ALL_CONTEXT = 512;
+
+# This allows the MQPMO_PASS_IDENTITY_CONTEXT option to be specified in the PutMsgOpts parameter when a message is put on a queue.
+const int MQOO_PASS_IDENTITY_CONTEXT = 256;
+
+# This allows the MQPMO_SET_ALL_CONTEXT option to be specified in the PutMsgOpts parameter when a message is put on a queue.
+const int MQOO_SET_ALL_CONTEXT = 2048;
+
+# This allows the MQPMO_SET_IDENTITY_CONTEXT option to be specified in the PutMsgOpts parameter when a message is put on a queue.
+const int MQOO_SET_IDENTITY_CONTEXT = 1024;
+
+# Open the queue to put messages.
+const int MQOO_OUTPUT = 16;
+
+# The application waits until a suitable message arrives.
+const int MQGMO_WAIT = 1;
+
+# The application does not wait if no suitable message is available.
+const int MQGMO_NO_WAIT = 0;
+
+# The request is to operate within the normal unit-of-work protocols.
+const int MQGMO_SYNCPOINT = 2;
+
+# The request is to operate outside the normal unit-of-work protocols.
+const int MQGMO_NO_SYNCPOINT = 4;
+
+# When a queue is opened with the MQOO_BROWSE option, a browse cursor is established, positioned logically
+# before the first message on the queue.
+const int MQGMO_BROWSE_FIRST = 16;
+
+# Advance the browse cursor to the next message on the queue that satisfies the selection criteria specified
+# on the MQGET call.
+const int MQGMO_BROWSE_NEXT = 32;
+
+# Retrieve the message pointed to by the browse cursor nondestructively, regardless of the MQMO_* options
+# specified in the MatchOptions field in MQGMO.
+const int MQGMO_BROWSE_MSG_UNDER_CURSOR = 2048;
+
+# Retrieve the message pointed to by the browse cursor, regardless of the MQMO_* options specified in the
+# MatchOptions field in MQGMO.
+const int MQGMO_MSG_UNDER_CURSOR = 256;
+
+# Lock the message that is browsed, so that the message becomes invisible to any other handle open for the queue.
+const int MQGMO_LOCK = 512;
+
+# Unlock a message. The message to be unlocked must have been previously locked by an MQGET call with the
+# MQGMO_LOCK option.
+const int MQGMO_UNLOCK = 1024;
+
+# If the message buffer is too small to hold the complete message, allow the MQGET call to fill the
+# buffer with as much of the message as the buffer can hold.
+const int MQGMO_ACCEPT_TRUNCATED_MSG = 64;
+
+# Force the MQGET call to fail if the queue manager is in the quiescing state.
+const int MQGMO_FAIL_IF_QUIESCING = 8192;
+
+# Requests the application data to be converted.
+const int MQGMO_CONVERT = 16384;
+
+# Subscribe Option create
+const int MQSO_CREATE = 2;
+
+# Encoding for normal integer representation (most significant byte first) or the big-endian format.
+const int MQENC_INTEGER_NORMAL = 1;
+
+# Encoding for reversed integer representation (least significant byte first) or the little-endian format.
+const int MQENC_INTEGER_REVERSED = 2;
+
+# Packed-decimal integers are represented in the conventional way: Each decimal digit in the printable form of the number is represented in packed decimal by a single hexadecimal digit in the range X'0' through X'9'.
+const int MQENC_DECIMAL_NORMAL = 16;
+
+# Packed-decimal integers are represented in the same way as `ENC_DECIMAL_NORMAL`, but with the bytes arranged in reverse order.
+const int MQENC_DECIMAL_REVERSED = 32;
+
+# Floating-point numbers are represented using the standard IEEE3 floating-point format.
+const int MQENC_FLOAT_IEEE_NORMAL = 256;
+
+# Floating-point numbers are represented in the same way as `ENC_FLOAT_IEEE_NORMAL`, but with the bytes arranged in reverse order.
+const int MQENC_FLOAT_IEEE_REVERSED = 512;
+
+# Floating-point numbers are represented using the standard zSeries (System/390) floating-point format.
+const int MQENC_FLOAT_S390 = 768;
+
+# Coded Character Set Identifiers - Appl.
+const int MQCCSI_APPL = -3;
+
+# ASCII codeset.
+const int MQCCSI_ASCII = 850;
+
+# ISO standard ASCII codeset.
+const int MQCCSI_ASCII_ISO = 819;
+
+# Coded Character Set Identifiers - As Published.
+const int MQCCSI_AS_PUBLISHED = -4;
+
+# The CodedCharSetId of the data in the String field is defined by the CodedCharSetId field in the header structure
+# that precedes the MQCFH structure, or by the CodedCharSetId field in the MQMD if the MQCFH is at the start of the message.
+const int MQCCSI_DEFAULT = 0;
+
+# The American EBCDIC codeset.
+const int MQCCSI_EBCDIC = 37;
+
+# Coded Character Set Identifiers - Embedded.
+const int MQCCSI_EMBEDDED = -1;
+
+# Character data in the message is in the same character set as this structure.
+const int MQCCSI_INHERIT = -2;
+
+# Character data in the message is in the queue manager's character set.
+const int MQCCSI_Q_MGR = 0;
+
+# Coded Character Set Identifiers - Undefined.
+const int MQCCSI_UNDEFINED = 0;
+
+# Unicode codeset.
+const int MQCCSI_UNICODE = 1200;
+
+# UTF-8 codeset.
+const int MQCCSI_UTF8 = 1208;
+
+# The request is to operate within the normal unit-of-work protocols. The message is not visible outside the
+# unit of work until the unit of work is committed. If the unit of work is backed out, the message is deleted.
+const int MQPMO_SYNCPOINT = 2;
+
+# The request is to operate outside the normal unit-of-work protocols. The message is available immediately,
+# and it cannot be deleted by backing out a unit of work.
+const int MQPMO_NO_SYNCPOINT = 4;
+
+# Both identity and origin context are set to indicate no context.
+const int MQPMO_NO_CONTEXT = 16384;
+
+# The message is to have default context information associated with it, for both identity and origin.
+const int MQPMO_DEFAULT_CONTEXT = 32;
+
+# The message is to have context information associated with it.
+const int MQPMO_SET_IDENTITY_CONTEXT = 1024;
+
+# The message is to have context information associated with it.
+const int MQPMO_SET_ALL_CONTEXT = 2048;
+
+# This option forces the MQPUT or MQPUT1 call to fail if the queue manager is in the quiescing state.
+const int MQPMO_FAIL_IF_QUIESCING = 8192;
+
+# The queue manager replaces the contents of the MsgId field in MQMD with a new message identifier.
+const int MQPMO_NEW_MSG_ID = 64;
+
+# The queue manager replaces the contents of the CorrelId field in MQMD with a new correlation identifier.
+const int MQPMO_NEW_CORREL_ID = 128;
+
+# This option tells the queue manager how the application puts messages in groups and segments of logical messages.
+const int MQPMO_LOGICAL_ORDER = 32768;
+
+# This indicates that the AlternateUserId field in the ObjDesc parameter of the MQPUT1 call contains a user identifier
+# that is to be used to validate authority to put messages on the queue.
+const int MQPMO_ALTERNATE_USER_AUTHORITY = 4096;
+
+# Use this option to fill ResolvedQName in the MQPMO structure with the name of the local queue to which
+# the message is put, and ResolvedQMgrName with the name of the local queue manager that hosts the local queue.
+const int MQPMO_RESOLVE_LOCAL_Q = 262144;
+
+# The MQPMO_ASYNC_RESPONSE option requests that an MQPUT or MQPUT1 operation is completed without the
+# application waiting for the queue manager to complete the call.
+const int MQPMO_ASYNC_RESPONSE = 65536;
+
+# SSL cipher suite using ECDHE-ECDSA for key exchange with 3DES encryption and SHA integrity.
+const string SSL_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA = "SSL_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA";
+
+# SSL cipher suite using ECDHE-ECDSA for key exchange with AES 128-bit encryption and SHA-256 integrity.
+const string SSL_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 = "SSL_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256";
+
+# SSL cipher suite using ECDHE-ECDSA for key exchange with AES 128-bit GCM encryption and SHA-256 integrity.
+const string SSL_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 = "SSL_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256";
+
+# SSL cipher suite using ECDHE-ECDSA for key exchange with AES 256-bit CBC encryption and SHA-384 integrity.
+const string SSL_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384 = "SSL_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384";
+
+# SSL cipher suite using ECDHE-ECDSA for key exchange with AES 256-bit GCM encryption and SHA-384 integrity.
+const string SSL_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 = "SSL_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384";
+
+# SSL cipher suite using ECDHE-ECDSA for key exchange with NULL encryption and SHA integrity (not recommended for production use).
+const string SSL_ECDHE_ECDSA_WITH_NULL_SHA = "SSL_ECDHE_ECDSA_WITH_NULL_SHA";
+
+# SSL cipher suite using ECDHE-ECDSA for key exchange with RC4 128-bit encryption and SHA integrity (not recommended for production use).
+const string SSL_ECDHE_ECDSA_WITH_RC4_128_SHA = "SSL_ECDHE_ECDSA_WITH_RC4_128_SHA";
+
+# SSL cipher suite using ECDHE-RSA for key exchange with 3DES encryption and SHA integrity.
+const string SSL_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA = "SSL_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA";
+
+# SSL cipher suite using ECDHE-RSA for key exchange with AES 128-bit encryption and SHA-256 integrity.
+const string SSL_ECDHE_RSA_WITH_AES_128_CBC_SHA256 = "SSL_ECDHE_RSA_WITH_AES_128_CBC_SHA256";
+
+# SSL cipher suite using ECDHE-RSA for key exchange with AES 128-bit GCM encryption and SHA-256 integrity.
+const string SSL_ECDHE_RSA_WITH_AES_128_GCM_SHA256 = "SSL_ECDHE_RSA_WITH_AES_128_GCM_SHA256";
+
+# SSL cipher suite using ECDHE-RSA for key exchange with AES 256-bit CBC encryption and SHA-384 integrity.
+const string SSL_ECDHE_RSA_WITH_AES_256_CBC_SHA384 = "SSL_ECDHE_RSA_WITH_AES_256_CBC_SHA384";
+
+# SSL cipher suite using ECDHE-RSA for key exchange with AES 256-bit GCM encryption and SHA-384 integrity.
+const string SSL_ECDHE_RSA_WITH_AES_256_GCM_SHA384 = "SSL_ECDHE_RSA_WITH_AES_256_GCM_SHA384";
+
+# SSL cipher suite using ECDHE-RSA for key exchange with NULL encryption and SHA integrity (not recommended for production use).
+const string SSL_ECDHE_RSA_WITH_NULL_SHA = "SSL_ECDHE_RSA_WITH_NULL_SHA";
+
+# SSL cipher suite using ECDHE-RSA for key exchange with RC4 128-bit encryption and SHA integrity (not recommended for production use).
+const string SSL_ECDHE_RSA_WITH_RC4_128_SHA = "SSL_ECDHE_RSA_WITH_RC4_128_SHA";
+
+# SSL cipher suite using RSA for key exchange with 3DES encryption and SHA integrity.
+const string SSL_RSA_WITH_3DES_EDE_CBC_SHA = "SSL_RSA_WITH_3DES_EDE_CBC_SHA";
+
+# SSL cipher suite using RSA for key exchange with AES 128-bit encryption and SHA integrity.
+const string SSL_RSA_WITH_AES_128_CBC_SHA = "SSL_RSA_WITH_AES_128_CBC_SHA";
+
+# SSL cipher suite using RSA for key exchange with AES 128-bit encryption, SHA-256 integrity.
+const string SSL_RSA_WITH_AES_128_CBC_SHA256 = "SSL_RSA_WITH_AES_128_CBC_SHA256";
+
+# SSL cipher suite using RSA for key exchange with AES 128-bit GCM encryption, SHA-256 integrity.
+const string SSL_RSA_WITH_AES_128_GCM_SHA256 = "SSL_RSA_WITH_AES_128_GCM_SHA256";
+
+# SSL cipher suite using RSA for key exchange with AES 256-bit CBC encryption and SHA integrity.
+const string SSL_RSA_WITH_AES_256_CBC_SHA = "SSL_RSA_WITH_AES_256_CBC_SHA";
+
+# SSL cipher suite using RSA for key exchange with AES 256-bit CBC encryption, SHA-256 integrity.
+const string SSL_RSA_WITH_AES_256_CBC_SHA256 = "SSL_RSA_WITH_AES_256_CBC_SHA256";
+
+# SSL cipher suite using RSA for key exchange with AES 256-bit GCM encryption, SHA-384 integrity.
+const string SSL_RSA_WITH_AES_256_GCM_SHA384 = "SSL_RSA_WITH_AES_256_GCM_SHA384";
+
+# SSL cipher suite using RSA for key exchange with DES encryption and SHA integrity (not recommended for production use).
+const string SSL_RSA_WITH_DES_CBC_SHA = "SSL_RSA_WITH_DES_CBC_SHA";
+
+# SSL cipher suite using RSA for key exchange with NULL encryption and SHA-256 integrity (not recommended for production use).
+const string SSL_RSA_WITH_NULL_SHA256 = "SSL_RSA_WITH_NULL_SHA256";
+
+# SSL cipher suite using RSA for key exchange with RC4 128-bit encryption and SHA integrity (not recommended for production use).
+const string SSL_RSA_WITH_RC4_128_SHA = "SSL_RSA_WITH_RC4_128_SHA";
+
+# TLS 1.2 protocol version.
+const string TLS12 = "*TLS12";
+
+# SSL cipher suite using AES 128-bit GCM encryption, SHA-256 integrity.
+const string TLS_AES_128_GCM_SHA256 = "TLS_AES_128_GCM_SHA256";
+
+# SSL cipher suite using AES 256-bit GCM encryption, SHA-384 integrity.
+const string TLS_AES_256_GCM_SHA384 = "TLS_AES_256_GCM_SHA384";
+
+# SSL cipher suite using ChaCha20-Poly1305 encryption, SHA-256 integrity.
+const string TLS_CHACHA20_POLY1305_SHA256 = "TLS_CHACHA20_POLY1305_SHA256";
+
+# SSL cipher suite using AES 128-bit CCM encryption, SHA-256 integrity.
+const string TLS_AES_128_CCM_SHA256 = "TLS_AES_128_CCM_SHA256";
+
+# SSL cipher suite using AES 128-bit CCM 8 encryption, SHA-256 integrity.
+const string TLS_AES_128_CCM_8_SHA256 = "TLS_AES_128_CCM_8_SHA256";
+
+# Any supported SSL/TLS cipher suite.
+const string ANY = "*ANY";
+
+# TLS 1.3 protocol version.
+const string TLS13 = "*TLS13";
+
+# TLS 1.2 or higher protocol version.
+const string TLS12ORHIGHER = "*TLS12ORHIGHER";
+
+# TLS 1.3 or higher protocol version.
+const string TLS13ORHIGHER = "*TLS13ORHIGHER";
+
+# Represents JMS durable subscriber
+const string DURABLE = "DURABLE";
+
+# Represents JMS shared consumer
+const string SHARED = "SHARED";
+
+# Represents JMS shared durable subscriber
+const string SHARED_DURABLE = "SHARED_DURABLE";
+
+# Represents JMS default consumer
+const string DEFAULT = "DEFAULT";
+
+# Indicates that the session will use a local transaction which may subsequently 
+# be committed or rolled back by calling the session's `commit` or `rollback` methods. 
+const string SESSION_TRANSACTED = "SESSION_TRANSACTED";
+
+# Indicates that the session automatically acknowledges a client's receipt of a message 
+# either when the session has successfully returned from a call to `receive` or when 
+# the message listener the session has called to process the message successfully returns.
+const string AUTO_ACKNOWLEDGE = "AUTO_ACKNOWLEDGE";
+
+# Indicates that the client acknowledges a consumed message by calling the 
+# MessageConsumer's or Caller's `acknowledge` method. Acknowledging a consumed message 
+# acknowledges all messages that the session has consumed.
+const string CLIENT_ACKNOWLEDGE = "CLIENT_ACKNOWLEDGE";
+
+# Indicates that the session to lazily acknowledge the delivery of messages. 
+# This is likely to result in the delivery of some duplicate messages if the JMS provider fails, 
+# so it should only be used by consumers that can tolerate duplicate messages. 
+# Use of this mode can reduce session overhead by minimizing the work the session does to prevent duplicates.
+const string DUPS_OK_ACKNOWLEDGE = "DUPS_OK_ACKNOWLEDGE";
+
+# IBM MQ destination client type.
+class Destination {
+}
+
+# The error details type for the IBM MQ module.
+# 
+
+type ErrorDetails record {
+    # The reason code for the error
+    int reasonCode?;
+    # The error code for the error
+    string errorCode?;
+    # The completion code for the error
+    int completionCode?;
+};
+
+// Unknown type: Error
+
+# Represents an IBMMQ service object that can be attached to an `ibmmq:Listener`.
+class Service {
+}
+
+# Defines the supported JMS message consumer types for IBM MQ.
+enum ConsumerType {
+    DEFAULT,
+    SHARED_DURABLE,
+    SHARED,
+    DURABLE
+}
+
+# Defines the JMS session acknowledgement modes for IBM MQ.
+enum AcknowledgementMode {
+    DUPS_OK_ACKNOWLEDGE,
+    CLIENT_ACKNOWLEDGE,
+    AUTO_ACKNOWLEDGE,
+    SESSION_TRANSACTED
+}
+
+# Configuration for an IBM MQ queue.
+# 
+
+type QueueConfig record {
+    # The name of the queue to consume messages from
+    string queueName;
+    AcknowledgementMode sessionAckMode?;
+    string messageSelector?;
+    decimal pollingInterval?;
+    decimal receiveTimeout?;
+};
+
+# Configuration for an IBM MQ topic subscription.
+# 
+
+type TopicConfig record {
+    # The name of the topic to subscribe to
+    string topicName;
+    # If true then any messages published to the topic using this session's connection, or any other connection 
+with the same client identifier, will not be added to the durable subscription.
+    boolean noLocal?;
+    # The message consumer type
+    ConsumerType consumerType?;
+    # the name used to identify the subscription
+    string subscriberName?;
+    AcknowledgementMode sessionAckMode?;
+    string messageSelector?;
+    decimal pollingInterval?;
+    decimal receiveTimeout?;
+};
+
+# The service configuration type for the `ibmmq:Service`.
+type ServiceConfiguration ballerinax/ibm.ibmmq:1.4.4:QueueConfig|ballerinax/ibm.ibmmq:1.4.4:TopicConfig;
+
+# Options which can be provided when opening an IBM MQ topic.
+type OPEN_TOPIC_OPTION 1|2;
+
+# Header record representing the MQRFH2 structure.
+# 
+
+type MQRFH2 record {
+    # Flag of the header
+    int flags?;
+    # Numeric encoding of data that follows NameValueData
+    int encoding?;
+    # Character set identifier of data that follows NameValueData
+    int codedCharSetId?;
+    # Contents of the variable part of the structure
+    string[] folderStrings?;
+    # Coded character set for the NameValue data
+    int nameValueCCSID?;
+    # NameValueData variable-length field
+    byte[] nameValueData?;
+    # Length of NameValueData
+    int nameValueLength?;
+    # Format name of data that follows NameValueData.The name should be padded with
+blanks to the length of the field.
+    string format?;
+    # Structure identifier
+    string strucId?;
+    # Length of the structure
+    int strucLength?;
+    # Structure version number
+    int version?;
+    # Table containing all occurrences of field values matching
+the specified field name in the folder
+    table<ballerinax/ibm.ibmmq:1.4.4:MQRFH2Field> key(folder,field) fieldValues?;
+};
+
+# Record defining a field in the MQRFH2 record.
+# 
+
+type MQRFH2Field record {
+    # The name of the folder containing the field
+    string folder;
+    # The field name
+    string 'field;
+    # The field value
+    boolean|byte|byte[]|float|int|string value;
+};
+
+# Header record representing the MQRFH structure.
+# 
+
+type MQRFH record {
+    # Flag of the header
+    int flags?;
+    # Numeric encoding of data that follows NameValueString
+    int encoding?;
+    # Structure identifier
+    string strucId?;
+    # Length of the structure
+    int strucLength?;
+    # Structure version number
+    int version?;
+    # Character set identifier of data that follows NameValueString
+    int codedCharSetId?;
+    # Format name of data that follows NameValueString
+    string format?;
+    # Related name-value pairs
+    map<string> nameValuePairs?;
+};
+
+# Header record representing the MQCIH structure.
+# 
+
+type MQCIH record {
+    # Flag of the header
+    int flags?;
+    # Numeric encoding of data that follows NameValueData
+    int encoding?;
+    # Character set identifier of data that follows NameValueString
+    int codedCharSetId?;
+    # MQ format name of data that follows MQCIH
+    string format?;
+    # Structure identifier
+    string strucId?;
+    # Length of the structure
+    int strucLength?;
+    # Structure version number
+    int version?;
+    # Return code from bridge
+    int returnCode?;
+    # MQ completion code or CICS EIBRESP
+    int compCode?;
+    # MQ reason or feedback code, or CICS EIBRESP2
+    int reason?;
+    # Unit-of-work control
+    int UOWControl?;
+    # Wait interval for MQGET call issued by bridge task
+    int waitInterval?;
+    # Link type
+    int linkType?;
+    # Bridge facility release time
+    int facilityKeepTime?;
+    # Send/receive ADS descriptor
+    int ADSDescriptor?;
+    # Whether task can be conversational
+    int conversationalTask?;
+    # Status at end of task
+    int taskEndStatus?;
+    # Bridge facility token
+    byte[] facility?;
+    # MQ call name or CICS EIBFN function
+    string 'function?;
+    # Abend code
+    string abendCode?;
+    # Password or passticket
+    string authenticator?;
+    # MQ format name of reply message
+    string replyToFormat?;
+    # Remote CICS system Id to use
+    string remoteSysId?;
+    # CICS RTRANSID to use
+    string remoteTransId?;
+    # Transaction to attach
+    string transactionId?;
+    # Terminal emulated attributes
+    string facilityLike?;
+    # AID key
+    string attentionId?;
+    # Transaction start code
+    string startCode?;
+    # Abend transaction code
+    string cancelCode?;
+    # Next transaction to attach
+    string nextTransactionId?;
+    # Reserved
+    int inputItem?;
+};
+
+# Header record representing the MQIIH structure.
+# 
+
+type MQIIH record {
+    # Flag of the header
+    int flags?;
+    # Numeric encoding of data that follows NameValueString
+    int encoding?;
+    # Structure identifier
+    string strucId?;
+    # Length of the structure
+    int strucLength?;
+    # Structure version number
+    int version?;
+    # Character set identifier of data that follows NameValueString
+    int codedCharSetId?;
+    # Format name of data that follows NameValueString
+    string format?;
+    # The logical terminal override, placed in the IO PCB field
+    string lTermOverride?;
+    # The message format services map name, placed in the IO PCB field
+    string mfsMapName?;
+    # This is the MQ format name of the reply message that is sent
+in response to the current message
+    string replyToFormat?;
+    # RACF password or passticket
+    string authenticator?;
+    # This is the transaction instance identifier
+    byte[] tranInstanceId?;
+    # This indicates the IMS conversation state
+    ballerina/lang.string:0.0.0:Char tranState?;
+    # IMS commit mode
+    ballerina/lang.string:0.0.0:Char commitMode?;
+    # This indicates the IMS security processing required
+    ballerina/lang.string:0.0.0:Char securityScope?;
+};
+
+# Header types that are provided in the IBM MQ message.
+type Header ballerinax/ibm.ibmmq:1.4.4:MQRFH2|ballerinax/ibm.ibmmq:1.4.4:MQRFH|ballerinax/ibm.ibmmq:1.4.4:MQCIH|ballerinax/ibm.ibmmq:1.4.4:MQIIH;
+
+# The coded character set used in application message data.
+type MessageCharset -3|850|819|-4|0|37|-1|-2|0|0|1200|1208;
+
+# The SSL Cipher Suite to be used for secure communication with the IBM MQ server.
+type SslCipherSuite "SSL_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA"|"SSL_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256"|"SSL_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256"|"SSL_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384"|"SSL_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384"|"SSL_ECDHE_ECDSA_WITH_NULL_SHA"|"SSL_ECDHE_ECDSA_WITH_RC4_128_SHA"|"SSL_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA"|"SSL_ECDHE_RSA_WITH_AES_128_CBC_SHA256"|"SSL_ECDHE_RSA_WITH_AES_128_GCM_SHA256"|"SSL_ECDHE_RSA_WITH_AES_256_CBC_SHA384"|"SSL_ECDHE_RSA_WITH_AES_256_GCM_SHA384"|"SSL_ECDHE_RSA_WITH_NULL_SHA"|"SSL_ECDHE_RSA_WITH_RC4_128_SHA"|"SSL_RSA_WITH_3DES_EDE_CBC_SHA"|"SSL_RSA_WITH_AES_128_CBC_SHA"|"SSL_RSA_WITH_AES_128_CBC_SHA256"|"SSL_RSA_WITH_AES_128_GCM_SHA256"|"SSL_RSA_WITH_AES_256_CBC_SHA"|"SSL_RSA_WITH_AES_256_CBC_SHA256"|"SSL_RSA_WITH_AES_256_GCM_SHA384"|"SSL_RSA_WITH_DES_CBC_SHA"|"SSL_RSA_WITH_NULL_SHA256"|"SSL_RSA_WITH_RC4_128_SHA"|"*TLS12"|"TLS_AES_128_GCM_SHA256"|"TLS_AES_256_GCM_SHA384"|"TLS_CHACHA20_POLY1305_SHA256"|"TLS_AES_128_CCM_SHA256"|"TLS_AES_128_CCM_8_SHA256"|"*ANY"|"*TLS13"|"*TLS12ORHIGHER"|"*TLS13ORHIGHER";
+
+# IBM MQ queue manager configurations.
+# 
+
+type QueueManagerConfiguration record {
+    # Name of the queue manager
+    string name;
+    # IBM MQ server host
+    string host;
+    # IBM MQ server port
+    int port?;
+    # IBM MQ channel
+    string channel;
+    # IBM MQ userId
+    string userID?;
+    # IBM MQ user password
+    string password?;
+    # Configurations related to SSL/TLS encryption
+    SecureSocket secureSocket?;
+    # Defines the combination of key exchange, encryption,
+and integrity algorithms used for establishing a secure SSL/TLS connection
+    SslCipherSuite sslCipherSuite?;
+};
+
+# Configurations for secure communication with the IBM MQ server.
+# 
+
+type SecureSocket record {
+    # Configurations associated with `crypto:TrustStore` or single certificate file that the client trusts
+    crypto:TrustStore|string cert; // Special Agent Note: TrustStore FROM ballerina/crypto package
+    # Configurations associated with `crypto:KeyStore` or combination of certificate and private key of the client
+    crypto:KeyStore|CertKey key?; // Special Agent Note: KeyStore FROM ballerina/crypto package
+    # Name of the security provider used for SSL connections. The default value is the default security provider
+of the JVM
+    string provider?;
+};
+
+# Represents a combination of certificate, private key, and private key password if encrypted.
+# 
+
+type CertKey record {
+    # A file containing the certificate
+    string certFile;
+    # A file containing the private key in PKCS8 format
+    string keyFile;
+    # Password of the private key if it is encrypted
+    string keyPassword?;
+};
+
+# IBM MQ get message options.
+# 
+
+type GetMessageOptions record {
+    # Get message option
+    int options?;
+    # The maximum time (in seconds) that a `get` call waits for a suitable message to
+arrive. It is used in conjunction with `ibmmq:MQGMO_WAIT`.
+    int waitInterval?;
+    # Message selection criteria
+    MatchOptions matchOptions?;
+};
+
+# Represents the selection criteria that determine which message is retrieved.
+# 
+
+type MatchOptions record {
+    # The message identifier of the message which needs to be retrieved
+    byte[] messageId?;
+    # The Correlation identifier of the message which needs to be retrieved
+    byte[] correlationId?;
+};
+
+# Represents an IBM MQ message property.
+# 
+
+type Property record {
+    # Property descriptor
+    map<int> descriptor?;
+    # Property value
+    boolean|byte|byte[]|float|int|string value;
+};
+
+# Represents an IBM MQ message.
+# 
+
+type Message record {
+    # Message properties
+    map<ballerinax/ibm.ibmmq:1.4.4:Property> properties?;
+    # Format associated with the header
+    string format?;
+    # Message identifier
+    byte[] messageId?;
+    # Correlation identifier
+    byte[] correlationId?;
+    # Message lifetime
+    int expiry?;
+    # Message priority
+    int priority?;
+    # Message persistence
+    int persistence?;
+    # Message type
+    int messageType?;
+    # Type of application that put the message
+    int putApplicationType?;
+    # Name of reply queue
+    string replyToQueueName?;
+    # Name of reply queue manager
+    string replyToQueueManagerName?;
+    # Specifies the representation used for numeric values in the application message data.
+This can be represented using as a combination of `ibmmq:MQENC_*` options
+    int encoding?;
+    # The coded character set identifier of character data in the application message data
+    MessageCharset characterSet?;
+    # The accounting token, which is part of the message's identity and allows the work performed as a result of the message to be properly charged
+    byte[] accountingToken?;
+    # Id of the user who originated the message
+    string userId?;
+    # Headers to be sent in the message
+    Header[] headers?;
+    # Message payload
+    byte[] payload;
+};
+
+// Unknown type: Listener
+
+// Unknown type: QueueManager
+
+// --- Client ---
+
+# Represents a IBM MQ caller, which can be used to mark IBM MQ message as received.
+client class Caller {
+    function init() returns ibmmq:ibmmq:Caller;
+
+    # Mark an IBM MQ message as received.
+    # 
+    remote function acknowledge(Message message) returns Error|();
+
+    # Commits all messages received in this transaction and releases any locks currently held.
+    # ```ballerina
+    # check session->'commit();
+    # ```
+    # 
+    remote function 'commit() returns Error|();
+
+    # Rolls back any messages received in this transaction and releases any locks currently held.
+    # ```ballerina
+    # check session->'rollback();
+    # ```
+    # 
+    remote function 'rollback() returns Error|();
+}
+
+# IBM MQ Queue client.
+client class Queue {
+    function init() returns ibmmq:ibmmq:Queue;
+
+    # Puts a message to an IBM MQ queue.
+    # ```ballerina
+    # check queue->put({payload: "Hello World".toBytes()});
+    # ```
+    # 
+    remote function put(Message message, int options = 0) returns Error|();
+
+    # Retrieves a message from an IBM MQ queue.
+    # ```ballerina
+    # ibmmq:Message? message = check queue->get();
+    # ```
+    # 
+    remote function get(int options = 0, int waitInterval = 0, MatchOptions matchOptions = {}, GetMessageOptions getMessageOptions) returns Message|Error|();
+
+    # Closes the IBM MQ queue object. No further operations on this object are permitted after it is closed.
+    # ```ballerina
+    # check queue->close();
+    # ```
+    # 
+    remote function close() returns Error|();
+}
+
+# IBM MQ Topic client.
+client class Topic {
+    function init() returns ibmmq:ibmmq:Topic;
+
+    # Puts a message to an IBM MQ topic.
+    # ```ballerina
+    # check topic->put({payload: "Hello World".toBytes()});
+    # ```
+    # 
+    remote function put(Message message, int options = 0) returns Error|();
+
+    # Retrieves a message from an IBM MQ topic.
+    # ```ballerina
+    # ibmmq:Message? message = check topic->get();
+    # ```
+    # 
+    remote function get(int options = 0, int waitInterval = 0, MatchOptions matchOptions = {}, GetMessageOptions getMessageOptions) returns Message|Error|();
+
+    # Closes the IBM MQ topic object. No further operations on this object are permitted after it is closed.
+    # ```ballerina
+    # check topic->close();
+    # ```
+    # 
+    remote function close() returns Error|();
+
+    # Sends a message to an IBM MQ topic.
+    # 
+    # This method supports JMS-compliant message delivery, including compatibility with
+    # durable subscriptions and asynchronous message listeners.
+    # 
+    # Unlike the `put` method (which uses IBM MQ's native APIs), this method uses the JMS APIs and
+    # is recommended for interoperability with JMS-based consumers.
+    # 
+    # ```ballerina
+    # check topic->send({payload: "Hello World".toBytes()});
+    # ```
+    # 
+    remote function send(Message message) returns Error|();
+}

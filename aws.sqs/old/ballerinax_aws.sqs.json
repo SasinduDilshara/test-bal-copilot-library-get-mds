@@ -1,0 +1,2794 @@
+{
+  "name": "ballerinax/aws.sqs",
+  "description": "Amazon Simple Queue Service (SQS) is a fully managed message queuing service that enables you to decouple and scale microservices, distributed systems, and serverless applications. It provides a reliable and highly scalable way to exchange messages between different components. The AWS SQS connector allows you to interact with SQS queues, enabling efficient message processing in the cloud.",
+  "readme": "## Overview\n\nAmazon Simple Queue Service (SQS) is a fully managed message queuing service that enables you to decouple and scale microservices, distributed systems, and serverless applications. It provides a reliable and highly scalable way to exchange messages between different components. The AWS SQS connector allows you to interact with SQS queues, enabling efficient message processing in the cloud.\n\n### Key Features\n\n- Fully managed and highly scalable message queuing\n- Support for both standard and FIFO queues\n- Reliable message delivery with dead-letter queue support\n- Secure communication with AWS IAM authentication\n- Simplified message production and consumption\n- GraalVM compatible for native image builds\n\n## Setup guide\n\n### Login to AWS Console\n\nLog into the [AWS Management Console](https://console.aws.amazon.com/console). If you don’t have an AWS account yet, you can create one by visiting the AWS [sign-up](https://aws.amazon.com/free/) page. Sign up is free, and you can explore many services under the Free Tier.\n\n### Create a user\n\n1. In the AWS Management Console, search for IAM in the services search bar.\n2. Click on IAM\n\n   ![create-user-1.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws.sqs/refs/heads/master/docs/setup/resources/create-user-1.png)\n\n3. Click Users\n\n   ![create-user-2.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws.sqs/refs/heads/master/docs/setup/resources/create-user-2.png)\n\n4. Click Create User\n\n   ![create-user-3.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws.sqs/refs/heads/master/docs/setup/resources/create-user-3.png)\n\n5. Provide a suitable name for the user and continue\n\n   ![specify-user-details.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws.sqs/refs/heads/master/docs/setup/resources/specify-user-details.png)\n\n6. Add necessary permissions by adding the user to a user group, copy permissions or directly attach the policies. And click next.\n\n   ![set-user-permissions.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws.sqs/refs/heads/master/docs/setup/resources/set-user-permissions.png)\n7. Review and create the user\n\n   ![review-create-user.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws.sqs/refs/heads/master/docs/setup/resources/review-create-user.png)\n\n### Get user access keys\n\n1. Click the user that created\n\n   ![users.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws.sqs/refs/heads/master/docs/setup/resources/users.png)\n\n2. Click `Create access key`\n\n   ![create-access-key-1.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws.sqs/refs/heads/master/docs/setup/resources/create-access-key-1.png)\n\n3. Click your use case and click next.\n\n   ![select-usecase.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws.sqs/refs/heads/master/docs/setup/resources/select-usecase.png)\n\n4. Record the Access Key and Secret access key. These credentials will be used to authenticate your Ballerina application with Amazon SQS.\n\n   ![retrieve-access-key.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws.sqs/refs/heads/master/docs/setup/resources/retrieve-access-key.png)\n\n## Quickstart\n\nTo use the `aws.sqs` connector in your Ballerina project, modify the .bal file as follows.\n\n### Step 1: Import the module\n\n```ballerina\nimport ballerinax/aws;\nimport ballerinax/aws.sqs;\n```\n\n### Step 2: Instantiate a new connector\n\nCreate a new `sqs:Client` by providing the region and authentication configurations.\n\n```ballerina\nconfigurable string accessKeyId \u003d ?;\nconfigurable string secretAccessKey \u003d ?;\n\nsqs:Client sqsClient \u003d check new ({\n   region: aws:US_EAST_1,\n   auth: {\n      accessKeyId,\n      secretAccessKey\n   }\n});\n```\n\n#### Alternative authentication methods\n\n##### Profile-based authentication\n\nYou can use AWS profile-based authentication as an alternative to static credentials.\n\n```ballerina\nsqs:Client sqsClient \u003d check new ({\n   region: aws:US_EAST_1,\n   auth: {\n      profileName: \"myAwsProfile\",\n      credentialsFilePath: \"/path/to/custom/credentials\"\n   }\n});\n```\n\n##### Default credential provider chain\n\nThe standard default credential provider chain, trying each of the following in order and taking the first source that yields credentials:\n\n1. Environment variables (`AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`, and `AWS_WEB_IDENTITY_TOKEN_FILE` if set)\n2. The shared config/credentials file\u0027s active profile (`AWS_PROFILE`, or `default` if unset) — which may itself resolve via SSO\n, an external process, or a chained `AssumeRole` call, depending on that profile\u0027s configuration\n3. Container credentials (ECS/EKS)\n4. EC2 instance profile (IMDS)\n\n```ballerina\nsqs:Client sqsClient \u003d check new ({\n   region: aws:US_EAST_1,\n   auth: auth:DEFAULT_CREDENTIALS\n});\n```\n\n\u003e **Note:** Ensure your AWS credentials file follows the standard format.\n\u003e\n\u003e ```ini\n\u003e [default]\n\u003e aws_access_key_id \u003d YOUR_ACCESS_KEY_ID\n\u003e aws_secret_access_key \u003d YOUR_SECRET_ACCESS_KEY\n\u003e\n\u003e [myAwsProfile]\n\u003e aws_access_key_id \u003d ANOTHER_ACCESS_KEY_ID\n\u003e aws_secret_access_key \u003d ANOTHER_SECRET_ACCESS_KEY\n\u003e ```\n\n\n### Step 3: Invoke the connector operations\n\nNow, utilize the available connector operations.\n\n#### Create a queue\n```ballerina\nstring queueUrl \u003d check sqsClient-\u003ecreateQueue(\"my-test-queue\");\n```\n\n#### Send a message\n```ballerina\nsqs:SendMessageResponse response \u003d check sqsClient-\u003esendMessage(queueUrl, \"Hello from Ballerina!\");\n```\n\n#### Receive messages\n```ballerina\nsqs:Message[] messages \u003d check sqsClient-\u003ereceiveMessage(queueUrl);\n```\n\n#### Delete a message\n```ballerina\ncheck sqsClient-\u003edeleteMessage(queueUrl, receiptHandle);\n```\n\n#### Batch operations\n```ballerina\n// Send multiple messages at once\nsqs:SendMessageBatchEntry[] entries \u003d [\n    {id: \"msg1\", body: \"First message\"},\n    {id: \"msg2\", body: \"Second message\", delaySeconds: 5}\n];\nsqs:SendMessageBatchResponse batchResponse \u003d check sqsClient-\u003esendMessageBatch(queueUrl, entries);\n\n// Delete multiple messages at once\nsqs:DeleteMessageBatchEntry[] deleteEntries \u003d [\n    {id: \"del1\", receiptHandle: \"receipt-handle-1\"},\n    {id: \"del2\", receiptHandle: \"receipt-handle-2\"}\n];\nsqs:DeleteMessageBatchResponse deleteResponse \u003d check sqsClient-\u003edeleteMessageBatch(queueUrl, deleteEntries);\n```\n\n#### Queue management\n```ballerina\n// List all queues\nsqs:ListQueuesResponse queues \u003d check sqsClient-\u003elistQueues();\n\n// Get queue attributes\nsqs:GetQueueAttributesResponse attributes \u003d check sqsClient-\u003egetQueueAttributes(queueUrl);\n\n// Set queue attributes\nsqs:QueueAttributes newAttributes \u003d {\n    visibilityTimeout: 300,\n    messageRetentionPeriod: 1209600 // 14 days\n};\ncheck sqsClient-\u003esetQueueAttributes(queueUrl, newAttributes);\n\n// Delete a queue\ncheck sqsClient-\u003edeleteQueue(queueUrl);\n```\n\n#### Working with FIFO queues\n\nFor First-In-First-Out (FIFO) queues, you need to provide additional parameters:\n\n```ballerina\n// Create a FIFO queue\nsqs:QueueAttributes fifoAttributes \u003d {\n    fifoQueue: true,\n    contentBasedDeduplication: true\n};\nstring fifoQueueUrl \u003d check sqsClient-\u003ecreateQueue(\"my-fifo-queue.fifo\", queueAttributes \u003d fifoAttributes);\n\n// Send message to FIFO queue\nsqs:SendMessageResponse fifoResponse \u003d check sqsClient-\u003esendMessage(\n    fifoQueueUrl,\n    \"FIFO message\",\n    messageGroupId \u003d \"group1\",\n    messageDeduplicationId \u003d \"unique-id-1\"\n);\n```\n\n### Step 4: Run the Ballerina application\n\nUse the following command to compile and run the Ballerina program.\n\n```bash\nbal run\n```\n\n## Examples\n\nThe `ballerinax/aws.sqs` connector provides practical examples illustrating usage in various scenarios. Explore these [examples](https://github.com/ballerina-platform/module-ballerinax-aws.sqs/tree/master/examples):\n\n1. [**Basic Queue Consumer**](https://github.com/ballerina-platform/module-ballerinax-aws.sqs/tree/master/examples/basic-queue-consumer) – Demonstrates creating a standard SQS queue, sending messages, and consuming them using a Ballerina listener.\n2. [**Basic Queue Operations**](https://github.com/ballerina-platform/module-ballerinax-aws.sqs/tree/master/examples/basic-queue-operations) – Shows how to create a queue, send, receive, and delete messages, and delete the queue.\n3. [**Advanced Messaging Features**](https://github.com/ballerina-platform/module-ballerinax-aws.sqs/tree/master/examples/advanced-messaging-features) – Demonstrates advanced messaging features such as message attributes, batch sending, and custom queue attributes.\n4. [**FIFO Queue**](https://github.com/ballerina-platform/module-ballerinax-aws.sqs/tree/master/examples/fifo-queue) – Shows how to work with FIFO queues, including sending messages with different `messageGroupId`s and grouping received messages.\n",
+  "typeDefs": [
+    {
+      "name": "ALL",
+      "description": "",
+      "type": "Constant",
+      "value": "All",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "SENDER_ID",
+      "description": "",
+      "type": "Constant",
+      "value": "SenderId",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "SENT_TIMESTAMP",
+      "description": "",
+      "type": "Constant",
+      "value": "SentTimestamp",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "APPROXIMATE_RECEIVE_COUNT",
+      "description": "",
+      "type": "Constant",
+      "value": "ApproximateReceiveCount",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "APPROXIMATE_FIRST_RECEIVE_TIMESTAMP",
+      "description": "",
+      "type": "Constant",
+      "value": "ApproximateFirstReceiveTimestamp",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "SEQUENCE_NUMBER",
+      "description": "",
+      "type": "Constant",
+      "value": "SequenceNumber",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "MESSAGE_DEDUPLICATION_ID",
+      "description": "",
+      "type": "Constant",
+      "value": "MessageDeduplicationId",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "MESSAGE_GROUP_ID",
+      "description": "",
+      "type": "Constant",
+      "value": "MessageGroupId",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "AWS_TRACE_HEADER",
+      "description": "",
+      "type": "Constant",
+      "value": "AWSTraceHeader",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "DEAD_LETTER_QUEUE_SOURCE_ARN",
+      "description": "",
+      "type": "Constant",
+      "value": "DeadLetterQueueSourceArn",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "SQS_MANAGED_SSE_ENABLED",
+      "description": "",
+      "type": "Constant",
+      "value": "SqsManagedSseEnabled",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "ALLOW_ALL",
+      "description": "",
+      "type": "Constant",
+      "value": "allowAll",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "DENY_ALL",
+      "description": "",
+      "type": "Constant",
+      "value": "denyAll",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "BY_QUEUE",
+      "description": "",
+      "type": "Constant",
+      "value": "byQueue",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "MESSAGE_GROUP",
+      "description": "",
+      "type": "Constant",
+      "value": "messageGroup",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "QUEUE",
+      "description": "",
+      "type": "Constant",
+      "value": "queue",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "PER_MESSAGE_GROUP_ID",
+      "description": "",
+      "type": "Constant",
+      "value": "perMessageGroupId",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "PER_QUEUE",
+      "description": "",
+      "type": "Constant",
+      "value": "perQueue",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "POLICY",
+      "description": "",
+      "type": "Constant",
+      "value": "Policy",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "VISIBILITY_TIMEOUT",
+      "description": "",
+      "type": "Constant",
+      "value": "VisibilityTimeout",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "MAXIMUM_MESSAGE_SIZE",
+      "description": "",
+      "type": "Constant",
+      "value": "MaximumMessageSize",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "MESSAGE_RETENTION_PERIOD",
+      "description": "",
+      "type": "Constant",
+      "value": "MessageRetentionPeriod",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "APPROXIMATE_NUMBER_OF_MESSAGES",
+      "description": "",
+      "type": "Constant",
+      "value": "ApproximateNumberOfMessages",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "APPROXIMATE_NUMBER_OF_MESSAGES_NOT_VISIBLE",
+      "description": "",
+      "type": "Constant",
+      "value": "ApproximateNumberOfMessagesNotVisible",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "CREATED_TIMESTAMP",
+      "description": "",
+      "type": "Constant",
+      "value": "CreatedTimestamp",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "LAST_MODIFIED_TIMESTAMP",
+      "description": "",
+      "type": "Constant",
+      "value": "LastModifiedTimestamp",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "QUEUE_ARN",
+      "description": "",
+      "type": "Constant",
+      "value": "QueueArn",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "APPROXIMATE_NUMBER_OF_MESSAGES_DELAYED",
+      "description": "",
+      "type": "Constant",
+      "value": "ApproximateNumberOfMessagesDelayed",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "DELAY_SECONDS",
+      "description": "",
+      "type": "Constant",
+      "value": "DelaySeconds",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "RECEIVE_MESSAGE_WAIT_TIME_SECONDS",
+      "description": "",
+      "type": "Constant",
+      "value": "ReceiveMessageWaitTimeSeconds",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "REDRIVE_POLICY",
+      "description": "",
+      "type": "Constant",
+      "value": "RedrivePolicy",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "FIFO_QUEUE",
+      "description": "",
+      "type": "Constant",
+      "value": "FifoQueue",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "CONTENT_BASED_DEDUPLICATION",
+      "description": "",
+      "type": "Constant",
+      "value": "ContentBasedDeduplication",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "KMS_MASTER_KEY_ID",
+      "description": "",
+      "type": "Constant",
+      "value": "KmsMasterKeyId",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "KMS_DATA_KEY_REUSE_PERIOD_SECONDS",
+      "description": "",
+      "type": "Constant",
+      "value": "KmsDataKeyReusePeriodSeconds",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "DEDUPLICATION_SCOPE",
+      "description": "",
+      "type": "Constant",
+      "value": "DeduplicationScope",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "FIFO_THROUGHPUT_LIMIT",
+      "description": "",
+      "type": "Constant",
+      "value": "FifoThroughputLimit",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "REDRIVE_ALLOW_POLICY",
+      "description": "",
+      "type": "Constant",
+      "value": "RedriveAllowPolicy",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "Error",
+      "description": "Represents a AWS SQS distinct error. The fields of `aws:ErrorDetails` are populated\nwhen the failure originates from an AWS SQS service call, and are left unset when the\nfailure occurs before a response is received (e.g. an invalid configuration).",
+      "type": "Error"
+    },
+    {
+      "name": "ConnectionConfig",
+      "description": "Represents the connection configuration for the Amazon SQS client.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "auth",
+          "description": "Authentication configuration: any standard credential source supported by\nAWS — static credentials, an AWS profile, STS assume-role,\nweb identity (OIDC), IAM Identity Center (SSO), an external credential\nprocess, or the default credential provider chain",
+          "type": {
+            "name": "$CompilationError$"
+          }
+        },
+        {
+          "name": "region",
+          "description": "AWS region: an `aws:Region` enum member or a plain region\nstring (e.g., `\"us-east-1\"`) for regions not yet in the enum",
+          "type": {
+            "name": "$CompilationError$|string"
+          }
+        },
+        {
+          "name": "endpoint",
+          "description": "Optional endpoint options: FIPS/dualstack variants, or a custom\nendpoint override (e.g. LocalStack, VPC interface endpoints)",
+          "type": {
+            "name": "$CompilationError$"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "SendMessageResponse",
+      "description": "Contains response details returned by the `sendMessage` API.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "messageId",
+          "description": "Unique ID assigned to the message",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "md5OfMessageBody",
+          "description": "MD5 digest of the non-URL-encoded message body",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "md5OfMessageAttributes",
+          "description": "MD5 digest of the non-URL-encoded message attribute string",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "md5OfMessageSystemAttributes",
+          "description": "MD5 digest of the non-URL-encoded system attribute string",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "sequenceNumber",
+          "description": "Message sequence number for FIFO queues",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "SendMessageConfig",
+      "description": "Represents optional parameters for sending messages to Amazon SQS.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "delaySeconds",
+          "description": "Duration to delay the message, in seconds (0 to 900)",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "messageAttributes",
+          "description": "Custom attributes to attach to the message",
+          "type": {
+            "name": "map\u003cballerinax/aws.sqs:5.0.0:MessageAttributeValue\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "awsTraceHeader",
+          "description": "X-Ray tracing header for distributed tracing support",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "messageDeduplicationId",
+          "description": "Token for deduplicating messages (FIFO only)",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "messageGroupId",
+          "description": "Tag specifying the message group (FIFO only)",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "MessageAttributeValue",
+      "description": "Represents a user-defined message attribute sent with a message.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "dataType",
+          "description": "Type of the attribute: `String`, `Number`, or `Binary`",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "stringValue",
+          "description": "Optional string value",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "binaryValue",
+          "description": "Optional binary data (e.g., encrypted or compressed)",
+          "type": {
+            "name": "byte[]"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ReceiveMessageConfig",
+      "description": "Represents optional parameters for receiving messages from an SQS queue.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "waitTimeSeconds",
+          "description": "Duration to wait for a message to arrive (long polling)",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "visibilityTimeout",
+          "description": "Visibility timeout for received messages",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxNumberOfMessages",
+          "description": "Maximum number of messages to receive (1 to 10)",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "receiveRequestAttemptId",
+          "description": "Deduplication token for `receiveMessage` requests (FIFO only)",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "messageAttributeNames",
+          "description": "List of message attribute names to return; use `All` to get all",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "messageSystemAttributeNames",
+          "description": "List of system attribute names to return; use `All` to get all",
+          "type": {
+            "name": "MessageSystemAttributeName[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "MessageSystemAttributeName"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "MessageSystemAttributeName",
+      "description": "Represents supported system attribute names for SQS messages.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "SQS_MANAGED_SSE_ENABLED",
+          "description": ""
+        },
+        {
+          "name": "DEAD_LETTER_QUEUE_SOURCE_ARN",
+          "description": ""
+        },
+        {
+          "name": "AWS_TRACE_HEADER",
+          "description": ""
+        },
+        {
+          "name": "MESSAGE_GROUP_ID",
+          "description": ""
+        },
+        {
+          "name": "MESSAGE_DEDUPLICATION_ID",
+          "description": ""
+        },
+        {
+          "name": "SEQUENCE_NUMBER",
+          "description": ""
+        },
+        {
+          "name": "APPROXIMATE_FIRST_RECEIVE_TIMESTAMP",
+          "description": ""
+        },
+        {
+          "name": "APPROXIMATE_RECEIVE_COUNT",
+          "description": ""
+        },
+        {
+          "name": "SENT_TIMESTAMP",
+          "description": ""
+        },
+        {
+          "name": "SENDER_ID",
+          "description": ""
+        },
+        {
+          "name": "ALL",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "Message",
+      "description": "Represents a message received using the `receiveMessage` API.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "messageSystemAttributes",
+          "description": "System-defined attributes associated with the message",
+          "type": {
+            "name": "MessageAttributes",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "MessageAttributes"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "body",
+          "description": "Content of the message",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "md5OfBody",
+          "description": "MD5 digest of the non-URL-encoded message body",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "md5OfMessageAttributes",
+          "description": "MD5 digest of the non-URL-encoded attribute string",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "messageAttributes",
+          "description": "User-defined attributes attached to the message",
+          "type": {
+            "name": "map\u003cballerinax/aws.sqs:5.0.0:MessageAttributeValue\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "messageId",
+          "description": "Unique ID assigned to the message",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "receiptHandle",
+          "description": "Token required to delete or change visibility of the message",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "MessageAttributes",
+      "description": "Represents the system attributes of an Amazon SQS message.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "approximateReceiveCount",
+          "description": "Number of times the message has been received across all queues",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "approximateFirstReceiveTimestamp",
+          "description": "Time (in epoch milliseconds) when the message was first received",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "awsTraceHeader",
+          "description": "X-Ray trace header used for distributed tracing",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "messageDeduplicationId",
+          "description": "Token used to deduplicate messages within a 5-minute deduplication interval (FIFO only)",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "messageGroupId",
+          "description": "Tag specifying the message group for ordered processing (FIFO only)",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "senderId",
+          "description": "AWS account ID of the message sender",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "sentTimeStamp",
+          "description": "Time (in epoch milliseconds) when the message was sent to the queue",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "sequenceNumber",
+          "description": "Unique, non-consecutive number assigned to the message (FIFO only)",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "deadLetterQueueSourceArn",
+          "description": "ARN of the dead-letter queue where the message was moved",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "SendMessageBatchEntry",
+      "description": "Represents a single message entry in a `sendMessageBatch` request.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "id",
+          "description": "Unique ID for the batch message entry (up to 80 characters)",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "body",
+          "description": "The body of the message",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "delaySeconds",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "messageAttributes",
+          "description": "",
+          "type": {
+            "name": "map\u003cballerinax/aws.sqs:5.0.0:MessageAttributeValue\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "awsTraceHeader",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "messageDeduplicationId",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "messageGroupId",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "SendMessageBatchResponse",
+      "description": "Represents the response returned by the `sendMessageBatch` operation.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "successful",
+          "description": "List of successfully enqueued messages",
+          "type": {
+            "name": "SendMessageBatchResultEntry[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SendMessageBatchResultEntry"
+              }
+            ]
+          }
+        },
+        {
+          "name": "failed",
+          "description": "List of failed messages with error details",
+          "type": {
+            "name": "BatchResultErrorEntry[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "BatchResultErrorEntry"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SendMessageBatchResultEntry",
+      "description": "Represents a successful result entry from a `sendMessageBatch` response.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "id",
+          "description": "Batch message ID",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "md5OfMessageBody",
+          "description": "MD5 digest of the message body",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "messageId",
+          "description": "ID assigned to the message",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "md5OfMessageAttributes",
+          "description": "MD5 digest of the message attributes",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "md5OfMessageSystemAttributes",
+          "description": "MD5 digest of the system attributes",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "sequenceNumber",
+          "description": "Unique message sequence number (FIFO only)",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "BatchResultErrorEntry",
+      "description": "Represents an error entry in a `sendMessageBatch` or `deleteMessageBatch` response.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "id",
+          "description": "Batch entry ID that failed",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "code",
+          "description": "Error code describing the failure",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "senderFault",
+          "description": "Whether the error was caused by the sender",
+          "type": {
+            "name": "boolean"
+          }
+        },
+        {
+          "name": "message",
+          "description": "Additional error details",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "DeleteMessageBatchEntry",
+      "description": "Represents a single message entry in a `deleteMessageBatch` request.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "id",
+          "description": "Batch entry ID for the receipt handle",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "receiptHandle",
+          "description": "The receipt handle of the message to delete",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "DeleteMessageBatchResponse",
+      "description": "Represents the response returned by the `deleteMessageBatch` operation.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "successful",
+          "description": "List of successfully deleted message entries",
+          "type": {
+            "name": "DeleteMessageBatchResultEntry[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DeleteMessageBatchResultEntry"
+              }
+            ]
+          }
+        },
+        {
+          "name": "failed",
+          "description": "List of failed message entries with error details",
+          "type": {
+            "name": "BatchResultErrorEntry[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "BatchResultErrorEntry"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "DeleteMessageBatchResultEntry",
+      "description": "Represents a successful result entry from a `deleteMessageBatch` response.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "id",
+          "description": "Batch entry ID of the successfully deleted message",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "CreateQueueConfig",
+      "description": "Represents the configuration used when creating an SQS queue.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "queueAttributes",
+          "description": "Optional queue attributes to apply",
+          "type": {
+            "name": "QueueAttributes",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "QueueAttributes"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "tags",
+          "description": "Optional cost allocation tags to associate with the queue",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "QueueAttributes",
+      "description": "Represents configurable attributes for an Amazon SQS queue.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "delaySeconds",
+          "description": "Time (in seconds) to delay delivery of all messages",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "maximumMessageSize",
+          "description": "Maximum allowed size (in bytes) for a message",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "messageRetentionPeriod",
+          "description": "Time (in seconds) that messages are retained",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "policy",
+          "description": "JSON-formatted access policy for the queue",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "receiveMessageWaitTimeSeconds",
+          "description": "Time (in seconds) to wait for a message in long polling",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "visibilityTimeout",
+          "description": "Visibility timeout (in seconds) for messages",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "redrivePolicy",
+          "description": "Dead-letter queue configuration for this queue",
+          "type": {
+            "name": "RedrivePolicy",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RedrivePolicy"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "redriveAllowPolicy",
+          "description": "Permissions for queues that can specify this one as a dead-letter queue",
+          "type": {
+            "name": "RedriveAllowPolicy",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RedriveAllowPolicy"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "kmsMasterKeyId",
+          "description": "AWS KMS key ID used for server-side encryption",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "kmsDataKeyReusePeriodSeconds",
+          "description": "Reuse duration (in seconds) for data keys in SSE",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "sqsManagedSseEnabled",
+          "description": "Enables SQS-managed server-side encryption",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "fifoQueue",
+          "description": "Whether the queue is FIFO; must be set at creation time",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "contentBasedDeduplication",
+          "description": "Enables content-based deduplication (FIFO only)",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "deduplicationScope",
+          "description": "Scope for message deduplication (FIFO high throughput only)",
+          "type": {
+            "name": "DeduplicationScope",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DeduplicationScope"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "fifoThroughputLimit",
+          "description": "Throughput quota mode (FIFO high throughput only)",
+          "type": {
+            "name": "FifoThroughputLimit",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "FifoThroughputLimit"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "RedrivePolicy",
+      "description": "Represents a dead-letter queue redrive policy.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "deadLetterTargetArn",
+          "description": "ARN of the dead-letter queue",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxReceiveCount",
+          "description": "Maximum number of receives before moving message to the DLQ",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "RedriveAllowPolicy",
+      "description": "Represents permissions for queues to specify another as a dead-letter queue.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "redrivePermission",
+          "description": "Allowed permission type",
+          "type": {
+            "name": "RedrivePermission",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RedrivePermission"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "sourceQueueArns",
+          "description": "List of ARNs allowed to use this queue as a DLQ (if `byQueue`)",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "RedrivePermission",
+      "description": "Represents allowed redrive permission values.\n\n- `allowAll` – All queues in the account can use this queue as a DLQ (default)\n- `denyAll` – No queues can use this queue as a DLQ\n- `byQueue` – Only specified source queues can use this queue as a DLQ",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "BY_QUEUE",
+          "description": ""
+        },
+        {
+          "name": "DENY_ALL",
+          "description": ""
+        },
+        {
+          "name": "ALLOW_ALL",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "DeduplicationScope",
+      "description": "Represents deduplication scope for high throughput FIFO queues.\n\n- `messageGroup` – Deduplication is scoped per message group\n- `queue` – Deduplication is scoped across the entire queue",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "QUEUE",
+          "description": ""
+        },
+        {
+          "name": "MESSAGE_GROUP",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "FifoThroughputLimit",
+      "description": "Represents throughput limit mode for high throughput FIFO queues.\n\n- `perMessageGroupId` – Throughput quota is per message group\n- `perQueue` – Throughput quota is shared across the entire queue",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "PER_QUEUE",
+          "description": ""
+        },
+        {
+          "name": "PER_MESSAGE_GROUP_ID",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "GetQueueUrlConfig",
+      "description": "Represents the optional configuration for the `getQueueUrl` operation.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "queueOwnerAWSAccountId",
+          "description": "AWS account ID of the queue owner. Required when accessing a queue owned by another AWS account",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ListQueuesConfig",
+      "description": "Represents the optional parameters for the `listQueues` operation.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "maxResults",
+          "description": "Maximum number of results to return. Required to receive a `nextToken` in the response.",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "nextToken",
+          "description": "Token to retrieve the next set of results in paginated responses",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "queueNamePrefix",
+          "description": "Prefix to filter queue names. Only queues that start with this value are returned",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ListQueuesResponse",
+      "description": "Represents the response from the `listQueues` operation.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "queueUrls",
+          "description": "List of matching queue URLs",
+          "type": {
+            "name": "string[]"
+          }
+        },
+        {
+          "name": "nextToken",
+          "description": "Pagination token for the next request. `null` if there are no more results.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "GetQueueAttributesConfig",
+      "description": "Represents the optional parameters for the `getQueueAttributes` operation.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "attributeNames",
+          "description": "List of queue attributes to retrieve",
+          "type": {
+            "name": "QueueAttributeName[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "QueueAttributeName"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "QueueAttributeName",
+      "description": "Represents the attributes that can be retrieved from a queue.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "SQS_MANAGED_SSE_ENABLED",
+          "description": ""
+        },
+        {
+          "name": "REDRIVE_ALLOW_POLICY",
+          "description": ""
+        },
+        {
+          "name": "FIFO_THROUGHPUT_LIMIT",
+          "description": ""
+        },
+        {
+          "name": "DEDUPLICATION_SCOPE",
+          "description": ""
+        },
+        {
+          "name": "KMS_DATA_KEY_REUSE_PERIOD_SECONDS",
+          "description": ""
+        },
+        {
+          "name": "KMS_MASTER_KEY_ID",
+          "description": ""
+        },
+        {
+          "name": "CONTENT_BASED_DEDUPLICATION",
+          "description": ""
+        },
+        {
+          "name": "FIFO_QUEUE",
+          "description": ""
+        },
+        {
+          "name": "REDRIVE_POLICY",
+          "description": ""
+        },
+        {
+          "name": "RECEIVE_MESSAGE_WAIT_TIME_SECONDS",
+          "description": ""
+        },
+        {
+          "name": "DELAY_SECONDS",
+          "description": ""
+        },
+        {
+          "name": "APPROXIMATE_NUMBER_OF_MESSAGES_DELAYED",
+          "description": ""
+        },
+        {
+          "name": "QUEUE_ARN",
+          "description": ""
+        },
+        {
+          "name": "LAST_MODIFIED_TIMESTAMP",
+          "description": ""
+        },
+        {
+          "name": "CREATED_TIMESTAMP",
+          "description": ""
+        },
+        {
+          "name": "APPROXIMATE_NUMBER_OF_MESSAGES_NOT_VISIBLE",
+          "description": ""
+        },
+        {
+          "name": "APPROXIMATE_NUMBER_OF_MESSAGES",
+          "description": ""
+        },
+        {
+          "name": "MESSAGE_RETENTION_PERIOD",
+          "description": ""
+        },
+        {
+          "name": "MAXIMUM_MESSAGE_SIZE",
+          "description": ""
+        },
+        {
+          "name": "VISIBILITY_TIMEOUT",
+          "description": ""
+        },
+        {
+          "name": "POLICY",
+          "description": ""
+        },
+        {
+          "name": "ALL",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "GetQueueAttributesResponse",
+      "description": "Represents the response from the `getQueueAttributes` operation.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "queueAttributes",
+          "description": "Map of queue attribute names to their values",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ListQueueTagsResponse",
+      "description": "Represents the response from the `listQueueTags` operation.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "tags",
+          "description": "Map of tags added to the specified queue",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          }
+        }
+      ]
+    },
+    {
+      "name": "StartMessageMoveTaskConfig",
+      "description": "Represents the configuration for starting a message movement task.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "destinationARN",
+          "description": "ARN of the destination queue. If not set, messages are redriven to their original source queues",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxNumberOfMessagesPerSecond",
+          "description": "Fixed message movement rate. Max value is 500. If not set, the system optimizes the rate.",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "StartMessageMoveTaskResponse",
+      "description": "Represents the response from the `startMessageMoveTask` operation.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "taskHandle",
+          "description": "Unique identifier for the initiated message movement task. Use to cancel the task if needed",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "CancelMessageMoveTaskResponse",
+      "description": "Represents the response from the `cancelMessageMoveTask` operation.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "approximateNumberOfMessagesMoved",
+          "description": "Number of messages moved before the task was cancelled",
+          "type": {
+            "name": "int"
+          }
+        }
+      ]
+    },
+    {
+      "name": "PollingConfig",
+      "description": "Polling configuration for message retrieval.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "pollInterval",
+          "description": "Interval between polling attempts in seconds. If set to 0, the listener will poll back-to-back without delay. Use with caution as it may cause high CPU usage.",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "waitTime",
+          "description": "The duration, in seconds, for which the polling waits for messages",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "visibilityTimeout",
+          "description": "The duration, in seconds, for which the received message remains invisible to other consumers",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Service",
+      "description": "Represents an AWS SQS service object that can be attached to an `sqs:Listener`.",
+      "type": "Class"
+    },
+    {
+      "name": "ServiceConfigType",
+      "description": "The service configuration type for the `sqs:Service`.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "queueUrl",
+          "description": "The URL of the SQS queue to consume messages from",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "config",
+          "description": "Optional per-service polling behavior",
+          "type": {
+            "name": "PollingConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PollingConfig"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "autoDelete",
+          "description": "Whether to automatically delete messages after receiving",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Listener",
+      "description": "Initializes the AWS SQS listener.\n",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes the AWS SQS listener.\n",
+          "parameters": [
+            {
+              "name": "connectionConfig",
+              "description": "The configurations to be used when initializing the AWS SQS listener",
+              "type": {
+                "name": "ConnectionConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ConnectionConfig"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "pollingConfig",
+              "description": "Default polling behavior for all services (can be overridden per service)",
+              "type": {
+                "name": "PollingConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "PollingConfig"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "description": "An `Error` if the initialization failed, nil otherwise",
+            "type": {
+              "name": "ballerinax/aws.sqs:5.0.0:Error?"
+            }
+          }
+        },
+        {
+          "name": "attach",
+          "type": "Normal Function",
+          "description": "Attaches an SQS service to the SQS listener.",
+          "parameters": [
+            {
+              "name": "s",
+              "description": "The SQS Service to attach",
+              "type": {
+                "name": "Service",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Service"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "path",
+              "description": "Not applicable for SQS. Must be a null value",
+              "type": {
+                "name": "()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "An `Error` if the attaching failed, nil otherwise",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "detach",
+          "type": "Normal Function",
+          "description": "Detaches an SQS service from the SQS listener.",
+          "parameters": [
+            {
+              "name": "s",
+              "description": "The SQS Service to detach",
+              "type": {
+                "name": "Service",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Service"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "An `Error` if the detaching failed, nil otherwise",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "\u0027start",
+          "type": "Normal Function",
+          "description": "Starts the SQS listener.",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "gracefulStop",
+          "type": "Normal Function",
+          "description": "Gracefully stops the SQS listener.",
+          "parameters": [],
+          "return": {
+            "description": "An `Error` if the stopping failed, nil otherwise",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "immediateStop",
+          "type": "Normal Function",
+          "description": "Immediately stops the SQS listener.",
+          "parameters": [],
+          "return": {
+            "description": "An `Error` if the stopping failed, nil otherwise",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "name": "Caller",
+      "description": "Provides control over message deletion from the queue after processing.",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Provides control over message deletion from the queue after processing.",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "sqs:sqs:Caller"
+            }
+          }
+        },
+        {
+          "name": "delete",
+          "type": "Remote Function",
+          "description": "Delete the message from the queue after successful processing.\n",
+          "parameters": [],
+          "return": {
+            "description": "`Error` on failure, nil otherwise",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Client",
+      "description": "The Amazon SQS API Client.\n\nProvides access to Amazon Simple Queue Service (SQS) using the AWS SDK for Java V2.\nSupports static credentials, profile-based credentials, and the default AWS credential\nprovider chain (environment variables, ECS container credentials, EC2 instance profiles, etc.).",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes the Amazon SQS client with the provided connection configuration.\n",
+          "parameters": [
+            {
+              "name": "auth",
+              "description": "Authentication configuration: any standard credential source supported by\nAWS — static credentials, an AWS profile, STS assume-role,\nweb identity (OIDC), IAM Identity Center (SSO), an external credential\nprocess, or the default credential provider chain",
+              "type": {
+                "name": "Unknown Type"
+              },
+              "default": ""
+            },
+            {
+              "name": "region",
+              "description": "AWS region: an `aws:Region` enum member or a plain region\nstring (e.g., `\"us-east-1\"`) for regions not yet in the enum",
+              "type": {
+                "name": "Unknown Type|string"
+              },
+              "default": ""
+            },
+            {
+              "name": "endpoint",
+              "description": "Optional endpoint options: FIPS/dualstack variants, or a custom\nendpoint override (e.g. LocalStack, VPC interface endpoints)",
+              "type": {
+                "name": "Unknown Type"
+              },
+              "optional": true,
+              "default": ""
+            },
+            {
+              "name": "connectionConfig",
+              "description": "The Amazon SQS client configuration",
+              "type": {
+                "name": "ConnectionConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ConnectionConfig"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "The `sqs:Client` instance or `sqs:Error` if initialization fails",
+            "type": {
+              "name": "ballerinax/aws.sqs:5.0.0:Error?"
+            }
+          }
+        },
+        {
+          "name": "sendMessage",
+          "type": "Remote Function",
+          "description": "Delivers a message to the specified SQS queue.\n",
+          "parameters": [
+            {
+              "name": "queueUrl",
+              "description": "URL of the Amazon SQS queue to which the message is sent",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "messageBody",
+              "description": "Message to send; minimum size is 1 byte and maximum is 262,144 bytes (256 KiB)",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "delaySeconds",
+              "description": "Duration to delay the message, in seconds (0 to 900)",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "0"
+            },
+            {
+              "name": "messageAttributes",
+              "description": "Custom attributes to attach to the message",
+              "type": {
+                "name": "map\u003csqs:MessageAttributeValue\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "awsTraceHeader",
+              "description": "X-Ray tracing header for distributed tracing support",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "messageDeduplicationId",
+              "description": "Token for deduplicating messages (FIFO only)",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "messageGroupId",
+              "description": "Tag specifying the message group (FIFO only)",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "sendMessageConfig",
+              "description": "Optional parameters such as `delaySeconds`, `messageAttributes`, `messageSystemAttributes`, `messageDeduplicationId`, and `messageGroupId`",
+              "type": {
+                "name": "SendMessageConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "SendMessageConfig"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "A `sqs:SendMessageResponse` on success, or an `sqs:Error` on failure",
+            "type": {
+              "name": "SendMessageResponse|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "SendMessageResponse"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "receiveMessage",
+          "type": "Remote Function",
+          "description": "Retrieves one or more messages from the specified queue.\n",
+          "parameters": [
+            {
+              "name": "queueUrl",
+              "description": "URL of the Amazon SQS queue from which messages are received",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "waitTimeSeconds",
+              "description": "Duration to wait for a message to arrive (long polling)",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "0"
+            },
+            {
+              "name": "visibilityTimeout",
+              "description": "Visibility timeout for received messages",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "0"
+            },
+            {
+              "name": "maxNumberOfMessages",
+              "description": "Maximum number of messages to receive (1 to 10)",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "0"
+            },
+            {
+              "name": "receiveRequestAttemptId",
+              "description": "Deduplication token for `receiveMessage` requests (FIFO only)",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "messageAttributeNames",
+              "description": "List of message attribute names to return; use `All` to get all",
+              "type": {
+                "name": "string[]"
+              },
+              "optional": true,
+              "default": "[]"
+            },
+            {
+              "name": "messageSystemAttributeNames",
+              "description": "List of system attribute names to return; use `All` to get all",
+              "type": {
+                "name": "MessageSystemAttributeName[]",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "MessageSystemAttributeName"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "[]"
+            },
+            {
+              "name": "receiveMessageConfig",
+              "description": "Optional parameters for receiving messages",
+              "type": {
+                "name": "ReceiveMessageConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ReceiveMessageConfig"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "An array of `sqs:Message` records, or an `sqs:Error` on failure",
+            "type": {
+              "name": "Message[]|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Message"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "deleteMessage",
+          "type": "Remote Function",
+          "description": "Deletes a specified message from an Amazon SQS queue using the given receipt handle.\n",
+          "parameters": [
+            {
+              "name": "queueUrl",
+              "description": "URL of the Amazon SQS queue from which messages are deleted",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "receiptHandle",
+              "description": "Receipt handle associated with the message to delete",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "An `sqs:Error` if the operation fails",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "sendMessageBatch",
+          "type": "Remote Function",
+          "description": "Sends up to 10 messages as a batch to the specified Amazon SQS queue.\n",
+          "parameters": [
+            {
+              "name": "queueUrl",
+              "description": "URL of the Amazon SQS queue to which batched messages are sent",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "entries",
+              "description": "A list of `sqs:SendMessageBatchEntry` records",
+              "type": {
+                "name": "SendMessageBatchEntry[]",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "SendMessageBatchEntry"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "A `sqs:SendMessageBatchResponse` indicating which messages succeeded or failed, or an `sqs:Error` on failure",
+            "type": {
+              "name": "SendMessageBatchResponse|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "SendMessageBatchResponse"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "deleteMessageBatch",
+          "type": "Remote Function",
+          "description": "Deletes up to ten messages from the specified queue. This is a batch version of `sqs:deleteMessage`.\nThe result of the action on each message is reported individually in the response.\n",
+          "parameters": [
+            {
+              "name": "queueUrl",
+              "description": "URL of the Amazon SQS queue from which messages are deleted",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "entries",
+              "description": "List of `sqs:DeleteMessageBatchEntry` records containing receipt handles of messages to delete",
+              "type": {
+                "name": "DeleteMessageBatchEntry[]",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "DeleteMessageBatchEntry"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "A `sqs:DeleteMessageBatchResponse` indicating which deletions succeeded or failed, or an `sqs:Error` on failure",
+            "type": {
+              "name": "DeleteMessageBatchResponse|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "DeleteMessageBatchResponse"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "createQueue",
+          "type": "Remote Function",
+          "description": "Creates a new Amazon SQS queue with the specified attributes and tags.\n",
+          "parameters": [
+            {
+              "name": "queueName",
+              "description": "Name of the new queue; valid values include alphanumeric characters, hyphens (-), and underscores\n(_), and can be up to 80 characters long. FIFO queue names must end with the `.fifo` suffix",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "queueAttributes",
+              "description": "Optional queue attributes to apply",
+              "type": {
+                "name": "QueueAttributes",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "QueueAttributes"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "tags",
+              "description": "Optional cost allocation tags to associate with the queue",
+              "type": {
+                "name": "map\u003cstring\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "createQueueConfig",
+              "description": "Optional configuration such as `queueAttributes` and `tags`",
+              "type": {
+                "name": "CreateQueueConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "CreateQueueConfig"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "URL of the created queue, or an `sqs:Error` on failure",
+            "type": {
+              "name": "string|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "deleteQueue",
+          "type": "Remote Function",
+          "description": "Deletes the specified Amazon SQS queue.\n",
+          "parameters": [
+            {
+              "name": "queueUrl",
+              "description": "The URL of the Amazon SQS queue to delete",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "An `sqs:Error` on failure",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "getQueueUrl",
+          "type": "Remote Function",
+          "description": "Retrieves the URL of the specified Amazon SQS queue.\n",
+          "parameters": [
+            {
+              "name": "queueName",
+              "description": "Name of the queue; can include alphanumeric characters, hyphens (-), and underscores (_), and must be up to 80 characters long",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "queueOwnerAWSAccountId",
+              "description": "AWS account ID of the queue owner. Required when accessing a queue owned by another AWS account",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "getQueueUrlConfig",
+              "description": "Optional parameters such as `queueOwnerAWSAccountId`",
+              "type": {
+                "name": "GetQueueUrlConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "GetQueueUrlConfig"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "URL of the requested queue, or an `sqs:Error` on failure",
+            "type": {
+              "name": "string|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "listQueues",
+          "type": "Remote Function",
+          "description": "Lists the Amazon SQS queues in the current region. Supports filtering by name prefix and paginated results.\n",
+          "parameters": [
+            {
+              "name": "maxResults",
+              "description": "Maximum number of results to return. Required to receive a `nextToken` in the response.",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "0"
+            },
+            {
+              "name": "nextToken",
+              "description": "Token to retrieve the next set of results in paginated responses",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "queueNamePrefix",
+              "description": "Prefix to filter queue names. Only queues that start with this value are returned",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "listQueuesConfig",
+              "description": "Optional parameters such as `queueNamePrefix`, `maxResults`, and `nextToken`",
+              "type": {
+                "name": "ListQueuesConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ListQueuesConfig"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "A `sqs:ListQueuesResponse` containing queue URLs and an optional `nextToken`, or an `sqs:Error` on failure",
+            "type": {
+              "name": "ListQueuesResponse|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "ListQueuesResponse"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "getQueueAttributes",
+          "type": "Remote Function",
+          "description": "Retrieves the attributes of the specified Amazon SQS queue.\n",
+          "parameters": [
+            {
+              "name": "queueUrl",
+              "description": "URL of the Amazon SQS queue whose attributes are retrieved",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "attributeNames",
+              "description": "List of queue attributes to retrieve",
+              "type": {
+                "name": "QueueAttributeName[]",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "QueueAttributeName"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "[]"
+            },
+            {
+              "name": "getQueueAttributesConfig",
+              "description": "Optional parameters such as `attributeNames`",
+              "type": {
+                "name": "GetQueueAttributesConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "GetQueueAttributesConfig"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "A `sqs:GetQueueAttributesResponse` containing the queue attributes, or an `sqs:Error` on failure",
+            "type": {
+              "name": "GetQueueAttributesResponse|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "GetQueueAttributesResponse"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "setQueueAttributes",
+          "type": "Remote Function",
+          "description": "Sets one or more attributes for the specified Amazon SQS queue.\n",
+          "parameters": [
+            {
+              "name": "queueUrl",
+              "description": "URL of the Amazon SQS queue to configure",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "queueAttributes",
+              "description": "Attributes to set for the queue",
+              "type": {
+                "name": "QueueAttributes",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "QueueAttributes"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "An `sqs:Error` on failure",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "changeMessageVisibility",
+          "type": "Remote Function",
+          "description": "Changes the visibility timeout of a specific message in a queue.\n",
+          "parameters": [
+            {
+              "name": "queueUrl",
+              "description": "URL of the Amazon SQS queue containing the message",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "receiptHandle",
+              "description": "Receipt handle of the message returned by the `sqs:receiveMessage` operation",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "visibilityTimeout",
+              "description": "New visibility timeout value in seconds (minimum 0, maximum 43,200)",
+              "type": {
+                "name": "int"
+              }
+            }
+          ],
+          "return": {
+            "description": "An `sqs:Error` on failure",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "purgeQueue",
+          "type": "Remote Function",
+          "description": "Purges the specified queue, deleting all messages in it. This action is irreversible.\n",
+          "parameters": [
+            {
+              "name": "queueUrl",
+              "description": "TURL of the queue to purge",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "An `sqs:Error` on failure",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "tagQueue",
+          "type": "Remote Function",
+          "description": "Adds cost allocation tags to the specified Amazon SQS queue.\n\n- A maximum of 50 tags per queue is recommended\n- Tags are case-sensitive and treated as plain character strings\n- New tags with duplicate keys overwrite existing ones\n",
+          "parameters": [
+            {
+              "name": "queueUrl",
+              "description": "URL of the queue to which tags are added",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "tags",
+              "description": "Map of tags to add, where each tag is a key-value pair",
+              "type": {
+                "name": "map\u003cstring\u003e"
+              }
+            }
+          ],
+          "return": {
+            "description": "An `sqs:Error` on failure",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "untagQueue",
+          "type": "Remote Function",
+          "description": "Removes cost allocation tags from the specified Amazon SQS queue.\n",
+          "parameters": [
+            {
+              "name": "queueUrl",
+              "description": "URL of the queue from which tags are removed",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "tags",
+              "description": "List of tag keys to remove",
+              "type": {
+                "name": "string[]"
+              }
+            }
+          ],
+          "return": {
+            "description": "An `sqs:Error` on failure",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "listQueueTags",
+          "type": "Remote Function",
+          "description": "Lists all cost allocation tags added to the specified Amazon SQS queue.\n",
+          "parameters": [
+            {
+              "name": "queueUrl",
+              "description": "URL of the queue whose tags are listed",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "A `sqs:ListQueueTagsResponse` with associated tags, or an `sqs:Error` on failure",
+            "type": {
+              "name": "ListQueueTagsResponse|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "ListQueueTagsResponse"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "startMessageMoveTask",
+          "type": "Remote Function",
+          "description": "Starts a message movement task to transfer messages from a dead-letter queue (DLQ) to another queue.\n\n- Only supported for DLQs whose sources are other Amazon SQS queues\n- Not supported for non-SQS sources (e.g., AWS Lambda, Amazon SNS)\n- Only one active task is allowed per queue at any time\n",
+          "parameters": [
+            {
+              "name": "sourceARN",
+              "description": "ARN of the DLQ from which messages are moved",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "destinationARN",
+              "description": "ARN of the destination queue. If not set, messages are redriven to their original source queues",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "maxNumberOfMessagesPerSecond",
+              "description": "Fixed message movement rate. Max value is 500. If not set, the system optimizes the rate.",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "0"
+            },
+            {
+              "name": "startMessageMoveTaskConfig",
+              "description": "Optional parameters such as `destinationARN` and `maxNumberOfMessagesPerSecond`",
+              "type": {
+                "name": "StartMessageMoveTaskConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "StartMessageMoveTaskConfig"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "A `sqs:StartMessageMoveTaskResponse` if successful, or an `sqs:Error` on failure",
+            "type": {
+              "name": "StartMessageMoveTaskResponse|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "StartMessageMoveTaskResponse"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "cancelMessageMoveTask",
+          "type": "Remote Function",
+          "description": "Cancels an active message movement task for the given task handle.\n\n- Only applicable when the task status is `RUNNING`\n- Already moved messages will not be reverted\n- Only one active task is allowed per queue at any time\n",
+          "parameters": [
+            {
+              "name": "taskHandle",
+              "description": "Identifier of the message movement task",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "A `sqs:CancelMessageMoveTaskResponse` with the number of messages moved before cancellation, or an `sqs:Error`",
+            "type": {
+              "name": "CancelMessageMoveTaskResponse|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "CancelMessageMoveTaskResponse"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "close",
+          "type": "Remote Function",
+          "description": "Gracefully closes the AWS SQS client and releases all associated resources.\n",
+          "parameters": [],
+          "return": {
+            "description": "An `sqs:Error` if closing fails, or else nil",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "functions": [],
+  "services": [],
+  "annotations": []
+}

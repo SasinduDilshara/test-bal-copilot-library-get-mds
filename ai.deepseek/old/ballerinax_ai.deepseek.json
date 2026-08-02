@@ -1,0 +1,659 @@
+{
+  "name": "ballerinax/ai.deepseek",
+  "description": "DeepSeek provides high-performance large language models (LLMs) optimized for various natural language processing tasks.",
+  "readme": "## Overview\n\nDeepSeek provides high-performance large language models (LLMs) optimized for various natural language processing tasks.\n\nThe DeepSeek connector offers APIs for connecting with DeepSeek Large Language Models (LLMs), enabling the integration of advanced conversational AI and language processing capabilities into applications.\n\n### Key Features\n\n- Connect and interact with DeepSeek Large Language Models (LLMs)\n- Support for DeepSeek-V3, DeepSeek-Coder, and other models\n- Efficient handling of conversational prompts and completions\n- Secure communication with API key authentication\n\n## Prerequisites\n\nBefore using this module in your Ballerina application, first you must obtain the nessary configuration to engage the LLM.\n\n\n\n## Quickstart\n\nTo use the `ai.deepseek` module in your Ballerina application, update the `.bal` file as follows:\n\n### Step 1: Import the module\n\nImport the `ai.deepseek;` module.\n\n```ballerina\nimport ballerinax/ai.deepseek;\n```\n\n### Step 2: Intialize the Model Provider\n\nHere\u0027s how to initialize the Model Provider:\n\n```ballerina\nimport ballerina/ai;\nimport ballerinax/ai.deepseek;\n\nfinal ai:ModelProvider deepseekModel \u003d check new deepseek:ModelProvider(\"deepseekApiKey\");\n```\n\n### Step 4: Invoke chat completion\n\n```ballerina\nai:ChatMessage[] chatMessages \u003d [{role: \"user\", content: \"hi\"}];\nai:ChatAssistantMessage response \u003d check deepseekModel-\u003echat(chatMessages, tools \u003d []);\n\nchatMessages.push(response);\n```\n",
+  "typeDefs": [
+    {
+      "name": "DEEPSEEK_CHAT",
+      "description": "",
+      "type": "Constant",
+      "value": "deepseek-chat",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "DEEPSEEK_REASONER",
+      "description": "",
+      "type": "Constant",
+      "value": "deepseek-reasoner",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "DEEPSEEK_MODEL_NAMES",
+      "description": "",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "DEEPSEEK_REASONER",
+          "description": ""
+        },
+        {
+          "name": "DEEPSEEK_CHAT",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "ConnectionConfig",
+      "description": "Configurations for controlling the behaviours when communicating with a remote HTTP endpoint.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "httpVersion",
+          "description": "The HTTP version understood by the client",
+          "type": {
+            "name": "HttpVersion",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "HttpVersion",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "http1Settings",
+          "description": "Configurations related to HTTP/1.x protocol",
+          "type": {
+            "name": "ClientHttp1Settings",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientHttp1Settings",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "http2Settings",
+          "description": "Configurations related to HTTP/2 protocol",
+          "type": {
+            "name": "ClientHttp2Settings",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientHttp2Settings",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "timeout",
+          "description": "The maximum time to wait (in seconds) for a response before closing the connection",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "forwarded",
+          "description": "The choice of setting `forwarded`/`x-forwarded` header",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "poolConfig",
+          "description": "Configurations associated with request pooling",
+          "type": {
+            "name": "PoolConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "PoolConfiguration",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "cache",
+          "description": "HTTP caching related configurations",
+          "type": {
+            "name": "CacheConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CacheConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "compression",
+          "description": "Specifies the way of handling compression (`accept-encoding`) header",
+          "type": {
+            "name": "Compression",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Compression",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "circuitBreaker",
+          "description": "Configurations associated with the behaviour of the Circuit Breaker",
+          "type": {
+            "name": "CircuitBreakerConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CircuitBreakerConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "retryConfig",
+          "description": "Configurations associated with retrying",
+          "type": {
+            "name": "RetryConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "RetryConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "responseLimits",
+          "description": "Configurations associated with inbound response size limits",
+          "type": {
+            "name": "ResponseLimitConfigs",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ResponseLimitConfigs",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "SSL/TLS-related options",
+          "type": {
+            "name": "ClientSecureSocket",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientSecureSocket",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "proxy",
+          "description": "Proxy server related options",
+          "type": {
+            "name": "ProxyConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ProxyConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "validation",
+          "description": "Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "DeepseekChatResponseFunction",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "name",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "arguments",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "name": "ModelProvider",
+      "description": "Deepseek is a client class that provides an interface for interacting with Deepseek Large Language Models.",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes the Deepseek model client with the provided configurations.\n",
+          "parameters": [
+            {
+              "name": "apiKey",
+              "description": "The Deepseek API Key",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "modelType",
+              "type": {
+                "name": "DEEPSEEK_MODEL_NAMES",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "DEEPSEEK_MODEL_NAMES"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "DEEPSEEK_CHAT"
+            },
+            {
+              "name": "serviceUrl",
+              "description": "The base URL of Deepseek API endpoint",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "https://api.deepseek.com"
+            },
+            {
+              "name": "maxTokens",
+              "description": "The upper limit for the number of tokens in the response generated by the model",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "512"
+            },
+            {
+              "name": "temperature",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "0.7"
+            },
+            {
+              "name": "httpVersion",
+              "description": "The HTTP version understood by the client",
+              "type": {
+                "name": "HttpVersion",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "HttpVersion",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "http:HTTP_2_0"
+            },
+            {
+              "name": "http1Settings",
+              "description": "Configurations related to HTTP/1.x protocol",
+              "type": {
+                "name": "ClientHttp1Settings",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ClientHttp1Settings",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "http2Settings",
+              "description": "Configurations related to HTTP/2 protocol",
+              "type": {
+                "name": "ClientHttp2Settings",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ClientHttp2Settings",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "timeout",
+              "description": "The maximum time to wait (in seconds) for a response before closing the connection",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "60"
+            },
+            {
+              "name": "forwarded",
+              "description": "The choice of setting `forwarded`/`x-forwarded` header",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"disable\""
+            },
+            {
+              "name": "poolConfig",
+              "description": "Configurations associated with request pooling",
+              "type": {
+                "name": "PoolConfiguration",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "PoolConfiguration",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "cache",
+              "description": "HTTP caching related configurations",
+              "type": {
+                "name": "CacheConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "CacheConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "compression",
+              "description": "Specifies the way of handling compression (`accept-encoding`) header",
+              "type": {
+                "name": "Compression",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "Compression",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "AUTO"
+            },
+            {
+              "name": "circuitBreaker",
+              "description": "Configurations associated with the behaviour of the Circuit Breaker",
+              "type": {
+                "name": "CircuitBreakerConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "CircuitBreakerConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "retryConfig",
+              "description": "Configurations associated with retrying",
+              "type": {
+                "name": "RetryConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "RetryConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "responseLimits",
+              "description": "Configurations associated with inbound response size limits",
+              "type": {
+                "name": "ResponseLimitConfigs",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ResponseLimitConfigs",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "secureSocket",
+              "description": "SSL/TLS-related options",
+              "type": {
+                "name": "ClientSecureSocket",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ClientSecureSocket",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "proxy",
+              "description": "Proxy server related options",
+              "type": {
+                "name": "ProxyConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ProxyConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "validation",
+              "description": "Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "true"
+            },
+            {
+              "name": "connectionConfig",
+              "description": "Additional HTTP client configurations",
+              "type": {
+                "name": "ConnectionConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ConnectionConfig"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "`nil` on successful initialization; otherwise, returns an `ai:Error`",
+            "type": {
+              "name": "ballerina/ai:1.12.0:Error?"
+            }
+          }
+        },
+        {
+          "name": "chat",
+          "type": "Remote Function",
+          "description": "Generates a chat completion message from a Deepseek model\n",
+          "parameters": [
+            {
+              "name": "messages",
+              "description": "List of chat messages or a user message",
+              "type": {
+                "name": "ChatMessage[]|ChatUserMessage",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ChatMessage",
+                    "libraryName": "ballerina/ai"
+                  },
+                  {
+                    "category": "external",
+                    "recordName": "ChatUserMessage",
+                    "libraryName": "ballerina/ai"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "tools",
+              "description": "Tool definitions to be used for the tool call",
+              "type": {
+                "name": "ChatCompletionFunctions[]",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ChatCompletionFunctions",
+                    "libraryName": "ballerina/ai"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "stop",
+              "description": "Stop sequence to stop the completion",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "Function to be called, chat response or an error in-case of failures",
+            "type": {
+              "name": "ChatAssistantMessage|Error",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "ChatAssistantMessage",
+                  "libraryName": "ballerina/ai"
+                },
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/ai"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "generate",
+          "type": "Remote Function",
+          "description": "Sends a chat request to the model and generates a value that belongs to the type\ncorresponding to the type descriptor argument.\n",
+          "parameters": [
+            {
+              "name": "prompt",
+              "description": "The prompt to use in the chat messages",
+              "type": {
+                "name": "Prompt",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "Prompt",
+                    "libraryName": "ballerina/ai"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "td",
+              "description": "Type descriptor specifying the expected return type format",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "Generates a value that belongs to the type, or an error if generation fails",
+            "type": {
+              "name": "td|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "td"
+                },
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/ai"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "functions": [],
+  "services": [],
+  "annotations": []
+}

@@ -1,0 +1,1718 @@
+{
+  "name": "ballerina/websub",
+  "description": "This module provides APIs for a WebSub Subscriber Service.",
+  "readme": "## Overview\n\nThis module provides APIs for a WebSub Subscriber Service.\n\n[**WebSub**](https://www.w3.org/TR/websub/) is a common mechanism for communication between publishers of any kind of Web content and their subscribers, based on HTTP webhooks. Subscription requests are relayed through hubs, which validate and verify the request. Hubs then distribute new and updated content to subscribers when it becomes available. WebSub was previously known as PubSubHubbub.\n\n[**WebSub Subscriber**](https://www.w3.org/TR/websub/#subscriber) is an implementation that discovers the `hub` and `topic URL` of a given `resource URL`, subscribes to updates at the hub, and accepts content distribution requests from the `hub`.\n\n### Basic flow with WebSub\n\n1. The subscriber discovers (from the publisher) the topic it needs to subscribe to and the hub(s) that deliver notifications on the updates of the topic.\n\n2. The subscriber sends a subscription request to one or more discovered hub(s) specifying the discovered topic along \n with the other subscription parameters such as:\n    - The callback URL to which the content is expected to be delivered.\n    - (Optional) The lease period (in seconds) the subscriber wants the subscription to stay active.\n    - (Optional) A secret to use for the [authenticated content distribution](https://www.w3.org/TR/websub/#signing-content).\n  \n3. The hub sends an intent verification request to the specified callback URL. If the response indicates \nthe verification\n (by echoing a challenge specified in the request) by the subscriber, the subscription is added for the topic at the \n hub.\n   \n4. The publisher notifies the hub of the updates to the topic and the content to deliver is identified.\n\n5. The hub delivers the identified content to the subscribers of the topic.\n\n#### Subscribe to a `hub`\n\n* The WebSub Subscriber provides the mechanism to subscribe in a `hub` to a given `topic URL`. \n```ballerina\n@websub:SubscriberServiceConfig {\n    target: [\"\u003cHUB_URL\u003e\", \"\u003cTOPIC_URL\u003e\"], \n    leaseSeconds: 36000\n} \nservice /subscriber on new websub:Listener(9090) {\n    remote function onSubscriptionValidationDenied(websub:SubscriptionDeniedError msg) returns websub:Acknowledgement? {\n        // implement subscription validation denied logic here\n        return websub:ACKNOWLEDGEMENT;\n    }\n\n    remote function onSubscriptionVerification(websub:SubscriptionVerification msg)\n                        returns websub:SubscriptionVerificationSuccess|websub:SubscriptionVerificationError {\n        // implement subscription intent verification logic here\n        return websub:SUBSCRIPTION_VERIFICATION_SUCCESS;\n    }\n\n    remote function onUnsubscriptionVerification(websub:UnsubscriptionVerification msg)\n                        returns websub:UnsubscriptionVerificationSuccess|websub:UnsubscriptionVerificationError {\n        // implement unsubscription intent verification logic here\n        return websub:UNSUBSCRIPTION_VERIFICATION_SUCCESS;\n    }\n\n    remote function onEventNotification(websub:ContentDistributionMessage event) \n                        returns websub:Acknowledgement|websub:SubscriptionDeletedError? {\n        // implement on event notification logic here\n        return websub:ACKNOWLEDGEMENT;\n    }\n}\n```\n\n#### Resource discovery\n\n* The WebSub Subscriber also provides the mechanism to discover the `hub` and `topic URL` resources dynamically via the provided `resource URL` and initiates the subscription.\n```ballerina\n@websub:SubscriberServiceConfig {\n    target: \"RESOURCE_URL\", \n    leaseSeconds: 36000\n} \nservice /subscriber on new websub:Listener(9090) {\n    remote function onEventNotification(websub:ContentDistributionMessage event) \n                        returns websub:Acknowledgement|websub:SubscriptionDeletedError? {\n        // implement on event notification logic here\n        return websub:ACKNOWLEDGEMENT;\n    }\n\n    // other remote methods are optional to be implemented\n}\n```\n\n#### Dynamic URI generation\n\n* The service path for a WebSub Subscriber is optional. The WebSub Subscriber service has the capability to generate the service path dynamically.\n```ballerina\n@websub:SubscriberServiceConfig {\n    target: \"RESOURCE_URL\", \n    leaseSeconds: 36000\n} \nservice on new websub:Listener(9090) {\n    remote function onEventNotification(websub:ContentDistributionMessage event) \n                        returns websub:Acknowledgement|websub:SubscriptionDeletedError? {\n        // implement on event notification logic here\n        return websub:ACKNOWLEDGEMENT;\n    }\n\n    // other remote methods are optional to be implemented\n}\n```\n\n#### Run a `websub:SubscriberService` locally\n\n* [**ngrok**](https://ngrok.com/) is a TCP Tunneling software, which is used to expose services running locally in the public network.\n* If you want to run the subscriber service in your local machine, you could use **ngrok** to expose it to the public network.\n* First, [download and install](https://ngrok.com/download) **ngrok**.\n* Run the following command to expose the local port `9090` to the public network via `HTTPS`. For information, see the [ngrok documentation](https://ngrok.com/docs#http-bind-tls)).\n```bash\nngrok http -bind-tls\u003dtrue 9090\n```\n* Extract the public URL provided by **ngrok** and provide it as the callback URL for the subscriber service.\n```ballerina\n@websub:SubscriberServiceConfig {\n    target: \"RESOURCE_URL\", \n    leaseSeconds: 36000,\n    callback: \"\u003cNGROK_PUBLIC_URL\u003e\",\n    appendServicePath: true\n} \nservice on new websub:Listener(9090) {\n    remote function onEventNotification(websub:ContentDistributionMessage event) \n                        returns websub:Acknowledgement|websub:SubscriptionDeletedError? {\n        // implement on event notification logic here\n        return websub:ACKNOWLEDGEMENT;\n    }\n\n    // other remote methods are optional to be implemented\n}\n```\n\n#### Unsubscribe from the `hub`\n\n* The WebSub Subscriber has the capability to initiate unsubscription flow on Subscriber termination.\n```ballerina\nwebsub:ListenerConfiguration listenerConfigs \u003d {\n    gracefulShutdownPeriod: 15\n};\n\n@websub:SubscriberServiceConfig {\n    target: [\"https://sample.hub.com\", \"https://sample.topic1.com\"], \n    leaseSeconds: 36000,\n    // By default this is set to `false`, hence subscriber on default mode would not initiate unsubscription flow\n    unsubscribeOnShutdown: true\n}\nservice /subscriber on new websub:Listener(9090, listenerConfigs)  {\n    isolated remote function onEventNotification(websub:ContentDistributionMessage event) \n                        returns websub:Acknowledgement {\n        // implement logic here\n        return websub:ACKNOWLEDGEMENT;\n    }\n\n    // other remote methods are optional to be implemented\n}\n``` \n\n#### Return errors from remote methods\n\n* Remote functions in `websub:SubscriberService` can return `error` type.\n```ballerina\n@websub:SubscriberServiceConfig {\n    target: \"RESOURCE_URL\", \n    leaseSeconds: 36000,\n    callback: \"\u003cNGROK_PUBLIC_URL\u003e\",\n    appendServicePath: true\n} \nservice on new websub:Listener(9090) {\n    remote function onEventNotification(websub:ContentDistributionMessage event) \n                        returns websub:Acknowledgement|websub:SubscriptionDeletedError|error? {\n        boolean isValidRequest \u003d check validateRequest(event);\n        if isValidRequest {\n            // implement on event notification logic here\n            return websub:ACKNOWLEDGEMENT;\n        }\n    \n    }\n\n    // other remote methods are optional to be implemented\n}\n\nfunction validateRequest(websub:ContentDistributionMessage event) returns boolean|error {\n    // validation logic \n}\n```\n\n* For each remote method `error` return has a different meaning. Following table depicts the meaning inferred from `error` returned from all available remote methods.\n\n| Method        | Interpreted meaning for Error Return |\n| ----------- | ---------------- |\n| onSubscriptionValidationDenied | Successfull acknowledgement|\n| onSubscriptionVerification | Subscription verification failure|\n| onUnsubscriptionVerification | Unsubscription verification failure|\n| onEventNotification | Successfull acknowledgement|\n",
+  "typeDefs": [
+    {
+      "name": "ClientConfiguration",
+      "description": "Record to represent the client configuration for the SubscriptionClient/DiscoveryService.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "httpVersion",
+          "description": "The HTTP version understood by the client",
+          "type": {
+            "name": "HttpVersion",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "HttpVersion",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "http1Settings",
+          "description": "Configurations related to HTTP/1.x protocol",
+          "type": {
+            "name": "ClientHttp1Settings",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientHttp1Settings",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "http2Settings",
+          "description": "Configurations related to HTTP/2 protocol",
+          "type": {
+            "name": "ClientHttp2Settings",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientHttp2Settings",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "timeout",
+          "description": "The maximum time to wait (in seconds) for a response before closing the connection",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "followRedirects",
+          "description": "Configurations associated with Redirection",
+          "type": {
+            "name": "FollowRedirects",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "FollowRedirects",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "poolConfig",
+          "description": "Configurations associated with request pooling",
+          "type": {
+            "name": "PoolConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "PoolConfiguration",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "auth",
+          "description": "Configurations related to client authentication",
+          "type": {
+            "name": "ClientAuthConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientAuthConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "retryConfig",
+          "description": "Configurations associated with retrying",
+          "type": {
+            "name": "RetryConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "RetryConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "responseLimits",
+          "description": "Configurations associated with inbound response size limits",
+          "type": {
+            "name": "ResponseLimitConfigs",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ResponseLimitConfigs",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "SSL/TLS related options",
+          "type": {
+            "name": "ClientSecureSocket",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientSecureSocket",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "circuitBreaker",
+          "description": "Configurations associated with the behaviour of the Circuit Breaker",
+          "type": {
+            "name": "CircuitBreakerConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CircuitBreakerConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "SubscriberServiceConfiguration",
+      "description": "Configuration for a WebSubSubscriber service.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "target",
+          "description": "The `string` resource URL for which discovery will be initiated to identify the hub and topic,\nor a tuple `[hub, topic]` representing a discovered hub and a topic",
+          "type": {
+            "name": "string|[string, string]"
+          },
+          "optional": true
+        },
+        {
+          "name": "leaseSeconds",
+          "description": "The period for which the subscription is expected to be active",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "callback",
+          "description": "The callback URL for subscriber-service",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "secret",
+          "description": "The secret to be used for authenticated content distribution",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "appendServicePath",
+          "description": "This flag notifies whether or not to append service-path to callback-url",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "unsubscribeOnShutdown",
+          "description": "This flag notifies whether or not to initiate unsubscription when the service is shutting down",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "httpConfig",
+          "description": "The configuration for the subscriber client used to interact with the discovered/specified hub",
+          "type": {
+            "name": "ClientConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ClientConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "discoveryConfig",
+          "description": "HTTP client configurations for resource discovery",
+          "type": {
+            "name": "record {|string|string[] accept?; string|string[] acceptLanguage?; ballerina/websub:2.15.0:ClientConfiguration httpConfig?;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "customParams",
+          "description": "Additional parameters, which need to be sent with the subscription/unsubscription request",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "customHeaders",
+          "description": "Additional HTTP headers, which need to be sent with the subscription/unsubscription request",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "servicePath",
+          "description": "The generated service-path if the service-path is not provided. This is auto-generated at the compile-time.",
+          "type": {
+            "name": "byte[] \u0026 readonly"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "SubscriptionVerification",
+      "description": "Record representing the subscription intent verification request-body.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "hubMode",
+          "description": "The `hub.mode` parameter (subscribe / unsubscribe)",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "hubTopic",
+          "description": "The topic URL",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "hubChallenge",
+          "description": "The `hub.challenge` parameter used for verification",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "hubLeaseSeconds",
+          "description": "The `hub.lease_seconds` parameter used to validate the expiration of subscription",
+          "type": {
+            "name": "string?"
+          }
+        }
+      ]
+    },
+    {
+      "name": "UnsubscriptionVerification",
+      "description": "Record representing the unsubscription intent verification request-body.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "hubMode",
+          "description": "The `hub.mode` parameter (subscribe / unsubscribe)",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "hubTopic",
+          "description": "The topic URL",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "hubChallenge",
+          "description": "The `hub.challenge` parameter used for verification",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "hubLeaseSeconds",
+          "description": "The `hub.lease_seconds` parameter used to validate the expiration of subscription",
+          "type": {
+            "name": "string?"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ContentDistributionMessage",
+      "description": "Record representing the content-distribution request.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "headers",
+          "description": "Request headers retrieved from the original `HTTP Request`",
+          "type": {
+            "name": "map\u003cstring|string[]\u003e?"
+          },
+          "optional": true
+        },
+        {
+          "name": "contentType",
+          "description": "Content-type header value of the original `HTTP Request`",
+          "type": {
+            "name": "string?"
+          },
+          "optional": true
+        },
+        {
+          "name": "content",
+          "description": "The received content",
+          "type": {
+            "name": "map\u003cstring|string[]\u003e|json|xml|string|byte[]"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SubscriptionVerificationSuccess",
+      "description": "Record representing the subscription intent verification success.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "headers",
+          "description": "",
+          "type": {
+            "name": "map\u003cstring|string[]\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "body",
+          "description": "",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "UnsubscriptionVerificationSuccess",
+      "description": "Record representing the unsubscription intent verification success.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "headers",
+          "description": "",
+          "type": {
+            "name": "map\u003cstring|string[]\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "body",
+          "description": "",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Acknowledgement",
+      "description": "Record representing the subscription-denial/content-distribution acknowledgement.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "headers",
+          "description": "",
+          "type": {
+            "name": "map\u003cstring|string[]\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "body",
+          "description": "",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ListenerConfiguration",
+      "description": "Provides a set of configurations for configure the underlying HTTP listener of the WebSub listener.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "gracefulShutdownPeriod",
+          "description": "The time period in seconds to wait for unsubscription verification",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "host",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "http1Settings",
+          "description": "",
+          "type": {
+            "name": "ListenerHttp1Settings",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ListenerHttp1Settings",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "",
+          "type": {
+            "name": "ListenerSecureSocket|()",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ListenerSecureSocket",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "httpVersion",
+          "description": "",
+          "type": {
+            "name": "HttpVersion",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "HttpVersion",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "timeout",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "server",
+          "description": "",
+          "type": {
+            "name": "string?"
+          },
+          "optional": true
+        },
+        {
+          "name": "requestLimits",
+          "description": "",
+          "type": {
+            "name": "RequestLimitConfigs",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "RequestLimitConfigs",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "gracefulStopTimeout",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "socketConfig",
+          "description": "",
+          "type": {
+            "name": "ServerSocketConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ServerSocketConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "http2InitialWindowSize",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "minIdleTimeInStaleState",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "timeBetweenStaleEviction",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "SubscriptionChangeRequest",
+      "description": "Record representing a WebSub subscription change request-body.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "topic",
+          "description": "The topic for which the subscription/unsubscription request is sent",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "callback",
+          "description": "The callback which should be registered/unregistered for the subscription/unsubscription request sent",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "leaseSeconds",
+          "description": "The lease period for which the subscription is expected to be active",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "secret",
+          "description": "The secret to be used for authenticated content distribution with this subscription",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "customParams",
+          "description": "Additional parameters which need to be sent with the subscription request",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "customHeaders",
+          "description": "Additional HTTP headers which need to be sent with the subscription request",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "SubscriptionChangeResponse",
+      "description": "Record representing subscription/unsubscription details if a subscription/unsubscription request is successful.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "hub",
+          "description": "The hub at which the subscription/unsubscription was successful",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "topic",
+          "description": "The topic for which the subscription/unsubscription was successful",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "response",
+          "description": "The response from the hub to the subscription/unsubscription request",
+          "type": {
+            "name": "Response",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Response",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Error",
+      "description": "Represents a webSub distinct error.",
+      "type": "Error"
+    },
+    {
+      "name": "ServiceExecutionError",
+      "description": "Represents a websub service execution error.",
+      "type": "Error"
+    },
+    {
+      "name": "ListenerError",
+      "description": "Represents a listener errors.",
+      "type": "Error"
+    },
+    {
+      "name": "ResourceDiscoveryFailedError",
+      "description": "Represents a resource-discovery failed error.",
+      "type": "Error"
+    },
+    {
+      "name": "SubscriptionInitiationError",
+      "description": "Represents a subscription-initiation failed error.",
+      "type": "Error"
+    },
+    {
+      "name": "SubscriptionVerificationError",
+      "description": "Represents a subscription verificatation error.",
+      "type": "Error"
+    },
+    {
+      "name": "UnsubscriptionVerificationError",
+      "description": "Represents a unsubscription verificatation error.",
+      "type": "Error"
+    },
+    {
+      "name": "SubscriptionDeniedError",
+      "description": "Represents a subscription-denied error.",
+      "type": "Error"
+    },
+    {
+      "name": "InternalHubError",
+      "description": "Represents an internal hub error occurred during subscription verification.",
+      "type": "Error"
+    },
+    {
+      "name": "SubscriptionDeletedError",
+      "description": "Represents the subscription-delete action from the `subscriber`.",
+      "type": "Error"
+    },
+    {
+      "name": "SubscriberService",
+      "description": "The WebSub service type.",
+      "type": "Class"
+    },
+    {
+      "name": "Listener",
+      "description": "Initiliazes `websub:Listener` instance.\n```ballerina\nlistener websub:Listener websubListenerEp \u003d check new (9090);\n```\n",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initiliazes `websub:Listener` instance.\n```ballerina\nlistener websub:Listener websubListenerEp \u003d check new (9090);\n```\n",
+          "parameters": [
+            {
+              "name": "listenTo",
+              "description": "Port number or a `http:Listener` instance",
+              "type": {
+                "name": "int|Listener",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "Listener",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "host",
+              "description": "The host name/IP of the endpoint",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "http1Settings",
+              "description": "Configurations related to HTTP/1.x protocol",
+              "type": {
+                "name": "ListenerHttp1Settings",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ListenerHttp1Settings",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "secureSocket",
+              "description": "The SSL configurations for the service endpoint. This needs to be configured in order to\ncommunicate through HTTPS.",
+              "type": {
+                "name": "ListenerSecureSocket|()",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ListenerSecureSocket",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "httpVersion",
+              "description": "Highest HTTP version supported by the endpoint",
+              "type": {
+                "name": "HttpVersion",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "HttpVersion",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "\"2.0\""
+            },
+            {
+              "name": "timeout",
+              "description": "Period of time in seconds that a connection waits for a read/write operation. Use value 0 to\ndisable timeout",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "0.0d"
+            },
+            {
+              "name": "server",
+              "description": "The server name which should appear as a response header",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "requestLimits",
+              "description": "Configurations associated with inbound request size limits",
+              "type": {
+                "name": "RequestLimitConfigs",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "RequestLimitConfigs",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "gracefulStopTimeout",
+              "description": "Grace period of time in seconds for listener gracefulStop",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "0.0d"
+            },
+            {
+              "name": "socketConfig",
+              "description": "Provides settings related to server socket configuration",
+              "type": {
+                "name": "ServerSocketConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ServerSocketConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "http2InitialWindowSize",
+              "description": "Configuration to change the initial window size in HTTP/2",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "0"
+            },
+            {
+              "name": "minIdleTimeInStaleState",
+              "description": "Minimum time in seconds for a connection to be kept open which has received a GOAWAY.\nThis only applies for HTTP/2. Default value is 5 minutes. If the value is set to -1,\nthe connection will be closed after all in-flight streams are completed",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "0.0d"
+            },
+            {
+              "name": "timeBetweenStaleEviction",
+              "description": "Time between the connection stale eviction runs in seconds. This only applies for HTTP/2.\nDefault value is 30 seconds",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "0.0d"
+            },
+            {
+              "name": "gracefulShutdownPeriod",
+              "description": "The time period in seconds to wait for unsubscription verification",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "20"
+            },
+            {
+              "name": "config",
+              "description": "Custom `websub:ListenerConfiguration` to be provided to underlying HTTP Listener",
+              "type": {
+                "name": "ListenerConfiguration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ListenerConfiguration"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "The `websub:Listener` or an `websub:Error` if the initialization failed",
+            "type": {
+              "name": "ballerina/websub:2.15.0:Error?"
+            }
+          }
+        },
+        {
+          "name": "attach",
+          "type": "Normal Function",
+          "description": "Attaches the provided `websub:SubscriberService` to the `websub:Listener`.\n```ballerina\ncheck websubListenerEp.attach(\u0027service, \"/subscriber\");\n```\n",
+          "parameters": [
+            {
+              "name": "\u0027service",
+              "type": {
+                "name": "SubscriberService",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "SubscriberService"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "name",
+              "description": "The path of the Service to be hosted",
+              "type": {
+                "name": "string[]|string|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "An `websub:Error`, if an error occurred during the service attaching process or else `()`",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "attachWithConfig",
+          "type": "Normal Function",
+          "description": "Attaches the provided Service to the `websub:Listener` with custom `websub:SubscriberServiceConfiguration`.\n```ballerina\ncheck websubListenerEp.attachWithConfig(\u0027service, {\n   target: \"http://0.0.0.0:9191/common/discovery\",\n   leaseSeconds: 36000\n}, \"/subscriber\");\n```\n",
+          "parameters": [
+            {
+              "name": "\u0027service",
+              "type": {
+                "name": "SubscriberService",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "SubscriberService"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "configuration",
+              "description": "Custom `websub:SubscriberServiceConfiguration` which should be incorporated into the provided Service ",
+              "type": {
+                "name": "SubscriberServiceConfiguration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "SubscriberServiceConfiguration"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "name",
+              "description": "The path of the Service to be hosted",
+              "type": {
+                "name": "string[]|string|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "An `websub:Error`, if an error occurred during the service attaching process or else `()`",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "detach",
+          "type": "Normal Function",
+          "description": "Detaches the provided `websub:SubscriberService` from the `websub:Listener`.\n```ballerina\ncheck websubListenerEp.detach(\u0027service);\n```\n",
+          "parameters": [
+            {
+              "name": "\u0027service",
+              "type": {
+                "name": "SubscriberService",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "SubscriberService"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "An `websub:Error`, if an error occurred during the service detaching process or else `()`",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "\u0027start",
+          "type": "Normal Function",
+          "description": "Starts the registered service programmatically..\n```ballerina\ncheck websubListenerEp.\u0027start();\n```\n",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "gracefulStop",
+          "type": "Normal Function",
+          "description": "Stops the service listener gracefully. Already-accepted requests will be served before connection closure.\n```ballerina\ncheck websubListenerEp.gracefulStop();\n```\n",
+          "parameters": [],
+          "return": {
+            "description": "An `websub:Error`, if an error occurred during the listener stopping process or else `()`",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "immediateStop",
+          "type": "Normal Function",
+          "description": "Stops the service listener immediately.\n```ballerina\ncheck websubListenerEp.immediateStop();\n```\n",
+          "parameters": [],
+          "return": {
+            "description": "An `websub:Error`, if an error occurred during the listener stopping process or else `()`",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "name": "DiscoveryService",
+      "description": "Represents resource-discovery service which identify the `hub` and `topic` from `resource-URL`.",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initiliazes the `websub:DiscoveryService` endpoint.\n```ballerina\nwebsub:DiscoveryService discoveryServiceEp \u003d check new (\"https://sample.discovery.com\");\n```\n",
+          "parameters": [
+            {
+              "name": "discoveryUrl",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "httpVersion",
+              "description": "The HTTP version understood by the client",
+              "type": {
+                "name": "HttpVersion",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "HttpVersion",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "http:HTTP_2_0"
+            },
+            {
+              "name": "http1Settings",
+              "description": "Configurations related to HTTP/1.x protocol",
+              "type": {
+                "name": "ClientHttp1Settings",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ClientHttp1Settings",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "http2Settings",
+              "description": "Configurations related to HTTP/2 protocol",
+              "type": {
+                "name": "ClientHttp2Settings",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ClientHttp2Settings",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "timeout",
+              "description": "The maximum time to wait (in seconds) for a response before closing the connection",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "60"
+            },
+            {
+              "name": "followRedirects",
+              "description": "Configurations associated with Redirection",
+              "type": {
+                "name": "FollowRedirects",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "FollowRedirects",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "poolConfig",
+              "description": "Configurations associated with request pooling",
+              "type": {
+                "name": "PoolConfiguration",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "PoolConfiguration",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "auth",
+              "description": "Configurations related to client authentication",
+              "type": {
+                "name": "ClientAuthConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ClientAuthConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{username: \"\", password: \"\"}"
+            },
+            {
+              "name": "retryConfig",
+              "description": "Configurations associated with retrying",
+              "type": {
+                "name": "RetryConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "RetryConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "responseLimits",
+              "description": "Configurations associated with inbound response size limits",
+              "type": {
+                "name": "ResponseLimitConfigs",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ResponseLimitConfigs",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "secureSocket",
+              "description": "SSL/TLS related options",
+              "type": {
+                "name": "ClientSecureSocket",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ClientSecureSocket",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "circuitBreaker",
+              "description": "Configurations associated with the behaviour of the Circuit Breaker",
+              "type": {
+                "name": "CircuitBreakerConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "CircuitBreakerConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "config",
+              "type": {
+                "name": "ClientConfiguration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ClientConfiguration"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "The `websub:DiscoveryService` or an `websub:Error` if the initialization failed",
+            "type": {
+              "name": "ballerina/websub:2.15.0:Error?"
+            }
+          }
+        },
+        {
+          "name": "discoverResourceUrls",
+          "type": "Remote Function",
+          "description": "Discovers the URLs of the hub and topic defined by a resource URL.\n```ballerina\n[string, string] discoveryDetails \u003d check discoveryServiceEp-\u003ediscoverResourceUrls(expectedMediaTypes, expectedLanguageTypes);\n```\n",
+          "parameters": [
+            {
+              "name": "expectedMediaTypes",
+              "description": "The expected media types for the subscriber client",
+              "type": {
+                "name": "string|()|string[]"
+              }
+            },
+            {
+              "name": "expectedLanguageTypes",
+              "description": "The expected language types for the subscriber client",
+              "type": {
+                "name": "string|()|string[]"
+              }
+            }
+          ],
+          "return": {
+            "description": "A `(hub, topic)` as a `(string, string)` if successful or else an `websub:ResourceDiscoveryFailedError` if not",
+            "type": {
+              "name": "[string, string]|ResourceDiscoveryFailedError",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "ResourceDiscoveryFailedError"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "SubscriptionClient",
+      "description": "The HTTP based client for WebSub subscription and unsubscription.",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes the `websub:SubscriptionClient` instance.\n```ballerina\nwebsub:SubscriptionClient subscriptionClientEp \u003d check new (\"https://sample.hub.com\");\n```\n",
+          "parameters": [
+            {
+              "name": "url",
+              "description": "The URL at which the subscription should be changed",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "httpVersion",
+              "description": "The HTTP version understood by the client",
+              "type": {
+                "name": "HttpVersion",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "HttpVersion",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "http:HTTP_2_0"
+            },
+            {
+              "name": "http1Settings",
+              "description": "Configurations related to HTTP/1.x protocol",
+              "type": {
+                "name": "ClientHttp1Settings",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ClientHttp1Settings",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "http2Settings",
+              "description": "Configurations related to HTTP/2 protocol",
+              "type": {
+                "name": "ClientHttp2Settings",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ClientHttp2Settings",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "timeout",
+              "description": "The maximum time to wait (in seconds) for a response before closing the connection",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "60"
+            },
+            {
+              "name": "followRedirects",
+              "description": "Configurations associated with Redirection",
+              "type": {
+                "name": "FollowRedirects",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "FollowRedirects",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "poolConfig",
+              "description": "Configurations associated with request pooling",
+              "type": {
+                "name": "PoolConfiguration",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "PoolConfiguration",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "auth",
+              "description": "Configurations related to client authentication",
+              "type": {
+                "name": "ClientAuthConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ClientAuthConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{username: \"\", password: \"\"}"
+            },
+            {
+              "name": "retryConfig",
+              "description": "Configurations associated with retrying",
+              "type": {
+                "name": "RetryConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "RetryConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "responseLimits",
+              "description": "Configurations associated with inbound response size limits",
+              "type": {
+                "name": "ResponseLimitConfigs",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ResponseLimitConfigs",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "secureSocket",
+              "description": "SSL/TLS related options",
+              "type": {
+                "name": "ClientSecureSocket",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ClientSecureSocket",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "circuitBreaker",
+              "description": "Configurations associated with the behaviour of the Circuit Breaker",
+              "type": {
+                "name": "CircuitBreakerConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "CircuitBreakerConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "config",
+              "description": "Optional `ClientConfiguration` for the underlying client",
+              "type": {
+                "name": "ClientConfiguration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ClientConfiguration"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "The `websub:SubscriptionClient` or an `websub:Error` if the initialization failed",
+            "type": {
+              "name": "ballerina/websub:2.15.0:Error?"
+            }
+          }
+        },
+        {
+          "name": "subscribe",
+          "type": "Remote Function",
+          "description": "Sends a subscription request to the provided `hub`.\n```ballerina\nwebsub:SubscriptionChangeResponse response \u003d check subscriberClientEp-\u003esubscribe(subscriptionRequest);\n```\n",
+          "parameters": [
+            {
+              "name": "subscriptionRequest",
+              "description": "The request payload containing the subscription details",
+              "type": {
+                "name": "SubscriptionChangeRequest",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "SubscriptionChangeRequest"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "The `websub:SubscriptionChangeResponse` indicating that the subscription initiation was successful\nor else an `websub:SubscriptionInitiationError`",
+            "type": {
+              "name": "SubscriptionChangeResponse|SubscriptionInitiationError",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "SubscriptionChangeResponse"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "SubscriptionInitiationError"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "unsubscribe",
+          "type": "Remote Function",
+          "description": "Sends an unsubscription request to a WebSub Hub.\n```ballerina\nwebsub:SubscriptionChangeResponse response \u003d check subscriberClientEp-\u003eunsubscribe(subscriptionRequest);\n```",
+          "parameters": [
+            {
+              "name": "unsubscriptionRequest",
+              "description": "The request payload containing the unsubscription details",
+              "type": {
+                "name": "SubscriptionChangeRequest",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "SubscriptionChangeRequest"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "The `websub:SubscriptionChangeResponse` indicating that the unsubscription initiation was successful\nor else an `websub:SubscriptionInitiationError`",
+            "type": {
+              "name": "SubscriptionChangeResponse|SubscriptionInitiationError",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "SubscriptionChangeResponse"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "SubscriptionInitiationError"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "name": "getHeader",
+      "type": "Normal Function",
+      "description": "Returns the value of the specified header. If the specified header key maps to multiple values, the first of\nthese values is returned.\n",
+      "parameters": [
+        {
+          "name": "msg",
+          "description": "Current `websub:ContentDistributionMessage` object",
+          "type": {
+            "name": "ContentDistributionMessage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ContentDistributionMessage"
+              }
+            ]
+          }
+        },
+        {
+          "name": "headerName",
+          "description": "The header name",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "The first header value for the specified header name or the `http:HeaderNotFoundError` if the header is not\nfound.",
+        "type": {
+          "name": "string|HeaderNotFoundError",
+          "links": [
+            {
+              "category": "external",
+              "recordName": "HeaderNotFoundError",
+              "libraryName": "ballerina/http"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "getHeaders",
+      "type": "Normal Function",
+      "description": "Gets all the header values to which the specified header key maps to.\n",
+      "parameters": [
+        {
+          "name": "msg",
+          "description": "Current `websub:ContentDistributionMessage` object",
+          "type": {
+            "name": "ContentDistributionMessage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ContentDistributionMessage"
+              }
+            ]
+          }
+        },
+        {
+          "name": "headerName",
+          "description": "The header name",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "The header values the specified header key maps to or the `http:HeaderNotFoundError` if the header is not\nfound.",
+        "type": {
+          "name": "string[]|HeaderNotFoundError",
+          "links": [
+            {
+              "category": "external",
+              "recordName": "HeaderNotFoundError",
+              "libraryName": "ballerina/http"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "services": [],
+  "annotations": []
+}

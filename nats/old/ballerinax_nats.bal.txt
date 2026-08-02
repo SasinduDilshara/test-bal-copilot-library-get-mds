@@ -1,0 +1,545 @@
+// ============================================================
+// Library: ballerinax/nats
+// NATS is a cloud-native, open-source messaging system that provides a high-performance, lightweight, and scalable communication infrastructure for modern distributed systems. The NATS connector enables seamless integration with NATS, making it easy to build reactive and event-driven applications. It supports various messaging patterns, including publish-subscribe, request-reply, and load-balanced queues, and provides advanced features such as JetStream for persistent messaging.
+// ============================================================
+import ballerinax/nats;
+
+// --- README ---
+## Package Overview
+
+This package provides the capability to send and receive messages by connecting to the NATS server.
+
+NATS messaging enables the communication of data that is segmented into messages among computer applications and services. Data is encoded and framed as a message and sent by a publisher. The message is received, decoded, and processed by one or more subscribers. NATS makes it easy for programs to communicate across different environments, languages, cloud providers, and on-premise systems. Clients connect to the NATS system usually via a single URL and then subscribe or publish messages to a subject.
+
+### Basic usage
+
+#### Set up the connection
+
+First, you need to set up the connection with the NATS Basic server. The following ways can be used to connect to a
+NATS Basic server.
+
+1. Connect to a server using the default URL:
+```ballerina
+nats:Client natsClient = check new(nats:DEFAULT_URL);
+```
+
+2. Connect to a server using the URL:
+```ballerina
+nats:Client natsClient = check new("nats://serverone:4222");
+```
+
+3. Connect to one or more servers with custom configurations:
+```ballerina
+nats:ConnectionConfiguration config = {
+    connectionName: "my-nats",
+    noEcho: true
+};
+nats:Client natsClient = check new(["nats://serverone:4222",  "nats://servertwo:4222"],  config);
+```
+
+#### Publish messages
+
+##### Publish messages to the NATS basic server
+
+Once connected, publishing is accomplished via one of the three methods below.
+
+1. Publish with the subject and the message content:
+```ballerina
+string message = "hello world";
+nats:Error? result = 
+    natsClient->publishMessage({ content: message.toBytes(), subject: "demo.nats.basic"});
+```
+
+2. Publish as a request that expects a reply:
+```ballerina
+string message = "hello world";
+nats:AnydataMessage|nats:Error reqReply = 
+    natsClient->requestMessage({ content: message.toBytes(), subject: "demo.nats.basic"}, 5);
+```
+
+3. Publish messages with a `replyTo` subject:
+```ballerina
+string message = "hello world";
+nats:Error? result = natsClient->publish({ content: message.toBytes(), subject: "demo.nats.basic",
+                                                    replyTo: "demo.reply" });
+```
+
+#### Listen to incoming messages
+
+##### Listen to messages from a NATS server
+
+1. Listen to incoming messages with the `onMessage` remote method:
+```ballerina
+// Binds the consumer to listen to the messages published to the 'demo.example.*' subject
+@nats:ServiceConfig {
+    subject: "demo.example.*"
+}
+service nats:Service on new nats:Listener(nats:DEFAULT_URL) {
+
+    remote function onMessage(nats:AnydataMessage message) {
+    }
+}
+```
+
+2. Listen to incoming messages and reply directly with the `onRequest` remote method:
+```ballerina
+// Binds the consumer to listen to the messages published to the 'demo.example.*' subject
+@nats:ServiceConfig {
+    subject: "demo.example.*"
+}
+service nats:Service on new nats:Listener(nats:DEFAULT_URL) {
+
+    // The returned message will be published to the replyTo subject of the consumed message
+    remote function onRequest(nats:AnydataMessage message) returns string? {
+        return "Reply Message";
+    }
+}
+```
+
+### Advanced usage
+
+#### Set up TLS
+
+The Ballerina NATS package allows the use of TLS in communication. This setting expects a secure socket to be
+set in the connection configuration as shown below.
+
+##### Configure TLS in the `nats:Listener`
+```ballerina
+nats:SecureSocket secured = {
+    cert: {
+        path: "<path>/truststore.p12",
+        password: "password"
+    },
+    key: {
+        path: "<path>/keystore.p12",
+        password: "password"
+    }
+};
+nats:Listener natsListener = check new("nats://serverone:4222", secureSocket = secured);
+```
+
+##### Configure TLS in the `nats:Client`
+```ballerina
+nats:SecureSocket secured = {
+    cert: {
+        path: "<path>/truststore.p12",
+        password: "password"
+    },
+    key: {
+        path: "<path>/keystore.p12",
+        password: "password"
+    }
+};
+nats:Client natsClient = check new("nats://serverone:4222", secureSocket = secured);
+```
+
+### Report issues
+
+To report bugs, request new features, start new discussions, view project boards, etc., go to the [Ballerina standard library parent repository](https://github.com/ballerina-platform/ballerina-standard-library).
+
+### Useful links
+
+- Chat live with us via our [Discord server](https://discord.gg/ballerinalang).
+- Post all technical questions on Stack Overflow with the [#ballerina](https://stackoverflow.com/questions/tagged/ballerina) tag.
+// --- END README ---
+
+// --- Types ---
+
+const string LIMITS = "LIMITS";
+
+const string INTEREST = "INTEREST";
+
+const string WORKQUEUE = "WORKQUEUE";
+
+const string FILE = "FILE";
+
+const string MEMORY = "MEMORY";
+
+const string NEW = "NEW";
+
+const string OLD = "OLD";
+
+const string SSL = "SSL";
+
+const string TLS = "TLS";
+
+const string DTLS = "DTLS";
+
+# Default URL for NATS connections.
+const string DEFAULT_URL = "nats://localhost:4222";
+
+// Unknown type: Error
+
+// Unknown type: PayloadBindingError
+
+// Unknown type: PayloadValidationError
+
+# Determines the properties for a stream.
+# 
+
+type StreamConfiguration record {
+    # A name for the stream
+    string name?;
+    # A short description of the purpose of this stream 
+    string description?;
+    # Which NATS subject/subjects to populate this stream with. Supports wildcards. Defaults to just the
+configured stream name
+    string|string[] subjects?;
+    # How message retention is considered, Limits (default), Interest or WorkQueue
+    RetentionPolicy retentionPolicy?;
+    # How many consumers can be defined for the stream, -1 for unlimited
+    float maxConsumers?;
+    # How large the stream may become in total messages before the configured discard policy takes action
+    float maxMsgs?;
+    # Maximum amount of messages to retain per subject 
+    float maxMsgsPerSubject?;
+    # How large the stream may become in total bytes before the configured discard policy takes action
+    float maxBytes?;
+    # Maximum age of any message in the stream, expressed in seconds  
+    decimal maxAge?;
+    # The largest message that will be accepted by the Stream  
+    float maxMsgSize?;
+    # The type of storage backend, File and Memory
+    StorageType storageType?;
+    # The number of replicas to store this message on
+    int replicas?;
+    # If set, then acknowledgements are not sent back to the client
+    boolean noAck?;
+    # When a stream has reached its configured maxBytes or maxMsgs, this policy takes action
+    DiscardPolicy discardPolicy?;
+};
+
+# How message retention is considered, Limits (default), Interest or WorkQueue
+enum RetentionPolicy {
+    WORKQUEUE,
+    INTEREST,
+    LIMITS
+}
+
+# The type of storage backend, File and Memory
+enum StorageType {
+    MEMORY,
+    FILE
+}
+
+# When a Stream has reached its configured maxMsgs or maxBytes, this policy kicks in. 
+# New refuses new messages or Old (default) deletes old messages to make space
+enum DiscardPolicy {
+    OLD,
+    NEW
+}
+
+# The configurations for the NATS JetStream subscription.
+# 
+
+type JetStreamServiceConfigData record {
+    # Name of the subject
+    string subject;
+    # Name of the queue group
+    string queueName?;
+    # Acknowledges the message automatically
+    boolean autoAck?;
+};
+
+# A message consumed from a stream.
+# 
+
+type JetStreamMessage record {
+    # Subject of the message  
+    string subject;
+    # Payload of the message
+    byte[] content;
+};
+
+# The NATS JetStream service type.
+class JetStreamService {
+}
+
+# Configurations related to initializing the NATS client and listener.
+# 
+
+type ConnectionConfiguration record {
+    # The name of the connection
+    string connectionName?;
+    # The configurations related to connection reconnect attempts
+    RetryConfig retryConfig?;
+    # The configurations related to pinging the server
+    Ping ping?;
+    # The configurations related to authentication
+    Credentials|Tokens auth?;
+    # The connection's inbox prefix, which all inboxes will start with
+    string inboxPrefix?;
+    # Turns off echoing. This prevents the server from echoing messages back to the connection if it
+has subscriptions on the subject being published to
+    boolean noEcho?;
+    # The configurations related to SSL/TLS
+    SecureSocket secureSocket?;
+    # Configuration related to constraint validation check
+    boolean validation?;
+};
+
+# Configurations related to connection reconnect attempts.
+# 
+
+type RetryConfig record {
+    # Maximum number of reconnect attempts. The reconnect state is triggered when an already established
+connection is lost. During the initial connection attempt, the client will cycle
+over its server list one time regardless of the `maxReconnects` value that is set.
+Use 0 to turn off auto reconnecting.
+Use -1 to turn on infinite reconnects.
+    int maxReconnect?;
+    # The time(in seconds) to wait between the reconnect attempts to reconnect to the same server
+    decimal reconnectWait?;
+    # The timeout (in seconds) for the connection attempts
+    decimal connectionTimeout?;
+};
+
+# Configurations related to pinging the server.
+# 
+
+type Ping record {
+    # The interval (in seconds) between the attempts of pinging the server
+    decimal pingInterval?;
+    # The maximum number of pings the client can have in flight
+    int maxPingsOut?;
+};
+
+# Configurations related to basic authentication.
+# 
+
+type Credentials record {
+    # The username for basic authentication
+    string username;
+    # The password for basic authentication
+    string password;
+};
+
+# Configurations related to token based authentication.
+# 
+
+type Tokens record {
+    # The token for token-based authentication
+    string token;
+};
+
+# Configurations related to facilitating a secure communication.
+# 
+
+type SecureSocket record {
+    # Configurations associated with `crypto:TrustStore` or single certificate file that the client trusts
+    crypto:TrustStore|string cert; // Special Agent Note: TrustStore FROM ballerina/crypto package
+    # Configurations associated with `crypto:KeyStore` or combination of certificate and private key of the client
+    crypto:KeyStore|CertKey key?; // Special Agent Note: KeyStore FROM ballerina/crypto package
+    # SSL/TLS protocol related options
+    record {|ballerinax/nats:3.2.0:Protocol name;|} protocol?;
+};
+
+# Represents combination of certificate, private key and private key password if encrypted.
+# 
+
+type CertKey record {
+    # A file containing the certificate
+    string certFile;
+    # A file containing the private key in PKCS8 format
+    string keyFile;
+    # Password of the private key if it is encrypted
+    string keyPassword?;
+};
+
+# Represents protocol options.
+enum Protocol {
+    DTLS,
+    TLS,
+    SSL
+}
+
+# Represents the anydata message, which a NATS server sends to its subscribed services.
+# 
+
+type AnydataMessage record {
+    # The message content, which can of type anydata
+    anydata content;
+    # The subject to which the message was sent to
+    string subject;
+    # The `replyTo` subject of the message
+    string replyTo?;
+};
+
+# Represents the subtype of `AnydataMessage` record where the message content is a byte array.
+# 
+
+type BytesMessage record {
+    # Message content in bytes
+    byte[] content;
+    string subject;
+    string replyTo?;
+};
+
+# The configurations for the NATS basic subscription.
+# 
+
+type ServiceConfigData record {
+    # Name of the subject
+    string subject;
+    # Name of the queue group
+    string queueName?;
+    # Parameters to set limits on the maximum number of pending messages
+or maximum size of pending messages
+    PendingLimits pendingLimits?;
+};
+
+# The configurations to set limits on the maximum number of messages or maximum size of messages this consumer will
+# hold before it starts to drop new messages waiting for the resource functions to drain the queue.
+# Setting a value less than or equal to 0 will disable this check.
+# 
+
+type PendingLimits record {
+    # Maximum number of pending messages retrieved and held by the consumer service.
+The default value is 65536
+    int maxMessages;
+    # Total size of pending messages in bytes retrieved and held by the consumer service.
+The default value is 67108864
+    int maxBytes;
+};
+
+# Defines the Payload remote function parameter.
+
+type NatsPayload record {
+};
+
+# The NATS service type.
+class Service {
+}
+
+// Unknown type: JetStreamListener
+
+// Unknown type: Listener
+
+// --- Client ---
+
+# The client provides the capability to publish messages to the NATS server.
+client class Client {
+    function init(string|string[] url, string connectionName = "ballerina-nats", RetryConfig retryConfig = {}, Ping ping = {}, Credentials|Tokens auth = {username: "", password: ""}, string inboxPrefix = "_INBOX.", boolean noEcho = false, SecureSocket secureSocket = {cert: {path: "", password: ""}}, boolean validation = true, ConnectionConfiguration config) returns ballerinax/nats:3.2.0:Error?;
+
+    # Publishes data to a given subject.
+    # ```ballerina
+    # check natsClient->publishMessage(message);
+    # ```
+    # 
+    remote function publishMessage(AnydataMessage message) returns Error|();
+
+    # Publishes data to a given subject and waits for a response.
+    # ```ballerina
+    # check natsClient->requestMessage(message, 5);
+    # ```
+    # 
+    remote function requestMessage(AnydataMessage message, decimal|() duration = (), AnydataMessage T = nats:AnydataMessage) returns T|Error;
+
+    # Closes the NATS client connection.
+    # ```ballerina
+    # check natsClient.close();
+    # ```
+    # 
+    remote function close() returns Error|();
+}
+
+# The client that provides functionality related to acknowledging a JetStream message.
+client class JetStreamCaller {
+    function init() returns ballerinax/nats:nats:JetStreamCaller;
+
+    # Acknowledges a JetStream messages received from a Consumer, indicating
+    # the message should not be received again later.
+    # ```ballerina
+    # check jetStreamCaller->ack();
+    # ```
+    # 
+    remote function ack() returns ();
+
+    # Acknowledges a JetStream message has been received but indicates 
+    # that the message is not completely processed and should be sent again later.
+    # ```ballerina
+    # check jetStreamCaller->nak();
+    # ```
+    # 
+    remote function nak() returns ();
+
+    # Indicates that this message is being worked on and reset redelivery timer 
+    # in the server.
+    # ```ballerina
+    # check jetStreamCaller->inProgress();
+    # ```
+    # 
+    remote function inProgress() returns ();
+}
+
+# The client provides the capability to publish messages to the NATS JetStream server and 
+# manage streams.
+client class JetStreamClient {
+    function init(Client natsClient) returns ballerinax/nats:3.2.0:Error?;
+
+    # Publishes data to a given subject.
+    # ```ballerina
+    # check jetStreamClient->publishMessage(message);
+    # ```
+    # 
+    remote function publishMessage(JetStreamMessage message) returns Error|();
+
+    # Retrieves a message synchronously from the given subject.
+    # ```ballerina
+    # nats:JetStreamMessage message = check jetStreamClient->consumeMessage("subjectName");
+    # ```
+    # 
+    remote function consumeMessage(string subject, decimal timeout) returns JetStreamMessage|Error;
+
+    # Acknowledges a JetStream messages received from a Consumer, indicating
+    # the message should not be received again later.
+    # ```ballerina
+    # check jetStreamCaller->ack(message);
+    # ```
+    # 
+    remote function ack(JetStreamMessage message) returns ();
+
+    # Acknowledges a JetStream message has been received but indicates
+    # that the message is not completely processed and should be sent again later.
+    # ```ballerina
+    # check jetStreamCaller->nak(message);
+    # ```
+    # 
+    remote function nak(JetStreamMessage message) returns ();
+
+    # Indicates that this message is being worked on and reset redelivery timer
+    # in the server.
+    # ```ballerina
+    # check jetStreamCaller->inProgress(message);
+    # ```
+    # 
+    remote function inProgress(JetStreamMessage message) returns ();
+
+    # Loads or creates a stream.
+    # ```ballerina
+    # check jetStreamClient->addStream(streamConfig);
+    # ```
+    # 
+    remote function addStream(StreamConfiguration streamConfig) returns Error|();
+
+    # Updates an existing stream.
+    # ```ballerina
+    # check jetStreamClient->updateStream(streamConfig);
+    # ```
+    # 
+    remote function updateStream(StreamConfiguration streamConfig) returns Error|();
+
+    # Deletes an existing stream.
+    # ```ballerina
+    # check jetStreamClient->deleteStream("name");
+    # ```
+    # 
+    remote function deleteStream(string streamName) returns Error|();
+
+    # Purge stream messages.
+    # ```ballerina
+    # check jetStreamClient->purgeStream("name");
+    # ```
+    # 
+    remote function purgeStream(string streamName) returns Error|();
+}

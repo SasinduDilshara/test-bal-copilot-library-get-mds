@@ -1,0 +1,4567 @@
+// ============================================================
+// Library: ballerinax/alfresco
+// [Alfresco](https://www.hyland.com/en/solutions/products/alfresco-platform) is a modern, open-source content management platform that enables organizations to manage enterprise documents, digital assets, and records with efficiency and control. Known for its scalability and compliance-ready architecture, Alfresco provides powerful capabilities such as document storage, versioning, collaboration, workflow automation, and access control.
+// ============================================================
+import ballerinax/alfresco;
+
+// --- README ---
+## Overview
+
+[Alfresco](https://www.hyland.com/en/solutions/products/alfresco-platform) is a modern, open-source content management platform that enables organizations to manage enterprise documents, digital assets, and records with efficiency and control. Known for its scalability and compliance-ready architecture, Alfresco provides powerful capabilities such as document storage, versioning, collaboration, workflow automation, and access control.
+
+The Alfresco connector offers APIs to connect and interact with the [Alfresco endpoints](https://docs.alfresco.com/content-services/6.0/develop/rest-api-guide/), specifically based on the [Alfresco REST API Version 1](https://api-explorer.alfresco.com/api-explorer/). This connector allows applications to perform core content operations such as uploading and downloading files, managing nodes and folders, setting metadata, and handling permissions. Developers can integrate content services into their workflows and build automation solutions that leverage the full capabilities of the Alfresco platform.
+
+### Key Features
+
+- Perform core content operations such as uploading and downloading files
+- Manage nodes and folders
+- Set metadata and handle permissions
+
+## Setup guide
+
+Before using this connector in your Ballerina application, complete the following:
+
+* Create an [Alfresco Account](https://www.alfresco.com/try-alfresco-acs).
+* Once registered, you will receive an email with instructions to set up your Alfresco environment, including the default username and password. Use these credentials to access the Alfresco Content Services API.
+* Note: This connector only supports Basic Authentication (username/password) and does not require or support bearer tokens.
+
+## Quickstart
+
+To use the Alfresco connector in your Ballerina application, update the .bal file as follows:
+
+### Step 1: Import the module
+First, import the `ballerinax/alfresco` module into the Ballerina project.
+```ballerina
+import ballerinax/alfresco;
+```
+
+### Step 2: Create a new connector instance
+Create a `alfresco:ConnectionConfig` using the Basic Authentication credentials (i.e: username and password), and initialize the connector with it.
+```ballerina
+configurable string username = ?;
+configurable string password = ?;
+configurable string serviceURL = ?;
+
+alfresco:ConnectionConfig alfrescoConfig = {
+    auth: {
+        username,
+        password
+    }
+};
+alfresco:Client alfresco = check new (alfrescoConfig, serviceURL);
+```
+
+### Step 3: Invoke connector operation
+1. Now you can use the operations available within the connector. Note that they are in the form of remote operations.
+
+    Following is an example on how to get list of comments in a particular node.
+    ```ballerina
+    public function main() returns error? {
+        alfresco:CommentPaging response = check alfresco->listComments(nodeId);
+        log:printInfo(response.toString());
+    }
+    ``` 
+
+### Step 4: Run the Ballerina application
+Use the command below to run the Ballerina application
+```bash
+bal run
+```
+
+## Examples
+
+The `ballerinax/alfresco` connector provides practical examples illustrating usage in various scenarios. Explore these [examples](https://github.com/ballerina-platform/module-ballerinax-alfresco/tree/main/examples), covering the following use cases:
+
+1. [Upload a Document](https://github.com/ballerina-platform/module-ballerinax-alfresco/tree/main/examples/upload-document) - Create a new file in Alfresco and upload content to it under a specific folder or path.
+2. [Download a Document](https://github.com/ballerina-platform/module-ballerinax-alfresco/tree/main/examples/download-document) - Retrieve a document stored in Alfresco.
+// --- END README ---
+
+// --- Types ---
+
+# Represents the Queries record for the operation: findPeople
+
+type FindPeopleQueries record {
+    # The maximum number of items to return in the list.
+If not supplied then the default value is 100
+    int maxItems?;
+    # A string to control the order of the entities returned in a list. You can use the **orderBy** parameter to
+sort the list by one or more fields.
+
+Each field has a default sort order, which is normally ascending order. Read the API method implementation notes
+above to check if any fields used in this method have a descending default search order.
+
+To sort the entities in a specific order, you can use the **ASC** and **DESC** keywords for any field
+    string[] orderBy?;
+    # The term to search for
+    string term;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+    # The number of entities that exist in the collection before those included in this list.
+If not supplied then the default value is 0
+    int skipCount?;
+};
+
+
+type SharedLinkPagingList record {
+    SharedLinkEntry[] entries;
+    Pagination pagination;
+};
+
+
+type SharedLinkEntry record {
+    SharedLink entry;
+};
+
+
+type SharedLink record {
+    # The allowable operations for the content node being shared
+    string[] allowableOperationsOnTarget?;
+    string modifiedAt?;
+    string description?;
+    string title?;
+    string expiresAt?;
+    ContentInfo content?;
+    string[] aspectNames?;
+    PathInfo path?;
+    UserInfo modifiedByUser?;
+    # The name must not contain spaces or the following special characters: * " < > \ / ? : and |.
+The character . must not be used at the end of the name
+    string name?;
+    string id?;
+    string nodeId?;
+    UserInfo sharedByUser?;
+    # The allowable operations for the Quickshare link itself. See allowableOperationsOnTarget for the
+allowable operations pertaining to the linked content node
+    string[] allowableOperations?;
+    # A subset of the target node's properties, system properties and properties already available in the SharedLink are excluded
+    record {|anydata...;|} properties?;
+    boolean isFavorite?;
+};
+
+
+type ContentInfo record {
+    int sizeInBytes?;
+    string mimeTypeName?;
+    string mimeType;
+    string encoding?;
+};
+
+
+type PathInfo record {
+    PathElement[] elements?;
+    string name?;
+    boolean isComplete?;
+};
+
+
+type PathElement record {
+    string[] aspectNames?;
+    string name?;
+    string id?;
+    string nodeType?;
+};
+
+
+type UserInfo record {
+    string displayName;
+    string id;
+};
+
+
+type Pagination record {
+    # The value of the **maxItems** parameter used to generate this list.
+If there was no **maxItems** parameter then the default value is 100
+    int maxItems?;
+    # A boolean value which is **true** if there are more entities in the collection
+beyond those in this response. A true value means a request with a larger value
+for the **skipCount** or the **maxItems** parameter will return more entities
+    boolean hasMoreItems?;
+    # An integer describing the total number of entities in the collection.
+The API might not be able to determine this value,
+in which case this property will not be present
+    int totalItems?;
+    # The number of objects in the entries array
+    int count?;
+    # An integer describing how many entities exist in the collection before
+those included in this list. If there was no **skipCount** parameter then the
+default value is 0
+    int skipCount?;
+};
+
+
+type Rendition record {
+    string id?;
+    ContentInfo content?;
+    "CREATED"|"NOT_CREATED" status?;
+};
+
+
+type Node record {
+    boolean isLink?;
+    boolean isFile;
+    UserInfo createdByUser;
+    string modifiedAt;
+    string nodeType;
+    string parentId?;
+    ContentInfo content?;
+    string[] aspectNames?;
+    string createdAt;
+    PathInfo path?;
+    boolean isFolder;
+    PermissionsInfo permissions?;
+    boolean isLocked?;
+    UserInfo modifiedByUser;
+    # The name must not contain spaces or the following special characters: * " < > \ / ? : and |.
+The character . must not be used at the end of the name
+    string name;
+    Definition definition?;
+    string id;
+    record {|anydata...;|} properties?;
+    string[] allowableOperations?;
+    boolean isFavorite?;
+};
+
+
+type PermissionsInfo record {
+    boolean isInheritanceEnabled?;
+    string[] settable?;
+    PermissionElement[] locallySet?;
+    PermissionElement[] inherited?;
+};
+
+
+type PermissionElement record {
+    string authorityId?;
+    string name?;
+    "ALLOWED"|"DENIED" accessStatus?;
+};
+
+
+type Definition record {
+    # List of property definitions effective for this node as the result of combining the type with all aspects
+    Property[] properties?;
+};
+
+
+type Property record {
+    # define if the property is system maintained
+    boolean isProtected?;
+    # the default value
+    string defaultValue?;
+    # the name of the property type (e.g. d:text)
+    string dataType?;
+    # define if the property is multi-valued
+    boolean isMultiValued?;
+    # the human-readable description
+    string description?;
+    # define if the presence of mandatory properties is enforced
+    boolean isMandatoryEnforced?;
+    string id;
+    # the human-readable title
+    string title?;
+    # list of constraints defined for the property
+    Constraint[] constraints?;
+    # define if the property is mandatory
+    boolean isMandatory?;
+};
+
+
+type Constraint record {
+    # the human-readable constraint description
+    string description?;
+    string id;
+    # the type of the constraint
+    string 'type?;
+    # the human-readable constraint title
+    string title?;
+    record {|record {|anydata...;|}...;|} parameters?;
+};
+
+
+type NodeBodyUpdate record {
+    string[] aspectNames?;
+    PermissionsBody permissions?;
+    # The name must not contain spaces or the following special characters: * " < > \ / ? : and |.
+The character . must not be used at the end of the name
+    string name?;
+    string nodeType?;
+    record {|string...;|} properties?;
+};
+
+
+type PermissionsBody record {
+    boolean isInheritanceEnabled?;
+    PermissionElement[] locallySet?;
+};
+
+
+type SiteGroupPaging record {
+    SiteGroupPagingList list;
+};
+
+
+type SiteGroupPagingList record {
+    SiteGroupEntry[] entries;
+    Pagination pagination;
+};
+
+
+type SiteGroupEntry record {
+    SiteGroup entry;
+};
+
+
+type SiteGroup record {
+    "SiteConsumer"|"SiteCollaborator"|"SiteContributor"|"SiteManager" role;
+    string id;
+    GroupMember group;
+};
+
+
+type GroupMember record {
+    string displayName;
+    string id;
+    "GROUP"|"PERSON" memberType;
+};
+
+# Activities describe any past activity in a site,
+# for example creating an item of content, commenting on a node,
+# liking an item of content
+
+type Activity record {
+    # The date time at which the activity was performed
+    string postedAt?;
+    # The feed on which this activity was posted
+    string feedPersonId;
+    # The id of the person who performed the activity
+    string postPersonId;
+    # The unique id of the site on which the activity was performed
+    string siteId?;
+    # An object summarizing the activity
+    record {|string...;|} activitySummary?;
+    # The unique id of the activity
+    int id;
+    # The type of the activity posted
+    string activityType;
+};
+
+
+type SiteContainerPagingList record {
+    SiteContainerEntry[] entries;
+    Pagination pagination;
+};
+
+
+type SiteContainerEntry record {
+    SiteContainer entry;
+};
+
+
+type SiteContainer record {
+    string id;
+    string folderId;
+};
+
+# Represents the Queries record for the operation: getFavorite
+
+type GetFavoriteQueries record {
+    # Returns additional information about favorites, the following optional fields can be requested:
+* path (note, this only applies to files and folders)
+* properties
+    string[] include?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+# Represents the Queries record for the operation: copyNode
+
+type CopyNodeQueries record {
+    # Returns additional information about the node. The following optional fields can be requested:
+* allowableOperations
+* association
+* isLink
+* isFavorite
+* isLocked
+* path
+* permissions
+* definition
+    string[] include?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+
+type SiteMembershipRequestBodyCreate record {
+    # Optional client name used when sending an email to the end user, defaults to "share" if not provided.
+**Note:** The client must be registered before this API can send an email.
+**Note:** This is available in Alfresco 7.0.0 and newer versions
+    string 'client?;
+    string id;
+    string message?;
+    string title?;
+};
+
+
+type GroupPagingList record {
+    GroupEntry[] entries?;
+    Pagination pagination?;
+};
+
+
+type GroupEntry record {
+    Group entry;
+};
+
+
+type Group record {
+    boolean isRoot?;
+    string displayName;
+    string[] parentIds?;
+    string id;
+    string[] zones?;
+};
+
+# Represents the Queries record for the operation: listSourceAssociations
+
+type ListSourceAssociationsQueries record {
+    # Returns additional information about the node. The following optional fields can be requested:
+* allowableOperations
+* aspectNames
+* isLink
+* isFavorite
+* isLocked
+* path
+* properties
+    string[] include?;
+    # Optionally filter the list by **assocType**. Here's an example:
+
+*   ```where=(assocType='my:specialAssocType')```
+    string 'where?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+# Represents the Headers record for the operation: getDeletedNodeContent
+
+type GetDeletedNodeContentHeaders record {
+    # Only returns the content if it has been modified since the date provided.
+Use the date format defined by HTTP. For example, `Wed, 09 Mar 2016 16:56:34 GMT`
+    string ifModifiedSince?;
+    # The Range header indicates the part of a document that the server should return.
+Single part request supported, for example: bytes=1-10
+    string range?;
+};
+
+
+type ActivityPagingList record {
+    ActivityEntry[] entries;
+    Pagination pagination;
+};
+
+
+type ActivityEntry record {
+    # Activities describe any past activity in a site,
+for example creating an item of content, commenting on a node,
+liking an item of content
+    Activity entry;
+};
+
+# Represents the Queries record for the operation: unlockNode
+
+type UnlockNodeQueries record {
+    # Returns additional information about the node. The following optional fields can be requested:
+* allowableOperations
+* association
+* isLink
+* isFavorite
+* isLocked
+* path
+* permissions
+* definition
+    string[] include?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+# Represents the Queries record for the operation: listSecondaryChildren
+
+type ListSecondaryChildrenQueries record {
+    # Returns additional information about the node. The following optional fields can be requested:
+* allowableOperations
+* aspectNames
+* isLink
+* isFavorite
+* isLocked
+* path
+* properties
+    string[] include?;
+    # The maximum number of items to return in the list.
+If not supplied then the default value is 100
+    int maxItems?;
+    # Also include **source** (in addition to **entries**) with folder information on **nodeId**
+    boolean includeSource?;
+    # Optionally filter the list by assocType. Here's an example:
+
+*   ```where=(assocType='my:specialAssocType')```
+    string 'where?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+    # The number of entities that exist in the collection before those included in this list.
+If not supplied then the default value is 0
+    int skipCount?;
+};
+
+
+type SiteRolePaging record {
+    SiteRolePagingList list;
+};
+
+
+type SiteRolePagingList record {
+    SiteRoleEntry[] entries;
+    Pagination pagination;
+};
+
+
+type SiteRoleEntry record {
+    SiteRole entry;
+};
+
+
+type SiteRole record {
+    Site site;
+    "SiteConsumer"|"SiteCollaborator"|"SiteContributor"|"SiteManager" role;
+    string guid;
+    string id;
+};
+
+
+type Site record {
+    "SiteConsumer"|"SiteCollaborator"|"SiteContributor"|"SiteManager" role?;
+    "PRIVATE"|"MODERATED"|"PUBLIC" visibility;
+    string guid;
+    string description?;
+    string id;
+    string preset?;
+    string title;
+};
+
+# Represents the Queries record for the operation: updateAuditApp
+
+type UpdateAuditAppQueries record {
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+
+type PasswordResetBody record {
+    # the new password
+    string password;
+    # the workflow id provided in the reset password email
+    string id;
+    # the workflow key provided in the reset password email
+    string 'key;
+};
+
+
+type SiteMembershipRequest record {
+    string createdAt;
+    Site site;
+    string id;
+    string message?;
+};
+
+# Represents the Queries record for the operation: getSiteMembershipRequests
+
+type GetSiteMembershipRequestsQueries record {
+    # The maximum number of items to return in the list.
+If not supplied then the default value is 100
+    int maxItems?;
+    # A string to restrict the returned objects by using a predicate
+    string 'where?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+    # The number of entities that exist in the collection before those included in this list.
+If not supplied then the default value is 0
+    int skipCount?;
+};
+
+# Provides a set of configurations for controlling the behaviours when communicating with a remote HTTP endpoint.
+
+type ConnectionConfig record {
+    # Configurations related to client authentication
+    http:CredentialsConfig auth; // Special Agent Note: CredentialsConfig FROM ballerina/http package
+    # The HTTP version understood by the client
+    http:HttpVersion httpVersion?; // Special Agent Note: HttpVersion FROM ballerina/http package
+    # Configurations related to HTTP/1.x protocol
+    http:ClientHttp1Settings http1Settings?; // Special Agent Note: ClientHttp1Settings FROM ballerina/http package
+    # Configurations related to HTTP/2 protocol
+    http:ClientHttp2Settings http2Settings?; // Special Agent Note: ClientHttp2Settings FROM ballerina/http package
+    # The maximum time to wait (in seconds) for a response before closing the connection
+    decimal timeout?;
+    # The choice of setting `forwarded`/`x-forwarded` header
+    string forwarded?;
+    # Configurations associated with Redirection
+    http:FollowRedirects followRedirects?; // Special Agent Note: FollowRedirects FROM ballerina/http package
+    # Configurations associated with request pooling
+    http:PoolConfiguration poolConfig?; // Special Agent Note: PoolConfiguration FROM ballerina/http package
+    # HTTP caching related configurations
+    http:CacheConfig cache?; // Special Agent Note: CacheConfig FROM ballerina/http package
+    # Specifies the way of handling compression (`accept-encoding`) header
+    http:Compression compression?; // Special Agent Note: Compression FROM ballerina/http package
+    # Configurations associated with the behaviour of the Circuit Breaker
+    http:CircuitBreakerConfig circuitBreaker?; // Special Agent Note: CircuitBreakerConfig FROM ballerina/http package
+    # Configurations associated with retrying
+    http:RetryConfig retryConfig?; // Special Agent Note: RetryConfig FROM ballerina/http package
+    # Configurations associated with cookies
+    http:CookieConfig cookieConfig?; // Special Agent Note: CookieConfig FROM ballerina/http package
+    # Configurations associated with inbound response size limits
+    http:ResponseLimitConfigs responseLimits?; // Special Agent Note: ResponseLimitConfigs FROM ballerina/http package
+    # SSL/TLS-related options
+    http:ClientSecureSocket secureSocket?; // Special Agent Note: ClientSecureSocket FROM ballerina/http package
+    # Proxy server related options
+    http:ProxyConfig proxy?; // Special Agent Note: ProxyConfig FROM ballerina/http package
+    # Provides settings related to client socket configuration
+    http:ClientSocketConfig socketConfig?; // Special Agent Note: ClientSocketConfig FROM ballerina/http package
+    # Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default
+    boolean validation?;
+    # Enables relaxed data binding on the client side. When enabled, `nil` values are treated as optional, 
+and absent fields are handled as `nilable` types. Enabled by default.
+    boolean laxDataBinding?;
+};
+
+# Represents the Queries record for the operation: getPreference
+
+type GetPreferenceQueries record {
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+
+type PreferencePaging record {
+    PreferencePagingList list;
+};
+
+
+type PreferencePagingList record {
+    PreferenceEntry[] entries;
+    Pagination pagination;
+};
+
+
+type PreferenceEntry record {
+    # A specific preference
+    Preference entry;
+};
+
+# A specific preference
+
+type Preference record {
+    # The unique id of the preference
+    string id;
+    # The value of the preference. Note that this can be of any JSON type
+    string value?;
+};
+
+# Represents the Queries record for the operation: listPeople
+
+type ListPeopleQueries record {
+    # The maximum number of items to return in the list.
+If not supplied then the default value is 100
+    int maxItems?;
+    # Returns additional information about the person. The following optional fields can be requested:
+* properties
+* aspectNames
+* capabilities
+    string[] include?;
+    # A string to control the order of the entities returned in a list. You can use the **orderBy** parameter to
+sort the list by one or more fields.
+
+Each field has a default sort order, which is normally ascending order. Read the API method implementation notes
+above to check if any fields used in this method have a descending default search order.
+
+To sort the entities in a specific order, you can use the **ASC** and **DESC** keywords for any field
+    string[] orderBy?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+    # The number of entities that exist in the collection before those included in this list.
+If not supplied then the default value is 0
+    int skipCount?;
+};
+
+# Represents the Queries record for the operation: listTags
+
+type ListTagsQueries record {
+    # The maximum number of items to return in the list.
+If not supplied then the default value is 100
+    int maxItems?;
+    # Returns additional information about the tag. The following optional fields can be requested:
+* count
+    string[] include?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+    # The number of entities that exist in the collection before those included in this list.
+If not supplied then the default value is 0
+    int skipCount?;
+};
+
+
+type SiteMembershipBodyUpdate record {
+    "SiteConsumer"|"SiteCollaborator"|"SiteContributor"|"SiteManager" role;
+};
+
+# Represents the Queries record for the operation: lockNode
+
+type LockNodeQueries record {
+    # Returns additional information about the node. The following optional fields can be requested:
+* allowableOperations
+* association
+* isLink
+* isFavorite
+* isLocked
+* path
+* permissions
+* definition
+    string[] include?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+# Represents the Headers record for the operation: getSharedLinkContent
+
+type GetSharedLinkContentHeaders record {
+    # Only returns the content if it has been modified since the date provided.
+Use the date format defined by HTTP. For example, `Wed, 09 Mar 2016 16:56:34 GMT`
+    string ifModifiedSince?;
+    # The Range header indicates the part of a document that the server should return.
+Single part request supported, for example: bytes=1-10
+    string range?;
+};
+
+
+type NodeBodyCopy record {
+    string targetParentId;
+    # The name must not contain spaces or the following special characters: * " < > \ / ? : and |.
+The character . must not be used at the end of the name
+    string name?;
+};
+
+# Represents the Queries record for the operation: listNetworksForPerson
+
+type ListNetworksForPersonQueries record {
+    # The maximum number of items to return in the list.
+If not supplied then the default value is 100
+    int maxItems?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+    # The number of entities that exist in the collection before those included in this list.
+If not supplied then the default value is 0
+    int skipCount?;
+};
+
+# Represents the Queries record for the operation: getSharedLinkContent
+
+type GetSharedLinkContentQueries record {
+    # **true** enables a web browser to download the file as an attachment.
+**false** means a web browser may preview the file in a new tab or window, but not
+download the file.
+
+You can only set this parameter to **false** if the content type of the file is in the supported list;
+for example, certain image files and PDF files.
+
+If the content type is not supported for preview, then a value of **false**  is ignored, and
+the attachment will be returned in the response
+    boolean attachment?;
+};
+
+
+type RatingPagingList record {
+    RatingEntry[] entries;
+    Pagination pagination;
+};
+
+
+type RatingEntry record {
+    # A person can rate an item of content by liking it. They can also remove
+their like of an item of content. API methods exist to get a list of
+ratings and to add a new rating
+    Rating entry;
+};
+
+# A person can rate an item of content by liking it. They can also remove
+# their like of an item of content. API methods exist to get a list of
+# ratings and to add a new rating
+
+type Rating record {
+    # The rating. The type is specific to the rating scheme, boolean for the likes and an integer for the fiveStar
+    string myRating?;
+    string ratedAt?;
+    string id;
+    RatingAggregate aggregate;
+};
+
+
+type RatingAggregate record {
+    int average?;
+    int numberOfRatings;
+};
+
+
+type SiteMembershipRequestWithPerson record {
+    string createdAt;
+    Site site;
+    Person person;
+    string id;
+    string message?;
+};
+
+
+type Person record {
+    string googleId?;
+    string lastName?;
+    string userStatus?;
+    Capabilities capabilities?;
+    string displayName?;
+    string jobTitle?;
+    string statusUpdatedAt?;
+    string mobile?;
+    boolean emailNotificationsEnabled?;
+    string description?;
+    string telephone?;
+    boolean enabled?;
+    string[] aspectNames?;
+    string firstName;
+    string skypeId?;
+    string avatarId?;
+    string instantMessageId?;
+    string location?;
+    Company company?;
+    string id;
+    string email;
+    record {|anydata...;|} properties?;
+};
+
+
+type Capabilities record {
+    boolean isMutable?;
+    boolean isGuest?;
+    boolean isAdmin?;
+};
+
+
+type Company record {
+    string address3?;
+    string address2?;
+    string address1?;
+    string organization?;
+    string postcode?;
+    string telephone?;
+    string fax?;
+    string email?;
+};
+
+# Represents the Queries record for the operation: listComments
+
+type ListCommentsQueries record {
+    # The maximum number of items to return in the list.
+If not supplied then the default value is 100
+    int maxItems?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+    # The number of entities that exist in the collection before those included in this list.
+If not supplied then the default value is 0
+    int skipCount?;
+};
+
+
+type FavoriteSite record {
+    string id;
+};
+
+# Represents the Queries record for the operation: listPreferences
+
+type ListPreferencesQueries record {
+    # The maximum number of items to return in the list.
+If not supplied then the default value is 100
+    int maxItems?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+    # The number of entities that exist in the collection before those included in this list.
+If not supplied then the default value is 0
+    int skipCount?;
+};
+
+# Represents the Queries record for the operation: getAvatarImage
+
+type GetAvatarImageQueries record {
+    # **true** enables a web browser to download the file as an attachment.
+**false** means a web browser may preview the file in a new tab or window, but not
+download the file.
+
+You can only set this parameter to **false** if the content type of the file is in the supported list;
+for example, certain image files and PDF files.
+
+If the content type is not supported for preview, then a value of **false**  is ignored, and
+the attachment will be returned in the response
+    boolean attachment?;
+    # If **true** and there is no avatar for this **personId**
+then the placeholder image is returned, rather than a 404 response
+    boolean placeholder?;
+};
+
+# Represents the Queries record for the operation: createSiteMembershipRequestForPerson
+
+type CreateSiteMembershipRequestForPersonQueries record {
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+
+type SiteMembershipRequestWithPersonEntry record {
+    SiteMembershipRequestWithPerson entry;
+};
+
+# Represents the Queries record for the operation: deleteGroup
+
+type DeleteGroupQueries record {
+    # If **true** then the delete will be applied in cascade to sub-groups
+    boolean cascade?;
+};
+
+# Represents the Queries record for the operation: deleteAuditEntriesForAuditApp
+
+type DeleteAuditEntriesForAuditAppQueries record {
+    # Audit entries to permanently delete for an audit application, given an inclusive time period or range of ids. For example:
+
+*   ```where=(createdAt BETWEEN ('2017-06-02T12:13:51.593+01:00' , '2017-06-04T10:05:16.536+01:00')```
+*   ```where=(id BETWEEN ('1234', '4321')```
+    string 'where;
+};
+
+
+type CommentBody record {
+    string content;
+};
+
+# Represents the Queries record for the operation: findSites
+
+type FindSitesQueries record {
+    # The maximum number of items to return in the list.
+If not supplied then the default value is 100
+    int maxItems?;
+    # A string to control the order of the entities returned in a list. You can use the **orderBy** parameter to
+sort the list by one or more fields.
+
+Each field has a default sort order, which is normally ascending order. Read the API method implementation notes
+above to check if any fields used in this method have a descending default search order.
+
+To sort the entities in a specific order, you can use the **ASC** and **DESC** keywords for any field
+    string[] orderBy?;
+    # The term to search for
+    string term;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+    # The number of entities that exist in the collection before those included in this list.
+If not supplied then the default value is 0
+    int skipCount?;
+};
+
+
+type ProbeEntry record {
+    ProbeEntryEntry entry;
+};
+
+
+type ProbeEntryEntry record {
+    string message;
+};
+
+# Represents the Queries record for the operation: getDeletedNode
+
+type GetDeletedNodeQueries record {
+    # Returns additional information about the node. The following optional fields can be requested:
+* allowableOperations
+* association
+* isLink
+* isFavorite
+* isLocked
+* path
+* permissions
+* definition
+    string[] include?;
+};
+
+# Represents the Queries record for the operation: createGroupMembership
+
+type CreateGroupMembershipQueries record {
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+# Represents the Queries record for the operation: listParents
+
+type ListParentsQueries record {
+    # Returns additional information about the node. The following optional fields can be requested:
+* allowableOperations
+* aspectNames
+* isLink
+* isFavorite
+* isLocked
+* path
+* properties
+    string[] include?;
+    # The maximum number of items to return in the list.
+If not supplied then the default value is 100
+    int maxItems?;
+    # Also include **source** (in addition to **entries**) with folder information on **nodeId**
+    boolean includeSource?;
+    # Optionally filter the list by **assocType** and/or **isPrimary**. Here are some example filters:
+
+*   ```where=(assocType='my:specialAssocType')```
+
+*   ```where=(isPrimary=true)```
+
+*   ```where=(isPrimary=false and assocType='my:specialAssocType')```
+    string 'where?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+    # The number of entities that exist in the collection before those included in this list.
+If not supplied then the default value is 0
+    int skipCount?;
+};
+
+
+type GroupMembershipBodyCreate record {
+    string id;
+    "GROUP"|"PERSON" memberType;
+};
+
+# Represents the Queries record for the operation: moveNode
+
+type MoveNodeQueries record {
+    # Returns additional information about the node. The following optional fields can be requested:
+* allowableOperations
+* association
+* isLink
+* isFavorite
+* isLocked
+* path
+* permissions
+* definition
+    string[] include?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+
+type ClientBody record {
+    # the client name
+    string 'client;
+};
+
+
+type Association record {
+    string targetId;
+    string assocType;
+};
+
+# Represents the Queries record for the operation: createRating
+
+type CreateRatingQueries record {
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+# Represents the Queries record for the operation: updateSiteMembership
+
+type UpdateSiteMembershipQueries record {
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+# Represents the Queries record for the operation: restoreDeletedNode
+
+type RestoreDeletedNodeQueries record {
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+
+type Download record {
+    # number of files added so far in the zip
+    int filesAdded?;
+    # number of bytes added so far in the zip
+    int bytesAdded?;
+    # the total number of bytes to be added in the zip
+    int totalBytes?;
+    # the id of the download node
+    string id?;
+    # the total number of files to be added in the zip
+    int totalFiles?;
+    # the current status of the download node creation
+    "PENDING"|"CANCELLED"|"IN_PROGRESS"|"DONE"|"MAX_CONTENT_SIZE_EXCEEDED" status?;
+};
+
+
+type AuditAppEntry record {
+    AuditApp entry?;
+};
+
+
+type AuditApp record {
+    int maxEntryId?;
+    boolean isEnabled?;
+    string name?;
+    int minEntryId?;
+    string id;
+};
+
+
+type NodeBodyLock record {
+    int timeToExpire?;
+    "PERSISTENT"|"EPHEMERAL" lifetime?;
+    "ALLOW_OWNER_CHANGES"|"FULL" 'type?;
+};
+
+
+type NodePagingList record {
+    NodeEntry[] entries?;
+    Pagination pagination?;
+    Node 'source?;
+};
+
+
+type NodeEntry record {
+    Node entry;
+};
+
+
+type SiteMembershipRequestWithPersonPagingList record {
+    SiteMembershipRequestWithPersonEntry[] entries;
+    Pagination pagination;
+};
+
+
+type AssociationInfo record {
+    string assocType;
+};
+
+# Represents the Queries record for the operation: updateTag
+
+type UpdateTagQueries record {
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+# Represents the Queries record for the operation: updatePerson
+
+type UpdatePersonQueries record {
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+
+type AuditEntryPaging record {
+    AuditEntryPagingList list?;
+};
+
+
+type AuditEntryPagingList record {
+    AuditEntryEntry[] entries?;
+    Pagination pagination?;
+};
+
+
+type AuditEntryEntry record {
+    AuditEntry entry?;
+};
+
+
+type AuditEntry record {
+    string createdAt;
+    UserInfo createdByUser;
+    record {|anydata...;|} values?;
+    string auditApplicationId;
+    string id;
+};
+
+
+type FavoritePagingList record {
+    FavoriteEntry[] entries;
+    Pagination pagination;
+};
+
+
+type FavoriteEntry record {
+    # A favorite describes an Alfresco entity that a person has marked as a favorite.
+The target can be a site, file or folder
+    Favorite entry;
+};
+
+# A favorite describes an Alfresco entity that a person has marked as a favorite.
+# The target can be a site, file or folder
+
+type Favorite record {
+    # The guid of the object that is a favorite
+    string targetGuid;
+    # The time the object was made a favorite
+    string createdAt?;
+    # A subset of the target favorite properties, system properties and properties already available in the target are excluded
+    record {|anydata...;|} properties?;
+    record {|anydata...;|} target;
+};
+
+# Represents the Queries record for the operation: getArchivedNodeRenditionContent
+
+type GetArchivedNodeRenditionContentQueries record {
+    # **true** enables a web browser to download the file as an attachment.
+**false** means a web browser may preview the file in a new tab or window, but not
+download the file.
+
+You can only set this parameter to **false** if the content type of the file is in the supported list;
+for example, certain image files and PDF files.
+
+If the content type is not supported for preview, then a value of **false**  is ignored, and
+the attachment will be returned in the response
+    boolean attachment?;
+    # If **true** and there is no rendition for this **nodeId** and **renditionId**,
+then the placeholder image for the mime type of this rendition is returned, rather
+than a 404 response
+    boolean placeholder?;
+};
+
+# Represents the Queries record for the operation: listAuditEntriesForNode
+
+type ListAuditEntriesForNodeQueries record {
+    # The maximum number of items to return in the list.
+If not supplied then the default value is 100
+    int maxItems?;
+    # Returns additional information about the audit entry. The following optional fields can be requested:
+* values
+    string[] include?;
+    # A string to control the order of the entities returned in a list. You can use the **orderBy** parameter to
+sort the list by one or more fields.
+
+Each field has a default sort order, which is normally ascending order. Read the API method implementation notes
+above to check if any fields used in this method have a descending default search order.
+
+To sort the entities in a specific order, you can use the **ASC** and **DESC** keywords for any field
+    string[] orderBy?;
+    # Optionally filter the list. Here are some examples:
+
+*   ```where=(createdByUser='-me-')```
+
+*   ```where=(createdAt BETWEEN ('2017-06-02T12:13:51.593+01:00' , '2017-06-04T10:05:16.536+01:00')```
+
+*   ```where=(createdByUser='jbloggs' and createdAt BETWEEN ('2017-06-02T12:13:51.593+01:00' , '2017-06-04T10:05:16.536+01:00')```
+    string 'where?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+    # The number of entities that exist in the collection before those included in this list.
+If not supplied then the default value is 0
+    int skipCount?;
+};
+
+# Represents the Queries record for the operation: listSiteMembershipsForPerson
+
+type ListSiteMembershipsForPersonQueries record {
+    # The maximum number of items to return in the list.
+If not supplied then the default value is 100
+    int maxItems?;
+    # A string to control the order of the entities returned in a list. You can use the **orderBy** parameter to
+sort the list by one or more fields.
+
+Each field has a default sort order, which is normally ascending order. Read the API method implementation notes
+above to check if any fields used in this method have a descending default search order.
+
+To sort the entities in a specific order, you can use the **ASC** and **DESC** keywords for any field
+    string[] orderBy?;
+    # A string to restrict the returned objects by using a predicate
+    string 'where?;
+    # Use the relations parameter to include one or more related entities in a single response
+    string[] relations?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+    # The number of entities that exist in the collection before those included in this list.
+If not supplied then the default value is 0
+    int skipCount?;
+};
+
+
+type RenditionBodyCreate record {
+    string id;
+};
+
+# Represents the Queries record for the operation: listVersionRenditions
+
+type ListVersionRenditionsQueries record {
+    # A string to restrict the returned objects by using a predicate
+    string 'where?;
+};
+
+
+type GroupMemberEntry record {
+    GroupMember entry;
+};
+
+
+type SiteMembershipRequestWithPersonPaging record {
+    SiteMembershipRequestWithPersonPagingList list;
+};
+
+
+type NodeChildAssociationAllOf2 record {
+    ChildAssociationInfo association?;
+};
+
+
+type ChildAssociationInfo record {
+    boolean isPrimary;
+    string assocType;
+};
+
+
+type NodeAssociationAllOf2 record {
+    AssociationInfo association?;
+};
+
+
+type NodeAssociation record {
+    boolean isLink?;
+    boolean isFile;
+    UserInfo createdByUser;
+    string modifiedAt;
+    string nodeType;
+    string parentId?;
+    ContentInfo content?;
+    string[] aspectNames?;
+    string createdAt;
+    PathInfo path?;
+    boolean isFolder;
+    PermissionsInfo permissions?;
+    boolean isLocked?;
+    UserInfo modifiedByUser;
+    string name;
+    Definition definition?;
+    string id;
+    record {|anydata...;|} properties?;
+    string[] allowableOperations?;
+    boolean isFavorite?;
+    AssociationInfo association?;
+};
+
+
+type ActivityPaging record {
+    ActivityPagingList list;
+};
+
+
+type PersonNetworkPaging record {
+    PersonNetworkPagingList list;
+};
+
+
+type PersonNetworkPagingList record {
+    PersonNetworkEntry[] entries;
+    Pagination pagination;
+};
+
+
+type PersonNetworkEntry record {
+    # A network is the group of users and sites that belong to an organization.
+Networks are organized by email domain. When a user signs up for an
+Alfresco account , their email domain becomes their Home Network
+    PersonNetwork entry;
+};
+
+# A network is the group of users and sites that belong to an organization.
+# Networks are organized by email domain. When a user signs up for an
+# Alfresco account , their email domain becomes their Home Network
+
+type PersonNetwork record {
+    string createdAt?;
+    boolean paidNetwork?;
+    "Free"|"Standard"|"Enterprise" subscriptionLevel?;
+    NetworkQuota[] quotas?;
+    boolean isEnabled;
+    # This network's unique id
+    string id;
+    # Is this the home network?
+    boolean homeNetwork?;
+};
+
+# Limits and usage of each quota. A network will have quotas for File space,
+# the number of sites in the network, the number of people in the network,
+# and the number of network administrators
+
+type NetworkQuota record {
+    int usage;
+    int 'limit;
+    string id;
+};
+
+# Represents the Queries record for the operation: listDeletedNodeRenditions
+
+type ListDeletedNodeRenditionsQueries record {
+    # A string to restrict the returned objects by using a predicate
+    string 'where?;
+};
+
+# Represents the Queries record for the operation: getSharedLink
+
+type GetSharedLinkQueries record {
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+
+type ActionDefinition record {
+    # QNames of the types this action applies to
+    string[] applicableTypes;
+    ActionParameterDefinition[] parameterDefinitions?;
+    # name of the action definition, e.g. "move"
+    string name?;
+    # whether the basic action definition supports action tracking or not
+    boolean trackStatus;
+    # describes the action definition, e.g. "This will move the matched item to another space."
+    string description?;
+    # Identifier of the action definition — used for example when executing an action
+    string id;
+    # title of the action definition, e.g. "Move"
+    string title?;
+};
+
+
+type ActionParameterDefinition record {
+    string displayLabel?;
+    string name?;
+    string 'type?;
+    boolean multiValued?;
+    boolean mandatory?;
+};
+
+# Represents the Queries record for the operation: listNodeChildren
+
+type ListNodeChildrenQueries record {
+    # The maximum number of items to return in the list.
+If not supplied then the default value is 100
+    int maxItems?;
+    # Returns additional information about the node. The following optional fields can be requested:
+* allowableOperations
+* aspectNames
+* association
+* isLink
+* isFavorite
+* isLocked
+* path
+* properties
+* permissions
+    string[] include?;
+    # Also include **source** in addition to **entries** with folder information on the parent node – either the specified parent **nodeId**, or as resolved by **relativePath**
+    boolean includeSource?;
+    # Return information on children in the folder resolved by this path. The path is relative to **nodeId**
+    string relativePath?;
+    # A string to control the order of the entities returned in a list. You can use the **orderBy** parameter to
+sort the list by one or more fields.
+
+Each field has a default sort order, which is normally ascending order. Read the API method implementation notes
+above to check if any fields used in this method have a descending default search order.
+
+To sort the entities in a specific order, you can use the **ASC** and **DESC** keywords for any field
+    string[] orderBy?;
+    # Optionally filter the list. Here are some examples:
+
+*   ```where=(isFolder=true)```
+
+*   ```where=(isFile=true)```
+
+*   ```where=(nodeType='my:specialNodeType')```
+
+*   ```where=(nodeType='my:specialNodeType INCLUDESUBTYPES')```
+
+*   ```where=(isPrimary=true)```
+
+*   ```where=(assocType='my:specialAssocType')```
+
+*   ```where=(isPrimary=false and assocType='my:specialAssocType')```
+    string 'where?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+    # The number of entities that exist in the collection before those included in this list.
+If not supplied then the default value is 0
+    int skipCount?;
+};
+
+
+type NodeChildAssociationPagingList record {
+    NodeChildAssociationEntry[] entries?;
+    Pagination pagination?;
+    Node 'source?;
+};
+
+
+type NodeChildAssociationEntry record {
+    NodeChildAssociation entry;
+};
+
+
+type NodeChildAssociation record {
+    boolean isLink?;
+    boolean isFile;
+    UserInfo createdByUser;
+    string modifiedAt;
+    string nodeType;
+    string parentId?;
+    ContentInfo content?;
+    string[] aspectNames?;
+    string createdAt;
+    PathInfo path?;
+    boolean isFolder;
+    PermissionsInfo permissions?;
+    boolean isLocked?;
+    UserInfo modifiedByUser;
+    string name;
+    Definition definition?;
+    string id;
+    record {|anydata...;|} properties?;
+    string[] allowableOperations?;
+    boolean isFavorite?;
+    ChildAssociationInfo association?;
+};
+
+
+type Version record {
+    string[] aspectNames?;
+    boolean isFolder;
+    boolean isFile;
+    string modifiedAt;
+    UserInfo modifiedByUser;
+    string versionComment?;
+    # The name must not contain spaces or the following special characters: * " < > \ / ? : and |.
+The character . must not be used at the end of the name
+    string name;
+    string id;
+    string nodeType;
+    ContentInfo content?;
+    record {|anydata...;|} properties?;
+};
+
+
+type NodeBodyMove record {
+    string targetParentId;
+    # The name must not contain spaces or the following special characters: * " < > \ / ? : and |.
+The character . must not be used at the end of the name
+    string name?;
+};
+
+# Represents the Queries record for the operation: getAuditApp
+
+type GetAuditAppQueries record {
+    # Also include the current minimum and/or maximum audit entry ids for the application. The following optional fields can be requested:
+* max
+* min
+    string[] include?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+# Represents the Queries record for the operation: createNode
+
+type CreateNodeQueries record {
+    # Returns additional information about the node. The following optional fields can be requested:
+* allowableOperations
+* association
+* isLink
+* isFavorite
+* isLocked
+* path
+* permissions
+* definition
+    string[] include?;
+    # If true, then created node will be versioned. If false, then created node will be unversioned and auto-versioning disabled
+    boolean versioningEnabled?;
+    # If true, then  a name clash will cause an attempt to auto rename by finding a unique name using an integer suffix
+    boolean autoRename?;
+    # If true, then created node will be version *1.0 MAJOR*. If false, then created node will be version *0.1 MINOR*
+    boolean majorVersion?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+
+type VersionEntry record {
+    Version entry?;
+};
+
+# Represents the Queries record for the operation: createSiteMembership
+
+type CreateSiteMembershipQueries record {
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+
+type GroupMemberPaging record {
+    GroupMemberPagingList list?;
+};
+
+
+type GroupMemberPagingList record {
+    GroupMemberEntry[] entries?;
+    Pagination pagination?;
+};
+
+
+type SharedLinkPaging record {
+    SharedLinkPagingList list;
+};
+
+
+type ActionDefinitionList record {
+    ActionDefinitionListList list?;
+};
+
+
+type ActionDefinitionListList record {
+    ActionDefinition[] entries?;
+    Pagination pagination?;
+};
+
+
+type NodePaging record {
+    NodePagingList list?;
+};
+
+
+type RenditionPagingList record {
+    RenditionEntry[] entries?;
+    Pagination pagination?;
+};
+
+
+type RenditionEntry record {
+    Rendition entry;
+};
+
+
+type SiteMembershipBodyCreate record {
+    "SiteConsumer"|"SiteCollaborator"|"SiteContributor"|"SiteManager" role;
+    string id;
+};
+
+# Represents the Queries record for the operation: getTag
+
+type GetTagQueries record {
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+
+type CommentEntry record {
+    Comment entry;
+};
+
+
+type Comment record {
+    string createdAt;
+    Person createdBy;
+    boolean edited;
+    string modifiedAt;
+    boolean canEdit;
+    Person modifiedBy;
+    boolean canDelete;
+    string id;
+    string title;
+    string content;
+};
+
+
+type GroupPaging record {
+    GroupPagingList list?;
+};
+
+# Represents the Queries record for the operation: listAuditApps
+
+type ListAuditAppsQueries record {
+    # The maximum number of items to return in the list.
+If not supplied then the default value is 100
+    int maxItems?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+    # The number of entities that exist in the collection before those included in this list.
+If not supplied then the default value is 0
+    int skipCount?;
+};
+
+# Represents the Queries record for the operation: getNodeContent
+
+type GetNodeContentQueries record {
+    # **true** enables a web browser to download the file as an attachment.
+**false** means a web browser may preview the file in a new tab or window, but not
+download the file.
+
+You can only set this parameter to **false** if the content type of the file is in the supported list;
+for example, certain image files and PDF files.
+
+If the content type is not supported for preview, then a value of **false**  is ignored, and
+the attachment will be returned in the response
+    boolean attachment?;
+};
+
+# Represents the Queries record for the operation: getSiteMembershipRequestForPerson
+
+type GetSiteMembershipRequestForPersonQueries record {
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+# Represents the Headers record for the operation: getNodeContent
+
+type GetNodeContentHeaders record {
+    # Only returns the content if it has been modified since the date provided.
+Use the date format defined by HTTP. For example, `Wed, 09 Mar 2016 16:56:34 GMT`
+    string ifModifiedSince?;
+    # The Range header indicates the part of a document that the server should return.
+Single part request supported, for example: bytes=1-10
+    string range?;
+};
+
+
+type DownloadEntry record {
+    Download entry;
+};
+
+
+type GroupBodyUpdate record {
+    string displayName;
+};
+
+# Represents the Queries record for the operation: createSite
+
+type CreateSiteQueries record {
+    # Flag to indicate whether the site should not be added to the user's site favorites
+    boolean skipAddToFavorites?;
+    # Flag to indicate whether the Share-specific (surf) configuration files for the site should not be created
+    boolean skipConfiguration?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+
+type ChildAssociation record {
+    string assocType;
+    string childId;
+};
+
+
+type NodeAssociationEntry record {
+    NodeAssociation entry;
+};
+
+# Represents the Headers record for the operation: getAvatarImage
+
+type GetAvatarImageHeaders record {
+    # Only returns the content if it has been modified since the date provided.
+Use the date format defined by HTTP. For example, `Wed, 09 Mar 2016 16:56:34 GMT`
+    string ifModifiedSince?;
+};
+
+# Represents the Queries record for the operation: createFavorite
+
+type CreateFavoriteQueries record {
+    # Returns additional information about favorites, the following optional fields can be requested:
+* path (note, this only applies to files and folders)
+* properties
+    string[] include?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+
+type SharedLinkBodyEmail record {
+    string 'client?;
+    string[] recipientEmails?;
+    string message?;
+    string locale?;
+};
+
+
+type NodeAssociationPagingList record {
+    NodeAssociationEntry[] entries?;
+    Pagination pagination?;
+    Node 'source?;
+};
+
+# Represents the Queries record for the operation: createTagForNode
+
+type CreateTagForNodeQueries record {
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+
+type TagPaging record {
+    TagPagingList list;
+};
+
+
+type TagPagingList record {
+    TagEntry[] entries;
+    Pagination pagination;
+};
+
+
+type TagEntry record {
+    Tag entry;
+};
+
+
+type Tag record {
+    decimal count?;
+    string id;
+    string tag;
+};
+
+
+type AssociationEntry record {
+    Association entry;
+};
+
+
+type SiteMemberPagingList record {
+    SiteMemberEntry[] entries;
+    Pagination pagination;
+};
+
+
+type SiteMemberEntry record {
+    SiteMember entry;
+};
+
+
+type SiteMember record {
+    "SiteConsumer"|"SiteCollaborator"|"SiteContributor"|"SiteManager" role;
+    Person person;
+    string id;
+    boolean isMemberOfGroup?;
+};
+
+# Represents the Queries record for the operation: getDeletedNodeContent
+
+type GetDeletedNodeContentQueries record {
+    # **true** enables a web browser to download the file as an attachment.
+**false** means a web browser may preview the file in a new tab or window, but not
+download the file.
+
+You can only set this parameter to **false** if the content type of the file is in the supported list;
+for example, certain image files and PDF files.
+
+If the content type is not supported for preview, then a value of **false**  is ignored, and
+the attachment will be returned in the response
+    boolean attachment?;
+};
+
+
+type SitePagingList record {
+    SiteEntry[] entries;
+    Pagination pagination;
+};
+
+
+type SiteEntry record {
+    Site entry;
+};
+
+
+type TagBody record {
+    string tag;
+};
+
+# Represents the Queries record for the operation: getVersionContent
+
+type GetVersionContentQueries record {
+    # **true** enables a web browser to download the file as an attachment.
+**false** means a web browser may preview the file in a new tab or window, but not
+download the file.
+
+You can only set this parameter to **false** if the content type of the file is in the supported list;
+for example, certain image files and PDF files.
+
+If the content type is not supported for preview, then a value of **false**  is ignored, and
+the attachment will be returned in the response
+    boolean attachment?;
+};
+
+
+type PersonPagingList record {
+    PersonEntry[] entries?;
+    Pagination pagination?;
+};
+
+
+type PersonEntry record {
+    Person entry;
+};
+
+# Represents the Queries record for the operation: listActions
+
+type ListActionsQueries record {
+    # The maximum number of items to return in the list.
+If not supplied then the default value is 100
+    int maxItems?;
+    # A string to control the order of the entities returned in a list. You can use the **orderBy** parameter to
+sort the list by one or more fields.
+
+Each field has a default sort order, which is normally ascending order. Read the API method implementation notes
+above to check if any fields used in this method have a descending default search order.
+
+To sort the entities in a specific order, you can use the **ASC** and **DESC** keywords for any field
+    string[] orderBy?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+    # The number of entities that exist in the collection before those included in this list.
+If not supplied then the default value is 0
+    int skipCount?;
+};
+
+
+type ActionExecResultEntry record {
+    ActionExecResult entry;
+};
+
+
+type ActionExecResult record {
+    # The unique identifier of the action pending execution
+    string id;
+};
+
+# Represents the Queries record for the operation: nodeActions
+
+type NodeActionsQueries record {
+    # The maximum number of items to return in the list.
+If not supplied then the default value is 100
+    int maxItems?;
+    # A string to control the order of the entities returned in a list. You can use the **orderBy** parameter to
+sort the list by one or more fields.
+
+Each field has a default sort order, which is normally ascending order. Read the API method implementation notes
+above to check if any fields used in this method have a descending default search order.
+
+To sort the entities in a specific order, you can use the **ASC** and **DESC** keywords for any field
+    string[] orderBy?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+    # The number of entities that exist in the collection before those included in this list.
+If not supplied then the default value is 0
+    int skipCount?;
+};
+
+
+type ChildAssociationBody record {
+    string assocType;
+    string childId;
+};
+
+# Represents the Queries record for the operation: getNetwork
+
+type GetNetworkQueries record {
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+# Represents the Queries record for the operation: listSiteContainers
+
+type ListSiteContainersQueries record {
+    # The maximum number of items to return in the list.
+If not supplied then the default value is 100
+    int maxItems?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+    # The number of entities that exist in the collection before those included in this list.
+If not supplied then the default value is 0
+    int skipCount?;
+};
+
+# Represents the Queries record for the operation: createSiteFavorite
+
+type CreateSiteFavoriteQueries record {
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+# Represents the Queries record for the operation: listSites
+
+type ListSitesQueries record {
+    # The maximum number of items to return in the list.
+If not supplied then the default value is 100
+    int maxItems?;
+    # A string to control the order of the entities returned in a list. You can use the **orderBy** parameter to
+sort the list by one or more fields.
+
+Each field has a default sort order, which is normally ascending order. Read the API method implementation notes
+above to check if any fields used in this method have a descending default search order.
+
+To sort the entities in a specific order, you can use the **ASC** and **DESC** keywords for any field
+    string[] orderBy?;
+    # A string to restrict the returned objects by using a predicate
+    string 'where?;
+    # Use the relations parameter to include one or more related entities in a single response
+    string[] relations?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+    # The number of entities that exist in the collection before those included in this list.
+If not supplied then the default value is 0
+    int skipCount?;
+};
+
+# Represents the Queries record for the operation: getNode
+
+type GetNodeQueries record {
+    # Returns additional information about the node. The following optional fields can be requested:
+* allowableOperations
+* association
+* isLink
+* isFavorite
+* isLocked
+* path
+* permissions
+* definition
+    string[] include?;
+    # A path relative to the **nodeId**. If you set this,
+information is returned on the node resolved by this path
+    string relativePath?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+
+type NodeAssociationPaging record {
+    NodeAssociationPagingList list?;
+};
+
+
+type FavoriteSiteEntry record {
+    FavoriteSite entry;
+};
+
+# Represents the Queries record for the operation: listRatings
+
+type ListRatingsQueries record {
+    # The maximum number of items to return in the list.
+If not supplied then the default value is 100
+    int maxItems?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+    # The number of entities that exist in the collection before those included in this list.
+If not supplied then the default value is 0
+    int skipCount?;
+};
+
+# Represents the Queries record for the operation: updateNodeContent
+
+type UpdateNodeContentQueries record {
+    # Returns additional information about the node. The following optional fields can be requested:
+* allowableOperations
+* association
+* isLink
+* isFavorite
+* isLocked
+* path
+* permissions
+* definition
+    string[] include?;
+    # Optional new name. This should include the file extension.
+The name must not contain spaces or the following special characters: * " < > \ / ? : and |.
+The character `.` must not be used at the end of the name
+    string name?;
+    # Add a version comment which will appear in version history.
+Setting this parameter also enables versioning of this node, if it is not already versioned
+    string comment?;
+    # If **true**, create a major version.
+Setting this parameter also enables versioning of this node, if it is not already versioned
+    boolean majorVersion?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+# Represents the Queries record for the operation: createSecondaryChildAssociation
+
+type CreateSecondaryChildAssociationQueries record {
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+# Represents the Queries record for the operation: listSiteGroups
+
+type ListSiteGroupsQueries record {
+    # The maximum number of items to return in the list.
+If not supplied then the default value is 100
+    int maxItems?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+    # The number of entities that exist in the collection before those included in this list.
+If not supplied then the default value is 0
+    int skipCount?;
+};
+
+# Represents the Queries record for the operation: listGroups
+
+type ListGroupsQueries record {
+    # The maximum number of items to return in the list.
+If not supplied then the default value is 100
+    int maxItems?;
+    # Returns additional information about the group. The following optional fields can be requested:
+* parentIds
+* zones
+    string[] include?;
+    # A string to control the order of the entities returned in a list. You can use the **orderBy** parameter to
+sort the list by one or more fields.
+
+Each field has a default sort order, which is normally ascending order. Read the API method implementation notes
+above to check if any fields used in this method have a descending default search order.
+
+To sort the entities in a specific order, you can use the **ASC** and **DESC** keywords for any field
+    string[] orderBy?;
+    # A string to restrict the returned objects by using a predicate
+    string 'where?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+    # The number of entities that exist in the collection before those included in this list.
+If not supplied then the default value is 0
+    int skipCount?;
+};
+
+
+type SiteMembershipRequestEntry record {
+    SiteMembershipRequest entry;
+};
+
+
+type FavoriteBodyCreate record {
+    record {|anydata...;|} target;
+};
+
+# Represents the Queries record for the operation: listActivitiesForPerson
+
+type ListActivitiesForPersonQueries record {
+    # The maximum number of items to return in the list.
+If not supplied then the default value is 100
+    int maxItems?;
+    # Include only activity feed entries relating to this site
+    string siteId?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+    # The number of entities that exist in the collection before those included in this list.
+If not supplied then the default value is 0
+    int skipCount?;
+    # A filter to include the user's activities only `me`, other user's activities only `others`'
+    string who?;
+};
+
+# Represents the Queries record for the operation: getDownload
+
+type GetDownloadQueries record {
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+# Represents the Queries record for the operation: getSiteMembership
+
+type GetSiteMembershipQueries record {
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+
+type FavoriteSiteBodyCreate record {
+    string id;
+};
+
+
+type SitePaging record {
+    SitePagingList list;
+};
+
+
+type SiteMembershipRejectionBody record {
+    string comment?;
+};
+
+# Represents the Queries record for the operation: getSiteContainer
+
+type GetSiteContainerQueries record {
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+# Represents the Queries record for the operation: revertVersion
+
+type RevertVersionQueries record {
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+
+type ActionBodyExec record {
+    # The entity upon which to execute the action, typically a node ID or similar
+    string targetId?;
+    string actionDefinitionId;
+    record {|anydata...;|} params?;
+};
+
+# Represents the Queries record for the operation: createComment
+
+type CreateCommentQueries record {
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+# Represents the Queries record for the operation: getSite
+
+type GetSiteQueries record {
+    # Use the relations parameter to include one or more related entities in a single response
+    string[] relations?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+
+type GroupBodyCreate record {
+    string displayName;
+    string[] parentIds?;
+    string id;
+};
+
+
+type NodeBodyCreate record {
+    string[] aspectNames?;
+    PermissionsBody permissions?;
+    string relativePath?;
+    # The name must not contain spaces or the following special characters: * " < > \ / ? : and |.
+The character . must not be used at the end of the name
+    string name;
+    NodeBodyCreateAssociation association?;
+    ChildAssociationBody[] secondaryChildren?;
+    Definition definition?;
+    string nodeType;
+    AssociationBody[] targets?;
+    record {|anydata...;|} properties?;
+};
+
+
+type NodeBodyCreateAssociation record {
+    string assocType?;
+};
+
+
+type AssociationBody record {
+    string targetId;
+    string assocType;
+};
+
+# Represents the Queries record for the operation: findNodes
+
+type FindNodesQueries record {
+    # The maximum number of items to return in the list.
+If not supplied then the default value is 100
+    int maxItems?;
+    # Returns additional information about the node. The following optional fields can be requested:
+* allowableOperations
+* aspectNames
+* isLink
+* isFavorite
+* isLocked
+* path
+* properties
+    string[] include?;
+    # The id of the node to start the search from.
+
+Supports the aliases -my-, -root- and -shared-
+    string rootNodeId?;
+    # A string to control the order of the entities returned in a list. You can use the **orderBy** parameter to
+sort the list by one or more fields.
+
+Each field has a default sort order, which is normally ascending order. Read the API method implementation notes
+above to check if any fields used in this method have a descending default search order.
+
+To sort the entities in a specific order, you can use the **ASC** and **DESC** keywords for any field
+    string[] orderBy?;
+    # The term to search for
+    string term;
+    # Restrict the returned results to only those of the given node type and its sub-types
+    string nodeType?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+    # The number of entities that exist in the collection before those included in this list.
+If not supplied then the default value is 0
+    int skipCount?;
+};
+
+
+type SharedLinkBodyCreate record {
+    string nodeId;
+    string expiresAt?;
+};
+
+
+type RenditionPaging record {
+    RenditionPagingList list?;
+};
+
+
+type DeletedNodeAllOf2 record {
+    string archivedAt;
+    UserInfo archivedByUser;
+};
+
+# Represents the Queries record for the operation: updateSiteMembershipRequestForPerson
+
+type UpdateSiteMembershipRequestForPersonQueries record {
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+
+type SiteMembershipRequestBodyUpdate record {
+    string message?;
+};
+
+# Represents the Queries record for the operation: deleteSecondaryChildAssociation
+
+type DeleteSecondaryChildAssociationQueries record {
+    # Only delete associations of this type
+    string assocType?;
+};
+
+# Represents the Queries record for the operation: listGroupMemberships
+
+type ListGroupMembershipsQueries record {
+    # The maximum number of items to return in the list.
+If not supplied then the default value is 100
+    int maxItems?;
+    # A string to control the order of the entities returned in a list. You can use the **orderBy** parameter to
+sort the list by one or more fields.
+
+Each field has a default sort order, which is normally ascending order. Read the API method implementation notes
+above to check if any fields used in this method have a descending default search order.
+
+To sort the entities in a specific order, you can use the **ASC** and **DESC** keywords for any field
+    string[] orderBy?;
+    # A string to restrict the returned objects by using a predicate
+    string 'where?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+    # The number of entities that exist in the collection before those included in this list.
+If not supplied then the default value is 0
+    int skipCount?;
+};
+
+# Represents the Queries record for the operation: deleteAssociation
+
+type DeleteAssociationQueries record {
+    # Only delete associations of this type
+    string assocType?;
+};
+
+
+type SiteMembershipApprovalBody record {
+    string role?;
+};
+
+
+type ActionDefinitionEntry record {
+    ActionDefinition entry;
+};
+
+
+type VersionPagingList record {
+    VersionEntry[] entries?;
+    Pagination pagination?;
+};
+
+
+type DeletedNodesPagingList record {
+    DeletedNodeEntry[] entries?;
+    Pagination pagination?;
+};
+
+
+type DeletedNodeEntry record {
+    DeletedNode entry?;
+};
+
+
+type DeletedNode record {
+    boolean isLink?;
+    boolean isFile;
+    UserInfo createdByUser;
+    string modifiedAt;
+    string nodeType;
+    string parentId?;
+    ContentInfo content?;
+    string[] aspectNames?;
+    string createdAt;
+    PathInfo path?;
+    boolean isFolder;
+    PermissionsInfo permissions?;
+    boolean isLocked?;
+    UserInfo modifiedByUser;
+    string name;
+    Definition definition?;
+    string id;
+    record {|anydata...;|} properties?;
+    string[] allowableOperations?;
+    boolean isFavorite?;
+    string archivedAt;
+    UserInfo archivedByUser;
+};
+
+# Represents the Queries record for the operation: listSiteMembershipRequestsForPerson
+
+type ListSiteMembershipRequestsForPersonQueries record {
+    # The maximum number of items to return in the list.
+If not supplied then the default value is 100
+    int maxItems?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+    # The number of entities that exist in the collection before those included in this list.
+If not supplied then the default value is 0
+    int skipCount?;
+};
+
+# Represents the Queries record for the operation: createDownload
+
+type CreateDownloadQueries record {
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+
+type NodeChildAssociationPaging record {
+    NodeChildAssociationPagingList list?;
+};
+
+
+type CommentPagingList record {
+    CommentEntry[] entries;
+    Pagination pagination;
+};
+
+# Represents the Queries record for the operation: listVersionHistory
+
+type ListVersionHistoryQueries record {
+    # Returns additional information about the version node. The following optional fields can be requested:
+* properties
+* aspectNames
+    string[] include?;
+    # The maximum number of items to return in the list.
+If not supplied then the default value is 100
+    int maxItems?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+    # The number of entities that exist in the collection before those included in this list.
+If not supplied then the default value is 0
+    int skipCount?;
+};
+
+
+type ChildAssociationEntry record {
+    ChildAssociation entry;
+};
+
+
+type SiteMembershipRequestPagingList record {
+    SiteMembershipRequestEntry[] entries;
+    Pagination pagination;
+};
+
+# Represents the Queries record for the operation: updateGroup
+
+type UpdateGroupQueries record {
+    # Returns additional information about the group. The following optional fields can be requested:
+* parentIds
+* zones
+    string[] include?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+# Represents the Queries record for the operation: getRenditionContent
+
+type GetRenditionContentQueries record {
+    # **true** enables a web browser to download the file as an attachment.
+**false** means a web browser may preview the file in a new tab or window, but not
+download the file.
+
+You can only set this parameter to **false** if the content type of the file is in the supported list;
+for example, certain image files and PDF files.
+
+If the content type is not supported for preview, then a value of **false**  is ignored, and
+the attachment will be returned in the response
+    boolean attachment?;
+    # If **true** and there is no rendition for this **nodeId** and **renditionId**,
+then the placeholder image for the mime type of this rendition is returned, rather
+than a 404 response
+    boolean placeholder?;
+};
+
+# Represents the Headers record for the operation: getVersionContent
+
+type GetVersionContentHeaders record {
+    # Only returns the content if it has been modified since the date provided.
+Use the date format defined by HTTP. For example, `Wed, 09 Mar 2016 16:56:34 GMT`
+    string ifModifiedSince?;
+    # The Range header indicates the part of a document that the server should return.
+Single part request supported, for example: bytes=1-10
+    string range?;
+};
+
+# Represents the Queries record for the operation: createSiteGroupMembership
+
+type CreateSiteGroupMembershipQueries record {
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+
+type FavoritePaging record {
+    FavoritePagingList list;
+};
+
+# Represents the Queries record for the operation: getVersionRenditionContent
+
+type GetVersionRenditionContentQueries record {
+    # **true** enables a web browser to download the file as an attachment.
+**false** means a web browser may preview the file in a new tab or window, but not
+download the file.
+
+You can only set this parameter to **false** if the content type of the file is in the supported list;
+for example, certain image files and PDF files.
+
+If the content type is not supported for preview, then a value of **false**  is ignored, and
+the attachment will be returned in the response
+    boolean attachment?;
+    # If **true** and there is no rendition for this **nodeId** and **renditionId**,
+then the placeholder image for the mime type of this rendition is returned, rather
+than a 404 response
+    boolean placeholder?;
+};
+
+# Represents the Queries record for the operation: getFavoriteSite
+
+type GetFavoriteSiteQueries record {
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+# Represents the Queries record for the operation: listSiteMemberships
+
+type ListSiteMembershipsQueries record {
+    # The maximum number of items to return in the list.
+If not supplied then the default value is 100
+    int maxItems?;
+    # Optionally filter the list.
+*   ```where=(isMemberOfGroup=false|true)```
+    string 'where?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+    # The number of entities that exist in the collection before those included in this list.
+If not supplied then the default value is 0
+    int skipCount?;
+};
+
+# Represents the Queries record for the operation: getGroup
+
+type GetGroupQueries record {
+    # Returns additional information about the group. The following optional fields can be requested:
+* parentIds
+* zones
+    string[] include?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+# Represents the Queries record for the operation: updateComment
+
+type UpdateCommentQueries record {
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+
+type SiteBodyCreate record {
+    "PUBLIC"|"PRIVATE"|"MODERATED" visibility?;
+    string description?;
+    string id?;
+    string title;
+};
+
+# Represents the Queries record for the operation: getSharedLinkRenditionContent
+
+type GetSharedLinkRenditionContentQueries record {
+    # **true** enables a web browser to download the file as an attachment.
+**false** means a web browser may preview the file in a new tab or window, but not
+download the file.
+
+You can only set this parameter to **false** if the content type of the file is in the supported list;
+for example, certain image files and PDF files.
+
+If the content type is not supported for preview, then a value of **false**  is ignored, and
+the attachment will be returned in the response
+    boolean attachment?;
+};
+
+# Represents the Queries record for the operation: listTagsForNode
+
+type ListTagsForNodeQueries record {
+    # The maximum number of items to return in the list.
+If not supplied then the default value is 100
+    int maxItems?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+    # The number of entities that exist in the collection before those included in this list.
+If not supplied then the default value is 0
+    int skipCount?;
+};
+
+# Represents the Queries record for the operation: updateNode
+
+type UpdateNodeQueries record {
+    # Returns additional information about the node. The following optional fields can be requested:
+* allowableOperations
+* association
+* isLink
+* isFavorite
+* isLocked
+* path
+* permissions
+* definition
+    string[] include?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+
+type RatingBody record {
+    # The rating. The type is specific to the rating scheme, boolean for the likes and an integer for the fiveStar
+    string myRating;
+    # The rating scheme type. Possible values are likes and fiveStar
+    "likes"|"fiveStar" id?;
+};
+
+
+type SiteContainerPaging record {
+    SiteContainerPagingList list;
+};
+
+# Represents the Queries record for the operation: createGroup
+
+type CreateGroupQueries record {
+    # Returns additional information about the group. The following optional fields can be requested:
+* parentIds
+* zones
+    string[] include?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+# Represents the Queries record for the operation: getRating
+
+type GetRatingQueries record {
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+
+type AuditBodyUpdate record {
+    boolean isEnabled?;
+};
+
+# Represents the Queries record for the operation: listTargetAssociations
+
+type ListTargetAssociationsQueries record {
+    # Returns additional information about the node. The following optional fields can be requested:
+* allowableOperations
+* aspectNames
+* isLink
+* isFavorite
+* isLocked
+* path
+* properties
+    string[] include?;
+    # Optionally filter the list by **assocType**. Here's an example:
+
+*   ```where=(assocType='my:specialAssocType')```
+    string 'where?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+
+type DeletedNodeBodyRestore record {
+    string targetParentId?;
+    string assocType?;
+};
+
+
+type PersonPaging record {
+    PersonPagingList list?;
+};
+
+
+type PersonBodyCreate record {
+    string googleId?;
+    string lastName?;
+    string userStatus?;
+    string jobTitle?;
+    string mobile?;
+    boolean emailNotificationsEnabled?;
+    string description?;
+    string telephone?;
+    boolean enabled?;
+    string[] aspectNames?;
+    string firstName;
+    string skypeId?;
+    string password;
+    string instantMessageId?;
+    string location?;
+    Company company?;
+    string id;
+    string email;
+    record {|anydata...;|} properties?;
+};
+
+# Represents the Queries record for the operation: getPerson
+
+type GetPersonQueries record {
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+# Represents the Queries record for the operation: listGroupMembershipsForPerson
+
+type ListGroupMembershipsForPersonQueries record {
+    # The maximum number of items to return in the list.
+If not supplied then the default value is 100
+    int maxItems?;
+    # Returns additional information about the group. The following optional fields can be requested:
+* parentIds
+* zones
+    string[] include?;
+    # A string to control the order of the entities returned in a list. You can use the **orderBy** parameter to
+sort the list by one or more fields.
+
+Each field has a default sort order, which is normally ascending order. Read the API method implementation notes
+above to check if any fields used in this method have a descending default search order.
+
+To sort the entities in a specific order, you can use the **ASC** and **DESC** keywords for any field
+    string[] orderBy?;
+    # A string to restrict the returned objects by using a predicate
+    string 'where?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+    # The number of entities that exist in the collection before those included in this list.
+If not supplied then the default value is 0
+    int skipCount?;
+};
+
+# Represents the Headers record for the operation: getSharedLinkRenditionContent
+
+type GetSharedLinkRenditionContentHeaders record {
+    # Only returns the content if it has been modified since the date provided.
+Use the date format defined by HTTP. For example, `Wed, 09 Mar 2016 16:56:34 GMT`
+    string ifModifiedSince?;
+    # The Range header indicates the part of a document that the server should return.
+Single part request supported, for example: bytes=1-10
+    string range?;
+};
+
+# Represents the Queries record for the operation: listDeletedNodes
+
+type ListDeletedNodesQueries record {
+    # The maximum number of items to return in the list.
+If not supplied then the default value is 100
+    int maxItems?;
+    # Returns additional information about the node. The following optional fields can be requested:
+* allowableOperations
+* aspectNames
+* association
+* isLink
+* isFavorite
+* isLocked
+* path
+* properties
+* permissions
+    string[] include?;
+    # The number of entities that exist in the collection before those included in this list.
+If not supplied then the default value is 0
+    int skipCount?;
+};
+
+# Represents the Queries record for the operation: deleteNode
+
+type DeleteNodeQueries record {
+    # If **true** then the node is deleted permanently, without moving to the trashcan.
+Only the owner of the node or an admin can permanently delete the node
+    boolean permanent?;
+};
+
+
+type DownloadBodyCreate record {
+    string[] nodeIds;
+};
+
+# Represents the Queries record for the operation: updateSite
+
+type UpdateSiteQueries record {
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+
+type PersonBodyUpdate record {
+    string googleId?;
+    string lastName?;
+    string userStatus?;
+    string oldPassword?;
+    string jobTitle?;
+    string mobile?;
+    boolean emailNotificationsEnabled?;
+    string description?;
+    string telephone?;
+    boolean enabled?;
+    string[] aspectNames?;
+    string firstName?;
+    string skypeId?;
+    string password?;
+    string instantMessageId?;
+    string location?;
+    Company company?;
+    string email?;
+    record {|anydata...;|} properties?;
+};
+
+# Represents the Queries record for the operation: createSharedLink
+
+type CreateSharedLinkQueries record {
+    # Returns additional information about the shared link, the following optional fields can be requested:
+* allowableOperations
+* path
+* properties
+* isFavorite
+* aspectNames
+    string[] include?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+
+type CommentPaging record {
+    CommentPagingList list;
+};
+
+# Represents the Queries record for the operation: listSharedLinks
+
+type ListSharedLinksQueries record {
+    # The maximum number of items to return in the list.
+If not supplied then the default value is 100
+    int maxItems?;
+    # Returns additional information about the shared link, the following optional fields can be requested:
+* allowableOperations
+* path
+* properties
+* isFavorite
+* aspectNames
+    string[] include?;
+    # Optionally filter the list by "sharedByUser" userid of person who shared the link (can also use -me-)
+
+*   ```where=(sharedByUser='jbloggs')```
+
+*   ```where=(sharedByUser='-me-')```
+    string 'where?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+    # The number of entities that exist in the collection before those included in this list.
+If not supplied then the default value is 0
+    int skipCount?;
+};
+
+# Represents the Queries record for the operation: deleteSite
+
+type DeleteSiteQueries record {
+    # Flag to indicate whether the site should be permanently deleted i.e. bypass the trashcan
+    boolean permanent?;
+};
+
+# Represents the Queries record for the operation: createPerson
+
+type CreatePersonQueries record {
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+# Represents the Queries record for the operation: getSiteGroupMembership
+
+type GetSiteGroupMembershipQueries record {
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+
+type AuditAppPaging record {
+    AuditAppPagingList list?;
+};
+
+
+type AuditAppPagingList record {
+    AuditAppEntry[] entries?;
+    Pagination pagination?;
+};
+
+# Represents the Queries record for the operation: listRenditions
+
+type ListRenditionsQueries record {
+    # A string to restrict the returned objects by using a predicate
+    string 'where?;
+};
+
+
+type SiteMemberPaging record {
+    SiteMemberPagingList list;
+};
+
+# Represents the Queries record for the operation: listFavoriteSitesForPerson
+
+type ListFavoriteSitesForPersonQueries record {
+    # The maximum number of items to return in the list.
+If not supplied then the default value is 100
+    int maxItems?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+    # The number of entities that exist in the collection before those included in this list.
+If not supplied then the default value is 0
+    int skipCount?;
+};
+
+
+type SiteMembershipRequestPaging record {
+    SiteMembershipRequestPagingList list;
+};
+
+# Represents the Queries record for the operation: getAuditEntry
+
+type GetAuditEntryQueries record {
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+
+type DeletedNodesPaging record {
+    DeletedNodesPagingList list?;
+};
+
+# Represents the Headers record for the operation: getRenditionContent
+
+type GetRenditionContentHeaders record {
+    # Only returns the content if it has been modified since the date provided.
+Use the date format defined by HTTP. For example, `Wed, 09 Mar 2016 16:56:34 GMT`
+    string ifModifiedSince?;
+    # The Range header indicates the part of a document that the server should return.
+Single part request supported, for example: bytes=1-10
+    string range?;
+};
+
+# Represents the Queries record for the operation: getNetworkForPerson
+
+type GetNetworkForPersonQueries record {
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+# Represents the Headers record for the operation: getArchivedNodeRenditionContent
+
+type GetArchivedNodeRenditionContentHeaders record {
+    # Only returns the content if it has been modified since the date provided.
+Use the date format defined by HTTP. For example, `Wed, 09 Mar 2016 16:56:34 GMT`
+    string ifModifiedSince?;
+    # The Range header indicates the part of a document that the server should return.
+Single part request supported, for example: bytes=1-10
+    string range?;
+};
+
+# Represents the Queries record for the operation: createAssociation
+
+type CreateAssociationQueries record {
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+# Represents the Queries record for the operation: listAuditEntriesForAuditApp
+
+type ListAuditEntriesForAuditAppQueries record {
+    # The maximum number of items to return in the list.
+If not supplied then the default value is 100
+    int maxItems?;
+    # Returns additional information about the audit entry. The following optional fields can be requested:
+* values
+    string[] include?;
+    # A boolean to control if the response provides the total numbers of items in the collection.
+If not supplied then the default value is false
+    boolean omitTotalItems?;
+    # A string to control the order of the entities returned in a list. You can use the **orderBy** parameter to
+sort the list by one or more fields.
+
+Each field has a default sort order, which is normally ascending order. Read the API method implementation notes
+above to check if any fields used in this method have a descending default search order.
+
+To sort the entities in a specific order, you can use the **ASC** and **DESC** keywords for any field
+    string[] orderBy?;
+    # Optionally filter the list. Here are some examples:
+
+*   ```where=(createdByUser='jbloggs')```
+
+*   ```where=(id BETWEEN ('1234', '4321')```
+
+*   ```where=(createdAt BETWEEN ('2017-06-02T12:13:51.593+01:00' , '2017-06-04T10:05:16.536+01:00')```
+
+*   ```where=(createdByUser='jbloggs' and createdAt BETWEEN ('2017-06-02T12:13:51.593+01:00' , '2017-06-04T10:05:16.536+01:00')```
+
+*   ```where=(valuesKey='/alfresco-access/login/user')```
+
+*   ```where=(valuesKey='/alfresco-access/transaction/action' and valuesValue='DELETE')```
+    string 'where?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+    # The number of entities that exist in the collection before those included in this list.
+If not supplied then the default value is 0
+    int skipCount?;
+};
+
+
+type SiteBodyUpdate record {
+    "PRIVATE"|"MODERATED"|"PUBLIC" visibility?;
+    string description?;
+    string title?;
+};
+
+
+type RevertBody record {
+    string comment?;
+    boolean majorVersion?;
+};
+
+# Represents the Queries record for the operation: listFavorites
+
+type ListFavoritesQueries record {
+    # The maximum number of items to return in the list.
+If not supplied then the default value is 100
+    int maxItems?;
+    # Returns additional information about favorites, the following optional fields can be requested:
+* path (note, this only applies to files and folders)
+* properties
+    string[] include?;
+    # A string to control the order of the entities returned in a list. You can use the **orderBy** parameter to
+sort the list by one or more fields.
+
+Each field has a default sort order, which is normally ascending order. Read the API method implementation notes
+above to check if any fields used in this method have a descending default search order.
+
+To sort the entities in a specific order, you can use the **ASC** and **DESC** keywords for any field
+    string[] orderBy?;
+    # A string to restrict the returned objects by using a predicate
+    string 'where?;
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+    # The number of entities that exist in the collection before those included in this list.
+If not supplied then the default value is 0
+    int skipCount?;
+};
+
+# Represents the Queries record for the operation: updateSiteGroupMembership
+
+type UpdateSiteGroupMembershipQueries record {
+    # A list of field names.
+
+You can use this parameter to restrict the fields
+returned within a response if, for example, you want to save on overall bandwidth.
+
+The list applies to a returned individual
+entity or entries within a collection.
+
+If the API method also supports the **include**
+parameter, then the fields specified in the **include**
+parameter are returned in addition to those specified in the **fields** parameter
+    string[] fields?;
+};
+
+
+type VersionPaging record {
+    VersionPagingList list?;
+};
+
+
+type RatingPaging record {
+    RatingPagingList list;
+};
+
+# Represents the Headers record for the operation: getVersionRenditionContent
+
+type GetVersionRenditionContentHeaders record {
+    # Only returns the content if it has been modified since the date provided.
+Use the date format defined by HTTP. For example, `Wed, 09 Mar 2016 16:56:34 GMT`
+    string ifModifiedSince?;
+    # The Range header indicates the part of a document that the server should return.
+Single part request supported, for example: bytes=1-10
+    string range?;
+};
+
+// --- Client ---
+
+# **Core API**
+# 
+# Provides access to the core features of Alfresco Content Services.
+client class Client {
+    function init(ConnectionConfig config, string serviceUrl) returns error?;
+
+    # List comments
+    # 
+    remote function listComments(string nodeId, map<string|string[]> headers = {}, int maxItems = 0, string[] fields = [], int skipCount = 0, anydata Additional Values, ListCommentsQueries queries) returns CommentPaging|error;
+
+    # Create a comment
+    # 
+    remote function createComment(string nodeId, CommentBody payload, map<string|string[]> headers = {}, string[] fields = [], anydata Additional Values, CreateCommentQueries queries) returns CommentEntry|error;
+
+    # Update a comment
+    # 
+    remote function updateComment(string nodeId, string commentId, CommentBody payload, map<string|string[]> headers = {}, string[] fields = [], anydata Additional Values, UpdateCommentQueries queries) returns CommentEntry|error;
+
+    # Delete a comment
+    # 
+    remote function deleteComment(string nodeId, string commentId, map<string|string[]> headers = {}) returns error?;
+
+    # List ratings
+    # 
+    remote function listRatings(string nodeId, map<string|string[]> headers = {}, int maxItems = 0, string[] fields = [], int skipCount = 0, anydata Additional Values, ListRatingsQueries queries) returns RatingPaging|error;
+
+    # Create a rating
+    # 
+    remote function createRating(string nodeId, RatingBody payload, map<string|string[]> headers = {}, string[] fields = [], anydata Additional Values, CreateRatingQueries queries) returns RatingEntry|error;
+
+    # Get a rating
+    # 
+    remote function getRating(string nodeId, string ratingId, map<string|string[]> headers = {}, string[] fields = [], anydata Additional Values, GetRatingQueries queries) returns RatingEntry|error;
+
+    # Delete a rating
+    # 
+    remote function deleteRating(string nodeId, string ratingId, map<string|string[]> headers = {}) returns error?;
+
+    # List tags for a node
+    # 
+    remote function listTagsForNode(string nodeId, map<string|string[]> headers = {}, int maxItems = 0, string[] fields = [], int skipCount = 0, anydata Additional Values, ListTagsForNodeQueries queries) returns TagPaging|error;
+
+    # Create a tag for a node
+    # 
+    remote function createTagForNode(string nodeId, TagBody payload, map<string|string[]> headers = {}, string[] fields = [], anydata Additional Values, CreateTagForNodeQueries queries) returns TagEntry|error;
+
+    # Delete a tag from a node
+    # 
+    remote function deleteTagFromNode(string nodeId, string tagId, map<string|string[]> headers = {}) returns error?;
+
+    # Get a node
+    # 
+    remote function getNode(string nodeId, map<string|string[]> headers = {}, string[] include = [], string relativePath = "", string[] fields = [], anydata Additional Values, GetNodeQueries queries) returns NodeEntry|error;
+
+    # Update a node
+    # 
+    remote function updateNode(string nodeId, NodeBodyUpdate payload, map<string|string[]> headers = {}, string[] include = [], string[] fields = [], anydata Additional Values, UpdateNodeQueries queries) returns NodeEntry|error;
+
+    # Delete a node
+    # 
+    remote function deleteNode(string nodeId, map<string|string[]> headers = {}, boolean permanent = false, anydata Additional Values, DeleteNodeQueries queries) returns error?;
+
+    # List node children
+    # 
+    remote function listNodeChildren(string nodeId, map<string|string[]> headers = {}, int maxItems = 0, string[] include = [], boolean includeSource = false, string relativePath = "", string[] orderBy = [], string where = "", string[] fields = [], int skipCount = 0, anydata Additional Values, ListNodeChildrenQueries queries) returns NodeChildAssociationPaging|error;
+
+    # Create a node
+    # 
+    remote function createNode(string nodeId, NodeBodyCreate payload, map<string|string[]> headers = {}, string[] include = [], boolean versioningEnabled = false, boolean autoRename = false, boolean majorVersion = false, string[] fields = [], anydata Additional Values, CreateNodeQueries queries) returns NodeEntry|error;
+
+    # Copy a node
+    # 
+    remote function copyNode(string nodeId, NodeBodyCopy payload, map<string|string[]> headers = {}, string[] include = [], string[] fields = [], anydata Additional Values, CopyNodeQueries queries) returns NodeEntry|error;
+
+    # Lock a node
+    # 
+    remote function lockNode(string nodeId, NodeBodyLock payload, map<string|string[]> headers = {}, string[] include = [], string[] fields = [], anydata Additional Values, LockNodeQueries queries) returns NodeEntry|error;
+
+    # Unlock a node
+    # 
+    remote function unlockNode(string nodeId, map<string|string[]> headers = {}, string[] include = [], string[] fields = [], anydata Additional Values, UnlockNodeQueries queries) returns NodeEntry|error;
+
+    # Move a node
+    # 
+    remote function moveNode(string nodeId, NodeBodyMove payload, map<string|string[]> headers = {}, string[] include = [], string[] fields = [], anydata Additional Values, MoveNodeQueries queries) returns NodeEntry|error;
+
+    # Get node content
+    # 
+    remote function getNodeContent(string nodeId, GetNodeContentHeaders headers = {}, boolean attachment = false, anydata Additional Values, GetNodeContentQueries queries) returns byte[]|error?;
+
+    # Update node content
+    # 
+    remote function updateNodeContent(string nodeId, byte[] payload, map<string|string[]> headers = {}, string[] include = [], string name = "", string comment = "", boolean majorVersion = false, string[] fields = [], anydata Additional Values, UpdateNodeContentQueries queries) returns NodeEntry|error;
+
+    # List renditions
+    # 
+    remote function listRenditions(string nodeId, map<string|string[]> headers = {}, string where = "", anydata Additional Values, ListRenditionsQueries queries) returns RenditionPaging|error;
+
+    # Create rendition
+    # 
+    remote function createRendition(string nodeId, RenditionBodyCreate payload, map<string|string[]> headers = {}) returns error?;
+
+    # Get rendition information
+    # 
+    remote function getRendition(string nodeId, string renditionId, map<string|string[]> headers = {}) returns RenditionEntry|error;
+
+    # Get rendition content
+    # 
+    remote function getRenditionContent(string nodeId, string renditionId, GetRenditionContentHeaders headers = {}, boolean attachment = false, boolean placeholder = false, anydata Additional Values, GetRenditionContentQueries queries) returns byte[]|error?;
+
+    # List secondary children
+    # 
+    remote function listSecondaryChildren(string nodeId, map<string|string[]> headers = {}, string[] include = [], int maxItems = 0, boolean includeSource = false, string where = "", string[] fields = [], int skipCount = 0, anydata Additional Values, ListSecondaryChildrenQueries queries) returns NodeChildAssociationPaging|error;
+
+    # Create secondary child
+    # 
+    remote function createSecondaryChildAssociation(string nodeId, ChildAssociationBody payload, map<string|string[]> headers = {}, string[] fields = [], anydata Additional Values, CreateSecondaryChildAssociationQueries queries) returns ChildAssociationEntry|error;
+
+    # Delete secondary child or children
+    # 
+    remote function deleteSecondaryChildAssociation(string nodeId, string childId, map<string|string[]> headers = {}, string assocType = "", anydata Additional Values, DeleteSecondaryChildAssociationQueries queries) returns error?;
+
+    # List parents
+    # 
+    remote function listParents(string nodeId, map<string|string[]> headers = {}, string[] include = [], int maxItems = 0, boolean includeSource = false, string where = "", string[] fields = [], int skipCount = 0, anydata Additional Values, ListParentsQueries queries) returns NodeAssociationPaging|error;
+
+    # List target associations
+    # 
+    remote function listTargetAssociations(string nodeId, map<string|string[]> headers = {}, string[] include = [], string where = "", string[] fields = [], anydata Additional Values, ListTargetAssociationsQueries queries) returns NodeAssociationPaging|error;
+
+    # Create node association
+    # 
+    remote function createAssociation(string nodeId, AssociationBody payload, map<string|string[]> headers = {}, string[] fields = [], anydata Additional Values, CreateAssociationQueries queries) returns AssociationEntry|error;
+
+    # Delete node association(s)
+    # 
+    remote function deleteAssociation(string nodeId, string targetId, map<string|string[]> headers = {}, string assocType = "", anydata Additional Values, DeleteAssociationQueries queries) returns error?;
+
+    # List source associations
+    # 
+    remote function listSourceAssociations(string nodeId, map<string|string[]> headers = {}, string[] include = [], string where = "", string[] fields = [], anydata Additional Values, ListSourceAssociationsQueries queries) returns NodeAssociationPaging|error;
+
+    # List version history
+    # 
+    remote function listVersionHistory(string nodeId, map<string|string[]> headers = {}, string[] include = [], int maxItems = 0, string[] fields = [], int skipCount = 0, anydata Additional Values, ListVersionHistoryQueries queries) returns VersionPaging|error;
+
+    # Get version information
+    # 
+    remote function getVersion(string nodeId, string versionId, map<string|string[]> headers = {}) returns VersionEntry|error;
+
+    # Delete a version
+    # 
+    remote function deleteVersion(string nodeId, string versionId, map<string|string[]> headers = {}) returns error?;
+
+    # Get version content
+    # 
+    remote function getVersionContent(string nodeId, string versionId, GetVersionContentHeaders headers = {}, boolean attachment = false, anydata Additional Values, GetVersionContentQueries queries) returns byte[]|error?;
+
+    # Revert a version
+    # 
+    remote function revertVersion(string nodeId, string versionId, RevertBody payload, map<string|string[]> headers = {}, string[] fields = [], anydata Additional Values, RevertVersionQueries queries) returns VersionEntry|error;
+
+    # List renditions for a file version
+    # 
+    remote function listVersionRenditions(string nodeId, string versionId, map<string|string[]> headers = {}, string where = "", anydata Additional Values, ListVersionRenditionsQueries queries) returns RenditionPaging|error;
+
+    # Create rendition for a file version
+    # 
+    remote function createVersionRendition(string nodeId, string versionId, RenditionBodyCreate payload, map<string|string[]> headers = {}) returns error?;
+
+    # Get rendition information for a file version
+    # 
+    remote function getVersionRendition(string nodeId, string versionId, string renditionId, map<string|string[]> headers = {}) returns RenditionEntry|error;
+
+    # Get rendition content for a file version
+    # 
+    remote function getVersionRenditionContent(string nodeId, string versionId, string renditionId, GetVersionRenditionContentHeaders headers = {}, boolean attachment = false, boolean placeholder = false, anydata Additional Values, GetVersionRenditionContentQueries queries) returns byte[]|error?;
+
+    # Retrieve actions for a node
+    # 
+    remote function nodeActions(string nodeId, map<string|string[]> headers = {}, int maxItems = 0, string[] orderBy = [], string[] fields = [], int skipCount = 0, anydata Additional Values, NodeActionsQueries queries) returns ActionDefinitionList|error;
+
+    # List deleted nodes
+    # 
+    remote function listDeletedNodes(map<string|string[]> headers = {}, int maxItems = 0, string[] include = [], int skipCount = 0, anydata Additional Values, ListDeletedNodesQueries queries) returns DeletedNodesPaging|error;
+
+    # Get a deleted node
+    # 
+    remote function getDeletedNode(string nodeId, map<string|string[]> headers = {}, string[] include = [], anydata Additional Values, GetDeletedNodeQueries queries) returns DeletedNodeEntry|error;
+
+    # Permanently delete a deleted node
+    # 
+    remote function deleteDeletedNode(string nodeId, map<string|string[]> headers = {}) returns error?;
+
+    # Get deleted node content
+    # 
+    remote function getDeletedNodeContent(string nodeId, GetDeletedNodeContentHeaders headers = {}, boolean attachment = false, anydata Additional Values, GetDeletedNodeContentQueries queries) returns byte[]|error?;
+
+    # Restore a deleted node
+    # 
+    remote function restoreDeletedNode(string nodeId, DeletedNodeBodyRestore payload, map<string|string[]> headers = {}, string[] fields = [], anydata Additional Values, RestoreDeletedNodeQueries queries) returns NodeEntry|error;
+
+    # List renditions for a deleted node
+    # 
+    remote function listDeletedNodeRenditions(string nodeId, map<string|string[]> headers = {}, string where = "", anydata Additional Values, ListDeletedNodeRenditionsQueries queries) returns RenditionPaging|error;
+
+    # Get rendition information for a deleted node
+    # 
+    remote function getArchivedNodeRendition(string nodeId, string renditionId, map<string|string[]> headers = {}) returns RenditionEntry|error;
+
+    # Get rendition content of a deleted node
+    # 
+    remote function getArchivedNodeRenditionContent(string nodeId, string renditionId, GetArchivedNodeRenditionContentHeaders headers = {}, boolean attachment = false, boolean placeholder = false, anydata Additional Values, GetArchivedNodeRenditionContentQueries queries) returns byte[]|error?;
+
+    # Create a new download
+    # 
+    remote function createDownload(DownloadBodyCreate payload, map<string|string[]> headers = {}, string[] fields = [], anydata Additional Values, CreateDownloadQueries queries) returns DownloadEntry|error;
+
+    # Get a download
+    # 
+    remote function getDownload(string downloadId, map<string|string[]> headers = {}, string[] fields = [], anydata Additional Values, GetDownloadQueries queries) returns DownloadEntry|error;
+
+    # Cancel a download
+    # 
+    remote function cancelDownload(string downloadId, map<string|string[]> headers = {}) returns error?;
+
+    # List people
+    # 
+    remote function listPeople(map<string|string[]> headers = {}, int maxItems = 0, string[] include = [], string[] orderBy = [], string[] fields = [], int skipCount = 0, anydata Additional Values, ListPeopleQueries queries) returns PersonPaging|error;
+
+    # Create person
+    # 
+    remote function createPerson(PersonBodyCreate payload, map<string|string[]> headers = {}, string[] fields = [], anydata Additional Values, CreatePersonQueries queries) returns PersonEntry|error;
+
+    # Get a person
+    # 
+    remote function getPerson(string personId, map<string|string[]> headers = {}, string[] fields = [], anydata Additional Values, GetPersonQueries queries) returns PersonEntry|error;
+
+    # Update person
+    # 
+    remote function updatePerson(string personId, PersonBodyUpdate payload, map<string|string[]> headers = {}, string[] fields = [], anydata Additional Values, UpdatePersonQueries queries) returns PersonEntry|error;
+
+    # List activities
+    # 
+    remote function listActivitiesForPerson(string personId, map<string|string[]> headers = {}, int maxItems = 0, string siteId = "", string[] fields = [], int skipCount = 0, string who = "", anydata Additional Values, ListActivitiesForPersonQueries queries) returns ActivityPaging|error;
+
+    # List favorite sites
+    # 
+    @deprecated
+    remote function listFavoriteSitesForPerson(string personId, map<string|string[]> headers = {}, int maxItems = 0, string[] fields = [], int skipCount = 0, anydata Additional Values, ListFavoriteSitesForPersonQueries queries) returns SitePaging|error;
+
+    # Create a site favorite
+    # 
+    @deprecated
+    remote function createSiteFavorite(string personId, FavoriteSiteBodyCreate payload, map<string|string[]> headers = {}, string[] fields = [], anydata Additional Values, CreateSiteFavoriteQueries queries) returns FavoriteSiteEntry|error;
+
+    # Get a favorite site
+    # 
+    @deprecated
+    remote function getFavoriteSite(string personId, string siteId, map<string|string[]> headers = {}, string[] fields = [], anydata Additional Values, GetFavoriteSiteQueries queries) returns SiteEntry|error;
+
+    # Delete a site favorite
+    # 
+    @deprecated
+    remote function deleteSiteFavorite(string personId, string siteId, map<string|string[]> headers = {}) returns error?;
+
+    # List favorites
+    # 
+    remote function listFavorites(string personId, map<string|string[]> headers = {}, int maxItems = 0, string[] include = [], string[] orderBy = [], string where = "", string[] fields = [], int skipCount = 0, anydata Additional Values, ListFavoritesQueries queries) returns FavoritePaging|error;
+
+    # Create a favorite
+    # 
+    remote function createFavorite(string personId, FavoriteBodyCreate payload, map<string|string[]> headers = {}, string[] include = [], string[] fields = [], anydata Additional Values, CreateFavoriteQueries queries) returns FavoriteEntry|error;
+
+    # Get a favorite
+    # 
+    remote function getFavorite(string personId, string favoriteId, map<string|string[]> headers = {}, string[] include = [], string[] fields = [], anydata Additional Values, GetFavoriteQueries queries) returns FavoriteEntry|error;
+
+    # Delete a favorite
+    # 
+    remote function deleteFavorite(string personId, string favoriteId, map<string|string[]> headers = {}) returns error?;
+
+    # List network membership
+    # 
+    remote function listNetworksForPerson(string personId, map<string|string[]> headers = {}, int maxItems = 0, string[] fields = [], int skipCount = 0, anydata Additional Values, ListNetworksForPersonQueries queries) returns PersonNetworkPaging|error;
+
+    # Get network information
+    # 
+    remote function getNetworkForPerson(string personId, string networkId, map<string|string[]> headers = {}, string[] fields = [], anydata Additional Values, GetNetworkForPersonQueries queries) returns PersonNetworkEntry|error;
+
+    # List preferences
+    # 
+    remote function listPreferences(string personId, map<string|string[]> headers = {}, int maxItems = 0, string[] fields = [], int skipCount = 0, anydata Additional Values, ListPreferencesQueries queries) returns PreferencePaging|error;
+
+    # Get a preference
+    # 
+    remote function getPreference(string personId, string preferenceName, map<string|string[]> headers = {}, string[] fields = [], anydata Additional Values, GetPreferenceQueries queries) returns PreferenceEntry|error;
+
+    # List site membership requests
+    # 
+    remote function listSiteMembershipRequestsForPerson(string personId, map<string|string[]> headers = {}, int maxItems = 0, string[] fields = [], int skipCount = 0, anydata Additional Values, ListSiteMembershipRequestsForPersonQueries queries) returns SiteMembershipRequestPaging|error;
+
+    # Create a site membership request
+    # 
+    remote function createSiteMembershipRequestForPerson(string personId, SiteMembershipRequestBodyCreate payload, map<string|string[]> headers = {}, string[] fields = [], anydata Additional Values, CreateSiteMembershipRequestForPersonQueries queries) returns SiteMembershipRequestEntry|error;
+
+    # Get a site membership request
+    # 
+    remote function getSiteMembershipRequestForPerson(string personId, string siteId, map<string|string[]> headers = {}, string[] fields = [], anydata Additional Values, GetSiteMembershipRequestForPersonQueries queries) returns SiteMembershipRequestEntry|error;
+
+    # Update a site membership request
+    # 
+    remote function updateSiteMembershipRequestForPerson(string personId, string siteId, SiteMembershipRequestBodyUpdate payload, map<string|string[]> headers = {}, string[] fields = [], anydata Additional Values, UpdateSiteMembershipRequestForPersonQueries queries) returns SiteMembershipRequestEntry|error;
+
+    # Delete a site membership request
+    # 
+    remote function deleteSiteMembershipRequestForPerson(string personId, string siteId, map<string|string[]> headers = {}) returns error?;
+
+    # List site memberships
+    # 
+    remote function listSiteMembershipsForPerson(string personId, map<string|string[]> headers = {}, int maxItems = 0, string[] orderBy = [], string where = "", string[] relations = [], string[] fields = [], int skipCount = 0, anydata Additional Values, ListSiteMembershipsForPersonQueries queries) returns SiteRolePaging|error;
+
+    # Get a site membership
+    # 
+    remote function getSiteMembershipForPerson(string personId, string siteId, map<string|string[]> headers = {}) returns SiteRoleEntry|error;
+
+    # Delete a site membership
+    # 
+    remote function deleteSiteMembershipForPerson(string personId, string siteId, map<string|string[]> headers = {}) returns error?;
+
+    # List group memberships
+    # 
+    remote function listGroupMembershipsForPerson(string personId, map<string|string[]> headers = {}, int maxItems = 0, string[] include = [], string[] orderBy = [], string where = "", string[] fields = [], int skipCount = 0, anydata Additional Values, ListGroupMembershipsForPersonQueries queries) returns GroupPaging|error;
+
+    # Request password reset
+    # 
+    remote function requestPasswordReset(string personId, ClientBody payload, map<string|string[]> headers = {}) returns error?;
+
+    # Reset password
+    # 
+    remote function resetPassword(string personId, PasswordResetBody payload, map<string|string[]> headers = {}) returns error?;
+
+    # Get avatar image
+    # 
+    remote function getAvatarImage(string personId, GetAvatarImageHeaders headers = {}, boolean attachment = false, boolean placeholder = false, anydata Additional Values, GetAvatarImageQueries queries) returns byte[]|error;
+
+    # Update avatar image
+    # 
+    remote function updateAvatarImage(string personId, byte[] payload, map<string|string[]> headers = {}) returns error?;
+
+    # Delete avatar image
+    # 
+    remote function deleteAvatarImage(string personId, map<string|string[]> headers = {}) returns error?;
+
+    # List sites
+    # 
+    remote function listSites(map<string|string[]> headers = {}, int maxItems = 0, string[] orderBy = [], string where = "", string[] relations = [], string[] fields = [], int skipCount = 0, anydata Additional Values, ListSitesQueries queries) returns SitePaging|error;
+
+    # Create a site
+    # 
+    remote function createSite(SiteBodyCreate payload, map<string|string[]> headers = {}, boolean skipAddToFavorites = false, boolean skipConfiguration = false, string[] fields = [], anydata Additional Values, CreateSiteQueries queries) returns SiteEntry|error;
+
+    # Get a site
+    # 
+    remote function getSite(string siteId, map<string|string[]> headers = {}, string[] relations = [], string[] fields = [], anydata Additional Values, GetSiteQueries queries) returns SiteEntry|error;
+
+    # Update a site
+    # 
+    remote function updateSite(string siteId, SiteBodyUpdate payload, map<string|string[]> headers = {}, string[] fields = [], anydata Additional Values, UpdateSiteQueries queries) returns SiteEntry|error;
+
+    # Delete a site
+    # 
+    remote function deleteSite(string siteId, map<string|string[]> headers = {}, boolean permanent = false, anydata Additional Values, DeleteSiteQueries queries) returns error?;
+
+    # List site containers
+    # 
+    remote function listSiteContainers(string siteId, map<string|string[]> headers = {}, int maxItems = 0, string[] fields = [], int skipCount = 0, anydata Additional Values, ListSiteContainersQueries queries) returns SiteContainerPaging|error;
+
+    # Get a site container
+    # 
+    remote function getSiteContainer(string siteId, string containerId, map<string|string[]> headers = {}, string[] fields = [], anydata Additional Values, GetSiteContainerQueries queries) returns SiteContainerEntry|error;
+
+    # Get site membership requests
+    # 
+    remote function getSiteMembershipRequests(map<string|string[]> headers = {}, int maxItems = 0, string where = "", string[] fields = [], int skipCount = 0, anydata Additional Values, GetSiteMembershipRequestsQueries queries) returns SiteMembershipRequestWithPersonPaging|error;
+
+    # Approve a site membership request
+    # 
+    remote function approveSiteMembershipRequest(string siteId, string inviteeId, SiteMembershipApprovalBody payload, map<string|string[]> headers = {}) returns error?;
+
+    # Reject a site membership request
+    # 
+    remote function rejectSiteMembershipRequest(string siteId, string inviteeId, SiteMembershipRejectionBody payload, map<string|string[]> headers = {}) returns error?;
+
+    # List site memberships
+    # 
+    remote function listSiteMemberships(string siteId, map<string|string[]> headers = {}, int maxItems = 0, string where = "", string[] fields = [], int skipCount = 0, anydata Additional Values, ListSiteMembershipsQueries queries) returns SiteMemberPaging|error;
+
+    # Create a site membership
+    # 
+    remote function createSiteMembership(string siteId, SiteMembershipBodyCreate payload, map<string|string[]> headers = {}, string[] fields = [], anydata Additional Values, CreateSiteMembershipQueries queries) returns SiteMemberEntry|error;
+
+    # Get a site membership
+    # 
+    remote function getSiteMembership(string siteId, string personId, map<string|string[]> headers = {}, string[] fields = [], anydata Additional Values, GetSiteMembershipQueries queries) returns SiteMemberEntry|error;
+
+    # Update a site membership
+    # 
+    remote function updateSiteMembership(string siteId, string personId, SiteMembershipBodyUpdate payload, map<string|string[]> headers = {}, string[] fields = [], anydata Additional Values, UpdateSiteMembershipQueries queries) returns SiteMemberEntry|error;
+
+    # Delete a site membership
+    # 
+    remote function deleteSiteMembership(string siteId, string personId, map<string|string[]> headers = {}) returns error?;
+
+    # List group membership for site
+    # 
+    remote function listSiteGroups(string siteId, map<string|string[]> headers = {}, int maxItems = 0, string[] fields = [], int skipCount = 0, anydata Additional Values, ListSiteGroupsQueries queries) returns SiteGroupPaging|error;
+
+    # Create a site membership for group
+    # 
+    remote function createSiteGroupMembership(string siteId, SiteMembershipBodyCreate payload, map<string|string[]> headers = {}, string[] fields = [], anydata Additional Values, CreateSiteGroupMembershipQueries queries) returns SiteGroupEntry|error;
+
+    # Get information about site membership of group
+    # 
+    remote function getSiteGroupMembership(string siteId, string groupId, map<string|string[]> headers = {}, string[] fields = [], anydata Additional Values, GetSiteGroupMembershipQueries queries) returns SiteGroupEntry|error;
+
+    # Update site membership of group
+    # 
+    remote function updateSiteGroupMembership(string siteId, string groupId, SiteMembershipBodyUpdate payload, map<string|string[]> headers = {}, string[] fields = [], anydata Additional Values, UpdateSiteGroupMembershipQueries queries) returns SiteGroupEntry|error;
+
+    # Delete a group membership for site
+    # 
+    remote function deleteSiteGroupMembership(string siteId, string groupId, map<string|string[]> headers = {}) returns error?;
+
+    # List tags
+    # 
+    remote function listTags(map<string|string[]> headers = {}, int maxItems = 0, string[] include = [], string[] fields = [], int skipCount = 0, anydata Additional Values, ListTagsQueries queries) returns TagPaging|error;
+
+    # Get a tag
+    # 
+    remote function getTag(string tagId, map<string|string[]> headers = {}, string[] fields = [], anydata Additional Values, GetTagQueries queries) returns TagEntry|error;
+
+    # Update a tag
+    # 
+    remote function updateTag(string tagId, TagBody payload, map<string|string[]> headers = {}, string[] fields = [], anydata Additional Values, UpdateTagQueries queries) returns TagEntry|error;
+
+    # Get a network
+    # 
+    remote function getNetwork(string networkId, map<string|string[]> headers = {}, string[] fields = [], anydata Additional Values, GetNetworkQueries queries) returns PersonNetworkEntry|error;
+
+    # List shared links
+    # 
+    remote function listSharedLinks(map<string|string[]> headers = {}, int maxItems = 0, string[] include = [], string where = "", string[] fields = [], int skipCount = 0, anydata Additional Values, ListSharedLinksQueries queries) returns SharedLinkPaging|error;
+
+    # Create a shared link to a file
+    # 
+    remote function createSharedLink(SharedLinkBodyCreate payload, map<string|string[]> headers = {}, string[] include = [], string[] fields = [], anydata Additional Values, CreateSharedLinkQueries queries) returns SharedLinkEntry|error;
+
+    # Get a shared link
+    # 
+    remote function getSharedLink(string sharedId, map<string|string[]> headers = {}, string[] fields = [], anydata Additional Values, GetSharedLinkQueries queries) returns SharedLinkEntry|error;
+
+    # Deletes a shared link
+    # 
+    remote function deleteSharedLink(string sharedId, map<string|string[]> headers = {}) returns error?;
+
+    # Get shared link content
+    # 
+    remote function getSharedLinkContent(string sharedId, GetSharedLinkContentHeaders headers = {}, boolean attachment = false, anydata Additional Values, GetSharedLinkContentQueries queries) returns byte[]|error?;
+
+    # List renditions for a shared link
+    # 
+    remote function listSharedLinkRenditions(string sharedId, map<string|string[]> headers = {}) returns RenditionPaging|error;
+
+    # Get shared link rendition information
+    # 
+    remote function getSharedLinkRendition(string sharedId, string renditionId, map<string|string[]> headers = {}) returns RenditionEntry|error;
+
+    # Get shared link rendition content
+    # 
+    remote function getSharedLinkRenditionContent(string sharedId, string renditionId, GetSharedLinkRenditionContentHeaders headers = {}, boolean attachment = false, anydata Additional Values, GetSharedLinkRenditionContentQueries queries) returns byte[]|error?;
+
+    # Email shared link
+    # 
+    remote function emailSharedLink(string sharedId, SharedLinkBodyEmail payload, map<string|string[]> headers = {}) returns error?;
+
+    # Check readiness and liveness of the repository
+    # 
+    remote function getProbe(string probeId, map<string|string[]> headers = {}) returns ProbeEntry|error;
+
+    # Find nodes
+    # 
+    remote function findNodes(map<string|string[]> headers = {}, int maxItems = 0, string[] include = [], string rootNodeId = "", string[] orderBy = [], string term = "", string nodeType = "", string[] fields = [], int skipCount = 0, anydata Additional Values, FindNodesQueries queries) returns NodePaging|error;
+
+    # Find sites
+    # 
+    remote function findSites(map<string|string[]> headers = {}, int maxItems = 0, string[] orderBy = [], string term = "", string[] fields = [], int skipCount = 0, anydata Additional Values, FindSitesQueries queries) returns SitePaging|error;
+
+    # Find people
+    # 
+    remote function findPeople(map<string|string[]> headers = {}, int maxItems = 0, string[] orderBy = [], string term = "", string[] fields = [], int skipCount = 0, anydata Additional Values, FindPeopleQueries queries) returns PersonPaging|error;
+
+    # List groups
+    # 
+    remote function listGroups(map<string|string[]> headers = {}, int maxItems = 0, string[] include = [], string[] orderBy = [], string where = "", string[] fields = [], int skipCount = 0, anydata Additional Values, ListGroupsQueries queries) returns GroupPaging|error;
+
+    # Create a group
+    # 
+    remote function createGroup(GroupBodyCreate payload, map<string|string[]> headers = {}, string[] include = [], string[] fields = [], anydata Additional Values, CreateGroupQueries queries) returns GroupEntry|error;
+
+    # Get group details
+    # 
+    remote function getGroup(string groupId, map<string|string[]> headers = {}, string[] include = [], string[] fields = [], anydata Additional Values, GetGroupQueries queries) returns GroupEntry|error;
+
+    # Update group details
+    # 
+    remote function updateGroup(string groupId, GroupBodyUpdate payload, map<string|string[]> headers = {}, string[] include = [], string[] fields = [], anydata Additional Values, UpdateGroupQueries queries) returns GroupEntry|error;
+
+    # Delete a group
+    # 
+    remote function deleteGroup(string groupId, map<string|string[]> headers = {}, boolean cascade = false, anydata Additional Values, DeleteGroupQueries queries) returns error?;
+
+    # List memberships of a group
+    # 
+    remote function listGroupMemberships(string groupId, map<string|string[]> headers = {}, int maxItems = 0, string[] orderBy = [], string where = "", string[] fields = [], int skipCount = 0, anydata Additional Values, ListGroupMembershipsQueries queries) returns GroupMemberPaging|error;
+
+    # Create a group membership
+    # 
+    remote function createGroupMembership(string groupId, GroupMembershipBodyCreate payload, map<string|string[]> headers = {}, string[] fields = [], anydata Additional Values, CreateGroupMembershipQueries queries) returns GroupMemberEntry|error;
+
+    # Delete a group membership
+    # 
+    remote function deleteGroupMembership(string groupId, string groupMemberId, map<string|string[]> headers = {}) returns error?;
+
+    # List audit applications
+    # 
+    remote function listAuditApps(map<string|string[]> headers = {}, int maxItems = 0, string[] fields = [], int skipCount = 0, anydata Additional Values, ListAuditAppsQueries queries) returns AuditAppPaging|error;
+
+    # Get audit application info
+    # 
+    remote function getAuditApp(string auditApplicationId, map<string|string[]> headers = {}, string[] include = [], string[] fields = [], anydata Additional Values, GetAuditAppQueries queries) returns AuditApp|error;
+
+    # Update audit application info
+    # 
+    remote function updateAuditApp(string auditApplicationId, AuditBodyUpdate payload, map<string|string[]> headers = {}, string[] fields = [], anydata Additional Values, UpdateAuditAppQueries queries) returns AuditApp|error;
+
+    # List audit entries for an audit application
+    # 
+    remote function listAuditEntriesForAuditApp(string auditApplicationId, map<string|string[]> headers = {}, int maxItems = 0, string[] include = [], boolean omitTotalItems = false, string[] orderBy = [], string where = "", string[] fields = [], int skipCount = 0, anydata Additional Values, ListAuditEntriesForAuditAppQueries queries) returns AuditEntryPaging|error;
+
+    # Permanently delete audit entries for an audit application
+    # 
+    remote function deleteAuditEntriesForAuditApp(string auditApplicationId, map<string|string[]> headers = {}, string where = "", anydata Additional Values, DeleteAuditEntriesForAuditAppQueries queries) returns error?;
+
+    # Get audit entry
+    # 
+    remote function getAuditEntry(string auditApplicationId, string auditEntryId, map<string|string[]> headers = {}, string[] fields = [], anydata Additional Values, GetAuditEntryQueries queries) returns AuditEntryEntry|error;
+
+    # Permanently delete an audit entry
+    # 
+    remote function deleteAuditEntry(string auditApplicationId, string auditEntryId, map<string|string[]> headers = {}) returns error?;
+
+    # List audit entries for a node
+    # 
+    remote function listAuditEntriesForNode(string nodeId, map<string|string[]> headers = {}, int maxItems = 0, string[] include = [], string[] orderBy = [], string where = "", string[] fields = [], int skipCount = 0, anydata Additional Values, ListAuditEntriesForNodeQueries queries) returns AuditEntryPaging|error;
+
+    # Retrieve list of available actions
+    # 
+    remote function listActions(map<string|string[]> headers = {}, int maxItems = 0, string[] orderBy = [], string[] fields = [], int skipCount = 0, anydata Additional Values, ListActionsQueries queries) returns ActionDefinitionList|error;
+
+    # Retrieve the details of an action definition
+    # 
+    remote function actionDetails(string actionDefinitionId, map<string|string[]> headers = {}) returns ActionDefinitionEntry|error;
+
+    # Execute an action
+    # 
+    remote function actionExec(ActionBodyExec payload, map<string|string[]> headers = {}) returns ActionExecResultEntry|error;
+}

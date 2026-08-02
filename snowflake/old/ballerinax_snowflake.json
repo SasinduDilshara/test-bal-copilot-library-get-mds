@@ -1,0 +1,712 @@
+{
+  "name": "ballerinax/snowflake",
+  "description": "[Snowflake](https://www.snowflake.com/) is a cloud-based data platform that provides a data warehouse as a service. It features a unique architecture designed for the cloud, providing a single integrated platform for all data workloads including data warehousing, data lakes, and data engineering.",
+  "readme": "## Overview\nThe [Snowflake](https://www.snowflake.com/) is a cloud-based data platform that provides a data warehouse as a service designed for the cloud, providing a single integrated platform with a single SQL-based data warehouse for all data workloads.\nThe Snowflake data warehouse uses a new SQL database engine with a unique architecture designed for the cloud. It provides operations to execute a wide range of standard DDL Commands, SQL Commands, and SQL Functions for querying data sources.\nYou can find reference information for all the Snowflake SQL commands (DDL, DML, and query syntax) [here](https://docs.snowflake.com/en/sql-reference-commands.html).\n\nThe `ballerinax/snowflake` package allows you to access the Snowflake database via the Ballerina SQL APIs and manage data persistent in the Snowflake database.\n\n## Setup guide\n\nTo use the Snowflake connector, you must have a valid Snowflake account. If you do not have an account, you can sign up for a account [here](https://signup.snowflake.com/).\n\n### Create a warehouse and database\n\n1. Log in to your Snowflake account.\n2. Go to the **Warehouses** tab under the **Admin** section, as shown below.\n   ![Snowflake Warehouse](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-snowflake/main/docs/setup/resources/snowflakes_create_warehouse.png)\n\n3. Click **+ Warehouse** and select a name and type for a new warehouse, as shown below.\n   ![Snowflake Create Warehouse](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-snowflake/main/docs/setup/resources/snowflakes_create_warehouse_2.png)\n\n4. Optional - You can set the created warehouse as the default warehouse for the account by editing the profile settings, as shown below.\n   ![Snowflake Edit Profile](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-snowflake/main/docs/setup/resources/snokeflakes_user_profile.png)\n   ![Snowflake set default warehouse](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-snowflake/main/docs/setup/resources/snowflakes_set_default_warehouse.png)\n\n*NOTE* If you do not set a default warehouse, you must specify the warehouse name when you create a connection to the Snowflake database.\n\n5. Go to the **Databases** tab under the **Data** section and click **+ Database** to create a new database, as shown below.\n   ![Snowflake Database](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-snowflake/main/docs/setup/resources/snowflakes_create_database.png)\n\n*NOTE* Create a database can either be created using the Snowflake web interface or using the SQL command with the Snowflake connector.\n\n### Configure key-pair authentication\n\nTo use the Snowflake connector with key-pair authentication, you must have a public/private key pair. You can generate a key pair using the following command:\n\n1. Generate the private key using the following command:\n```shell\nopenssl genrsa 2048 | openssl pkcs8 -topk8 -v2 aes256 -inform PEM -out key-aes256.p8\n```\n*NOTE* 3DES is not supported by the Ballerina Snowflake connector. Therefore, you must use the `-v2 aes256` option to generate the private key.\n\n2. Generate the public key using the following command:\n```shell\nopenssl rsa -in key-aes256.p8 -pubout -out key-aes256.pub\n```\n\n3. Copy the public and private key files to a local directory for storage. Record the path to the files. Note that the private key is stored using the PKCS#8 (Public Key Cryptography Standards) format and is encrypted using the passphrase you specified in the previous step.\n\n4. Assign the public key to a Snowflake user by executing the following an ALTER USER command:\n```sql\nALTER USER example_user SET RSA_PUBLIC_KEY\u003d\u0027MIIBIjANBgkqh...\u0027;\n```\n\n## Quickstart\n\nTo use the snowflake connector in your Ballerina application, modify the .bal file as follows:\n\n### Step 1: Import the connector\n\nImport the `ballerinax/snowflake` package into your Ballerina project.\n```ballerina\nimport ballerinax/snowflake;\n```\n\n### Step 2: Import the Snowflake driver into your Ballerina project\n\n```ballerina\nimport ballerinax/snowflake.driver as _;\n```\n\n### Step 3: Instantiate a new connector\n\n*NOTE:* Snowflake driver fails with Java 16 and above because starting with JDK 16, strong encapsulation was turned on by default and one of the driver dependencies have employed the use of sun.misc.Unsafe along with reflection. This is not allowed in Java 16 and above. Therefore, to run this example, you need to use Java 15 or below. For more information, see [here](https://community.snowflake.com/s/article/JDBC-Driver-Compatibility-Issue-With-JDK-16-and-Later). If you are using Java 16 or above, you can use the following workaround to work with the Snowflake connector:\n\n* Export the following environment variable:\n  ```shell\n  export JDK_JAVA_OPTIONS\u003d\"--add-opens java.base/java.nio\u003dALL-UNNAMED\"\n  ```\n* Set Snowflake property `JDBC_QUERY_RESULT_FORMAT` to `JSON` as follows:\n  ```ballerina\n  snowflake:Options options \u003d {\n      properties: {\n          \"JDBC_QUERY_RESULT_FORMAT\": \"JSON\"\n      }\n  };\n  ```\n\nCreate a Snowflake client endpoint by giving authentication details in the Snowflake configuration.\n```ballerina\nsnowflake:Client snowflakeClient \u003d check new(accountIdentifier, user, password);\n```\n\nIf you are using key-pair authentication, you can create a Snowflake client endpoint as follows:\n```ballerina\nAuthConfig authConfig \u003d {\n    user: \"ballerina\"\n    privateKeyPath: \"path/to/privatekey.p8\"\n    privateKeyPassphrase: \"ballerina\"\n};\nsnowflake:AdvancedClient snowflakeKeyBasedClient \u003d check new (accountIdentifier, authConfig, options);\n```\n\n### Step 4: Invoke the connector operation\nNow, utilize the available connector operations.\n\n#### Execute a DDL command\n```ballerina\nsql:ExecutionResult result \u003d check snowflakeClient-\u003eexecute(`CREATE TABLE COMPANY_DB.PUBLIC.EMPLOYEES (\n        ID INT NOT NULL AUTOINCREMENT,\n        FirstName VARCHAR(255),\n        LastName VARCHAR(255),\n        BusinessUnit VARCHAR(255),\n        PRIMARY KEY (ID)\n    )`);\n```\n\n#### Execute a DML command\n```ballerina\nsql:ExecutionResult result \u003d check snowflakeClient-\u003eexecute(`INSERT INTO COMPANY_DB.PUBLIC.EMPLOYEES (FirstName,\n        LastName, BusinessUnit) VALUES (\u0027Shawn\u0027, \u0027Jerome\u0027, \u0027Integration\u0027)`);\n```\n\n#### Execute a query\n```ballerina\ntype Employee record {\n    int id;\n    string firstName;\n    string lastName;\n    string businessUnit;\n};\n...\n\nstream\u003cEmployee, error?\u003e resultStream \u003d check snowflakeClient-\u003equery(`SELECT * FROM COMPANY_DB.PUBLIC.EMPLOYEES`);\n```\n\n#### Execute a query returning a single row\n```ballerina\ntype Employee record {\n    int id;\n    string firstName;\n    string lastName;\n    string businessUnit;\n};\n...\n\nEmployee|error result \u003d check snowflakeClient-\u003equeryRow(`SELECT * FROM COMPANY_DB.PUBLIC.EMPLOYEES WHERE ID \u003d 1`);\n```\n\n#### Execute batch DML commands\n```ballerina\nsql:ExecutionResult[] result \u003d check snowflakeClient-\u003ebatchExecute([\n    `INSERT INTO COMPANY_DB.PUBLIC.EMPLOYEES (FirstName, LastName, BusinessUnit) VALUES (\u0027Shawn\u0027, \u0027Jerome\u0027, \u0027Integration\u0027)`,\n    `INSERT INTO COMPANY_DB.PUBLIC.EMPLOYEES (FirstName, LastName, BusinessUnit) VALUES (\u0027John\u0027, \u0027Doe\u0027, \u0027Integration\u0027)`\n]);\n```\n\n#### Call a stored procedure\n```ballerina\nsql:ProcedureCallResult ret \u003d check snowflakeClient-\u003ecall(`{call PROCEDURES_DB.PUBLIC.SELECT_EMPLOYEE_DATA(1)}`, [Employee]);\nstream\u003crecord {}, sql:Error?\u003e? qResult \u003d ret.queryResult;\n```\n\n### Examples\n\nThe following example shows how to use the Snowflake connector to create a table, insert data, and query data from the Snowflake database.\n\n[Employees Data Management Example](https://github.com/ballerina-platform/module-ballerinax-snowflake/tree/master/examples/employees-db) - Manages employee data in a Snowflake database and exposes an HTTP service to interact with the database.\n",
+  "typeDefs": [
+    {
+      "name": "Options",
+      "description": "An additional set of configurations related to a database connection.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "datasourceName",
+          "description": "The driver class name to be used to get the connection",
+          "type": {
+            "name": "string?"
+          },
+          "optional": true
+        },
+        {
+          "name": "properties",
+          "description": "The database properties, which should be applied when getting the connection",
+          "type": {
+            "name": "map\u003canydata\u003e?"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "BasicAuth",
+      "description": "Represents the basic authentication configuration for the Snowflake client.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "user",
+          "description": "The username of the Snowflake account",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "password",
+          "description": "The password of the Snowflake account",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "KeyBasedAuth",
+      "description": "Represents the key-based authentication configuration for the Snowflake client.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "user",
+          "description": "The username of the Snowflake account",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "privateKeyPath",
+          "description": "The path to the private key file. The private key file must be in the PKCS#8 format.\nUse forward slashes as file path separators on all operating systems, including Windows. The JDBC driver replaces forward slashes with the appropriate path separator for the platform.",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "privateKeyPassphrase",
+          "description": "The passphrase for the private key file. If the private key file is encrypted, provide the passphrase to decrypt the file.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "AuthConfig",
+      "description": "Represents the authentication configuration for the Snowflake client.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "ballerinax/snowflake:2.2.1:BasicAuth",
+          "type": {
+            "name": "BasicAuth",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "BasicAuth"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerinax/snowflake:2.2.1:KeyBasedAuth",
+          "type": {
+            "name": "KeyBasedAuth",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "KeyBasedAuth"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "name": "AdvancedClient",
+      "description": "Represents a Snowflake database client.",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes the Snowflake Advanced Client. This client aliows to authenticate using basic authentication and private key based authentication.\nThe client must be kept open throughout the application lifetime.\n",
+          "parameters": [
+            {
+              "name": "accountIdentifier",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "authConfig",
+              "description": "The authentication configuration for the Snowflake account",
+              "type": {
+                "name": "AuthConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "AuthConfig"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "options",
+              "description": "The Snowflake client properties",
+              "type": {
+                "name": "Options|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Options"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "connectionPool",
+              "description": "The `sql:ConnectionPool` to be used for the connection. If there is no\n`connectionPool` provided, the global connection pool (shared by all clients) will be used",
+              "type": {
+                "name": "ConnectionPool|()",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ConnectionPool",
+                    "libraryName": "ballerina/sql"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "An `sql:Error` if the client creation fails",
+            "type": {
+              "name": "ballerina/sql:1.19.0:Error?"
+            }
+          }
+        },
+        {
+          "name": "query",
+          "type": "Remote Function",
+          "description": "Executes the query, which may return multiple results.\nWhen processing the stream, make sure to consume all fetched data or close the stream.\n",
+          "parameters": [
+            {
+              "name": "sqlQuery",
+              "description": "The SQL query such as `` `SELECT * from Album WHERE name\u003d${albumName}` ``",
+              "type": {
+                "name": "ParameterizedQuery",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ParameterizedQuery",
+                    "libraryName": "ballerina/sql"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "rowType",
+              "description": "The `typedesc` of the record to which the result needs to be returned",
+              "type": {
+                "name": "record {|anydata...;|}"
+              },
+              "optional": true,
+              "default": "record {|anydata...;|}"
+            }
+          ],
+          "return": {
+            "description": "Stream of records in the `rowType` type",
+            "type": {
+              "name": "Error?\u003e"
+            }
+          }
+        },
+        {
+          "name": "queryRow",
+          "type": "Remote Function",
+          "description": "Executes the query, which is expected to return at most one row of the result.\nIf the query does not return any results, `sql:NoRowsError` is returned.\n",
+          "parameters": [
+            {
+              "name": "sqlQuery",
+              "description": "The SQL query such as `` `SELECT * from Album WHERE name\u003d${albumName}` ``",
+              "type": {
+                "name": "ParameterizedQuery",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ParameterizedQuery",
+                    "libraryName": "ballerina/sql"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "returnType",
+              "description": "The `typedesc` of the record to which the result needs to be returned.\nIt can be a basic type if the query result contains only one column",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "Result in the `returnType` type or an `sql:Error`",
+            "type": {
+              "name": "returnType|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "returnType"
+                },
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/sql"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "execute",
+          "type": "Remote Function",
+          "description": "Executes the SQL query. Only the metadata of the execution is returned (not the results from the query).\n",
+          "parameters": [
+            {
+              "name": "sqlQuery",
+              "description": "The SQL query such as `` `DELETE FROM Album WHERE artist\u003d${artistName}` ``",
+              "type": {
+                "name": "ParameterizedQuery",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ParameterizedQuery",
+                    "libraryName": "ballerina/sql"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "Metadata of the query execution as an `sql:ExecutionResult` or an `sql:Error`",
+            "type": {
+              "name": "ExecutionResult|Error",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "ExecutionResult",
+                  "libraryName": "ballerina/sql"
+                },
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/sql"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "batchExecute",
+          "type": "Remote Function",
+          "description": "Executes the SQL query with multiple sets of parameters in a batch.\nOnly the metadata of the execution is returned (not results from the query).\nIf one of the commands in the batch fails, this will return an `sql:BatchExecuteError`. However, the driver may\nor may not continue to process the remaining commands in the batch after a failure.\n",
+          "parameters": [
+            {
+              "name": "sqlQueries",
+              "description": "The SQL query with multiple sets of parameters",
+              "type": {
+                "name": "ParameterizedQuery[]",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ParameterizedQuery",
+                    "libraryName": "ballerina/sql"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "Metadata of the query execution as an `sql:ExecutionResult[]` or an `sql:Error`",
+            "type": {
+              "name": "ExecutionResult[]|Error",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "ExecutionResult",
+                  "libraryName": "ballerina/sql"
+                },
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/sql"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "call",
+          "type": "Remote Function",
+          "description": "Executes a SQL query, which calls a stored procedure. This may or may not return results.\n",
+          "parameters": [
+            {
+              "name": "sqlQuery",
+              "description": "The SQL query such as `` `CALL sp_GetAlbums();` ``",
+              "type": {
+                "name": "ParameterizedCallQuery",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ParameterizedCallQuery",
+                    "libraryName": "ballerina/sql"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "rowTypes",
+              "description": "`typedesc` array of the records to which the results need to be returned",
+              "type": {
+                "name": "typedesc\u003crecord {|anydata...;|}\u003e[]"
+              },
+              "optional": true,
+              "default": "[]"
+            }
+          ],
+          "return": {
+            "description": "Summary of the execution and results are returned in an `sql:ProcedureCallResult`, or an `sql:Error`",
+            "type": {
+              "name": "ProcedureCallResult|Error",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "ProcedureCallResult",
+                  "libraryName": "ballerina/sql"
+                },
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/sql"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "close",
+          "type": "Normal Function",
+          "description": "Closes the SQL client and shuts down the connection pool.\n",
+          "parameters": [],
+          "return": {
+            "description": "Possible error when closing the client",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/sql"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Client",
+      "description": "Represents a Snowflake database client.",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes the Snowflake Client. The client must be kept open throughout the application lifetime.\n",
+          "parameters": [
+            {
+              "name": "account_identifier",
+              "description": "The Snowflake account identifier",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "user",
+              "description": "The username of the Snowflake account",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "password",
+              "description": "The password of the Snowflake account",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "options",
+              "description": "The Snowflake client properties",
+              "type": {
+                "name": "Options|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Options"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "connectionPool",
+              "description": "The `sql:ConnectionPool` to be used for the connection. If there is no\n`connectionPool` provided, the global connection pool (shared by all clients) will be used",
+              "type": {
+                "name": "ConnectionPool|()",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ConnectionPool",
+                    "libraryName": "ballerina/sql"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "An `sql:Error` if the client creation fails",
+            "type": {
+              "name": "ballerina/sql:1.19.0:Error?"
+            }
+          }
+        },
+        {
+          "name": "query",
+          "type": "Remote Function",
+          "description": "Executes the query, which may return multiple results.\nWhen processing the stream, make sure to consume all fetched data or close the stream.\n",
+          "parameters": [
+            {
+              "name": "sqlQuery",
+              "description": "The SQL query such as `` `SELECT * from Album WHERE name\u003d${albumName}` ``",
+              "type": {
+                "name": "ParameterizedQuery",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ParameterizedQuery",
+                    "libraryName": "ballerina/sql"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "rowType",
+              "description": "The `typedesc` of the record to which the result needs to be returned",
+              "type": {
+                "name": "record {|anydata...;|}"
+              },
+              "optional": true,
+              "default": "record {|anydata...;|}"
+            }
+          ],
+          "return": {
+            "description": "Stream of records in the `rowType` type",
+            "type": {
+              "name": "Error?\u003e"
+            }
+          }
+        },
+        {
+          "name": "queryRow",
+          "type": "Remote Function",
+          "description": "Executes the query, which is expected to return at most one row of the result.\nIf the query does not return any results, `sql:NoRowsError` is returned.\n",
+          "parameters": [
+            {
+              "name": "sqlQuery",
+              "description": "The SQL query such as `` `SELECT * from Album WHERE name\u003d${albumName}` ``",
+              "type": {
+                "name": "ParameterizedQuery",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ParameterizedQuery",
+                    "libraryName": "ballerina/sql"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "returnType",
+              "description": "The `typedesc` of the record to which the result needs to be returned.\nIt can be a basic type if the query result contains only one column",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "Result in the `returnType` type or an `sql:Error`",
+            "type": {
+              "name": "returnType|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "returnType"
+                },
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/sql"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "execute",
+          "type": "Remote Function",
+          "description": "Executes the SQL query. Only the metadata of the execution is returned (not the results from the query).\n",
+          "parameters": [
+            {
+              "name": "sqlQuery",
+              "description": "The SQL query such as `` `DELETE FROM Album WHERE artist\u003d${artistName}` ``",
+              "type": {
+                "name": "ParameterizedQuery",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ParameterizedQuery",
+                    "libraryName": "ballerina/sql"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "Metadata of the query execution as an `sql:ExecutionResult` or an `sql:Error`",
+            "type": {
+              "name": "ExecutionResult|Error",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "ExecutionResult",
+                  "libraryName": "ballerina/sql"
+                },
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/sql"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "batchExecute",
+          "type": "Remote Function",
+          "description": "Executes the SQL query with multiple sets of parameters in a batch. \nOnly the metadata of the execution is returned (not results from the query).\nIf one of the commands in the batch fails, this will return an `sql:BatchExecuteError`. However, the driver may\nor may not continue to process the remaining commands in the batch after a failure.\n",
+          "parameters": [
+            {
+              "name": "sqlQueries",
+              "description": "The SQL query with multiple sets of parameters",
+              "type": {
+                "name": "ParameterizedQuery[]",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ParameterizedQuery",
+                    "libraryName": "ballerina/sql"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "Metadata of the query execution as an `sql:ExecutionResult[]` or an `sql:Error`",
+            "type": {
+              "name": "ExecutionResult[]|Error",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "ExecutionResult",
+                  "libraryName": "ballerina/sql"
+                },
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/sql"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "call",
+          "type": "Remote Function",
+          "description": "Executes a SQL query, which calls a stored procedure. This may or may not return results.\n",
+          "parameters": [
+            {
+              "name": "sqlQuery",
+              "description": "The SQL query such as `` `CALL sp_GetAlbums();` ``",
+              "type": {
+                "name": "ParameterizedCallQuery",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ParameterizedCallQuery",
+                    "libraryName": "ballerina/sql"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "rowTypes",
+              "description": "`typedesc` array of the records to which the results need to be returned",
+              "type": {
+                "name": "typedesc\u003crecord {|anydata...;|}\u003e[]"
+              },
+              "optional": true,
+              "default": "[]"
+            }
+          ],
+          "return": {
+            "description": "Summary of the execution and results are returned in an `sql:ProcedureCallResult`, or an `sql:Error`",
+            "type": {
+              "name": "ProcedureCallResult|Error",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "ProcedureCallResult",
+                  "libraryName": "ballerina/sql"
+                },
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/sql"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "close",
+          "type": "Normal Function",
+          "description": "Closes the SQL client and shuts down the connection pool.\n",
+          "parameters": [],
+          "return": {
+            "description": "Possible error when closing the client",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/sql"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "functions": [],
+  "services": [],
+  "annotations": []
+}

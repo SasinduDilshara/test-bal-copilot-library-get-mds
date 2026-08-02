@@ -1,0 +1,2070 @@
+// ============================================================
+// Library: ballerinax/sap.s4hana.ce_salesorder_0001
+// [S/4HANA](https://www.sap.com/india/products/erp/s4hana.html) is a robust enterprise resource planning (ERP) solution,
+// ============================================================
+import ballerinax/sap.s4hana.ce_salesorder_0001;
+
+// --- README ---
+## Overview
+
+[S/4HANA](https://www.sap.com/india/products/erp/s4hana.html) is a robust enterprise resource planning (ERP) solution,
+designed for large-scale enterprises by SAP SE.
+
+The SAP S/4HANA Sales connector provides APIs that enable seamless integration with the [Sales Order (A2X) API (ODatav4) v1.0.0](https://api.sap.com/api/CE_SALESORDER_0001/overview). The service allows to create, read, update, and delete sales orders.
+
+### Key Features
+
+- Create, read, update, and delete sales orders via OData v4
+- Seamless integration with the Sales Order (A2X) API (ODatav4) v1.0.0
+- Support for basic and OAuth 2.0 authentication
+- Full CRUD operations for sales order management
+
+## Setup guide
+
+1. Sign in to your S/4HANA dashboard.
+
+2. Under the `Communication Management` section, click on the `Display Communications Scenario` title.
+
+   ![Display Scenarios](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-sap/main/docs/setup/3-1-display-scenarios.png)
+
+3. In the search bar, type `Sales Order Integration` and select the corresponding scenario from the results.
+
+   ![Search Sales Order](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-sap/main/docs/setup/3-2-search-sales-order.png)
+
+4. In the top right corner of the screen, click on `Create Communication Arrangement`.
+
+   ![Click Create Arrangement](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-sap/main/docs/setup/3-3-click-create-arrangement.png)
+
+5. Enter a unique name for the arrangement.
+
+   ![Give Arrangement Name](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-sap/main/docs/setup/3-4-give-arrangement-name.png)
+
+6. Choose an existing `Communication System` from the dropdown menu and save your arrangement.
+
+   ![Select Existing Communication Arrangement](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-sap/main/docs/setup/3-5-select-communication-system.png)
+
+7. The hostname (`<unique id>-api.s4hana.cloud.sap`) will be displayed in the top right corner of the screen.
+
+   ![View Hostname](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-sap/main/docs/setup/3-6-view-hostname.png)
+
+## Quickstart
+
+To use the `sap.s4hana.ce_salesorder_0001` connector in your Ballerina application, modify the `.bal` file as follows:
+
+### Step 1: Import the module
+
+Import the `sap.s4hana.ce_salesorder_0001` module.
+
+```ballerina
+import ballerinax/sap.s4hana.ce_salesorder_0001 as salesorder;
+```
+
+### Step 2: Instantiate a new connector
+
+Use the hostname and credentials to initiate a client
+
+```ballerina
+configurable string hostname = ?;
+configurable string username = ?;
+configurable string password = ?;
+
+salesorder:Client salesOrderClient = check new (
+    {
+      auth: {
+        username,
+        password
+      }
+    },
+    hostname
+);
+```
+
+### Step 3: Invoke the connector operation
+
+Now, utilize the available connector operations.
+
+```ballerina
+salesorder:CollectionOfSalesOrder listASalesOrder = check salesOrderClient->listA_SalesOrders();
+```
+
+### Step 4: Run the Ballerina application
+
+```bash
+bal run
+```
+
+## Examples
+
+The S/4 HANA Sales and Distribution Ballerina connectors provide practical examples illustrating usage in various
+scenarios. Explore
+these [examples](https://github.com/ballerina-platform/module-ballerinax-sap.s4hana.sales/tree/main/examples), covering
+use cases like accessing S/4HANA Sales Order (A2X) API.
+
+1. [Salesforce to S/4HANA Integration](https://github.com/ballerina-platform/module-ballerinax-sap.s4hana.sales/tree/main/examples/salesforce-to-sap) -
+   Demonstrates leveraging the `sap.s4hana.api_sales_order_srv:Client` in Ballerina for S/4HANA API interactions. It
+   specifically showcases how to respond to a Salesforce Opportunity Close Event by automatically generating a Sales
+   Order in the S/4HANA SD module.
+
+2. [Shopify to S/4HANA Integration](https://github.com/ballerina-platform/module-ballerinax-sap.s4hana.sales/tree/main/examples/shopify-to-sap) -
+   Details the integration process between [Shopify](https://admin.shopify.com/), a leading e-commerce platform,
+   and [SAP S/4HANA](https://www.sap.com/products/erp/s4hana.html), a comprehensive ERP system. The objective is to
+   automate SAP sales order creation for new orders placed on Shopify, enhancing efficiency and accuracy in order
+   management.
+
+// --- END README ---
+
+// --- Types ---
+
+
+type SalesOrderItemText record {
+    string SalesOrder?;
+    # Sales Order Item
+    string SalesOrderItem?;
+    string Language?;
+    string LongTextID?;
+    string LongText?;
+    SAP__Message[] SAP__Messages?;
+    SalesOrderItem _Item?;
+    SalesOrder _SalesOrder?;
+};
+
+
+type SAP__Message record {
+    string code?;
+    string message?;
+    string? target?;
+    string[] additionalTargets?;
+    boolean transition?;
+    int numericSeverity?;
+    string? longtextUrl?;
+};
+
+
+type SalesOrderItem record {
+    string SalesOrder?;
+    # Sales Order Item
+    string SalesOrderItem?;
+    # Higher-Level Item in Bill of Material Structures
+    string? HigherLevelItem?;
+    # Sales Document Item Category
+    string SalesOrderItemCategory?;
+    # Short Text for Sales Order Item
+    string SalesOrderItemText?;
+    # Product Number
+    string Product?;
+    string ProductGroup?;
+    # Material Number Used by Customer
+    string MaterialByCustomer?;
+    # International Article Number (EAN/UPC)
+    string InternationalArticleNumber?;
+    string PurchaseOrderByCustomer?;
+    # Cumulative Confirmed Quantity in Sales Unit
+    decimal|string ConfdDelivQtyInOrderQtyUnit?;
+    string OrderQuantitySAPUnit?;
+    # ISO Unit Code for Order Quantity
+    string OrderQuantityISOUnit?;
+    decimal|string RequestedQuantity?;
+    # Unit of the Requested Quantity
+    string RequestedQuantitySAPUnit?;
+    # ISO Unit Code for Requested Quantity
+    string RequestedQuantityISOUnit?;
+    # Gross Weight of the Item
+    decimal|string ItemGrossWeight?;
+    # Net Weight of the Item
+    decimal|string ItemNetWeight?;
+    string ItemWeightSAPUnit?;
+    # ISO Unit Code for Item Weight
+    string ItemWeightISOUnit?;
+    # Volume of the item
+    decimal|string ItemVolume?;
+    string ItemVolumeSAPUnit?;
+    # ISO Unit Code for Item Volume
+    string ItemVolumeISOUnit?;
+    string? RequestedDeliveryDate?;
+    string? ConfirmedDeliveryDate?;
+    # Date for Pricing and Exchange Rate
+    string? PricingDate?;
+    # Date on which services are rendered
+    string? ServicesRenderedDate?;
+    string? BillingDocumentDate?;
+    # Net Value of the Document Item in Document Currency
+    decimal|string NetAmount?;
+    # SD Document Currency
+    string TransactionCurrency?;
+    # Tax Amount in Document Currency
+    decimal|string TaxAmount?;
+    string CustomerGroup?;
+    # Batch Number
+    string Batch?;
+    # Plant (Own or External)
+    string Plant?;
+    string StorageLocation?;
+    # Shipping Point / Receiving Point
+    string ShippingPoint?;
+    string ShippingType?;
+    string Route?;
+    string DeliveryPriority?;
+    # Partial Delivery at Item Level
+    string PartialDeliveryIsAllowed?;
+    # Number of Allowed Partial Deliveries
+    decimal|string MaxNmbrOfPartialDelivery?;
+    # Delivery Date Rule
+    string DeliveryDateTypeRule?;
+    string ReceivingPoint?;
+    # Delivery Group (Items are delivered together)
+    string DeliveryGroup?;
+    # Incoterms (Part 1)
+    string IncotermsClassification?;
+    string IncotermsLocation1?;
+    string IncotermsLocation2?;
+    string IncotermsVersion?;
+    # Key for Terms of Payment
+    string CustomerPaymentTerms?;
+    string? FixedValueDate?;
+    string CustomerPriceGroup?;
+    string MaterialPricingGroup?;
+    string BusinessArea?;
+    string ProfitCenter?;
+    # Account Assignment Group for Material
+    string MatlAccountAssignmentGroup?;
+    # Billing Block for Item
+    string ItemBillingBlockReason?;
+    # Reason for Rejection of Sales Documents
+    string SalesDocumentRjcnReason?;
+    string ProductConfiguration?;
+    # Overall Processing Status (Item)
+    string SDProcessStatus?;
+    # Rejection Status (Item)
+    string SDDocumentRejectionStatus?;
+    # Delivery Status (Item)
+    string DeliveryStatus?;
+    # Billing Block Status (Item)
+    string BillingBlockStatus?;
+    # Incompletion Status (Item)
+    string ItemGeneralIncompletionStatus?;
+    # Delivery Block Status (Item)
+    string DeliveryBlockStatus?;
+    string SlsOrderItemDownPaymentStatus?;
+    # Order-Related Billing Status (Item)
+    string OrderRelatedBillingStatus?;
+    # Product Marketability Status (Item)
+    string ChmlCmplncStatus?;
+    # Dangerous Goods Status (Item)
+    string DangerousGoodsStatus?;
+    # Safety Data Sheet Status (Item)
+    string SafetyDataSheetStatus?;
+    # Embargo Status (Item)
+    string TrdCmplncEmbargoSts?;
+    # Screening Status (Item)
+    string TrdCmplncSnctndListChkSts?;
+    # Legal Control Status (All Schedule Lines)
+    string OvrlTrdCmplncLegalCtrlChkSts?;
+    SAP__Message[] SAP__Messages?;
+    SalesOrderItemPartner[] _ItemPartner?;
+    SalesOrderItemPricingElmnt[] _ItemPricingElement?;
+    SalesOrderItemText[] _ItemText?;
+    SalesOrder _SalesOrder?;
+    SalesOrderScheduleLine[] _ScheduleLine?;
+};
+
+
+type SalesOrderItemPartner record {
+    string SalesOrder?;
+    # Sales Order Item
+    string SalesOrderItem?;
+    string PartnerFunction?;
+    # Customer Number
+    string? Customer?;
+    # Account Number of Supplier
+    string? Supplier?;
+    string? Personnel?;
+    # Number of Contact Person
+    string? ContactPerson?;
+    # Partner is specific for item
+    boolean PartnerIsSpecificForSDDocItem?;
+    SAP__Message[] SAP__Messages?;
+    SalesOrderItem _Item?;
+    SalesOrder _SalesOrder?;
+};
+
+
+type SalesOrder record {
+    string SalesOrder?;
+    # Language key for sales document type
+    string SalesOrderType?;
+    # SD document indicator
+    string SalesOrderProcessingType?;
+    string SoldToParty?;
+    string SalesOrganization?;
+    string DistributionChannel?;
+    # Reference distrib.channel for cust.and material masters
+    string ReferenceDistributionChannel?;
+    string OrganizationDivision?;
+    string SalesOffice?;
+    string SalesGroup?;
+    string SalesDistrict?;
+    # Name of Person Responsible for Creating the Object
+    string CreatedByUser?;
+    # Record Creation Date
+    string? CreationDate?;
+    # Time at Which Record Was Created
+    string CreationTime?;
+    # Last Changed Date Time
+    string? LastChangeDateTime?;
+    # User Who Last Changed the Business Document
+    string LastChangedByUser?;
+    string PurchaseOrderByCustomer?;
+    # Ship-to Party's Customer Reference
+    string PurchaseOrderByShipToParty?;
+    # Customer Purchase Order Type
+    string CustomerPurchaseOrderType?;
+    string? CustomerPurchaseOrderDate?;
+    string BusinessSolutionOrder?;
+    # Document Number of Reference Document
+    string ReferenceSDDocument?;
+    # Order Reason (Reason for the Business Transaction)
+    string SDDocumentReason?;
+    # Document Date (Date Received/Sent)
+    string? SalesOrderDate?;
+    string? RequestedDeliveryDate?;
+    # Date for Pricing and Exchange Rate
+    string? PricingDate?;
+    # Date on which services are rendered
+    string? ServicesRenderedDate?;
+    string? BillingDocumentDate?;
+    # Net Value of the Sales Document in Document Currency
+    decimal|string TotalNetAmount?;
+    # SD Document Currency
+    string TransactionCurrency?;
+    string DeliveryDateTypeRule?;
+    string ShippingCondition?;
+    # Complete Delivery Defined for Each Sales Order
+    boolean CompleteDeliveryIsDefined?;
+    boolean SlsDocIsRlvtForProofOfDeliv?;
+    string ShippingType?;
+    string ReceivingPoint?;
+    # Incoterms (Part 1)
+    string IncotermsClassification?;
+    string IncotermsVersion?;
+    string IncotermsLocation1?;
+    string IncotermsLocation2?;
+    # Pricing Procedure in Pricing
+    string SDPricingProcedure?;
+    string CustomerPriceGroup?;
+    string PriceListType?;
+    string? FixedValueDate?;
+    string TaxDepartureCountry?;
+    string VATRegistrationCountry?;
+    # Indicator: Triangular Deal Within the EU
+    boolean IsEUTriangularDeal?;
+    # Key for Terms of Payment
+    string CustomerPaymentTerms?;
+    string PaymentMethod?;
+    # Company Code to Be Billed
+    string BillingCompanyCode?;
+    string ControllingArea?;
+    string CustomerAccountAssignmentGroup?;
+    # Assignment Number
+    string AssignmentReference?;
+    # Reference Document Number
+    string AccountingDocExternalReference?;
+    # Customer's Account Number with Credit Limit Reference
+    string CustomerCreditAccount?;
+    # Billing Block in SD Document
+    string HeaderBillingBlockReason?;
+    # Delivery Block (Document Header)
+    string DeliveryBlockReason?;
+    # Approval Request Reason ID
+    string SalesOrderApprovalReason?;
+    string CustomerGroup?;
+    string AdditionalCustomerGroup1?;
+    string AdditionalCustomerGroup2?;
+    string AdditionalCustomerGroup3?;
+    string AdditionalCustomerGroup4?;
+    string AdditionalCustomerGroup5?;
+    # Overall Processing Status (Header/All Items)
+    string OverallSDProcessStatus?;
+    # Delivery Block Status (Item)
+    string OverallDeliveryBlockStatus?;
+    # Billing Block Status (All Items)
+    string OverallBillingBlockStatus?;
+    # Delivery Status (All Items)
+    string OverallDeliveryStatus?;
+    # Overall Status of Credit Checks
+    string TotalCreditCheckStatus?;
+    # Rejection Status (All Items)
+    string OverallSDDocumentRejectionSts?;
+    # Overall Block Status (Header)
+    string TotalBlockStatus?;
+    string HdrGeneralIncompletionStatus?;
+    # Incompletion Status (All Items)
+    string OvrlItmGeneralIncompletionSts?;
+    # Reference Status (All Items)
+    string OverallSDDocReferenceStatus?;
+    # Document Approval Status
+    string SalesDocApprovalStatus?;
+    # Product Marketability Status (All Items)
+    string OverallChmlCmplncStatus?;
+    # Dangerous Goods Status (All Items)
+    string OverallDangerousGoodsStatus?;
+    # Safety Data Sheet Status (All Items)
+    string OverallSafetyDataSheetStatus?;
+    # Embargo Status (All Items)
+    string OverallTrdCmplncEmbargoSts?;
+    # Screening Status (All Items)
+    string OvrlTrdCmplncSnctndListChkSts?;
+    string OvrlTrdCmplncLegalCtrlChkSts?;
+    string SalesOrderDownPaymentStatus?;
+    # Order-Related Billing Status (All Items)
+    string OverallOrdReltdBillgStatus?;
+    SAP__Message[] SAP__Messages?;
+    SalesOrderItem[] _Item?;
+    SalesOrderPartner[] _Partner?;
+    SalesOrderPricingElement[] _PricingElement?;
+    SalesOrderText[] _Text?;
+};
+
+
+type SalesOrderPartner record {
+    string SalesOrder?;
+    string PartnerFunction?;
+    # Customer Number
+    string? Customer?;
+    # Account Number of Supplier
+    string? Supplier?;
+    string? Personnel?;
+    # Number of Contact Person
+    string? ContactPerson?;
+    SAP__Message[] SAP__Messages?;
+    SalesOrder _SalesOrder?;
+};
+
+
+type SalesOrderPricingElement record {
+    string SalesOrder?;
+    string PricingProcedureStep?;
+    # Condition Counter
+    string PricingProcedureCounter?;
+    string ConditionType?;
+    # Calculation Type for Condition
+    string ConditionCalculationType?;
+    decimal|string? ConditionRateAmount?;
+    # Currency Key
+    string ConditionCurrency?;
+    # Condition Pricing Unit
+    decimal|string? ConditionQuantity?;
+    # Quantity of the Condition Basis
+    decimal|string? ConditionBaseQuantity?;
+    # Condition Unit in the Document
+    string ConditionQuantitySAPUnit?;
+    # ISO Unit Code for Condition Quantity
+    string ConditionQuantityISOUnit?;
+    # Condition Ratio (in Percent or Per Mille)
+    decimal|string? ConditionRateRatio?;
+    # Unit of Measurement
+    string ConditionRateRatioSAPUnit?;
+    string ConditionRateRatioISOUnit?;
+    decimal|string? ConditionAmount?;
+    # Amount of the Condition Basis
+    decimal|string? ConditionBaseAmount?;
+    # SD Document Currency
+    string TransactionCurrency?;
+    SAP__Message[] SAP__Messages?;
+    SalesOrder _SalesOrder?;
+};
+
+
+type SalesOrderText record {
+    string SalesOrder?;
+    string Language?;
+    string LongTextID?;
+    string LongText?;
+    SAP__Message[] SAP__Messages?;
+    SalesOrder _SalesOrder?;
+};
+
+
+type SalesOrderItemPricingElmnt record {
+    string SalesOrder?;
+    # Sales Order Item
+    string SalesOrderItem?;
+    string PricingProcedureStep?;
+    # Condition Counter
+    string PricingProcedureCounter?;
+    string ConditionType?;
+    # Calculation Type for Condition
+    string ConditionCalculationType?;
+    decimal|string? ConditionRateAmount?;
+    # Currency Key
+    string ConditionCurrency?;
+    # Condition Pricing Unit
+    decimal|string? ConditionQuantity?;
+    # Quantity of the Condition Basis
+    decimal|string? ConditionBaseQuantity?;
+    # Condition Unit in the Document
+    string ConditionQuantitySAPUnit?;
+    # ISO Unit Code for Condition Quantity
+    string ConditionQuantityISOUnit?;
+    # Condition Ratio (in Percent or Per Mille)
+    decimal|string? ConditionRateRatio?;
+    # Unit of Measurement
+    string ConditionRateRatioSAPUnit?;
+    string ConditionRateRatioISOUnit?;
+    decimal|string? ConditionAmount?;
+    # Amount of the Condition Basis
+    decimal|string? ConditionBaseAmount?;
+    # SD Document Currency
+    string TransactionCurrency?;
+    SAP__Message[] SAP__Messages?;
+    SalesOrderItem _Item?;
+    SalesOrder _SalesOrder?;
+};
+
+
+type SalesOrderScheduleLine record {
+    string SalesOrder?;
+    string SalesOrderItem?;
+    string ScheduleLine?;
+    # Schedule Line Category
+    string ScheduleLineCategory?;
+    # Order Quantity in Sales Units
+    decimal|string? ScheduleLineOrderQuantity?;
+    string OrderQuantitySAPUnit?;
+    # ISO Unit Code for Order Quantity
+    string OrderQuantityISOUnit?;
+    # Requested Delivery Date
+    string? RequestedDeliveryDate?;
+    # Confirmed Delivery Date
+    string? ConfirmedDeliveryDate?;
+    decimal|string? ConfdOrderQtyByMatlAvailCheck?;
+    decimal|string DeliveredQtyInOrderQtyUnit?;
+    # Open Confirmed Delivery Quantity
+    decimal|string OpenConfdDelivQtyInOrdQtyUnit?;
+    # Corrected quantity in sales unit
+    decimal|string CorrectedQtyInOrderQtyUnit?;
+    # Schedule Line Blocked for Delivery
+    string DelivBlockReasonForSchedLine?;
+    # Purchase Requisition Number
+    string PurchaseRequisition?;
+    string? PurchaseRequisitionItem?;
+    # Movement Type (Inventory Management)
+    string GoodsMovementType?;
+    SalesOrderItem _Item?;
+    SalesOrder _SalesOrder?;
+};
+
+
+type UpdateSalesOrderItem record {
+    # Higher-Level Item in Bill of Material Structures
+    string? HigherLevelItem?;
+    # Sales Document Item Category
+    string SalesOrderItemCategory?;
+    # Short Text for Sales Order Item
+    string SalesOrderItemText?;
+    # Product Number
+    string Product?;
+    string ProductGroup?;
+    # Material Number Used by Customer
+    string MaterialByCustomer?;
+    # International Article Number (EAN/UPC)
+    string InternationalArticleNumber?;
+    string PurchaseOrderByCustomer?;
+    decimal|string RequestedQuantity?;
+    # Unit of the Requested Quantity
+    string RequestedQuantitySAPUnit?;
+    # ISO Unit Code for Requested Quantity
+    string RequestedQuantityISOUnit?;
+    # Gross Weight of the Item
+    decimal|string ItemGrossWeight?;
+    # Net Weight of the Item
+    decimal|string ItemNetWeight?;
+    string ItemWeightSAPUnit?;
+    # ISO Unit Code for Item Weight
+    string ItemWeightISOUnit?;
+    # Volume of the item
+    decimal|string ItemVolume?;
+    string ItemVolumeSAPUnit?;
+    # ISO Unit Code for Item Volume
+    string ItemVolumeISOUnit?;
+    string? RequestedDeliveryDate?;
+    # Date for Pricing and Exchange Rate
+    string? PricingDate?;
+    # Date on which services are rendered
+    string? ServicesRenderedDate?;
+    string? BillingDocumentDate?;
+    string CustomerGroup?;
+    # Batch Number
+    string Batch?;
+    # Plant (Own or External)
+    string Plant?;
+    string StorageLocation?;
+    # Shipping Point / Receiving Point
+    string ShippingPoint?;
+    string ShippingType?;
+    string Route?;
+    string DeliveryPriority?;
+    # Partial Delivery at Item Level
+    string PartialDeliveryIsAllowed?;
+    # Number of Allowed Partial Deliveries
+    decimal|string MaxNmbrOfPartialDelivery?;
+    # Delivery Date Rule
+    string DeliveryDateTypeRule?;
+    string ReceivingPoint?;
+    # Delivery Group (Items are delivered together)
+    string DeliveryGroup?;
+    # Incoterms (Part 1)
+    string IncotermsClassification?;
+    string IncotermsLocation1?;
+    string IncotermsLocation2?;
+    # Key for Terms of Payment
+    string CustomerPaymentTerms?;
+    string? FixedValueDate?;
+    string CustomerPriceGroup?;
+    string MaterialPricingGroup?;
+    string ProfitCenter?;
+    # Account Assignment Group for Material
+    string MatlAccountAssignmentGroup?;
+    # Billing Block for Item
+    string ItemBillingBlockReason?;
+    # Reason for Rejection of Sales Documents
+    string SalesDocumentRjcnReason?;
+    UpdateSAP__Message[] SAP__Messages?;
+};
+
+
+type UpdateSAP__Message record {
+    string code?;
+    string message?;
+    string? target?;
+    string[] additionalTargets?;
+    boolean transition?;
+    int numericSeverity?;
+    string? longtextUrl?;
+};
+
+// Unknown type: ItemOfSalesOrderScheduleLineExpandOptions
+
+
+type CollectionOfSalesOrderPricingElement record {
+    count \@odata\.count?;
+    SalesOrderPricingElement[] value?;
+};
+
+# The number of entities in the collection. Available when using the [$count](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptioncount) query option.
+type count decimal|string;
+
+// Unknown type: ItemPricingElementOfSalesOrderItemSelectOptions
+
+# Represents the Queries record for the operation: getSalesOrderPricingElement
+
+type GetSalesOrderPricingElementQueries record {
+    # Expand related entities, see [Expand](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionexpand)
+    SalesOrderPricingElementExpandOptions \$expand?;
+    # Select properties to be returned, see [Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)
+    SalesOrderPricingElementSelectOptions \$select?;
+};
+
+// Unknown type: SalesOrderPricingElementExpandOptions
+
+// Unknown type: SalesOrderPricingElementSelectOptions
+
+# Represents the Queries record for the operation: listSalesOrders
+
+type ListSalesOrdersQueries record {
+    # Skip the first n items, see [Paging - Skip](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionskip)
+    int \$skip?;
+    # Show only the first n items, see [Paging - Top](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptiontop)
+    int \$top?;
+    # Filter items by property values, see [Filtering](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionfilter)
+    string \$filter?;
+    # Order items by property values, see [Sorting](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionorderby)
+    SalesOrderOrderByOptions \$orderby?;
+    # Expand related entities, see [Expand](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionexpand)
+    SalesOrderExpandOptions \$expand?;
+    # Include count of items, see [Count](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptioncount)
+    boolean \$count?;
+    # Select properties to be returned, see [Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)
+    SalesOrderSelectOptions \$select?;
+};
+
+// Unknown type: SalesOrderOrderByOptions
+
+// Unknown type: SalesOrderExpandOptions
+
+// Unknown type: SalesOrderSelectOptions
+
+# Represents the Queries record for the operation: listTextsOfSalesOrder
+
+type ListTextsOfSalesOrderQueries record {
+    # Skip the first n items, see [Paging - Skip](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionskip)
+    int \$skip?;
+    # Show only the first n items, see [Paging - Top](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptiontop)
+    int \$top?;
+    # Filter items by property values, see [Filtering](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionfilter)
+    string \$filter?;
+    # Order items by property values, see [Sorting](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionorderby)
+    SalesOrderTextOrderByOptions \$orderby?;
+    # Expand related entities, see [Expand](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionexpand)
+    SalesOrderTextExpandOptions \$expand?;
+    # Include count of items, see [Count](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptioncount)
+    boolean \$count?;
+    # Select properties to be returned, see [Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)
+    SalesOrderTextSelectOptions \$select?;
+};
+
+// Unknown type: SalesOrderTextOrderByOptions
+
+// Unknown type: SalesOrderTextExpandOptions
+
+// Unknown type: SalesOrderTextSelectOptions
+
+# Represents the Queries record for the operation: getItemOfSalesOrderScheduleLine
+
+type GetItemOfSalesOrderScheduleLineQueries record {
+    # Expand related entities, see [Expand](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionexpand)
+    ItemOfSalesOrderScheduleLineExpandOptions \$expand?;
+    # Select properties to be returned, see [Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)
+    ItemOfSalesOrderScheduleLineSelectOptions \$select?;
+};
+
+// Unknown type: ItemOfSalesOrderScheduleLineSelectOptions
+
+// Unknown type: SalesOrderPartnerExpandOptions
+
+// Unknown type: ItemOfSalesOrderItemPricingElementExpandOptions
+
+// Unknown type: SalesOrderItemTextOrderByOptions
+
+// Unknown type: SalesOrderPricingElementOrderByOptions
+
+// Unknown type: ItemOfSalesOrderItemPartnerSelectOptions
+
+# Represents the Queries record for the operation: listSalesOrderScheduleLines
+
+type ListSalesOrderScheduleLinesQueries record {
+    # Skip the first n items, see [Paging - Skip](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionskip)
+    int \$skip?;
+    # Show only the first n items, see [Paging - Top](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptiontop)
+    int \$top?;
+    # Filter items by property values, see [Filtering](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionfilter)
+    string \$filter?;
+    # Order items by property values, see [Sorting](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionorderby)
+    SalesOrderScheduleLineOrderByOptions \$orderby?;
+    # Expand related entities, see [Expand](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionexpand)
+    SalesOrderScheduleLineExpandOptions \$expand?;
+    # Include count of items, see [Count](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptioncount)
+    boolean \$count?;
+    # Select properties to be returned, see [Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)
+    SalesOrderScheduleLineSelectOptions \$select?;
+};
+
+// Unknown type: SalesOrderScheduleLineOrderByOptions
+
+// Unknown type: SalesOrderScheduleLineExpandOptions
+
+// Unknown type: SalesOrderScheduleLineSelectOptions
+
+# Represents the Queries record for the operation: listSalesOrderItemTexts
+
+type ListSalesOrderItemTextsQueries record {
+    # Skip the first n items, see [Paging - Skip](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionskip)
+    int \$skip?;
+    # Show only the first n items, see [Paging - Top](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptiontop)
+    int \$top?;
+    # Filter items by property values, see [Filtering](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionfilter)
+    string \$filter?;
+    # Order items by property values, see [Sorting](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionorderby)
+    SalesOrderItemTextOrderByOptions \$orderby?;
+    # Expand related entities, see [Expand](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionexpand)
+    SalesOrderItemTextExpandOptions \$expand?;
+    # Include count of items, see [Count](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptioncount)
+    boolean \$count?;
+    # Select properties to be returned, see [Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)
+    SalesOrderItemTextSelectOptions \$select?;
+};
+
+// Unknown type: SalesOrderItemTextExpandOptions
+
+// Unknown type: SalesOrderItemTextSelectOptions
+
+
+type UpdateSalesOrderItemPartner record {
+    # Customer Number
+    string? Customer?;
+    # Account Number of Supplier
+    string? Supplier?;
+    string? Personnel?;
+    # Number of Contact Person
+    string? ContactPerson?;
+    UpdateSAP__Message[] SAP__Messages?;
+};
+
+# Provides a set of configurations for controlling the behaviours when communicating with a remote HTTP endpoint.
+
+type ConnectionConfig record {
+    # Configurations related to client authentication
+    http:BearerTokenConfig|OAuth2RefreshTokenGrantConfig|http:CredentialsConfig auth; // Special Agent Note: BearerTokenConfig, CredentialsConfig FROM ballerina/http package
+    # The HTTP version understood by the client
+    http:HttpVersion httpVersion?; // Special Agent Note: HttpVersion FROM ballerina/http package
+    # Configurations related to HTTP/1.x protocol
+    ClientHttp1Settings http1Settings?;
+    # Configurations related to HTTP/2 protocol
+    http:ClientHttp2Settings http2Settings?; // Special Agent Note: ClientHttp2Settings FROM ballerina/http package
+    # The maximum time to wait (in seconds) for a response before closing the connection
+    decimal timeout?;
+    # The choice of setting `forwarded`/`x-forwarded` header
+    string forwarded?;
+    # Configurations associated with request pooling
+    http:PoolConfiguration poolConfig?; // Special Agent Note: PoolConfiguration FROM ballerina/http package
+    # HTTP caching related configurations
+    http:CacheConfig cache?; // Special Agent Note: CacheConfig FROM ballerina/http package
+    # Specifies the way of handling compression (`accept-encoding`) header
+    http:Compression compression?; // Special Agent Note: Compression FROM ballerina/http package
+    # Configurations associated with the behaviour of the Circuit Breaker
+    http:CircuitBreakerConfig circuitBreaker?; // Special Agent Note: CircuitBreakerConfig FROM ballerina/http package
+    # Configurations associated with retrying
+    http:RetryConfig retryConfig?; // Special Agent Note: RetryConfig FROM ballerina/http package
+    # Configurations associated with inbound response size limits
+    http:ResponseLimitConfigs responseLimits?; // Special Agent Note: ResponseLimitConfigs FROM ballerina/http package
+    # SSL/TLS-related options
+    http:ClientSecureSocket secureSocket?; // Special Agent Note: ClientSecureSocket FROM ballerina/http package
+    # Proxy server related options
+    http:ProxyConfig proxy?; // Special Agent Note: ProxyConfig FROM ballerina/http package
+    # Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default
+    boolean validation?;
+};
+
+# OAuth2 Refresh Token Grant Configs
+
+type OAuth2RefreshTokenGrantConfig record {
+    # Refresh URL
+    string refreshUrl?;
+    string refreshToken;
+    string clientId;
+    string clientSecret;
+    string|string[] scopes?;
+    decimal defaultTokenExpTime?;
+    decimal clockSkew?;
+    map<string> optionalParams?;
+    oauth2:CredentialBearer credentialBearer?; // Special Agent Note: CredentialBearer FROM ballerina/oauth2 package
+    oauth2:ClientConfiguration clientConfig?; // Special Agent Note: ClientConfiguration FROM ballerina/oauth2 package
+};
+
+# Provides settings related to HTTP/1.x protocol.
+
+type ClientHttp1Settings record {
+    # Specifies whether to reuse a connection for multiple requests
+    http:KeepAlive keepAlive?; // Special Agent Note: KeepAlive FROM ballerina/http package
+    # The chunking behaviour of the request
+    http:Chunking chunking?; // Special Agent Note: Chunking FROM ballerina/http package
+    # Proxy server related options
+    ProxyConfig proxy?;
+};
+
+# Proxy server configurations to be used with the HTTP client endpoint.
+
+type ProxyConfig record {
+    # Host name of the proxy server
+    string host?;
+    # Proxy server port
+    int port?;
+    # Proxy server username
+    string userName?;
+    # Proxy server password
+    string password?;
+};
+
+// Unknown type: ScheduleLineOfSalesOrderItemSelectOptions
+
+
+type CollectionOfSalesOrder record {
+    count \@odata\.count?;
+    SalesOrder[] value?;
+};
+
+
+type UpdateSalesOrderText record {
+    string LongText?;
+    UpdateSAP__Message[] SAP__Messages?;
+};
+
+# Represents the Queries record for the operation: listItemTextsOfSalesOrderItem
+
+type ListItemTextsOfSalesOrderItemQueries record {
+    # Skip the first n items, see [Paging - Skip](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionskip)
+    int \$skip?;
+    # Show only the first n items, see [Paging - Top](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptiontop)
+    int \$top?;
+    # Filter items by property values, see [Filtering](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionfilter)
+    string \$filter?;
+    # Order items by property values, see [Sorting](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionorderby)
+    ItemTextOfSalesOrderItemOrderByOptions \$orderby?;
+    # Expand related entities, see [Expand](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionexpand)
+    ItemTextOfSalesOrderItemExpandOptions \$expand?;
+    # Include count of items, see [Count](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptioncount)
+    boolean \$count?;
+    # Select properties to be returned, see [Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)
+    ItemTextOfSalesOrderItemSelectOptions \$select?;
+};
+
+// Unknown type: ItemTextOfSalesOrderItemOrderByOptions
+
+// Unknown type: ItemTextOfSalesOrderItemExpandOptions
+
+// Unknown type: ItemTextOfSalesOrderItemSelectOptions
+
+# Represents the Queries record for the operation: getSalesOrderOfSalesOrderItemPartner
+
+type GetSalesOrderOfSalesOrderItemPartnerQueries record {
+    # Expand related entities, see [Expand](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionexpand)
+    SalesOrderExpandOptions \$expand?;
+    # Select properties to be returned, see [Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)
+    SalesOrderSelectOptions \$select?;
+};
+
+# Represents the Queries record for the operation: getItemOfSalesOrderItemPricingElement
+
+type GetItemOfSalesOrderItemPricingElementQueries record {
+    # Expand related entities, see [Expand](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionexpand)
+    ItemOfSalesOrderItemPricingElementExpandOptions \$expand?;
+    # Select properties to be returned, see [Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)
+    ItemOfSalesOrderItemPricingElementSelectOptions \$select?;
+};
+
+// Unknown type: ItemOfSalesOrderItemPricingElementSelectOptions
+
+# Represents the Queries record for the operation: listPartnersOfSalesOrder
+
+type ListPartnersOfSalesOrderQueries record {
+    # Skip the first n items, see [Paging - Skip](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionskip)
+    int \$skip?;
+    # Show only the first n items, see [Paging - Top](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptiontop)
+    int \$top?;
+    # Filter items by property values, see [Filtering](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionfilter)
+    string \$filter?;
+    # Order items by property values, see [Sorting](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionorderby)
+    SalesOrderPartnerOrderByOptions \$orderby?;
+    # Expand related entities, see [Expand](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionexpand)
+    SalesOrderPartnerExpandOptions \$expand?;
+    # Include count of items, see [Count](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptioncount)
+    boolean \$count?;
+    # Select properties to be returned, see [Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)
+    SalesOrderPartnerSelectOptions \$select?;
+};
+
+// Unknown type: SalesOrderPartnerOrderByOptions
+
+// Unknown type: SalesOrderPartnerSelectOptions
+
+# Represents the Queries record for the operation: getSalesOrderText
+
+type GetSalesOrderTextQueries record {
+    # Expand related entities, see [Expand](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionexpand)
+    SalesOrderTextExpandOptions \$expand?;
+    # Select properties to be returned, see [Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)
+    SalesOrderTextSelectOptions \$select?;
+};
+
+# Represents the Queries record for the operation: getSalesOrderItem
+
+type GetSalesOrderItemQueries record {
+    # Expand related entities, see [Expand](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionexpand)
+    SalesOrderItemExpandOptions \$expand?;
+    # Select properties to be returned, see [Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)
+    SalesOrderItemSelectOptions \$select?;
+};
+
+// Unknown type: SalesOrderItemExpandOptions
+
+// Unknown type: SalesOrderItemSelectOptions
+
+# Represents the Queries record for the operation: getSalesOrderOfSalesOrderScheduleLine
+
+type GetSalesOrderOfSalesOrderScheduleLineQueries record {
+    # Expand related entities, see [Expand](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionexpand)
+    SalesOrderExpandOptions \$expand?;
+    # Select properties to be returned, see [Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)
+    SalesOrderSelectOptions \$select?;
+};
+
+// Unknown type: SalesOrderItemPartnerSelectOptions
+
+// Unknown type: SalesOrderItemPricingElementOrderByOptions
+
+# Represents the Queries record for the operation: listSalesOrderItems
+
+type ListSalesOrderItemsQueries record {
+    # Skip the first n items, see [Paging - Skip](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionskip)
+    int \$skip?;
+    # Show only the first n items, see [Paging - Top](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptiontop)
+    int \$top?;
+    # Filter items by property values, see [Filtering](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionfilter)
+    string \$filter?;
+    # Order items by property values, see [Sorting](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionorderby)
+    SalesOrderItemOrderByOptions \$orderby?;
+    # Expand related entities, see [Expand](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionexpand)
+    SalesOrderItemExpandOptions \$expand?;
+    # Include count of items, see [Count](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptioncount)
+    boolean \$count?;
+    # Select properties to be returned, see [Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)
+    SalesOrderItemSelectOptions \$select?;
+};
+
+// Unknown type: SalesOrderItemOrderByOptions
+
+# Represents the Queries record for the operation: listSalesOrderPartners
+
+type ListSalesOrderPartnersQueries record {
+    # Skip the first n items, see [Paging - Skip](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionskip)
+    int \$skip?;
+    # Show only the first n items, see [Paging - Top](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptiontop)
+    int \$top?;
+    # Filter items by property values, see [Filtering](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionfilter)
+    string \$filter?;
+    # Order items by property values, see [Sorting](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionorderby)
+    SalesOrderPartnerOrderByOptions \$orderby?;
+    # Expand related entities, see [Expand](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionexpand)
+    SalesOrderPartnerExpandOptions \$expand?;
+    # Include count of items, see [Count](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptioncount)
+    boolean \$count?;
+    # Select properties to be returned, see [Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)
+    SalesOrderPartnerSelectOptions \$select?;
+};
+
+// Unknown type: ScheduleLineOfSalesOrderItemExpandOptions
+
+// Unknown type: ItemPricingElementOfSalesOrderItemOrderByOptions
+
+
+type CreateSalesOrderPricingElement record {
+    string ConditionType?;
+    decimal|string? ConditionRateAmount?;
+    # Currency Key
+    string ConditionCurrency?;
+    # Condition Pricing Unit
+    decimal|string? ConditionQuantity?;
+    # Condition Unit in the Document
+    string ConditionQuantitySAPUnit?;
+    # ISO Unit Code for Condition Quantity
+    string ConditionQuantityISOUnit?;
+    # Condition Ratio (in Percent or Per Mille)
+    decimal|string? ConditionRateRatio?;
+    # Unit of Measurement
+    string ConditionRateRatioSAPUnit?;
+    string ConditionRateRatioISOUnit?;
+    decimal|string? ConditionAmount?;
+    # SD Document Currency
+    string TransactionCurrency?;
+    CreateSAP__Message[] SAP__Messages?;
+    CreateSalesOrder _SalesOrder?;
+};
+
+
+type CreateSAP__Message record {
+    string code?;
+    string message?;
+    string? target?;
+    string[] additionalTargets?;
+    boolean transition?;
+    int numericSeverity?;
+    string? longtextUrl?;
+};
+
+
+type CreateSalesOrder record {
+    string SalesOrder;
+    # Language key for sales document type
+    string SalesOrderType?;
+    string SoldToParty?;
+    string SalesOrganization?;
+    string DistributionChannel?;
+    string OrganizationDivision?;
+    string SalesOffice?;
+    string SalesGroup?;
+    string SalesDistrict?;
+    string PurchaseOrderByCustomer?;
+    # Ship-to Party's Customer Reference
+    string PurchaseOrderByShipToParty?;
+    # Customer Purchase Order Type
+    string CustomerPurchaseOrderType?;
+    string? CustomerPurchaseOrderDate?;
+    # Order Reason (Reason for the Business Transaction)
+    string SDDocumentReason?;
+    # Document Date (Date Received/Sent)
+    string? SalesOrderDate?;
+    string? RequestedDeliveryDate?;
+    # Date for Pricing and Exchange Rate
+    string? PricingDate?;
+    # Date on which services are rendered
+    string? ServicesRenderedDate?;
+    string? BillingDocumentDate?;
+    # SD Document Currency
+    string TransactionCurrency?;
+    string DeliveryDateTypeRule?;
+    string ShippingCondition?;
+    # Complete Delivery Defined for Each Sales Order
+    boolean CompleteDeliveryIsDefined?;
+    boolean SlsDocIsRlvtForProofOfDeliv?;
+    string ShippingType?;
+    string ReceivingPoint?;
+    # Incoterms (Part 1)
+    string IncotermsClassification?;
+    string IncotermsVersion?;
+    string IncotermsLocation1?;
+    string IncotermsLocation2?;
+    string CustomerPriceGroup?;
+    string PriceListType?;
+    string? FixedValueDate?;
+    string TaxDepartureCountry?;
+    string VATRegistrationCountry?;
+    # Indicator: Triangular Deal Within the EU
+    boolean IsEUTriangularDeal?;
+    # Key for Terms of Payment
+    string CustomerPaymentTerms?;
+    string PaymentMethod?;
+    string CustomerAccountAssignmentGroup?;
+    # Assignment Number
+    string AssignmentReference?;
+    # Reference Document Number
+    string AccountingDocExternalReference?;
+    # Billing Block in SD Document
+    string HeaderBillingBlockReason?;
+    # Delivery Block (Document Header)
+    string DeliveryBlockReason?;
+    string CustomerGroup?;
+    string AdditionalCustomerGroup1?;
+    string AdditionalCustomerGroup2?;
+    string AdditionalCustomerGroup3?;
+    string AdditionalCustomerGroup4?;
+    string AdditionalCustomerGroup5?;
+    CreateSAP__Message[] SAP__Messages?;
+    CreateSalesOrderItem[] _Item?;
+    CreateSalesOrderPartner[] _Partner?;
+    CreateSalesOrderPricingElement[] _PricingElement?;
+    CreateSalesOrderText[] _Text?;
+};
+
+
+type CreateSalesOrderItem record {
+    # Sales Order Item
+    string SalesOrderItem;
+    # Higher-Level Item in Bill of Material Structures
+    string? HigherLevelItem?;
+    # Sales Document Item Category
+    string SalesOrderItemCategory?;
+    # Short Text for Sales Order Item
+    string SalesOrderItemText?;
+    # Product Number
+    string Product?;
+    string ProductGroup?;
+    # Material Number Used by Customer
+    string MaterialByCustomer?;
+    # International Article Number (EAN/UPC)
+    string InternationalArticleNumber?;
+    string PurchaseOrderByCustomer?;
+    decimal|string RequestedQuantity?;
+    # Unit of the Requested Quantity
+    string RequestedQuantitySAPUnit?;
+    # ISO Unit Code for Requested Quantity
+    string RequestedQuantityISOUnit?;
+    # Gross Weight of the Item
+    decimal|string ItemGrossWeight?;
+    # Net Weight of the Item
+    decimal|string ItemNetWeight?;
+    string ItemWeightSAPUnit?;
+    # ISO Unit Code for Item Weight
+    string ItemWeightISOUnit?;
+    # Volume of the item
+    decimal|string ItemVolume?;
+    string ItemVolumeSAPUnit?;
+    # ISO Unit Code for Item Volume
+    string ItemVolumeISOUnit?;
+    string? RequestedDeliveryDate?;
+    # Date for Pricing and Exchange Rate
+    string? PricingDate?;
+    # Date on which services are rendered
+    string? ServicesRenderedDate?;
+    string? BillingDocumentDate?;
+    string CustomerGroup?;
+    # Batch Number
+    string Batch?;
+    # Plant (Own or External)
+    string Plant?;
+    string StorageLocation?;
+    # Shipping Point / Receiving Point
+    string ShippingPoint?;
+    string ShippingType?;
+    string Route?;
+    string DeliveryPriority?;
+    # Partial Delivery at Item Level
+    string PartialDeliveryIsAllowed?;
+    # Number of Allowed Partial Deliveries
+    decimal|string MaxNmbrOfPartialDelivery?;
+    # Delivery Date Rule
+    string DeliveryDateTypeRule?;
+    string ReceivingPoint?;
+    # Delivery Group (Items are delivered together)
+    string DeliveryGroup?;
+    # Incoterms (Part 1)
+    string IncotermsClassification?;
+    string IncotermsLocation1?;
+    string IncotermsLocation2?;
+    # Key for Terms of Payment
+    string CustomerPaymentTerms?;
+    string? FixedValueDate?;
+    string CustomerPriceGroup?;
+    string MaterialPricingGroup?;
+    string ProfitCenter?;
+    # Account Assignment Group for Material
+    string MatlAccountAssignmentGroup?;
+    # Billing Block for Item
+    string ItemBillingBlockReason?;
+    # Reason for Rejection of Sales Documents
+    string SalesDocumentRjcnReason?;
+    CreateSAP__Message[] SAP__Messages?;
+    CreateSalesOrderItemPartner[] _ItemPartner?;
+    CreateSalesOrderItemPricingElmnt[] _ItemPricingElement?;
+    CreateSalesOrderItemText[] _ItemText?;
+    CreateSalesOrder _SalesOrder?;
+    CreateSalesOrderScheduleLine[] _ScheduleLine?;
+};
+
+
+type CreateSalesOrderItemPartner record {
+    string PartnerFunction;
+    # Customer Number
+    string? Customer?;
+    # Account Number of Supplier
+    string? Supplier?;
+    string? Personnel?;
+    # Number of Contact Person
+    string? ContactPerson?;
+    CreateSAP__Message[] SAP__Messages?;
+    CreateSalesOrderItem _Item?;
+    CreateSalesOrder _SalesOrder?;
+};
+
+
+type CreateSalesOrderItemPricingElmnt record {
+    string ConditionType?;
+    decimal|string? ConditionRateAmount?;
+    # Currency Key
+    string ConditionCurrency?;
+    # Condition Pricing Unit
+    decimal|string? ConditionQuantity?;
+    # Condition Unit in the Document
+    string ConditionQuantitySAPUnit?;
+    # ISO Unit Code for Condition Quantity
+    string ConditionQuantityISOUnit?;
+    # Condition Ratio (in Percent or Per Mille)
+    decimal|string? ConditionRateRatio?;
+    # Unit of Measurement
+    string ConditionRateRatioSAPUnit?;
+    string ConditionRateRatioISOUnit?;
+    decimal|string? ConditionAmount?;
+    # SD Document Currency
+    string TransactionCurrency?;
+    CreateSAP__Message[] SAP__Messages?;
+    CreateSalesOrderItem _Item?;
+    CreateSalesOrder _SalesOrder?;
+};
+
+
+type CreateSalesOrderItemText record {
+    string Language;
+    string LongTextID;
+    string LongText?;
+    CreateSAP__Message[] SAP__Messages?;
+    CreateSalesOrderItem _Item?;
+    CreateSalesOrder _SalesOrder?;
+};
+
+
+type CreateSalesOrderScheduleLine record {
+    # Schedule Line Category
+    string ScheduleLineCategory?;
+    # Order Quantity in Sales Units
+    decimal|string? ScheduleLineOrderQuantity?;
+    # Requested Delivery Date
+    string? RequestedDeliveryDate?;
+    # Corrected quantity in sales unit
+    decimal|string CorrectedQtyInOrderQtyUnit?;
+    # Schedule Line Blocked for Delivery
+    string DelivBlockReasonForSchedLine?;
+    CreateSalesOrderItem _Item?;
+    CreateSalesOrder _SalesOrder?;
+};
+
+
+type CreateSalesOrderPartner record {
+    string PartnerFunction;
+    # Customer Number
+    string? Customer?;
+    # Account Number of Supplier
+    string? Supplier?;
+    string? Personnel?;
+    # Number of Contact Person
+    string? ContactPerson?;
+    CreateSAP__Message[] SAP__Messages?;
+    CreateSalesOrder _SalesOrder?;
+};
+
+
+type CreateSalesOrderText record {
+    string Language;
+    string LongTextID;
+    string LongText?;
+    CreateSAP__Message[] SAP__Messages?;
+    CreateSalesOrder _SalesOrder?;
+};
+
+
+type CollectionOfSalesOrderItemText record {
+    count \@odata\.count?;
+    SalesOrderItemText[] value?;
+};
+
+# Represents the Queries record for the operation: getSalesOrderOfSalesOrderItemPricingElement
+
+type GetSalesOrderOfSalesOrderItemPricingElementQueries record {
+    # Expand related entities, see [Expand](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionexpand)
+    SalesOrderExpandOptions \$expand?;
+    # Select properties to be returned, see [Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)
+    SalesOrderSelectOptions \$select?;
+};
+
+// Unknown type: ItemPartnerOfSalesOrderItemExpandOptions
+
+# Represents the Queries record for the operation: getSalesOrderItemText
+
+type GetSalesOrderItemTextQueries record {
+    # Expand related entities, see [Expand](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionexpand)
+    SalesOrderItemTextExpandOptions \$expand?;
+    # Select properties to be returned, see [Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)
+    SalesOrderItemTextSelectOptions \$select?;
+};
+
+
+type CollectionOfSalesOrderItem record {
+    count \@odata\.count?;
+    SalesOrderItem[] value?;
+};
+
+# Represents the Queries record for the operation: getSalesOrderItemPartner
+
+type GetSalesOrderItemPartnerQueries record {
+    # Expand related entities, see [Expand](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionexpand)
+    SalesOrderItemPartnerExpandOptions \$expand?;
+    # Select properties to be returned, see [Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)
+    SalesOrderItemPartnerSelectOptions \$select?;
+};
+
+// Unknown type: SalesOrderItemPartnerExpandOptions
+
+# Represents the Queries record for the operation: getSalesOrderOfSalesOrderPartner
+
+type GetSalesOrderOfSalesOrderPartnerQueries record {
+    # Expand related entities, see [Expand](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionexpand)
+    SalesOrderExpandOptions \$expand?;
+    # Select properties to be returned, see [Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)
+    SalesOrderSelectOptions \$select?;
+};
+
+// Unknown type: ItemPartnerOfSalesOrderItemSelectOptions
+
+
+type UpdateSalesOrderPartner record {
+    # Customer Number
+    string? Customer?;
+    # Account Number of Supplier
+    string? Supplier?;
+    string? Personnel?;
+    # Number of Contact Person
+    string? ContactPerson?;
+    UpdateSAP__Message[] SAP__Messages?;
+};
+
+
+type CollectionOfSalesOrderScheduleLine record {
+    count \@odata\.count?;
+    SalesOrderScheduleLine[] value?;
+};
+
+# Represents the Queries record for the operation: listItemsOfSalesOrder
+
+type ListItemsOfSalesOrderQueries record {
+    # Skip the first n items, see [Paging - Skip](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionskip)
+    int \$skip?;
+    # Show only the first n items, see [Paging - Top](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptiontop)
+    int \$top?;
+    # Filter items by property values, see [Filtering](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionfilter)
+    string \$filter?;
+    # Order items by property values, see [Sorting](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionorderby)
+    SalesOrderItemOrderByOptions \$orderby?;
+    # Expand related entities, see [Expand](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionexpand)
+    SalesOrderItemExpandOptions \$expand?;
+    # Include count of items, see [Count](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptioncount)
+    boolean \$count?;
+    # Select properties to be returned, see [Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)
+    SalesOrderItemSelectOptions \$select?;
+};
+
+# Represents the Queries record for the operation: getSalesOrderOfSalesOrderItemText
+
+type GetSalesOrderOfSalesOrderItemTextQueries record {
+    # Expand related entities, see [Expand](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionexpand)
+    SalesOrderExpandOptions \$expand?;
+    # Select properties to be returned, see [Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)
+    SalesOrderSelectOptions \$select?;
+};
+
+# Represents the Queries record for the operation: getSalesOrderOfSalesOrderPricingElement
+
+type GetSalesOrderOfSalesOrderPricingElementQueries record {
+    # Expand related entities, see [Expand](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionexpand)
+    SalesOrderExpandOptions \$expand?;
+    # Select properties to be returned, see [Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)
+    SalesOrderSelectOptions \$select?;
+};
+
+
+type CollectionOfSalesOrderItemPricingElmnt record {
+    count \@odata\.count?;
+    SalesOrderItemPricingElmnt[] value?;
+};
+
+# Represents the Queries record for the operation: listItemPartnersOfSalesOrderItem
+
+type ListItemPartnersOfSalesOrderItemQueries record {
+    # Skip the first n items, see [Paging - Skip](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionskip)
+    int \$skip?;
+    # Show only the first n items, see [Paging - Top](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptiontop)
+    int \$top?;
+    # Filter items by property values, see [Filtering](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionfilter)
+    string \$filter?;
+    # Order items by property values, see [Sorting](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionorderby)
+    ItemPartnerOfSalesOrderItemOrderByOptions \$orderby?;
+    # Expand related entities, see [Expand](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionexpand)
+    ItemPartnerOfSalesOrderItemExpandOptions \$expand?;
+    # Include count of items, see [Count](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptioncount)
+    boolean \$count?;
+    # Select properties to be returned, see [Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)
+    ItemPartnerOfSalesOrderItemSelectOptions \$select?;
+};
+
+// Unknown type: ItemPartnerOfSalesOrderItemOrderByOptions
+
+# Represents the Queries record for the operation: listSalesOrderItemPartners
+
+type ListSalesOrderItemPartnersQueries record {
+    # Skip the first n items, see [Paging - Skip](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionskip)
+    int \$skip?;
+    # Show only the first n items, see [Paging - Top](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptiontop)
+    int \$top?;
+    # Filter items by property values, see [Filtering](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionfilter)
+    string \$filter?;
+    # Order items by property values, see [Sorting](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionorderby)
+    SalesOrderItemPartnerOrderByOptions \$orderby?;
+    # Expand related entities, see [Expand](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionexpand)
+    SalesOrderItemPartnerExpandOptions \$expand?;
+    # Include count of items, see [Count](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptioncount)
+    boolean \$count?;
+    # Select properties to be returned, see [Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)
+    SalesOrderItemPartnerSelectOptions \$select?;
+};
+
+// Unknown type: SalesOrderItemPartnerOrderByOptions
+
+# Represents the Queries record for the operation: listScheduleLinesOfSalesOrderItem
+
+type ListScheduleLinesOfSalesOrderItemQueries record {
+    # Skip the first n items, see [Paging - Skip](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionskip)
+    int \$skip?;
+    # Show only the first n items, see [Paging - Top](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptiontop)
+    int \$top?;
+    # Filter items by property values, see [Filtering](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionfilter)
+    string \$filter?;
+    # Order items by property values, see [Sorting](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionorderby)
+    ScheduleLineOfSalesOrderItemOrderByOptions \$orderby?;
+    # Expand related entities, see [Expand](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionexpand)
+    ScheduleLineOfSalesOrderItemExpandOptions \$expand?;
+    # Include count of items, see [Count](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptioncount)
+    boolean \$count?;
+    # Select properties to be returned, see [Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)
+    ScheduleLineOfSalesOrderItemSelectOptions \$select?;
+};
+
+// Unknown type: ScheduleLineOfSalesOrderItemOrderByOptions
+
+
+type CollectionOfSalesOrderText record {
+    count \@odata\.count?;
+    SalesOrderText[] value?;
+};
+
+# Represents the Queries record for the operation: getSalesOrderOfSalesOrderItem
+
+type GetSalesOrderOfSalesOrderItemQueries record {
+    # Expand related entities, see [Expand](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionexpand)
+    SalesOrderExpandOptions \$expand?;
+    # Select properties to be returned, see [Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)
+    SalesOrderSelectOptions \$select?;
+};
+
+# Represents the Queries record for the operation: getSalesOrder
+
+type GetSalesOrderQueries record {
+    # Expand related entities, see [Expand](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionexpand)
+    SalesOrderExpandOptions \$expand?;
+    # Select properties to be returned, see [Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)
+    SalesOrderSelectOptions \$select?;
+};
+
+# Represents the Queries record for the operation: listItemPricingElementsOfSalesOrderItem
+
+type ListItemPricingElementsOfSalesOrderItemQueries record {
+    # Skip the first n items, see [Paging - Skip](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionskip)
+    int \$skip?;
+    # Show only the first n items, see [Paging - Top](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptiontop)
+    int \$top?;
+    # Order items by property values, see [Sorting](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionorderby)
+    ItemPricingElementOfSalesOrderItemOrderByOptions \$orderby?;
+    # Expand related entities, see [Expand](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionexpand)
+    ItemPricingElementOfSalesOrderItemExpandOptions \$expand?;
+    # Include count of items, see [Count](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptioncount)
+    boolean \$count?;
+    # Select properties to be returned, see [Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)
+    ItemPricingElementOfSalesOrderItemSelectOptions \$select?;
+};
+
+// Unknown type: ItemPricingElementOfSalesOrderItemExpandOptions
+
+# Represents the Queries record for the operation: listSalesOrderItemPricingElements
+
+type ListSalesOrderItemPricingElementsQueries record {
+    # Skip the first n items, see [Paging - Skip](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionskip)
+    int \$skip?;
+    # Show only the first n items, see [Paging - Top](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptiontop)
+    int \$top?;
+    # Filter items by property values, see [Filtering](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionfilter)
+    string \$filter?;
+    # Order items by property values, see [Sorting](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionorderby)
+    SalesOrderItemPricingElementOrderByOptions \$orderby?;
+    # Expand related entities, see [Expand](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionexpand)
+    SalesOrderItemPricingElementExpandOptions \$expand?;
+    # Include count of items, see [Count](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptioncount)
+    boolean \$count?;
+    # Select properties to be returned, see [Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)
+    SalesOrderItemPricingElementSelectOptions \$select?;
+};
+
+// Unknown type: SalesOrderItemPricingElementExpandOptions
+
+// Unknown type: SalesOrderItemPricingElementSelectOptions
+
+# Represents the Queries record for the operation: getItemOfSalesOrderItemText
+
+type GetItemOfSalesOrderItemTextQueries record {
+    # Expand related entities, see [Expand](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionexpand)
+    ItemOfSalesOrderItemTextExpandOptions \$expand?;
+    # Select properties to be returned, see [Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)
+    ItemOfSalesOrderItemTextSelectOptions \$select?;
+};
+
+// Unknown type: ItemOfSalesOrderItemTextExpandOptions
+
+// Unknown type: ItemOfSalesOrderItemTextSelectOptions
+
+# Represents the Queries record for the operation: getSalesOrderOfSalesOrderText
+
+type GetSalesOrderOfSalesOrderTextQueries record {
+    # Expand related entities, see [Expand](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionexpand)
+    SalesOrderExpandOptions \$expand?;
+    # Select properties to be returned, see [Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)
+    SalesOrderSelectOptions \$select?;
+};
+
+
+type UpdateSalesOrder record {
+    string SoldToParty?;
+    string SalesOrganization?;
+    string DistributionChannel?;
+    string OrganizationDivision?;
+    string SalesOffice?;
+    string SalesGroup?;
+    string SalesDistrict?;
+    string PurchaseOrderByCustomer?;
+    # Ship-to Party's Customer Reference
+    string PurchaseOrderByShipToParty?;
+    # Customer Purchase Order Type
+    string CustomerPurchaseOrderType?;
+    string? CustomerPurchaseOrderDate?;
+    # Order Reason (Reason for the Business Transaction)
+    string SDDocumentReason?;
+    # Document Date (Date Received/Sent)
+    string? SalesOrderDate?;
+    string? RequestedDeliveryDate?;
+    # Date for Pricing and Exchange Rate
+    string? PricingDate?;
+    # Date on which services are rendered
+    string? ServicesRenderedDate?;
+    string? BillingDocumentDate?;
+    # SD Document Currency
+    string TransactionCurrency?;
+    string DeliveryDateTypeRule?;
+    string ShippingCondition?;
+    # Complete Delivery Defined for Each Sales Order
+    boolean CompleteDeliveryIsDefined?;
+    boolean SlsDocIsRlvtForProofOfDeliv?;
+    string ShippingType?;
+    string ReceivingPoint?;
+    # Incoterms (Part 1)
+    string IncotermsClassification?;
+    string IncotermsVersion?;
+    string IncotermsLocation1?;
+    string IncotermsLocation2?;
+    string CustomerPriceGroup?;
+    string PriceListType?;
+    string? FixedValueDate?;
+    string TaxDepartureCountry?;
+    string VATRegistrationCountry?;
+    # Indicator: Triangular Deal Within the EU
+    boolean IsEUTriangularDeal?;
+    # Key for Terms of Payment
+    string CustomerPaymentTerms?;
+    string PaymentMethod?;
+    string CustomerAccountAssignmentGroup?;
+    # Assignment Number
+    string AssignmentReference?;
+    # Reference Document Number
+    string AccountingDocExternalReference?;
+    # Billing Block in SD Document
+    string HeaderBillingBlockReason?;
+    # Delivery Block (Document Header)
+    string DeliveryBlockReason?;
+    string CustomerGroup?;
+    string AdditionalCustomerGroup1?;
+    string AdditionalCustomerGroup2?;
+    string AdditionalCustomerGroup3?;
+    string AdditionalCustomerGroup4?;
+    string AdditionalCustomerGroup5?;
+    UpdateSAP__Message[] SAP__Messages?;
+};
+
+# Represents the Queries record for the operation: getItemOfSalesOrderItemPartner
+
+type GetItemOfSalesOrderItemPartnerQueries record {
+    # Expand related entities, see [Expand](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionexpand)
+    ItemOfSalesOrderItemPartnerExpandOptions \$expand?;
+    # Select properties to be returned, see [Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)
+    ItemOfSalesOrderItemPartnerSelectOptions \$select?;
+};
+
+// Unknown type: ItemOfSalesOrderItemPartnerExpandOptions
+
+
+type UpdateSalesOrderItemPricingElmnt record {
+    decimal|string? ConditionRateAmount?;
+    # Currency Key
+    string ConditionCurrency?;
+    # Condition Pricing Unit
+    decimal|string? ConditionQuantity?;
+    # Condition Unit in the Document
+    string ConditionQuantitySAPUnit?;
+    # ISO Unit Code for Condition Quantity
+    string ConditionQuantityISOUnit?;
+    # Condition Ratio (in Percent or Per Mille)
+    decimal|string? ConditionRateRatio?;
+    decimal|string? ConditionAmount?;
+    # SD Document Currency
+    string TransactionCurrency?;
+    UpdateSAP__Message[] SAP__Messages?;
+};
+
+# Represents the Queries record for the operation: getSalesOrderItemPricingElement
+
+type GetSalesOrderItemPricingElementQueries record {
+    # Expand related entities, see [Expand](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionexpand)
+    SalesOrderItemPricingElementExpandOptions \$expand?;
+    # Select properties to be returned, see [Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)
+    SalesOrderItemPricingElementSelectOptions \$select?;
+};
+
+# Represents the Queries record for the operation: getSalesOrderScheduleLine
+
+type GetSalesOrderScheduleLineQueries record {
+    # Expand related entities, see [Expand](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionexpand)
+    SalesOrderScheduleLineExpandOptions \$expand?;
+    # Select properties to be returned, see [Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)
+    SalesOrderScheduleLineSelectOptions \$select?;
+};
+
+# Represents the Queries record for the operation: listPricingElementsOfSalesOrder
+
+type ListPricingElementsOfSalesOrderQueries record {
+    # Skip the first n items, see [Paging - Skip](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionskip)
+    int \$skip?;
+    # Show only the first n items, see [Paging - Top](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptiontop)
+    int \$top?;
+    # Order items by property values, see [Sorting](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionorderby)
+    SalesOrderPricingElementOrderByOptions \$orderby?;
+    # Expand related entities, see [Expand](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionexpand)
+    SalesOrderPricingElementExpandOptions \$expand?;
+    # Include count of items, see [Count](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptioncount)
+    boolean \$count?;
+    # Select properties to be returned, see [Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)
+    SalesOrderPricingElementSelectOptions \$select?;
+};
+
+
+type CollectionOfSalesOrderPartner record {
+    count \@odata\.count?;
+    SalesOrderPartner[] value?;
+};
+
+# Represents the Queries record for the operation: getSalesOrderPartner
+
+type GetSalesOrderPartnerQueries record {
+    # Expand related entities, see [Expand](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionexpand)
+    SalesOrderPartnerExpandOptions \$expand?;
+    # Select properties to be returned, see [Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)
+    SalesOrderPartnerSelectOptions \$select?;
+};
+
+
+type UpdateSalesOrderItemText record {
+    string LongText?;
+    UpdateSAP__Message[] SAP__Messages?;
+};
+
+# Represents the Queries record for the operation: listSalesOrderTexts
+
+type ListSalesOrderTextsQueries record {
+    # Skip the first n items, see [Paging - Skip](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionskip)
+    int \$skip?;
+    # Show only the first n items, see [Paging - Top](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptiontop)
+    int \$top?;
+    # Filter items by property values, see [Filtering](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionfilter)
+    string \$filter?;
+    # Order items by property values, see [Sorting](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionorderby)
+    SalesOrderTextOrderByOptions \$orderby?;
+    # Expand related entities, see [Expand](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionexpand)
+    SalesOrderTextExpandOptions \$expand?;
+    # Include count of items, see [Count](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptioncount)
+    boolean \$count?;
+    # Select properties to be returned, see [Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)
+    SalesOrderTextSelectOptions \$select?;
+};
+
+
+type UpdateSalesOrderPricingElement record {
+    decimal|string? ConditionRateAmount?;
+    # Currency Key
+    string ConditionCurrency?;
+    # Condition Pricing Unit
+    decimal|string? ConditionQuantity?;
+    # Condition Unit in the Document
+    string ConditionQuantitySAPUnit?;
+    # ISO Unit Code for Condition Quantity
+    string ConditionQuantityISOUnit?;
+    # Condition Ratio (in Percent or Per Mille)
+    decimal|string? ConditionRateRatio?;
+    decimal|string? ConditionAmount?;
+    # SD Document Currency
+    string TransactionCurrency?;
+    UpdateSAP__Message[] SAP__Messages?;
+};
+
+# Represents the Queries record for the operation: listSalesOrderPricingElements
+
+type ListSalesOrderPricingElementsQueries record {
+    # Skip the first n items, see [Paging - Skip](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionskip)
+    int \$skip?;
+    # Show only the first n items, see [Paging - Top](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptiontop)
+    int \$top?;
+    # Filter items by property values, see [Filtering](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionfilter)
+    string \$filter?;
+    # Order items by property values, see [Sorting](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionorderby)
+    SalesOrderPricingElementOrderByOptions \$orderby?;
+    # Expand related entities, see [Expand](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionexpand)
+    SalesOrderPricingElementExpandOptions \$expand?;
+    # Include count of items, see [Count](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptioncount)
+    boolean \$count?;
+    # Select properties to be returned, see [Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)
+    SalesOrderPricingElementSelectOptions \$select?;
+};
+
+
+type CollectionOfSalesOrderItemPartner record {
+    count \@odata\.count?;
+    SalesOrderItemPartner[] value?;
+};
+
+// --- Client ---
+
+# 
+# 
+# In every API call, you can make use of the following operations:
+# 
+# * You can read entire sales orders or only parts of the data, using the provided filters.
+# 
+# * You can create sales orders. You can use deep insert requests, that is, you create a header plus at least one of the following entities: header partner, header pricing element, header text, item, item partner, item pricing element, and item text.
+# 
+# * For existing sales orders, you can create the following sub-entities on their own: header partner, header pricing element, header text, item, item partner, item pricing element, and item text.
+# 
+# * For existing sales orders, you can update the following entities (that is, you can change the content of their properties): header, header partner, header pricing element, header text, item, item partner, item pricing element, and item text.
+# 
+# * For existing sales orders, you can delete the following entities: header partner, header pricing element, header text, item, item partner, item pricing element, and item text.
+# 
+# For every operation, you can call the API in a synchronous or asynchronous mode. In an asynchronous mode, you can fetch the response from a separate URL later.
+client class Client {
+    function init(ConnectionConfig config, string hostname, int port = 443) returns error?;
+
+    # Add new entity to related _Item
+    # 
+    remote function createItemOfSalesOrder(string SalesOrder, CreateSalesOrderItem payload, map<string|string[]> headers = {}) returns SalesOrderItem|error;
+
+    # Add new entity to related _ItemPartner
+    # 
+    remote function createItemPartnerOfSalesOrderItem(string SalesOrder, string SalesOrderItem, CreateSalesOrderItemPartner payload, map<string|string[]> headers = {}) returns SalesOrderItemPartner|error;
+
+    # Add new entity to related _ItemPricingElement
+    # 
+    remote function createItemPricingElementOfSalesOrderItem(string SalesOrder, string SalesOrderItem, CreateSalesOrderItemPricingElmnt payload, map<string|string[]> headers = {}) returns SalesOrderItemPricingElmnt|error;
+
+    # Add new entity to related _ItemText
+    # 
+    remote function createItemTextOfSalesOrderItem(string SalesOrder, string SalesOrderItem, CreateSalesOrderItemText payload, map<string|string[]> headers = {}) returns SalesOrderItemText|error;
+
+    # Add new entity to related _Partner
+    # 
+    remote function createPartnerOfSalesOrder(string SalesOrder, CreateSalesOrderPartner payload, map<string|string[]> headers = {}) returns SalesOrderPartner|error;
+
+    # Add new entity to related _PricingElement
+    # 
+    remote function createPricingElementOfSalesOrder(string SalesOrder, CreateSalesOrderPricingElement payload, map<string|string[]> headers = {}) returns SalesOrderPricingElement|error;
+
+    # Add new entity to SalesOrder
+    # 
+    remote function createSalesOrder(CreateSalesOrder payload, map<string|string[]> headers = {}) returns SalesOrder|error;
+
+    # Add new entity to related _Text
+    # 
+    remote function createTextOfSalesOrder(string SalesOrder, CreateSalesOrderText payload, map<string|string[]> headers = {}) returns SalesOrderText|error;
+
+    # Delete entity from SalesOrderItem
+    # 
+    remote function deleteSalesOrderItem(string SalesOrder, string salesOrderItem, map<string|string[]> headers = {}) returns http:Response|error; // Special Agent Note: Response FROM ballerina/http package
+
+    # Delete entity from SalesOrderItemPartner
+    # 
+    remote function deleteSalesOrderItemPartner(string SalesOrder, string SalesOrderItem, string PartnerFunction, map<string|string[]> headers = {}) returns http:Response|error; // Special Agent Note: Response FROM ballerina/http package
+
+    # Delete entity from SalesOrderItemPricingElement
+    # 
+    remote function deleteSalesOrderItemPricingElement(string SalesOrder, string SalesOrderItem, string PricingProcedureStep, string PricingProcedureCounter, map<string|string[]> headers = {}) returns http:Response|error; // Special Agent Note: Response FROM ballerina/http package
+
+    # Delete entity from SalesOrderItemText
+    # 
+    remote function deleteSalesOrderItemText(string SalesOrder, string SalesOrderItem, string Language, string LongTextID, map<string|string[]> headers = {}) returns http:Response|error; // Special Agent Note: Response FROM ballerina/http package
+
+    # Delete entity from SalesOrderPartner
+    # 
+    remote function deleteSalesOrderPartner(string SalesOrder, string PartnerFunction, map<string|string[]> headers = {}) returns http:Response|error; // Special Agent Note: Response FROM ballerina/http package
+
+    # Delete entity from SalesOrderPricingElement
+    # 
+    remote function deleteSalesOrderPricingElement(string SalesOrder, string PricingProcedureStep, string PricingProcedureCounter, map<string|string[]> headers = {}) returns http:Response|error; // Special Agent Note: Response FROM ballerina/http package
+
+    # Delete entity from SalesOrderText
+    # 
+    remote function deleteSalesOrderText(string SalesOrder, string Language, string LongTextID, map<string|string[]> headers = {}) returns http:Response|error; // Special Agent Note: Response FROM ballerina/http package
+
+    # Get related _Item
+    # 
+    remote function getItemOfSalesOrderItemPartner(string SalesOrder, string salesOrderItem, string PartnerFunction, map<string|string[]> headers = {}, ItemOfSalesOrderItemPartnerExpandOptions \$expand = [], ItemOfSalesOrderItemPartnerSelectOptions \$select = [], anydata Additional Values, GetItemOfSalesOrderItemPartnerQueries queries) returns SalesOrderItem|error;
+
+    # Get related _Item
+    # 
+    remote function getItemOfSalesOrderItemPricingElement(string SalesOrder, string salesOrderItem, string PricingProcedureStep, string PricingProcedureCounter, map<string|string[]> headers = {}, ItemOfSalesOrderItemPricingElementExpandOptions \$expand = [], ItemOfSalesOrderItemPricingElementSelectOptions \$select = [], anydata Additional Values, GetItemOfSalesOrderItemPricingElementQueries queries) returns SalesOrderItem|error;
+
+    # Get related _Item
+    # 
+    remote function getItemOfSalesOrderItemText(string SalesOrder, string salesOrderItem, string Language, string LongTextID, map<string|string[]> headers = {}, ItemOfSalesOrderItemTextExpandOptions \$expand = [], ItemOfSalesOrderItemTextSelectOptions \$select = [], anydata Additional Values, GetItemOfSalesOrderItemTextQueries queries) returns SalesOrderItem|error;
+
+    # Get related _Item
+    # 
+    remote function getItemOfSalesOrderScheduleLine(string SalesOrder, string salesOrderItem, string ScheduleLine, map<string|string[]> headers = {}, ItemOfSalesOrderScheduleLineExpandOptions \$expand = [], ItemOfSalesOrderScheduleLineSelectOptions \$select = [], anydata Additional Values, GetItemOfSalesOrderScheduleLineQueries queries) returns SalesOrderItem|error;
+
+    # Get entity from SalesOrder by key
+    # 
+    remote function getSalesOrder(string salesOrder, map<string|string[]> headers = {}, SalesOrderExpandOptions \$expand = [], SalesOrderSelectOptions \$select = [], anydata Additional Values, GetSalesOrderQueries queries) returns SalesOrder|error;
+
+    # Get entity from SalesOrderItem by key
+    # 
+    remote function getSalesOrderItem(string SalesOrder, string salesOrderItem, map<string|string[]> headers = {}, SalesOrderItemExpandOptions \$expand = [], SalesOrderItemSelectOptions \$select = [], anydata Additional Values, GetSalesOrderItemQueries queries) returns SalesOrderItem|error;
+
+    # Get entity from SalesOrderItemPartner by key
+    # 
+    remote function getSalesOrderItemPartner(string SalesOrder, string SalesOrderItem, string PartnerFunction, map<string|string[]> headers = {}, SalesOrderItemPartnerExpandOptions \$expand = [], SalesOrderItemPartnerSelectOptions \$select = [], anydata Additional Values, GetSalesOrderItemPartnerQueries queries) returns SalesOrderItemPartner|error;
+
+    # Get entity from SalesOrderItemPricingElement by key
+    # 
+    remote function getSalesOrderItemPricingElement(string SalesOrder, string SalesOrderItem, string PricingProcedureStep, string PricingProcedureCounter, map<string|string[]> headers = {}, SalesOrderItemPricingElementExpandOptions \$expand = [], SalesOrderItemPricingElementSelectOptions \$select = [], anydata Additional Values, GetSalesOrderItemPricingElementQueries queries) returns SalesOrderItemPricingElmnt|error;
+
+    # Get entity from SalesOrderItemText by key
+    # 
+    remote function getSalesOrderItemText(string SalesOrder, string SalesOrderItem, string Language, string LongTextID, map<string|string[]> headers = {}, SalesOrderItemTextExpandOptions \$expand = [], SalesOrderItemTextSelectOptions \$select = [], anydata Additional Values, GetSalesOrderItemTextQueries queries) returns SalesOrderItemText|error;
+
+    # Get related _SalesOrder
+    # 
+    remote function getSalesOrderOfSalesOrderItem(string salesOrder, string SalesOrderItem, map<string|string[]> headers = {}, SalesOrderExpandOptions \$expand = [], SalesOrderSelectOptions \$select = [], anydata Additional Values, GetSalesOrderOfSalesOrderItemQueries queries) returns SalesOrder|error;
+
+    # Get related _SalesOrder
+    # 
+    remote function getSalesOrderOfSalesOrderItemPartner(string salesOrder, string SalesOrderItem, string PartnerFunction, map<string|string[]> headers = {}, SalesOrderExpandOptions \$expand = [], SalesOrderSelectOptions \$select = [], anydata Additional Values, GetSalesOrderOfSalesOrderItemPartnerQueries queries) returns SalesOrder|error;
+
+    # Get related _SalesOrder
+    # 
+    remote function getSalesOrderOfSalesOrderItemPricingElement(string salesOrder, string SalesOrderItem, string PricingProcedureStep, string PricingProcedureCounter, map<string|string[]> headers = {}, SalesOrderExpandOptions \$expand = [], SalesOrderSelectOptions \$select = [], anydata Additional Values, GetSalesOrderOfSalesOrderItemPricingElementQueries queries) returns SalesOrder|error;
+
+    # Get related _SalesOrder
+    # 
+    remote function getSalesOrderOfSalesOrderItemText(string salesOrder, string SalesOrderItem, string Language, string LongTextID, map<string|string[]> headers = {}, SalesOrderExpandOptions \$expand = [], SalesOrderSelectOptions \$select = [], anydata Additional Values, GetSalesOrderOfSalesOrderItemTextQueries queries) returns SalesOrder|error;
+
+    # Get related _SalesOrder
+    # 
+    remote function getSalesOrderOfSalesOrderPartner(string salesOrder, string PartnerFunction, map<string|string[]> headers = {}, SalesOrderExpandOptions \$expand = [], SalesOrderSelectOptions \$select = [], anydata Additional Values, GetSalesOrderOfSalesOrderPartnerQueries queries) returns SalesOrder|error;
+
+    # Get related _SalesOrder
+    # 
+    remote function getSalesOrderOfSalesOrderPricingElement(string salesOrder, string PricingProcedureStep, string PricingProcedureCounter, map<string|string[]> headers = {}, SalesOrderExpandOptions \$expand = [], SalesOrderSelectOptions \$select = [], anydata Additional Values, GetSalesOrderOfSalesOrderPricingElementQueries queries) returns SalesOrder|error;
+
+    # Get related _SalesOrder
+    # 
+    remote function getSalesOrderOfSalesOrderScheduleLine(string salesOrder, string SalesOrderItem, string ScheduleLine, map<string|string[]> headers = {}, SalesOrderExpandOptions \$expand = [], SalesOrderSelectOptions \$select = [], anydata Additional Values, GetSalesOrderOfSalesOrderScheduleLineQueries queries) returns SalesOrder|error;
+
+    # Get related _SalesOrder
+    # 
+    remote function getSalesOrderOfSalesOrderText(string salesOrder, string Language, string LongTextID, map<string|string[]> headers = {}, SalesOrderExpandOptions \$expand = [], SalesOrderSelectOptions \$select = [], anydata Additional Values, GetSalesOrderOfSalesOrderTextQueries queries) returns SalesOrder|error;
+
+    # Get entity from SalesOrderPartner by key
+    # 
+    remote function getSalesOrderPartner(string SalesOrder, string PartnerFunction, map<string|string[]> headers = {}, SalesOrderPartnerExpandOptions \$expand = [], SalesOrderPartnerSelectOptions \$select = [], anydata Additional Values, GetSalesOrderPartnerQueries queries) returns SalesOrderPartner|error;
+
+    # Get entity from SalesOrderPricingElement by key
+    # 
+    remote function getSalesOrderPricingElement(string SalesOrder, string PricingProcedureStep, string PricingProcedureCounter, map<string|string[]> headers = {}, SalesOrderPricingElementExpandOptions \$expand = [], SalesOrderPricingElementSelectOptions \$select = [], anydata Additional Values, GetSalesOrderPricingElementQueries queries) returns SalesOrderPricingElement|error;
+
+    # Get entity from SalesOrderScheduleLine by key
+    # 
+    remote function getSalesOrderScheduleLine(string SalesOrder, string SalesOrderItem, string ScheduleLine, map<string|string[]> headers = {}, SalesOrderScheduleLineExpandOptions \$expand = [], SalesOrderScheduleLineSelectOptions \$select = [], anydata Additional Values, GetSalesOrderScheduleLineQueries queries) returns SalesOrderScheduleLine|error;
+
+    # Get entity from SalesOrderText by key
+    # 
+    remote function getSalesOrderText(string SalesOrder, string Language, string LongTextID, map<string|string[]> headers = {}, SalesOrderTextExpandOptions \$expand = [], SalesOrderTextSelectOptions \$select = [], anydata Additional Values, GetSalesOrderTextQueries queries) returns SalesOrderText|error;
+
+    # Get entities from related _ItemPartner
+    # 
+    remote function listItemPartnersOfSalesOrderItem(string SalesOrder, string SalesOrderItem, map<string|string[]> headers = {}, int \$skip = 0, int \$top = 0, string \$filter = "", ItemPartnerOfSalesOrderItemOrderByOptions \$orderby = [], ItemPartnerOfSalesOrderItemExpandOptions \$expand = [], boolean \$count = false, ItemPartnerOfSalesOrderItemSelectOptions \$select = [], anydata Additional Values, ListItemPartnersOfSalesOrderItemQueries queries) returns CollectionOfSalesOrderItemPartner|error;
+
+    # Get entities from related _ItemPricingElement
+    # 
+    remote function listItemPricingElementsOfSalesOrderItem(string SalesOrder, string SalesOrderItem, map<string|string[]> headers = {}, int \$skip = 0, int \$top = 0, ItemPricingElementOfSalesOrderItemOrderByOptions \$orderby = [], ItemPricingElementOfSalesOrderItemExpandOptions \$expand = [], boolean \$count = false, ItemPricingElementOfSalesOrderItemSelectOptions \$select = [], anydata Additional Values, ListItemPricingElementsOfSalesOrderItemQueries queries) returns CollectionOfSalesOrderItemPricingElmnt|error;
+
+    # Get entities from related _ItemText
+    # 
+    remote function listItemTextsOfSalesOrderItem(string SalesOrder, string SalesOrderItem, map<string|string[]> headers = {}, int \$skip = 0, int \$top = 0, string \$filter = "", ItemTextOfSalesOrderItemOrderByOptions \$orderby = [], ItemTextOfSalesOrderItemExpandOptions \$expand = [], boolean \$count = false, ItemTextOfSalesOrderItemSelectOptions \$select = [], anydata Additional Values, ListItemTextsOfSalesOrderItemQueries queries) returns CollectionOfSalesOrderItemText|error;
+
+    # Get entities from related _Item
+    # 
+    remote function listItemsOfSalesOrder(string SalesOrder, map<string|string[]> headers = {}, int \$skip = 0, int \$top = 0, string \$filter = "", SalesOrderItemOrderByOptions \$orderby = [], SalesOrderItemExpandOptions \$expand = [], boolean \$count = false, SalesOrderItemSelectOptions \$select = [], anydata Additional Values, ListItemsOfSalesOrderQueries queries) returns CollectionOfSalesOrderItem|error;
+
+    # Get entities from related _Partner
+    # 
+    remote function listPartnersOfSalesOrder(string SalesOrder, map<string|string[]> headers = {}, int \$skip = 0, int \$top = 0, string \$filter = "", SalesOrderPartnerOrderByOptions \$orderby = [], SalesOrderPartnerExpandOptions \$expand = [], boolean \$count = false, SalesOrderPartnerSelectOptions \$select = [], anydata Additional Values, ListPartnersOfSalesOrderQueries queries) returns CollectionOfSalesOrderPartner|error;
+
+    # Get entities from related _PricingElement
+    # 
+    remote function listPricingElementsOfSalesOrder(string SalesOrder, map<string|string[]> headers = {}, int \$skip = 0, int \$top = 0, SalesOrderPricingElementOrderByOptions \$orderby = [], SalesOrderPricingElementExpandOptions \$expand = [], boolean \$count = false, SalesOrderPricingElementSelectOptions \$select = [], anydata Additional Values, ListPricingElementsOfSalesOrderQueries queries) returns CollectionOfSalesOrderPricingElement|error;
+
+    # Get entities from SalesOrderItemPartner
+    # 
+    remote function listSalesOrderItemPartners(map<string|string[]> headers = {}, int \$skip = 0, int \$top = 0, string \$filter = "", SalesOrderItemPartnerOrderByOptions \$orderby = [], SalesOrderItemPartnerExpandOptions \$expand = [], boolean \$count = false, SalesOrderItemPartnerSelectOptions \$select = [], anydata Additional Values, ListSalesOrderItemPartnersQueries queries) returns CollectionOfSalesOrderItemPartner|error;
+
+    # Get entities from SalesOrderItemPricingElement
+    # 
+    remote function listSalesOrderItemPricingElements(map<string|string[]> headers = {}, int \$skip = 0, int \$top = 0, string \$filter = "", SalesOrderItemPricingElementOrderByOptions \$orderby = [], SalesOrderItemPricingElementExpandOptions \$expand = [], boolean \$count = false, SalesOrderItemPricingElementSelectOptions \$select = [], anydata Additional Values, ListSalesOrderItemPricingElementsQueries queries) returns CollectionOfSalesOrderItemPricingElmnt|error;
+
+    # Get entities from SalesOrderItemText
+    # 
+    remote function listSalesOrderItemTexts(map<string|string[]> headers = {}, int \$skip = 0, int \$top = 0, string \$filter = "", SalesOrderItemTextOrderByOptions \$orderby = [], SalesOrderItemTextExpandOptions \$expand = [], boolean \$count = false, SalesOrderItemTextSelectOptions \$select = [], anydata Additional Values, ListSalesOrderItemTextsQueries queries) returns CollectionOfSalesOrderItemText|error;
+
+    # Get entities from SalesOrderItem
+    # 
+    remote function listSalesOrderItems(map<string|string[]> headers = {}, int \$skip = 0, int \$top = 0, string \$filter = "", SalesOrderItemOrderByOptions \$orderby = [], SalesOrderItemExpandOptions \$expand = [], boolean \$count = false, SalesOrderItemSelectOptions \$select = [], anydata Additional Values, ListSalesOrderItemsQueries queries) returns CollectionOfSalesOrderItem|error;
+
+    # Get entities from SalesOrderPartner
+    # 
+    remote function listSalesOrderPartners(map<string|string[]> headers = {}, int \$skip = 0, int \$top = 0, string \$filter = "", SalesOrderPartnerOrderByOptions \$orderby = [], SalesOrderPartnerExpandOptions \$expand = [], boolean \$count = false, SalesOrderPartnerSelectOptions \$select = [], anydata Additional Values, ListSalesOrderPartnersQueries queries) returns CollectionOfSalesOrderPartner|error;
+
+    # Get entities from SalesOrderPricingElement
+    # 
+    remote function listSalesOrderPricingElements(map<string|string[]> headers = {}, int \$skip = 0, int \$top = 0, string \$filter = "", SalesOrderPricingElementOrderByOptions \$orderby = [], SalesOrderPricingElementExpandOptions \$expand = [], boolean \$count = false, SalesOrderPricingElementSelectOptions \$select = [], anydata Additional Values, ListSalesOrderPricingElementsQueries queries) returns CollectionOfSalesOrderPricingElement|error;
+
+    # Get entities from SalesOrderScheduleLine
+    # 
+    remote function listSalesOrderScheduleLines(map<string|string[]> headers = {}, int \$skip = 0, int \$top = 0, string \$filter = "", SalesOrderScheduleLineOrderByOptions \$orderby = [], SalesOrderScheduleLineExpandOptions \$expand = [], boolean \$count = false, SalesOrderScheduleLineSelectOptions \$select = [], anydata Additional Values, ListSalesOrderScheduleLinesQueries queries) returns CollectionOfSalesOrderScheduleLine|error;
+
+    # Get entities from SalesOrderText
+    # 
+    remote function listSalesOrderTexts(map<string|string[]> headers = {}, int \$skip = 0, int \$top = 0, string \$filter = "", SalesOrderTextOrderByOptions \$orderby = [], SalesOrderTextExpandOptions \$expand = [], boolean \$count = false, SalesOrderTextSelectOptions \$select = [], anydata Additional Values, ListSalesOrderTextsQueries queries) returns CollectionOfSalesOrderText|error;
+
+    # Get entities from SalesOrder
+    # 
+    remote function listSalesOrders(map<string|string[]> headers = {}, int \$skip = 0, int \$top = 0, string \$filter = "", SalesOrderOrderByOptions \$orderby = [], SalesOrderExpandOptions \$expand = [], boolean \$count = false, SalesOrderSelectOptions \$select = [], anydata Additional Values, ListSalesOrdersQueries queries) returns CollectionOfSalesOrder|error;
+
+    # Get entities from related _ScheduleLine
+    # 
+    remote function listScheduleLinesOfSalesOrderItem(string SalesOrder, string SalesOrderItem, map<string|string[]> headers = {}, int \$skip = 0, int \$top = 0, string \$filter = "", ScheduleLineOfSalesOrderItemOrderByOptions \$orderby = [], ScheduleLineOfSalesOrderItemExpandOptions \$expand = [], boolean \$count = false, ScheduleLineOfSalesOrderItemSelectOptions \$select = [], anydata Additional Values, ListScheduleLinesOfSalesOrderItemQueries queries) returns CollectionOfSalesOrderScheduleLine|error;
+
+    # Get entities from related _Text
+    # 
+    remote function listTextsOfSalesOrder(string SalesOrder, map<string|string[]> headers = {}, int \$skip = 0, int \$top = 0, string \$filter = "", SalesOrderTextOrderByOptions \$orderby = [], SalesOrderTextExpandOptions \$expand = [], boolean \$count = false, SalesOrderTextSelectOptions \$select = [], anydata Additional Values, ListTextsOfSalesOrderQueries queries) returns CollectionOfSalesOrderText|error;
+
+    # Update entity in SalesOrder
+    # 
+    remote function patchSalesOrder(string salesOrder, UpdateSalesOrder payload, map<string|string[]> headers = {}) returns http:Response|error; // Special Agent Note: Response FROM ballerina/http package
+
+    # Update entity in SalesOrderItem
+    # 
+    remote function patchSalesOrderItem(string SalesOrder, string salesOrderItem, UpdateSalesOrderItem payload, map<string|string[]> headers = {}) returns http:Response|error; // Special Agent Note: Response FROM ballerina/http package
+
+    # Update entity in SalesOrderItemPartner
+    # 
+    remote function patchSalesOrderItemPartner(string SalesOrder, string SalesOrderItem, string PartnerFunction, UpdateSalesOrderItemPartner payload, map<string|string[]> headers = {}) returns http:Response|error; // Special Agent Note: Response FROM ballerina/http package
+
+    # Update entity in SalesOrderItemPricingElement
+    # 
+    remote function patchSalesOrderItemPricingElement(string SalesOrder, string SalesOrderItem, string PricingProcedureStep, string PricingProcedureCounter, UpdateSalesOrderItemPricingElmnt payload, map<string|string[]> headers = {}) returns http:Response|error; // Special Agent Note: Response FROM ballerina/http package
+
+    # Update entity in SalesOrderItemText
+    # 
+    remote function patchSalesOrderItemText(string SalesOrder, string SalesOrderItem, string Language, string LongTextID, UpdateSalesOrderItemText payload, map<string|string[]> headers = {}) returns http:Response|error; // Special Agent Note: Response FROM ballerina/http package
+
+    # Update entity in SalesOrderPartner
+    # 
+    remote function patchSalesOrderPartner(string SalesOrder, string PartnerFunction, UpdateSalesOrderPartner payload, map<string|string[]> headers = {}) returns http:Response|error; // Special Agent Note: Response FROM ballerina/http package
+
+    # Update entity in SalesOrderPricingElement
+    # 
+    remote function patchSalesOrderPricingElement(string SalesOrder, string PricingProcedureStep, string PricingProcedureCounter, UpdateSalesOrderPricingElement payload, map<string|string[]> headers = {}) returns http:Response|error; // Special Agent Note: Response FROM ballerina/http package
+
+    # Update entity in SalesOrderText
+    # 
+    remote function patchSalesOrderText(string SalesOrder, string Language, string LongTextID, UpdateSalesOrderText payload, map<string|string[]> headers = {}) returns http:Response|error; // Special Agent Note: Response FROM ballerina/http package
+
+    # Send a group of requests
+    # 
+    remote function performBatchOperation(http:Request request, map<string|string[]> headers = {}) returns http:Response|error; // Special Agent Note: Request, Response FROM ballerina/http package
+}

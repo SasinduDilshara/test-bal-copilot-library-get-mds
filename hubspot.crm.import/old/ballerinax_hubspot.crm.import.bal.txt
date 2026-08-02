@@ -1,0 +1,525 @@
+// ============================================================
+// Library: ballerinax/hubspot.crm.import
+// [HubSpot](https://www.hubspot.com/our-story) is an AI-powered customer relationship management (CRM) platform.
+// ============================================================
+import ballerinax/hubspot.crm.import;
+
+// --- README ---
+## Overview
+
+[HubSpot](https://www.hubspot.com/our-story) is an AI-powered customer relationship management (CRM) platform.
+
+The HubSpot connector offers APIs to connect and interact with the [HubSpot CRM Imports API](https://developers.hubspot.com/docs/api/crm/imports) endpoints, specifically based on the [HubSpot CRM Imports REST API](https://developers.hubspot.com/docs/reference/api/crm/imports)
+
+### Key Features
+
+- Import CRM records from external data sources
+- Monitor import job status and progress
+- Cancel active import operations
+- Retrieve import error details for troubleshooting
+
+## Setup guide
+
+To use the HubSpot CRM imports connector, you must have access to the HubSpot API through a HubSpot developer account and a HubSpot App under it. Therefore you need to register for a developer account at HubSpot if you don't have one already.
+
+### Step 1: Create/Login to a HubSpot Developer Account
+
+If you have an account already, go to the [HubSpot developer portal](https://app.hubspot.com/)
+
+If you don't have a HubSpot Developer Account you can sign up to a free account [here](https://developers.hubspot.com/get-started)
+
+### Step 2 (Optional): Create a Developer Test Account
+
+Within app developer accounts, you can create a [developer test account](https://developers.hubspot.com/beta-docs/getting-started/account-types#developer-test-accounts) under your account to test apps and integrations without affecting any real HubSpot data.
+
+> **Note:**These accounts are only for development and testing purposes. In production you should not use Developer Test Accounts.
+
+1. Go to Test Account section from the left sidebar.
+
+   ![Hubspot developer portal](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.import/main/docs/setup/resources/test_acc_1.png)
+
+2. Click Create developer test account.
+
+   ![Hubspot developer test account](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.import/main/docs/setup/resources/test_acc_2.png)
+
+3. In the dialogue box, give a name to your test account and click create.
+
+   ![Create Hubspot developer test account](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.import/main/docs/setup/resources/test_acc_3.png)
+
+### Step 3: Create a HubSpot App under your account
+
+1. In your developer account, navigate to the "Apps" section. Click on "Create App"
+
+   ![Hubspot apps](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.import/main/docs/setup/resources/create_app_1.png)
+
+2. Provide the necessary details, including the app name and description.
+
+### Step 4: Configure the Authentication Flow
+
+1. Move to the "Auth" Tab.
+
+   ![Hubspot app auth tab](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.import/main/docs/setup/resources/create_app_2.png)
+
+2. In the Scopes section, add the following scopes for your app using the "Add new scope" button.
+
+   - `crm.objects.import`
+
+   ![Add new scope](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.import/main/docs/setup/resources/scope_set.png)
+
+3. Add your Redirect URI in the relevant section. You can also use localhost addresses for local development purposes. Click Create App.
+
+   ![Create app](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.import/main/docs/setup/resources/create_app_final.png)
+
+### Step 5: Get your Client ID and Client Secret
+
+- Navigate to the Auth section of your app. Make sure to save the provided Client ID and Client Secret.
+
+   ![Auth settings](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.import/main/docs/setup/resources/get_credentials.png)
+
+### Step 6: Setup Authentication Flow
+
+Before proceeding with the Quickstart, ensure you have obtained the Access Token using the following steps:
+
+1. Create an authorization URL using the following format:
+
+   ```
+   https://app.hubspot.com/oauth/authorize?client_id=<YOUR_CLIENT_ID>&scope=<YOUR_SCOPES>&redirect_uri=<YOUR_REDIRECT_URI>
+   ```
+
+   Replace the `<YOUR_CLIENT_ID>`, `<YOUR_REDIRECT_URI>`, and `<YOUR_SCOPES>` with your specific value.
+
+2. Paste it in the browser and select your developer test account to install the app when prompted.
+
+   ![Choose account](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.import/main/docs/setup/resources/install_app.png)
+
+3. A code will be displayed in the browser. Copy the code.
+
+4. Run the following curl command. Replace the `<YOUR_CLIENT_ID>`, `<YOUR_REDIRECT_URI>`, and `<YOUR_CLIENT_SECRET>` with your specific value. Use the code you received in the above step 3 as the `<CODE>`.
+
+   - Linux/macOS
+
+     ```bash
+     curl --request POST \
+     --url https://api.hubapi.com/oauth/v1/token \
+     --header 'content-type: application/x-www-form-urlencoded' \
+     --data 'grant_type=authorization_code&code=<CODE>&redirect_uri=<YOUR_REDIRECT_URI>&client_id=<YOUR_CLIENT_ID>&client_secret=<YOUR_CLIENT_SECRET>'
+     ```
+
+   - Windows
+
+     ```bash
+     curl --request POST ^
+     --url https://api.hubapi.com/oauth/v1/token ^
+     --header 'content-type: application/x-www-form-urlencoded' ^
+     --data 'grant_type=authorization_code&code=<CODE>&redirect_uri=<YOUR_REDIRECT_URI>&client_id=<YOUR_CLIENT_ID>&client_secret=<YOUR_CLIENT_SECRET>'
+     ```
+
+   This command will return the access token necessary for API calls.
+
+   ```json
+   {
+     "token_type": "bearer",
+     "refresh_token": "<Refresh Token>",
+     "access_token": "<Access Token>",
+     "expires_in": 1800
+   }
+   ```
+
+5. Store the access token securely for use in your application.
+
+## Quickstart
+
+To use the `HubSpot CRM Imports` connector in your Ballerina application, update the `.bal` file as follows:
+
+### Step 1: Import the module
+
+Import the `hubspot.crm.import` module and `oauth2` module.
+
+```ballerina
+import ballerina/oauth2;
+import ballerinax/hubspot.crm.'import as crmImport;
+```
+
+### Step 2: Instantiate a new connector
+
+1. Create a `Config.toml` file and, configure the obtained credentials in the above steps as follows:
+
+   ```toml
+    clientId = "<Client Id>"
+    clientSecret = "<Client Secret>"
+    refreshToken = "<Refresh Token>"
+   ```
+
+2. Instantiate a `crmImport:ConnectionConfig` with the obtained credentials and initialize the connector with it.
+
+    ```ballerina
+    configurable string clientId = ?;
+    configurable string clientSecret = ?;
+    configurable string refreshToken = ?;
+
+    final crmImport:ConnectionConfig config = {
+        auth : {
+            clientId,
+            clientSecret,
+            refreshToken,
+            credentialBearer: oauth2:POST_BODY_BEARER
+        }
+    };
+
+    final crmImport:Client baseClient = check new(config);
+    ```
+
+### Step 3: Invoke the connector operation
+
+Now, utilize the available connector operations. A sample use case is shown below.
+
+#### Get a paged list of active imports
+
+```ballerina
+public function main() returns error? {
+    crmImport:CollectionResponsePublicImportResponse response = check baseClient->/.get({});
+}
+```
+
+## Examples
+
+The `HubSpot.crm.imports` connector provides practical examples illustrating usage in various scenarios. Explore these [examples](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.import/main/examples), covering the following use cases:
+
+1. [Creating a contact import](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.import/tree/main/examples/handle-import) - Integrate `hubspot.crm.import` API to create and manage a contact data import
+
+// --- END README ---
+
+// --- Types ---
+
+# Paginated collection of CRM import response records
+
+type CollectionResponsePublicImportResponse record {
+    # Pagination cursor references for next and previous pages
+    Paging paging?;
+    # Array of import response objects returned in this page
+    PublicImportResponse[] results;
+};
+
+# Pagination cursor references for next and previous pages
+
+type Paging record {
+    # Pagination cursor and link for retrieving the next page of results
+    NextPage next?;
+    # Pagination object containing a cursor and link referencing the previous page of results
+    PreviousPage prev?;
+};
+
+# Pagination cursor and link for retrieving the next page of results
+
+type NextPage record {
+    # URL link to the next page of results
+    string link?;
+    # Cursor token used to fetch the next page of results
+    string after;
+};
+
+# Pagination object containing a cursor and link referencing the previous page of results
+
+type PreviousPage record {
+    # Cursor token representing the start of the previous page
+    string before;
+    # URL link to the previous page of results
+    string link?;
+};
+
+# Represents the full state and metadata of a CRM import, including status, source, mapped object types, and processing outcomes
+
+type PublicImportResponse record {
+    # Defines the template used to guide an import, including the template type and its unique identifier
+    ImportTemplate importTemplate?;
+    # Timestamp when the import was created
+    string createdAt;
+    # Metadata summarizing the outcomes, file IDs, and object lists associated with a CRM import operation
+    PublicImportMetadata metadata;
+    # The raw JSON request payload submitted for the import
+    record {|anydata...;|} importRequestJson?;
+    # The platform or channel through which the import was initiated
+    "API"|"CRM_UI"|"IMPORT"|"MOBILE_ANDROID"|"MOBILE_IOS"|"SALESFORCE" importSource?;
+    # The user-defined name assigned to the import
+    string importName?;
+    # The status of the import
+    "STARTED"|"PROCESSING"|"DONE"|"FAILED"|"CANCELED"|"DEFERRED"|"REVERTED" state;
+    # Unique identifier for the import
+    string id;
+    # Whether or not the import is a list of people disqualified from receiving emails
+    boolean optOutImport;
+    # List of object type IDs mapped during the import
+    string[] mappedObjectTypeIds;
+    # Timestamp when the import was last updated
+    string updatedAt;
+};
+
+# Defines the template used to guide an import, including the template type and its unique identifier
+
+type ImportTemplate record {
+    # The source type of the template: admin-defined, previous import, or user file
+    "admin_defined"|"previous_import"|"user_file" templateType;
+    # The unique identifier of the import template
+    ballerina/lang.int:0.0.0:Signed32 templateId;
+};
+
+# Metadata summarizing the outcomes, file IDs, and object lists associated with a CRM import operation
+
+type PublicImportMetadata record {
+    # Summarized outcomes of each row a developer attempted to import into HubSpot
+    record {|ballerina/lang.int:0.0.0:Signed32...;|} counters;
+    # The IDs of files uploaded in the File Manager API
+    string[] fileIds;
+    # The lists containing the imported objects
+    PublicObjectListRecord[] objectLists;
+};
+
+# Identifies a list and object type for imported CRM records
+
+type PublicObjectListRecord record {
+    # The ID of the list containing the imported objects
+    string listId;
+    # The type of object contained in the list
+    string objectType;
+};
+
+# Full property value record including source, sensitivity, and audit metadata
+
+type PropertyValue record {
+    # Identifier of the specific source that set this value
+    string sourceId;
+    # Indicates whether a user explicitly selected this value
+    boolean selectedByUser;
+    # Human-readable label describing the value's source
+    string sourceLabel;
+    # System or integration that originated this property value
+    "UNKNOWN"|"IMPORT"|"API"|"FORM"|"ANALYTICS"|"MIGRATION"|"SALESFORCE"|"INTEGRATION"|"CONTACTS_WEB"|"WAL_INCREMENTAL"|"TASK"|"EMAIL"|"WORKFLOWS"|"CALCULATED"|"SOCIAL"|"BATCH_UPDATE"|"SIGNALS"|"BIDEN"|"DEFAULT"|"COMPANIES"|"DEALS"|"ASSISTS"|"PRESENTATIONS"|"TALLY"|"SIDEKICK"|"CRM_UI"|"MERGE_CONTACTS"|"PORTAL_USER_ASSOCIATOR"|"INTEGRATIONS_PLATFORM"|"BCC_TO_CRM"|"FORWARD_TO_CRM"|"ENGAGEMENTS"|"SALES"|"HEISENBERG"|"LEADIN"|"GMAIL_INTEGRATION"|"ACADEMY"|"SALES_MESSAGES"|"AVATARS_SERVICE"|"MERGE_COMPANIES"|"SEQUENCES"|"COMPANY_FAMILIES"|"MOBILE_IOS"|"MOBILE_ANDROID"|"CONTACTS"|"ASSOCIATIONS"|"EXTENSION"|"SUCCESS"|"BOT"|"INTEGRATIONS_SYNC"|"AUTOMATION_PLATFORM"|"CONVERSATIONS"|"EMAIL_INTEGRATION"|"CONTENT_MEMBERSHIP"|"QUOTES"|"BET_ASSIGNMENT"|"QUOTAS"|"BET_CRM_CONNECTOR"|"MEETINGS"|"MERGE_OBJECTS"|"RECYCLING_BIN"|"ADS"|"AI_GROUP"|"COMMUNICATOR"|"SETTINGS"|"PROPERTY_SETTINGS"|"PIPELINE_SETTINGS"|"COMPANY_INSIGHTS"|"BEHAVIORAL_EVENTS"|"PAYMENTS"|"GOALS"|"PORTAL_OBJECT_SYNC"|"APPROVALS"|"FILE_MANAGER"|"MARKETPLACE"|"INTERNAL_PROCESSING"|"FORECASTING"|"SLACK_INTEGRATION"|"CRM_UI_BULK_ACTION"|"WORKFLOW_CONTACT_DELETE_ACTION"|"ACCEPTANCE_TEST"|"PLAYBOOKS"|"CHATSPOT"|"FLYWHEEL_PRODUCT_DATA_SYNC"|"HELP_DESK"|"BILLING"|"DATA_ENRICHMENT"|"AUTOMATION_JOURNEY"|"MICROAPPS"|"INTENT"|"PROSPECTING_AGENT" 'source;
+    # ID of the user who last updated this property value
+    ballerina/lang.int:0.0.0:Signed32 updatedByUserId;
+    # Timestamp (ms) used to determine value persistence ordering
+    int persistenceTimestamp;
+    # Additional metadata string describing the value's source context
+    string sourceMetadata;
+    # Sensitivity classification of the property value: none, standard, or high
+    "none"|"standard"|"high" dataSensitivity;
+    # List of source object IDs associated with this property value
+    int[] sourceVid;
+    # Unit of measurement associated with this property value
+    string unit;
+    # Identifier of the request that produced this property value
+    string requestId;
+    # Indicates whether the property value is encrypted
+    boolean isEncrypted;
+    # The name of the property
+    string name;
+    # Whether to use the provided timestamp as the persistence timestamp
+    boolean useTimestampAsPersistenceTimestamp;
+    # The value assigned to the property
+    string value;
+    # Unix timestamp (ms) when the value was selected by the user
+    int selectedByUserTimestamp;
+    # Unix timestamp (ms) associated with the property value
+    int timestamp;
+    # Indicates whether the property value exceeds standard size limits
+    boolean isLargeValue;
+};
+
+# Represents a single row of data from an import file, including raw row content, line number, file reference, and encryption status
+
+type ImportRowCore record {
+    # Array of string values representing the raw data in the import row
+    string[] rowData;
+    # Indicates whether the row contains encrypted property values
+    boolean containsEncryptedProperties;
+    # The line number of this row within the import file
+    ballerina/lang.int:0.0.0:Signed32 lineNumber;
+    # The name of the sheet or page containing this row
+    string pageName?;
+    # The unique identifier of the import file this row belongs to
+    ballerina/lang.int:0.0.0:Signed32 fileId;
+};
+
+# Represents the status and lifecycle timestamps of an asynchronous action, including start, completion, and current processing state
+
+type ActionResponse record {
+    # The datetime when the action completed
+    string completedAt;
+    # The datetime when the action was requested
+    string requestedAt?;
+    # The datetime when the action began processing
+    string startedAt;
+    # Map of related resource links associated with the action response
+    record {|string...;|} links?;
+    # Current processing status of the action
+    "PENDING"|"PROCESSING"|"CANCELED"|"COMPLETE" status;
+};
+
+# Represents the Queries record for the operation: get-/_getPage
+
+type GetGetPageQueries record {
+    # A cursor token to retrieve results appearing before this value in the paginated list
+    string before?;
+    # The maximum number of results to display per page
+    ballerina/lang.int:0.0.0:Signed32 'limit?;
+    # The paging cursor token of the last successfully read resource will be returned as the `paging.next.after` JSON property of a paged response containing more results
+    string after?;
+};
+
+# Pagination object containing a reference to the next page of results
+
+type ForwardPaging record {
+    # Pagination cursor and link for retrieving the next page of results
+    NextPage next?;
+};
+
+# Represents the Queries record for the operation: get-/{importId}/errors_getErrors
+
+type GetImportIdErrorsGetErrorsQueries record {
+    # Set to True to receive the data values for the errored row
+    boolean includeRowData?;
+    # The maximum number of results to display per page
+    ballerina/lang.int:0.0.0:Signed32 'limit?;
+    # The paging cursor token of the last successfully read resource will be returned as the `paging.next.after` JSON property of a paged response containing more results
+    string after?;
+    # Set to True to receive a message explaining the error
+    boolean includeErrorMessage?;
+};
+
+# Represents a single error encountered during a CRM import, including error type, source row data, and the invalid value
+
+type PublicImportError record {
+    # Unix timestamp (int32) when the import error was recorded
+    ballerina/lang.int:0.0.0:Signed32 createdAt;
+    # Additional contextual detail about the import error
+    string extraContext?;
+    # Identifier of the object type involved in the import error
+    string objectTypeId?;
+    # Enumerated category classifying the specific type of import error
+    "INCORRECT_NUMBER_OF_COLUMNS"|"INVALID_OBJECT_ID"|"INVALID_ASSOCIATION_IDENTIFIER"|"NO_OBJECT_ID_FROM_ASSOCIATION_IDENTIFIER"|"MULTIPLE_COMPANIES_WITH_THIS_DOMAIN"|"PROPERTY_DEFINITION_NOT_FOUND"|"PROPERTY_VALUE_NOT_FOUND"|"COULD_NOT_FIND_OWNER"|"MULTIPLE_OWNERS_FOUND"|"COULD_NOT_FIND_BUSINESS_UNIT"|"COULD_NOT_PARSE_NUMBER"|"COULD_NOT_PARSE_DATE"|"COULD_NOT_PARSE_TERM"|"OUTSIDE_VALID_TIME_RANGE"|"OUTSIDE_VALID_TERM_RANGE"|"COULD_NOT_PARSE_ROW"|"INVALID_ENUMERATION_OPTION"|"AMBIGUOUS_ENUMERATION_OPTION"|"FAILED_VALIDATION"|"FAILED_TO_CREATE_ASSOCIATION"|"ASSOCIATION_LIMIT_EXCEEDED"|"FILE_NOT_FOUND"|"INVALID_COLUMN_CONFIGURATION"|"INVALID_FILE_TYPE"|"INVALID_SPREADSHEET"|"INVALID_SHEET_COUNT"|"FAILED_TO_PROCESS_OBJECT_WITH_EMPTY_PROPERTY_VALUES"|"UNKNOWN_BAD_REQUEST"|"GDPR_BLACKLISTED_EMAIL"|"DUPLICATE_ASSOCIATION_ID"|"LIMIT_EXCEEDED"|"PORTAL_WIDE_CUSTOM_OBJECT_LIMIT_EXCEEDED"|"INVALID_ALTERNATE_ID"|"INVALID_EMAIL"|"SECONDARY_EMAIL_WRITE_FAILURE"|"INVALID_DOMAIN"|"DUPLICATE_ROW_CONTENT"|"INVALID_NUMBER_SIZE"|"UNKNOWN_ERROR"|"FAILED_TO_OPT_OUT_CONTACT"|"INVALID_REQUIRED_PROPERTY"|"MISSING_REQUIRED_PROPERTY"|"DUPLICATE_ALTERNATE_ID"|"DUPLICATE_OBJECT_ID"|"DUPLICATE_UNIQUE_PROPERTY_VALUE"|"UNKNOWN_ASSOCIATION_RECORD_ID"|"INVALID_RECORD_ID"|"DUPLICATE_RECORD_ID"|"INVALID_CUSTOM_PROPERTY_VALIDATION"|"CREATE_ONLY_IMPORT"|"UPDATE_ONLY_IMPORT"|"COLUMN_TOO_LARGE"|"ROW_DATA_TOO_LARGE"|"MISSING_EVENT_TIMESTAMP"|"INVALID_EVENT_TIMESTAMP"|"INVALID_EVENT"|"DUPLICATE_EVENT"|"MISSING_EVENT_DEFINITION"|"INVALID_ASSOCIATION_KEY"|"ASSOCIATION_RECORD_NOT_FOUND"|"MISSING_OBJECT_DEFINITION"|"ASSOCIATION_LABEL_NOT_FOUND"|"MANY_ERRORS_IN_ROW" errorType;
+    # Full property value record including source, sensitivity, and audit metadata
+    PropertyValue invalidPropertyValue?;
+    # Human-readable description of the import error
+    string errorMessage?;
+    # Column number in the import file where the error was detected
+    ballerina/lang.int:0.0.0:Signed32 knownColumnNumber?;
+    # Formatted representation of the invalid value for display purposes
+    string invalidValueToDisplay?;
+    # Unique identifier for the import error record
+    string id;
+    # Represents a single row of data from an import file, including raw row content, line number, file reference, and encryption status
+    ImportRowCore sourceData;
+    # The CRM object type targeted by the import that produced the error
+    "CONTACT"|"COMPANY"|"DEAL"|"ENGAGEMENT"|"TICKET"|"OWNER"|"PRODUCT"|"LINE_ITEM"|"BET_DELIVERABLE_SERVICE"|"CONTENT"|"CONVERSATION"|"BET_ALERT"|"PORTAL"|"QUOTE"|"FORM_SUBMISSION_INBOUNDDB"|"QUOTA"|"UNSUBSCRIBE"|"COMMUNICATION"|"FEEDBACK_SUBMISSION"|"ATTRIBUTION"|"SALESFORCE_SYNC_ERROR"|"RESTORABLE_CRM_OBJECT"|"HUB"|"LANDING_PAGE"|"PRODUCT_OR_FOLDER"|"TASK"|"FORM"|"MARKETING_EMAIL"|"AD_ACCOUNT"|"AD_CAMPAIGN"|"AD_GROUP"|"AD"|"KEYWORD"|"CAMPAIGN"|"SOCIAL_CHANNEL"|"SOCIAL_POST"|"SITE_PAGE"|"BLOG_POST"|"IMPORT"|"EXPORT"|"CTA"|"TASK_TEMPLATE"|"AUTOMATION_PLATFORM_FLOW"|"OBJECT_LIST"|"NOTE"|"MEETING_EVENT"|"CALL"|"EMAIL"|"PUBLISHING_TASK"|"CONVERSATION_SESSION"|"CONTACT_CREATE_ATTRIBUTION"|"INVOICE"|"MARKETING_EVENT"|"CONVERSATION_INBOX"|"CHATFLOW"|"MEDIA_BRIDGE"|"SEQUENCE"|"SEQUENCE_STEP"|"FORECAST"|"SNIPPET"|"TEMPLATE"|"DEAL_CREATE_ATTRIBUTION"|"QUOTE_TEMPLATE"|"QUOTE_MODULE"|"QUOTE_MODULE_FIELD"|"QUOTE_FIELD"|"SEQUENCE_ENROLLMENT"|"SUBSCRIPTION"|"ACCEPTANCE_TEST"|"SOCIAL_BROADCAST"|"DEAL_SPLIT"|"DEAL_REGISTRATION"|"GOAL_TARGET"|"GOAL_TARGET_GROUP"|"PORTAL_OBJECT_SYNC_MESSAGE"|"FILE_MANAGER_FILE"|"FILE_MANAGER_FOLDER"|"SEQUENCE_STEP_ENROLLMENT"|"APPROVAL"|"APPROVAL_STEP"|"CTA_VARIANT"|"SALES_DOCUMENT"|"DISCOUNT"|"FEE"|"TAX"|"MARKETING_CALENDAR"|"PERMISSIONS_TESTING"|"PRIVACY_SCANNER_COOKIE"|"DATA_SYNC_STATE"|"WEB_INTERACTIVE"|"PLAYBOOK"|"FOLDER"|"PLAYBOOK_QUESTION"|"PLAYBOOK_SUBMISSION"|"PLAYBOOK_SUBMISSION_ANSWER"|"COMMERCE_PAYMENT"|"GSC_PROPERTY"|"SOX_PROTECTED_DUMMY_TYPE"|"BLOG_LISTING_PAGE"|"QUARANTINED_SUBMISSION"|"PAYMENT_SCHEDULE"|"PAYMENT_SCHEDULE_INSTALLMENT"|"MARKETING_CAMPAIGN_UTM"|"DISCOUNT_TEMPLATE"|"DISCOUNT_CODE"|"FEEDBACK_SURVEY"|"CMS_URL"|"SALES_TASK"|"SALES_WORKLOAD"|"USER"|"POSTAL_MAIL"|"SCHEMAS_BACKEND_TEST"|"PAYMENT_LINK"|"SUBMISSION_TAG"|"CAMPAIGN_STEP"|"SCHEDULING_PAGE"|"SOX_PROTECTED_TEST_TYPE"|"ORDER"|"MARKETING_SMS"|"PARTNER_ACCOUNT"|"CAMPAIGN_TEMPLATE"|"CAMPAIGN_TEMPLATE_STEP"|"PLAYLIST"|"CLIP"|"CAMPAIGN_BUDGET_ITEM"|"CAMPAIGN_SPEND_ITEM"|"MIC"|"CONTENT_AUDIT"|"CONTENT_AUDIT_PAGE"|"PLAYLIST_FOLDER"|"LEAD"|"ABANDONED_CART"|"EXTERNAL_WEB_URL"|"VIEW"|"VIEW_BLOCK"|"ROSTER"|"CART"|"AUTOMATION_PLATFORM_FLOW_ACTION"|"SOCIAL_PROFILE"|"PARTNER_CLIENT"|"ROSTER_MEMBER"|"MARKETING_EVENT_ATTENDANCE"|"ALL_PAGES"|"AI_FORECAST"|"CRM_PIPELINES_DUMMY_TYPE"|"KNOWLEDGE_ARTICLE"|"PROPERTY_INFO"|"DATA_PRIVACY_CONSENT"|"GOAL_TEMPLATE"|"SCORE_CONFIGURATION"|"AUDIENCE"|"PARTNER_CLIENT_REVENUE"|"AUTOMATION_JOURNEY"|"COMBO_EVENT_CONFIGURATION"|"CRM_OBJECTS_DUMMY_TYPE"|"CASE_STUDY"|"SERVICE"|"PODCAST_EPISODE"|"PARTNER_SERVICE"|"PROSPECTING_AGENT_CONTACT_ASSIGNMENT"|"UNKNOWN" objectType?;
+    # The raw value that failed validation during the import
+    string invalidValue?;
+};
+
+# OAuth2 Refresh Token Grant Configs
+
+type OAuth2RefreshTokenGrantConfig record {
+    # Refresh URL
+    string refreshUrl?;
+    string refreshToken;
+    string clientId;
+    string clientSecret;
+    string|string[] scopes?;
+    decimal defaultTokenExpTime?;
+    decimal clockSkew?;
+    map<string> optionalParams?;
+    oauth2:CredentialBearer credentialBearer?; // Special Agent Note: CredentialBearer FROM ballerina/oauth2 package
+    oauth2:ClientConfiguration clientConfig?; // Special Agent Note: ClientConfiguration FROM ballerina/oauth2 package
+};
+
+# A paginated collection of import errors encountered during a CRM import, with forward paging support
+
+type CollectionResponsePublicImportErrorForwardPaging record {
+    # Pagination object containing a reference to the next page of results
+    ForwardPaging paging?;
+    # Array of import errors encountered during the import
+    PublicImportError[] results;
+};
+
+# Multipart request body containing the import file and import configuration
+
+type Body record {
+    # Binary file content to be uploaded for import
+    record {|byte[] fileContent; string fileName; anydata...;|} files?;
+    # The serialized import request payload containing import configuration details
+    string importRequest?;
+};
+
+# Provides API key configurations needed when communicating with a remote HTTP endpoint
+
+type ApiKeysConfig record {
+    string privateAppLegacy;
+};
+
+# Provides a set of configurations for controlling the behaviours when communicating with a remote HTTP endpoint
+
+type ConnectionConfig record {
+    # Provides Auth configurations needed when communicating with a remote HTTP endpoint
+    http:BearerTokenConfig|OAuth2RefreshTokenGrantConfig|ApiKeysConfig auth; // Special Agent Note: BearerTokenConfig FROM ballerina/http package
+    # The HTTP version understood by the client
+    http:HttpVersion httpVersion?; // Special Agent Note: HttpVersion FROM ballerina/http package
+    # Configurations related to HTTP/1.x protocol
+    http:ClientHttp1Settings http1Settings?; // Special Agent Note: ClientHttp1Settings FROM ballerina/http package
+    # Configurations related to HTTP/2 protocol
+    http:ClientHttp2Settings http2Settings?; // Special Agent Note: ClientHttp2Settings FROM ballerina/http package
+    # The maximum time to wait (in seconds) for a response before closing the connection
+    decimal timeout?;
+    # The choice of setting `forwarded`/`x-forwarded` header
+    string forwarded?;
+    # Configurations associated with Redirection
+    http:FollowRedirects followRedirects?; // Special Agent Note: FollowRedirects FROM ballerina/http package
+    # Configurations associated with request pooling
+    http:PoolConfiguration poolConfig?; // Special Agent Note: PoolConfiguration FROM ballerina/http package
+    # HTTP caching related configurations
+    http:CacheConfig cache?; // Special Agent Note: CacheConfig FROM ballerina/http package
+    # Specifies the way of handling compression (`accept-encoding`) header
+    http:Compression compression?; // Special Agent Note: Compression FROM ballerina/http package
+    # Configurations associated with the behaviour of the Circuit Breaker
+    http:CircuitBreakerConfig circuitBreaker?; // Special Agent Note: CircuitBreakerConfig FROM ballerina/http package
+    # Configurations associated with retrying
+    http:RetryConfig retryConfig?; // Special Agent Note: RetryConfig FROM ballerina/http package
+    # Configurations associated with cookies
+    http:CookieConfig cookieConfig?; // Special Agent Note: CookieConfig FROM ballerina/http package
+    # Configurations associated with inbound response size limits
+    http:ResponseLimitConfigs responseLimits?; // Special Agent Note: ResponseLimitConfigs FROM ballerina/http package
+    # SSL/TLS-related options
+    http:ClientSecureSocket secureSocket?; // Special Agent Note: ClientSecureSocket FROM ballerina/http package
+    # Proxy server related options
+    http:ProxyConfig proxy?; // Special Agent Note: ProxyConfig FROM ballerina/http package
+    # Provides settings related to client socket configuration
+    http:ClientSocketConfig socketConfig?; // Special Agent Note: ClientSocketConfig FROM ballerina/http package
+    # Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default
+    boolean validation?;
+    # Enables relaxed data binding on the client side. When enabled, `nil` values are treated as optional, 
+and absent fields are handled as `nilable` types. Enabled by default
+    boolean laxDataBinding?;
+};
+
+// --- Client ---
+
+client class Client {
+    function init(ConnectionConfig config, string serviceUrl = "https://api.hubapi.com/crm/v3/imports") returns error?;
+
+    # Cancel an active import
+    # 
+    resource function post [string importId]/cancel(map<string|string[]> headers = {}) returns ActionResponse|error;
+
+    # Get the information on any import
+    # 
+    resource function get [string importId](map<string|string[]> headers = {}) returns PublicImportResponse|error;
+
+    # Retrieve errors for an import
+    # 
+    resource function get [string importId]/errors(map<string|string[]> headers = {}, boolean includeRowData = false, int:Signed32 limit = 0, string after = "", boolean includeErrorMessage = false, anydata Additional Values, GetImportIdErrorsGetErrorsQueries queries) returns CollectionResponsePublicImportErrorForwardPaging|error;
+
+    # Get active imports
+    # 
+    resource function get (map<string|string[]> headers = {}, string before = "", int:Signed32 limit = 0, string after = "", anydata Additional Values, GetGetPageQueries queries) returns CollectionResponsePublicImportResponse|error;
+
+    # Start a new import
+    # 
+    resource function post (Body payload, map<string|string[]> headers = {}) returns PublicImportResponse|error;
+}

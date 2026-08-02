@@ -1,0 +1,772 @@
+// ============================================================
+// Library: ballerinax/hubspot.crm.engagements.communications
+// [HubSpot](https://developers.hubspot.com) is an AI-powered customer relationship management (CRM) platform.
+// ============================================================
+import ballerinax/hubspot.crm.engagements.communications;
+
+// --- README ---
+## Overview
+
+[HubSpot](https://developers.hubspot.com) is an AI-powered customer relationship management (CRM) platform.
+
+The HubSpot connector offers APIs to connect and interact with the [HubSpot CRM Engagements Communications API](https://developers.hubspot.com/docs/reference/api/crm/engagements/communications) endpoints, specifically based on the [HubSpot REST API](https://developers.hubspot.com/docs/reference/api). 
+
+### Key Features
+
+- Create, read, update, and delete communication engagement records
+- Batch operations for bulk communication management
+- Search communications with filtering support
+- Track customer communication interactions
+
+## Setup guide
+
+To use the HubSpot Engagements Communications connector, you must have access to the HubSpot API through a HubSpot developer account and a HubSpot App under it. Therefore you need to register for a developer account at HubSpot if you don't have one already.
+
+### Step 1: Login to the HubSpot developer account
+
+If you don't have a HubSpot developer account yet, you can sign up for a free account [here](https://developers.hubspot.com/get-started)
+
+If you have an account already, login to the [HubSpot developer portal](https://app.hubspot.com/)
+
+### Step 2: Create a developer test account (Optional)
+
+Within app developer accounts, you can create a [developer test account](https://developers.hubspot.com/beta-docs/getting-started/account-types#developer-test-accounts) under your account to test apps and integrations without affecting any real HubSpot data.
+
+> **Note:** These accounts are only for development and testing purposes. In production you should not use developer test accounts.
+
+
+1. Go to the Test accounts section from the left sidebar.
+   ![Test accounts section](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.engagements.communications/refs/heads/main/docs/resources/test-account.png)
+
+2. Click on the `Create developer test account` button on the top right corner.
+   ![Create developer test account](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.engagements.communications/refs/heads/main/docs/resources/create-test-account.png)
+
+3. In the pop-up window, provide a name for the test account and click on the `Create` button.
+   ![Create test account](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.engagements.communications/refs/heads/main/docs/resources/create-account.png)
+   You will see the newly created test account in the list of test accounts.
+   ![Test account portal](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.engagements.communications/refs/heads/main/docs/resources/test-account-portal.png)
+
+### Step 3: Create a HubSpot app
+
+1. Now navigate to the `Apps` section from the left sidebar and click on the `Create app` button on the top right corner.
+   ![Create app](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.engagements.communications/refs/heads/main/docs/resources/create-app.png)
+
+2. Provide a public app name and description for your app.
+   ![App name and description](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.engagements.communications/refs/heads/main/docs/resources/app-name-desc.png)
+
+### Step 4: Setup authentication
+
+1. Move to the `Auth` tab.
+   ![Configure authentication](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.engagements.communications/refs/heads/main/docs/resources/config-auth.png)
+
+2. In the `Scopes` section, add the following scopes for your app using the `Add new scopes` button.
+   - `crm.objects.contacts.read`
+   - `crm.objects.contacts.write`
+
+   ![Add scopes](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.engagements.communications/refs/heads/main/docs/resources/add-scopes.png)
+
+3. In the `Redirect URL` section, add the redirect URL for your app. This is the URL where the user will be redirected after the authentication process. You can use `localhost` for testing purposes. Then click the `Create App` button.
+
+   ![Redirect URL](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.engagements.communications/refs/heads/main/docs/resources/redirect-url.png)
+
+### Step 5: Get the client id and client secret
+
+Navigate to the `Auth` tab and you will see the `Client ID` and `Client Secret` for your app. Make sure to save these values.
+![Client ID and Client Secret](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.engagements.communications/refs/heads/main/docs/resources/client-id-secret.png)
+
+### Step 6: Setup authentication flow
+
+Before proceeding with the Quickstart, ensure you have obtained the Access Token or Refresh Token using the following steps:
+
+1. Create an authorization URL using the following format:
+
+   ```
+   https://app.hubspot.com/oauth/authorize?client_id=<YOUR_CLIENT_ID>&scope=<YOUR_SCOPES>&redirect_uri=<YOUR_REDIRECT_URI>
+   ```
+
+   Replace the `<YOUR_CLIENT_ID>`, `<YOUR_REDIRECT_URI>` and `<YOUR_SCOPES>` with your specific value.
+2. Paste it in the browser and select your developer test account to install the app when prompted.
+   ![Account select](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.engagements.communications/refs/heads/main/docs/resources/account-select.png)
+
+3. A code will be displayed in the browser. Copy the code.
+
+4. Run the following curl command. Replace the `<YOUR_CLIENT_ID>`, `<YOUR_REDIRECT_URI`> and `<YOUR_CLIENT_SECRET>` with your specific value. Use the code you received in the above step 3 as the `<CODE>`.
+
+   - Linux/macOS
+
+     ```bash
+     curl --request POST \
+     --url https://api.hubapi.com/oauth/v1/token \
+     --header 'content-type: application/x-www-form-urlencoded' \
+     --data 'grant_type=authorization_code&code=<CODE>&redirect_uri=<YOUR_REDIRECT_URI>&client_id=<YOUR_CLIENT_ID>&client_secret=<YOUR_CLIENT_SECRET>'
+     ```
+   - Windows
+
+     ```bash
+     curl --request POST ^
+     --url https://api.hubapi.com/oauth/v1/token ^
+     --header 'content-type: application/x-www-form-urlencoded' ^
+     --data 'grant_type=authorization_code&code=<CODE>&redirect_uri=<YOUR_REDIRECT_URI>&client_id=<YOUR_CLIENT_ID>&client_secret=<YOUR_CLIENT_SECRET>'
+     ```
+
+   This command will return the access token and refresh token which are necessary for API calls.
+
+   ```json
+   {
+     "token_type": "bearer",
+     "refresh_token": "<Refresh Token>",
+     "access_token": "<Access Token>",
+     "expires_in": 1800
+   }
+   ```
+5. Store the refresh token securely for use in your application.
+
+## Quickstart
+
+To use the `HubSpot CRM Engagements Communications` connector in your Ballerina application, update the `.bal` file as follows:
+
+### Step 1: Import the module
+
+Import the `hubspot.crm.engagements.communications` module and `oauth2` module.
+
+```ballerina
+import ballerina/oauth2;
+import ballerinax/hubspot.crm.engagements.communications as hscommunications;
+```
+
+### Step 2: Instantiate a new connector
+
+1. Create a `Config.toml` file and, configure the obtained credentials in the above steps as follows:
+
+   ```toml
+    clientId = <Client Id>
+    clientSecret = <Client Secret>
+    refreshToken = <Refresh Token>
+   ```
+
+2. Instantiate a `hscommunications:ConnectionConfig` with the obtained credentials and initialize the connector with it.
+
+    ```ballerina
+    configurable string clientId = ?;
+    configurable string clientSecret = ?;
+    configurable string refreshToken = ?;
+
+    hscommunications:ConnectionConfig config = {
+        auth: {
+            clientId,
+            clientSecret,
+            refreshToken,
+            credentialBearer: oauth2:POST_BODY_BEARER
+        }
+    };
+
+    final hscommunications:Client hubspot = check new (config);
+    ```
+
+### Step 3: Invoke the connector operation
+
+Now, utilize the available connector operations. A sample usecase is shown below.
+
+#### View logged communications
+
+```ballerina
+public function main() returns error? {
+   hscommunications:CollectionResponseSimplePublicObjectWithAssociationsForwardPaging getCommunications = check hubspot->/.get();
+   io:println("Logged communications: ", getCommunications);
+}
+```
+
+## Examples
+
+The `HubSpot CRM Engagements Communications` connector provides practical examples illustrating usage in various scenarios. Explore these [examples](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.engagements.communications/tree/main/examples/), covering the following use cases:
+
+1. [Logging WhatsApp Messages](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.engagements.communications/tree/main/examples/whatsapp-message) - This example demonstrates the usage of the HubSpot CRM Communications connector to log WhatsApp messages as CRM communications. It includes posting a communication, associating it with a specific HubSpot record, retrieving the logged communication, searching for WhatsApp messages using filters, updating a communication, and deleting a communication.
+
+2. [Logging LinkedIn Messages](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.engagements.communications/tree/main/examples/linkedin-message) - This example demonstrates the usage of the HubSpot CRM Communications connector to log LinkedIn messages as CRM communications. It includes posting a batch of communications, associating them with specific HubSpot records, updating a batch of logged communications, retrieving a batch of communications, and deleting a batch of communications.
+
+// --- END README ---
+
+// --- Types ---
+
+# Represents the Queries record for the operation: post-/crm/v3/objects/communications/batch/read_read
+
+type PostCrmV3ObjectsCommunicationsBatchReadReadQueries record {
+    # Whether to return only results that have been archived
+    boolean archived?;
+};
+
+# Standard error response returned by the API on failure.
+
+type StandardError record {
+    # Optional sub-category providing further error classification.
+    record {|anydata...;|} subCategory?;
+    # Key-value map of contextual data related to the error.
+    record {|string[]...;|} context;
+    # Map of relevant links associated with the error.
+    record {|string...;|} links;
+    # Unique identifier for the error instance.
+    string id?;
+    # High-level category classifying the error type.
+    string category;
+    # Human-readable description of the error.
+    string message;
+    # List of detailed error entries associated with this error.
+    ErrorDetail[] errors;
+    # HTTP status code or status label for the error response.
+    string status;
+};
+
+# Detailed information describing a specific error condition.
+
+type ErrorDetail record {
+    # A specific category that contains more specific detail about the error
+    string subCategory?;
+    # The status code associated with the error detail
+    string code?;
+    # The name of the field or parameter in which the error was found
+    string 'in?;
+    # Context about the error condition
+    record {|string[]...;|} context?;
+    # A human readable message describing the error along with remediation steps where appropriate
+    string message;
+};
+
+# Represents the Queries record for the operation: get-/crm/v3/objects/communications/{communicationId}_getById
+
+type GetCrmV3ObjectsCommunicationsCommunicationIdGetByIdQueries record {
+    # A comma separated list of object types to retrieve associated IDs for. If any of the specified associations do not exist, they will be ignored
+    string[] associations?;
+    # Whether to return only results that have been archived
+    boolean archived?;
+    # A comma separated list of the properties to be returned along with their history of previous values. If any of the specified properties are not present on the requested object(s), they will be ignored
+    string[] propertiesWithHistory?;
+    # The name of a property whose values are unique
+    string idProperty?;
+    # A comma separated list of the properties to be returned in the response. If any of the specified properties are not present on the requested object(s), they will be ignored
+    string[] properties?;
+};
+
+# Paginated collection of associated object IDs.
+
+type CollectionResponseAssociatedId record {
+    # Pagination cursors for navigating to the next or previous result page.
+    Paging paging?;
+    # Array of associated object IDs returned in the response.
+    AssociatedId[] results;
+};
+
+# Pagination cursors for navigating to the next or previous result page.
+
+type Paging record {
+    # Pagination cursor details for retrieving the next page of results
+    NextPage next?;
+    # Pagination cursor details for navigating to the previous page of results.
+    PreviousPage prev?;
+};
+
+# Pagination cursor details for retrieving the next page of results
+
+type NextPage record {
+    # Full query string link to the next page of results
+    string link?;
+    # Cursor token representing the start of the next page
+    string after;
+};
+
+# Pagination cursor details for navigating to the previous page of results.
+
+type PreviousPage record {
+    # Cursor token representing the start of the previous page.
+    string before;
+    # URL link to the previous page of results.
+    string link?;
+};
+
+# Represents an associated object with its identifier and association type
+
+type AssociatedId record {
+    # Unique identifier of the associated object
+    string id;
+    # Type defining the nature of the association
+    string 'type;
+};
+
+# Defines the target object and association types for a batch association request.
+
+type PublicAssociationsForObject record {
+    # List of association type specifications to apply to the target.
+    AssociationSpec[] types;
+    # Represents a public object identifier containing a unique ID string.
+    PublicObjectId to;
+};
+
+# Defines the category and type of an association between two CRM objects.
+
+type AssociationSpec record {
+    # Source category of the association: HUBSPOT_DEFINED, USER_DEFINED, or INTEGRATOR_DEFINED.
+    "HUBSPOT_DEFINED"|"USER_DEFINED"|"INTEGRATOR_DEFINED" associationCategory;
+    # Numeric identifier specifying the type of association.
+    ballerina/lang.int:0.0.0:Signed32 associationTypeId;
+};
+
+# Represents a public object identifier containing a unique ID string.
+
+type PublicObjectId record {
+    # Unique identifier of the public object.
+    string id;
+};
+
+# Batch operation response containing results and execution timestamps.
+
+type BatchResponseSimplePublicObject record {
+    # Timestamp when the batch operation completed.
+    string completedAt;
+    # Timestamp when the batch operation was requested.
+    string requestedAt?;
+    # Timestamp when the batch operation began processing.
+    string startedAt;
+    # Map of relevant links related to the batch response.
+    record {|string...;|} links?;
+    # Array of objects returned in the batch response.
+    SimplePublicObject[] results;
+    # Current processing status of the batch operation.
+    "PENDING"|"PROCESSING"|"CANCELED"|"COMPLETE" status;
+};
+
+# Represents a single communication record with its properties, timestamps, and archival status.
+
+type SimplePublicObject record {
+    # Timestamp when the communication record was created.
+    string createdAt;
+    # Indicates whether the communication record is archived.
+    boolean archived?;
+    # Timestamp when the communication record was archived.
+    string archivedAt?;
+    # Map of property names to their historical values with timestamps.
+    record {|ballerinax/hubspot.crm.engagements.communications:2.0.2:ValueWithTimestamp[]...;|} propertiesWithHistory?;
+    # Unique identifier of the communication record.
+    string id;
+    # Map of communication property names to their current values.
+    record {|string?...;|} properties;
+    # Timestamp when the communication record was last updated.
+    string updatedAt;
+};
+
+# A property value paired with its source metadata and the timestamp of the last update.
+
+type ValueWithTimestamp record {
+    # Identifier of the source that set this value.
+    string sourceId?;
+    # The type of source that last updated this value.
+    string sourceType;
+    # Human-readable label describing the value's source.
+    string sourceLabel?;
+    # ID of the user who last updated this value.
+    ballerina/lang.int:0.0.0:Signed32 updatedByUserId?;
+    # The property value as a string.
+    string value;
+    # Timestamp of when this value was last updated.
+    string timestamp;
+};
+
+# A logical grouping of filters applied to a search query.
+
+type FilterGroup record {
+    # Array of filter conditions within this group.
+    Filter[] filters;
+};
+
+# Defines a filter condition using a property, operator, and comparison value.
+
+type Filter record {
+    # Upper bound value used with the BETWEEN operator for range filtering.
+    string highValue?;
+    # The name of the property to filter by.
+    string propertyName;
+    # List of values to match against the filter property.
+    string[] values?;
+    # A single value to match against the filter property.
+    string value?;
+    # The comparison operator used to evaluate the filter condition against the property value.
+    "EQ"|"NEQ"|"LT"|"LTE"|"GT"|"GTE"|"BETWEEN"|"IN"|"NOT_IN"|"HAS_PROPERTY"|"NOT_HAS_PROPERTY"|"CONTAINS_TOKEN"|"NOT_CONTAINS_TOKEN" operator;
+};
+
+# Pagination metadata for forward-only cursor-based navigation.
+
+type ForwardPaging record {
+    # Pagination cursor details for retrieving the next page of results
+    NextPage next?;
+};
+
+# A minimal object representation containing only an ID.
+
+type SimplePublicObjectId record {
+    # Unique identifier of the public object.
+    string id;
+};
+
+# Batch upsert response including results, errors, and status details.
+
+type BatchResponseSimplePublicUpsertObjectWithErrors record {
+    # Timestamp when the batch operation completed.
+    string completedAt;
+    # Total number of errors encountered during the batch operation.
+    ballerina/lang.int:0.0.0:Signed32 numErrors?;
+    # Timestamp when the batch operation was requested.
+    string requestedAt?;
+    # Timestamp when the batch operation began processing.
+    string startedAt;
+    # Map of relevant hypermedia links associated with the response.
+    record {|string...;|} links?;
+    # Array of successfully upserted objects in the batch.
+    SimplePublicUpsertObject[] results;
+    # Array of errors encountered for individual items in the batch.
+    StandardError[] errors?;
+    # Current processing status of the batch upsert operation.
+    "PENDING"|"PROCESSING"|"CANCELED"|"COMPLETE" status;
+};
+
+# Represents a communication object returned after an upsert operation, indicating whether the record was newly created or updated.
+
+type SimplePublicUpsertObject record {
+    # Timestamp when the object was originally created.
+    string createdAt;
+    # Indicates whether the object is archived.
+    boolean archived?;
+    # Timestamp when the object was archived, if applicable.
+    string archivedAt?;
+    # Indicates whether the object was newly created by the upsert.
+    boolean 'new;
+    # Map of property names to their historical values with timestamps.
+    record {|ballerinax/hubspot.crm.engagements.communications:2.0.2:ValueWithTimestamp[]...;|} propertiesWithHistory?;
+    # The unique identifier of the communication object.
+    string id;
+    # Map of property names to their current values for the object.
+    record {|string...;|} properties;
+    # Timestamp when the object was last updated.
+    string updatedAt;
+};
+
+# Input schema for reading a batch of objects by their IDs.
+
+type BatchReadInputSimplePublicObjectId record {
+    # List of properties to return along with their historical values.
+    string[] propertiesWithHistory;
+    # The property to use as the unique identifier for lookup.
+    string idProperty?;
+    # Array of object IDs to retrieve in the batch read.
+    SimplePublicObjectId[] inputs;
+    # List of property names to include in the response.
+    string[] properties;
+};
+
+# Response envelope for a batch upsert operation, including status, timing, and upserted object results.
+
+type BatchResponseSimplePublicUpsertObject record {
+    # Timestamp indicating when the batch operation completed.
+    string completedAt;
+    # Timestamp indicating when the batch operation was requested.
+    string requestedAt?;
+    # Timestamp indicating when the batch operation started processing.
+    string startedAt;
+    # Map of relevant links associated with the batch response.
+    record {|string...;|} links?;
+    # Array of upserted objects returned by the batch operation.
+    SimplePublicUpsertObject[] results;
+    # Current processing status of the batch operation.
+    "PENDING"|"PROCESSING"|"CANCELED"|"COMPLETE" status;
+};
+
+# Input payload containing a list of object IDs for a batch operation.
+
+type BatchInputSimplePublicObjectId record {
+    # Array of object IDs to process in the batch request.
+    SimplePublicObjectId[] inputs;
+};
+
+# OAuth2 Refresh Token Grant Configs
+
+type OAuth2RefreshTokenGrantConfig record {
+    # Refresh URL
+    string refreshUrl?;
+    string refreshToken;
+    string clientId;
+    string clientSecret;
+    string|string[] scopes?;
+    decimal defaultTokenExpTime?;
+    decimal clockSkew?;
+    map<string> optionalParams?;
+    oauth2:CredentialBearer credentialBearer?; // Special Agent Note: CredentialBearer FROM ballerina/oauth2 package
+    oauth2:ClientConfiguration clientConfig?; // Special Agent Note: ClientConfiguration FROM ballerina/oauth2 package
+};
+
+# Input payload containing a list of objects to create or update in a batch upsert operation.
+
+type BatchInputSimplePublicObjectBatchInputUpsert record {
+    # Array of communication records to upsert in batch.
+    SimplePublicObjectBatchInputUpsert[] inputs;
+};
+
+# Input payload for upserting a single object in a batch operation, containing an identifier and property values.
+
+type SimplePublicObjectBatchInputUpsert record {
+    # The property name used as the unique identifier for upsert.
+    string idProperty?;
+    # Trace identifier for tracking the object write operation.
+    string objectWriteTraceId?;
+    # The unique identifier of the object to upsert.
+    string id;
+    # Key-value map of property names and values to set on the object.
+    record {|string...;|} properties;
+};
+
+# Paginated collection of communication objects with a total count and forward paging cursor.
+
+type CollectionResponseWithTotalSimplePublicObjectForwardPaging record {
+    # Total number of communication records matching the request.
+    ballerina/lang.int:0.0.0:Signed32 total;
+    # Pagination metadata for forward-only cursor-based navigation.
+    ForwardPaging paging?;
+    # Array of communication objects returned in the current page.
+    SimplePublicObject[] results;
+};
+
+# Provides a set of configurations for controlling the behaviours when communicating with a remote HTTP endpoint.
+
+type ConnectionConfig record {
+    # Provides Auth configurations needed when communicating with a remote HTTP endpoint.
+    http:BearerTokenConfig|OAuth2RefreshTokenGrantConfig|ApiKeysConfig auth; // Special Agent Note: BearerTokenConfig FROM ballerina/http package
+    # The HTTP version understood by the client
+    http:HttpVersion httpVersion?; // Special Agent Note: HttpVersion FROM ballerina/http package
+    # Configurations related to HTTP/1.x protocol
+    http:ClientHttp1Settings http1Settings?; // Special Agent Note: ClientHttp1Settings FROM ballerina/http package
+    # Configurations related to HTTP/2 protocol
+    http:ClientHttp2Settings http2Settings?; // Special Agent Note: ClientHttp2Settings FROM ballerina/http package
+    # The maximum time to wait (in seconds) for a response before closing the connection
+    decimal timeout?;
+    # The choice of setting `forwarded`/`x-forwarded` header
+    string forwarded?;
+    # Configurations associated with Redirection
+    http:FollowRedirects followRedirects?; // Special Agent Note: FollowRedirects FROM ballerina/http package
+    # Configurations associated with request pooling
+    http:PoolConfiguration poolConfig?; // Special Agent Note: PoolConfiguration FROM ballerina/http package
+    # HTTP caching related configurations
+    http:CacheConfig cache?; // Special Agent Note: CacheConfig FROM ballerina/http package
+    # Specifies the way of handling compression (`accept-encoding`) header
+    http:Compression compression?; // Special Agent Note: Compression FROM ballerina/http package
+    # Configurations associated with the behaviour of the Circuit Breaker
+    http:CircuitBreakerConfig circuitBreaker?; // Special Agent Note: CircuitBreakerConfig FROM ballerina/http package
+    # Configurations associated with retrying
+    http:RetryConfig retryConfig?; // Special Agent Note: RetryConfig FROM ballerina/http package
+    # Configurations associated with cookies
+    http:CookieConfig cookieConfig?; // Special Agent Note: CookieConfig FROM ballerina/http package
+    # Configurations associated with inbound response size limits
+    http:ResponseLimitConfigs responseLimits?; // Special Agent Note: ResponseLimitConfigs FROM ballerina/http package
+    # SSL/TLS-related options
+    http:ClientSecureSocket secureSocket?; // Special Agent Note: ClientSecureSocket FROM ballerina/http package
+    # Proxy server related options
+    http:ProxyConfig proxy?; // Special Agent Note: ProxyConfig FROM ballerina/http package
+    # Provides settings related to client socket configuration
+    http:ClientSocketConfig socketConfig?; // Special Agent Note: ClientSocketConfig FROM ballerina/http package
+    # Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default
+    boolean validation?;
+    # Enables relaxed data binding on the client side. When enabled, `nil` values are treated as optional, 
+and absent fields are handled as `nilable` types. Enabled by default.
+    boolean laxDataBinding?;
+};
+
+# Provides API key configurations needed when communicating with a remote HTTP endpoint.
+
+type ApiKeysConfig record {
+    string privateAppLegacy;
+    string privateApp;
+};
+
+# Request body for searching communication records with filters, sorting, and pagination.
+
+type PublicObjectSearchRequest record {
+    # Full-text search query string to filter communications.
+    string query?;
+    # Maximum number of results to return per page.
+    ballerina/lang.int:0.0.0:Signed32 'limit?;
+    # Pagination cursor token for the next page of results.
+    string after?;
+    # List of property names to sort results by.
+    string[] sorts?;
+    # List of property names to include in the response.
+    string[] properties?;
+    # Groups of filters to apply to narrow search results.
+    FilterGroup[] filterGroups?;
+};
+
+# Batch operation response containing processed results, errors, status, and timing metadata for object operations.
+
+type BatchResponseSimplePublicObjectWithErrors record {
+    # Timestamp indicating when the batch operation completed.
+    string completedAt;
+    # Total number of errors encountered during the batch operation.
+    ballerina/lang.int:0.0.0:Signed32 numErrors?;
+    # Timestamp indicating when the batch operation was requested.
+    string requestedAt?;
+    # Timestamp indicating when the batch operation started processing.
+    string startedAt;
+    # Map of related resource names to their associated URLs.
+    record {|string...;|} links?;
+    # List of successfully processed public objects from the batch.
+    SimplePublicObject[] results;
+    # List of errors encountered for individual objects in the batch.
+    StandardError[] errors?;
+    # Current processing status of the batch operation.
+    "PENDING"|"PROCESSING"|"CANCELED"|"COMPLETE" status;
+};
+
+# Input payload for creating or updating a communication object, including properties and associations.
+
+type SimplePublicObjectInput record {
+    # Trace identifier for tracking the write operation.
+    string objectWriteTraceId?;
+    # Key-value pairs of communication properties to set on the object.
+    record {|string...;|} properties;
+};
+
+# Represents the Queries record for the operation: get-/crm/v3/objects/communications_getPage
+
+type GetCrmV3ObjectsCommunicationsGetPageQueries record {
+    # A comma separated list of object types to retrieve associated IDs for. If any of the specified associations do not exist, they will be ignored
+    string[] associations?;
+    # Whether to return only results that have been archived
+    boolean archived?;
+    # A comma separated list of the properties to be returned along with their history of previous values. If any of the specified properties are not present on the requested object(s), they will be ignored. Usage of this parameter will reduce the maximum number of objects that can be read by a single request
+    string[] propertiesWithHistory?;
+    # The maximum number of results to display per page
+    ballerina/lang.int:0.0.0:Signed32 'limit?;
+    # The paging cursor token of the last successfully read resource will be returned as the `paging.next.after` JSON property of a paged response containing more results
+    string after?;
+    # A comma separated list of the properties to be returned in the response. If any of the specified properties are not present on the requested object(s), they will be ignored
+    string[] properties?;
+};
+
+# Paginated collection of communication objects with their associated records.
+
+type CollectionResponseSimplePublicObjectWithAssociationsForwardPaging record {
+    # Pagination metadata for forward-only cursor-based navigation.
+    ForwardPaging paging?;
+    # Array of communication objects returned in this page of results.
+    SimplePublicObjectWithAssociations[] results;
+};
+
+# A communication object including its properties, metadata, and related associations.
+
+type SimplePublicObjectWithAssociations record {
+    # Map of associated CRM object collections keyed by association type.
+    record {|ballerinax/hubspot.crm.engagements.communications:2.0.2:CollectionResponseAssociatedId...;|} associations?;
+    # Timestamp indicating when the communication object was created.
+    string createdAt;
+    # Indicates whether the communication object is archived.
+    boolean archived?;
+    # Timestamp indicating when the communication object was archived.
+    string archivedAt?;
+    # Map of property value histories, each containing timestamped prior values.
+    record {|ballerinax/hubspot.crm.engagements.communications:2.0.2:ValueWithTimestamp[]...;|} propertiesWithHistory?;
+    # Unique identifier of the communication object.
+    string id;
+    # Key-value map of the communication object's current property values.
+    record {|string?...;|} properties;
+    # Timestamp indicating when the communication object was last updated.
+    string updatedAt;
+};
+
+# A batch wrapper containing an array of inputs for creating new communication objects.
+
+type BatchInputSimplePublicObjectInputForCreate record {
+    # Array of input objects for creating new communication records.
+    SimplePublicObjectInputForCreate[] inputs;
+};
+
+# Input payload for creating a new communication object with properties and associations
+
+type SimplePublicObjectInputForCreate record {
+    # List of associations linking this object to other CRM records
+    PublicAssociationsForObject[] associations;
+    # Trace identifier for tracking the object write operation
+    string objectWriteTraceId?;
+    # Key-value pairs of properties to set on the new object
+    record {|string...;|} properties;
+};
+
+# A batch wrapper containing an array of update inputs for existing communication objects.
+
+type BatchInputSimplePublicObjectBatchInput record {
+    # Array of batch update inputs for existing communication objects.
+    SimplePublicObjectBatchInput[] inputs;
+};
+
+# Input schema for updating an existing communication object in a batch operation, identified by ID or a unique property.
+
+type SimplePublicObjectBatchInput record {
+    # Custom property name used to identify the object
+    string idProperty?;
+    # Trace identifier for tracking the object write operation
+    string objectWriteTraceId?;
+    # Unique identifier of the object to update
+    string id;
+    # Key-value pairs of properties to set on the object
+    record {|string...;|} properties;
+};
+
+# Represents the Queries record for the operation: patch-/crm/v3/objects/communications/{communicationId}_update
+
+type PatchCrmV3ObjectsCommunicationsCommunicationIdUpdateQueries record {
+    # The name of a property whose values are unique for this object
+    string idProperty?;
+};
+
+// --- Client ---
+
+client class Client {
+    function init(ConnectionConfig config, string serviceUrl = "https://api.hubapi.com/crm/v3/objects/communications") returns error?;
+
+    # Retrieve a batch of messages
+    # 
+    resource function post batch/read(BatchReadInputSimplePublicObjectId payload, map<string|string[]> headers = {}, boolean archived = false, anydata Additional Values, PostCrmV3ObjectsCommunicationsBatchReadReadQueries queries) returns BatchResponseSimplePublicObject|BatchResponseSimplePublicObjectWithErrors|error;
+
+    # Retrieve a message
+    # 
+    resource function get [string communicationId](map<string|string[]> headers = {}, string[] associations = [], boolean archived = false, string[] propertiesWithHistory = [], string idProperty = "", string[] properties = [], anydata Additional Values, GetCrmV3ObjectsCommunicationsCommunicationIdGetByIdQueries queries) returns SimplePublicObjectWithAssociations|error;
+
+    # Archive a message
+    # 
+    resource function delete [string communicationId](map<string|string[]> headers = {}) returns error?;
+
+    # Update a message
+    # 
+    resource function patch [string communicationId](SimplePublicObjectInput payload, map<string|string[]> headers = {}, string idProperty = "", anydata Additional Values, PatchCrmV3ObjectsCommunicationsCommunicationIdUpdateQueries queries) returns SimplePublicObject|error;
+
+    # Archive a batch of messages
+    # 
+    resource function post batch/archive(BatchInputSimplePublicObjectId payload, map<string|string[]> headers = {}) returns error?;
+
+    # Create a batch of messages
+    # 
+    resource function post batch/create(BatchInputSimplePublicObjectInputForCreate payload, map<string|string[]> headers = {}) returns BatchResponseSimplePublicObject|BatchResponseSimplePublicObjectWithErrors|error;
+
+    # Update a batch of messages
+    # 
+    resource function post batch/update(BatchInputSimplePublicObjectBatchInput payload, map<string|string[]> headers = {}) returns BatchResponseSimplePublicObject|BatchResponseSimplePublicObjectWithErrors|error;
+
+    # Retrieve messages
+    # 
+    resource function get (map<string|string[]> headers = {}, string[] associations = [], boolean archived = false, string[] propertiesWithHistory = [], int:Signed32 limit = 0, string after = "", string[] properties = [], anydata Additional Values, GetCrmV3ObjectsCommunicationsGetPageQueries queries) returns CollectionResponseSimplePublicObjectWithAssociationsForwardPaging|error;
+
+    # Create a communication
+    # 
+    resource function post (SimplePublicObjectInputForCreate payload, map<string|string[]> headers = {}) returns SimplePublicObject|error;
+
+    # Upsert a batch of messages
+    # 
+    resource function post batch/upsert(BatchInputSimplePublicObjectBatchInputUpsert payload, map<string|string[]> headers = {}) returns BatchResponseSimplePublicUpsertObject|BatchResponseSimplePublicUpsertObjectWithErrors|error;
+
+    # Search for messages
+    # 
+    resource function post search(PublicObjectSearchRequest payload, map<string|string[]> headers = {}) returns CollectionResponseWithTotalSimplePublicObjectForwardPaging|error;
+}

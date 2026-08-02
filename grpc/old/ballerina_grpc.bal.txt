@@ -1,0 +1,1239 @@
+// ============================================================
+// Library: ballerina/grpc
+// ============================================================
+import ballerina/grpc;
+
+// --- README ---
+## Overview
+
+This module provides APIs for connecting and interacting with gRPC endpoints. 
+
+gRPC is an inter-process communication technology that allows you to connect, invoke, and operate distributed, heterogeneous applications as easily as making a local function call. The gRPC protocol is layered over HTTP/2 and uses Protocol Buffers for marshaling/unmarshaling messages. This makes gRPC highly efficient on wire and a simple service definition framework.
+
+When you develop a gRPC application, the first thing you do is define a service definition using Protocol Buffers.
+
+### Protocol buffers
+This is a mechanism to serialize the structured data introduced by Google and used by the gRPC framework. Defining the service using Protocol Buffers includes defining remote methods in the service and defining message types that are sent across the network. A sample service definition is shown below.
+
+```proto
+syntax = "proto3";
+
+service Helloworld {
+    rpc hello(HelloRequest) returns (HelloResponse);
+}
+
+message HelloRequest {
+    string name = 1;
+}
+
+message HelloResponse {
+    string message = 1;
+}
+```
+
+gRPC allows client applications to directly call the server-side methods using the auto-generated stubs. Protocol
+ Buffer compiler is used to generate the stubs for the specified language. In Ballerina, the stubs are generated using the built-in 'Protocol Buffers to Ballerina' tool. 
+
+For information on how to generate Ballerina code for Protocol Buffers definition, see [Write a gRPC service with Ballerina](https://ballerina.io/learn/write-a-grpc-service-with-ballerina/).
+
+### gRPC communication patterns
+The common communication pattern between a client and server is simple request-response style communication. However, with gRPC, you can leverage different inter-process communication patterns other than the simple request-response pattern.
+This module supports four fundamental communication patterns used in gRPC-based applications: simple RPC(unary RPC), server streaming RPC, client streaming RPC, and bidirectional streaming RPC.
+
+#### Simple RPC (Unary RPC) 
+In this pattern, the client invokes a remote function of a server and sends a single request to the server. The server sends a single response in return to the client along with status details.
+
+```proto
+service HelloWorld {
+    rpc hello (google.protobuf.StringValue)
+          returns (google.protobuf.StringValue);
+}
+```
+##### Implement the gRPC server
+The code snippet given below contains a service that sends a response to each request.
+
+```ballerina
+// The gRPC service is attached to the listener.
+service HelloWorld on new grpc:Listener(9090)  {
+    // The function accepts a string message.
+    remote function hello(string name) returns string|error {
+        // Send the response to the client.
+        return "Hi " + name + "! Greetings from gRPC service!");
+    }
+}
+```
+##### Implement the gRPC client
+The code snippet given below calls the above service in a synchronized manner using an auto-generated Ballerina stub.
+
+```ballerina
+// Use ‘HelloWorldClient’ to execute the call in the synchronized mode.
+HelloWorldClient helloClient = check new("http://localhost:9090");
+
+// Call the service remote function using a client stub.
+string responseFromServer = check helloClient->hello("Ballerina");
+```
+
+#### Server streaming RPC
+In server-side streaming RPC, the server sends back a sequence of responses after getting the client's request message. After sending all the server responses, the server marks the end of the stream by sending the server status details.
+You can invoke this in a non-blocking manner.
+
+```proto
+service HelloWorld {
+    rpc lotsOfReplies (google.protobuf.StringValue)
+          returns (stream google.protobuf.StringValue);
+}
+```
+##### Implement the gRPC server
+The code snippet given below contains a service that sends a sequence of responses to each request.
+
+```ballerina
+// The gRPC service is attached to the listener.
+service HelloWorld on new grpc:Listener(9090) {
+    remote function lotsOfReplies(string name) returns stream<string, grpc:Error?> {
+        string[] greets = ["Hi " + name, "Welcome " + name];
+        // Send multiple responses to the client.
+        return greets.toStream();
+   }
+}
+```
+
+##### Implement the gRPC server
+The code snippet given below calls the above service using the auto-generated Ballerina client stub and reads multiple server responses using a stream.
+Here, the message stream is ended with a `()` value.
+
+```ballerina
+   // Client endpoint configurations.
+    HelloWorldClient helloworldClient = check new("http://localhost:9090");
+
+    // Execute the service streaming call by registering a message listener.
+    stream<string, grpc:Error?> result = 
+                                check helloworldClient->lotsOfReplies("Ballerina");
+```
+
+#### Client streaming RPC
+In client streaming RPC, the client sends multiple messages to the server instead of a single request. The server sends back a single response to the client.
+
+```proto
+service HelloWorld {
+    rpc lotsOfGreetings (stream google.protobuf.StringValue)
+          returns (google.protobuf.StringValue);
+}
+```
+
+##### Implement the gRPC server
+The code snippet given below contains a service that receives a sequence of requests from the client and sends a single response in return.
+
+```ballerina
+// The gRPC service is attached to the listener.
+service HelloWorld on new grpc:Listener(9090) {
+
+    // This function is triggered when a new client connection is initialized.
+    remote function lotsOfGreetings(stream<string, grpc:Error?> clientStream) 
+                                                        returns string|error {
+        // Iterate through the client stream
+        check clientStream.forEach(function(string name) {
+            // Handle the message sent from the stream here
+        });
+        // A nil value is returned once the client stream is ended
+        // Return server response to the client.
+        return "Ack";
+    }
+}
+```
+
+##### Implement the gRPC server
+The code snippet given below calls the above service using the auto-generated Ballerina client stub and sends multiple request messages from the server.
+
+```ballerina
+    // Client endpoint configurations.
+    HelloWorldClient helloworldClient = check new("http://localhost:9090");
+
+    // Execute the service streaming call by registering a message listener.
+    LotsOfGreetingsStreamingClient streamingClient = 
+                                        check helloworldClient->lotsOfGreetings();
+
+    // Send multiple messages to the server.
+    string[] greets = ["Hi", "Hey", "GM"];
+    foreach string greet in greets {
+        grpc:Error? connErr = streamingClient->sendstring(greet + " " + "Ballerina");
+    }
+
+    // Once all the messages are sent, the client notifies the server 
+    // by closing the stream.
+    grpc:Error? result = streamingClient->complete();
+    // Receive the message from the server.
+    string|grpc:Error response = streamingClient->receiveString();
+...
+```
+
+#### Bidirectional streaming RPC
+In bidirectional streaming RPC, the client is sending a request to the server as a stream of messages. The server also responds with a stream of messages.
+
+```proto
+service Chat {
+    rpc chat (stream ChatMessage)
+          returns (stream google.protobuf.StringValue);
+}
+```
+##### Implement the gRPC server
+The code snippet given below includes a service that handles bidirectional streaming.
+
+```ballerina
+// The gRPC service is attached to the listener.
+service Chat on new grpc:Listener(9090) {
+
+    //This `resource` is triggered when a new caller connection is initialized.
+    remote function chat(ChatStringCaller caller, 
+                                    stream<ChatMessage, grpc:Error?> clientStream) {
+        //Iterate through the client stream
+        check clientStream.forEach(function(ChatMessage chatMsg) {
+            // Handle the streamed messages sent from the client here
+            grpc:Error? err = caller->sendString(
+                                    string `${chatMsg.name}: ${chatMsg.message}`);
+        });
+        // A nil value is returned once the client stream is ended
+        // Handle once the client has completed streaming
+        caller->complete();
+    }
+}
+```
+##### Implement the gRPC server
+The code snippet given below calls the above service using the auto-generated Ballerina client stub and sends multiple request messages to the server and receives multiple responses from the server.
+
+```ballerina
+    // Client endpoint configurations.
+    ChatClient chatClient = check new("http://localhost:9090");
+
+    // Execute the service streaming call by registering a message listener.
+    ChatStreamingClient streamingClient = check chatClient->chat();
+
+    // Send multiple messages to the server.
+    string[] greets = ["Hi", "Hey", "GM"];
+    foreach string greet in greets {
+        ChatMessage mes = {name: "Ballerina", message: greet};
+        grpc:Error? connErr = streamingClient->sendChatMessage(mes);
+    }
+
+    // Once all the messages are sent, the server notifies the caller 
+    // with a `complete` message.
+    grpc:Error? result = streamingClient->complete();
+    ...
+
+    // Receive the server stream response iteratively.
+    string? result = check streamingClient->receiveString();
+    while !(result is ()) {
+        io:println(result);
+        result = streamingClient->receiveString();
+    }
+```
+
+### Advanced use cases
+
+#### Use the TLS protocol
+
+The Ballerina gRPC module allows the use of TLS in communication. This setting expects a secure socket to be 
+set in the connection configuration as shown below.
+
+##### Configure TLS in server side
+
+```ballerina
+// Server endpoint configuration with the SSL configurations.
+listener grpc:Listener ep = new (9090, {
+    host: "localhost",
+    secureSocket: {
+        key: {
+            certFile: "../resource/path/to/public.crt",
+            keyFile: "../resource/path/to/private.key"
+        }
+    }
+});
+
+service HelloWorld on ep {
+    
+}
+```
+
+##### Configure TLS in client side
+
+```ballerina
+    // Client endpoint configuration with SSL configurations.
+    HelloWorldClient helloWorldClient = check new ("https://localhost:9090", {
+        secureSocket: {
+            cert: "../resource/path/to/public.crt"
+        }
+    });
+```
+
+#### Use headers
+
+The Ballerina gRPC module allows to send/receive headers with the request and response using the context record type. The
+ context record type consists of two fields called headers and content. E.g: For the string message, a type generated context record type will be as follows.
+  
+```ballerina
+public type ContextString record {|
+    string content;
+    map<string|string[]> headers;
+|};
+```
+
+##### Use headers at the client side
+
+```ballerina
+    // Set the custom headers to the request.
+    ContextString requestMessage =
+    {content: "WSO2", headers: {client_header_key: "0987654321"}};
+    // Execute the remote call.
+    ContextString result = check ep->helloContext(requestMessage);
+    // Read Response content.
+    string content = result.content;
+    // Read Response header value.
+    string headerValue = check grpc:getHeader(result.headers, 
+                                                    "server_header_key");
+```
+
+##### Use headers at the server side
+
+```ballerina
+service "HelloWorld" on new grpc:Listener(9090) {
+    remote function hello(ContextString request) returns ContextString|error {
+        // Read the request content.
+        string message = "Hello " + request.content;
+
+        // Read custom headers in request message.
+        string reqHeader = check grpc:getHeader(request.headers, 
+                                                        "client_header_key");
+
+        // Send response with custom headers.
+        return {content: message, 
+                        headers: {server_header_key: "Response Header value"}};
+    }
+}
+```
+
+#### Use deadlines
+
+Deadlines allow gRPC clients to specify how long they are willing to wait for an RPC to complete before the RPC is
+ terminated with the `DEADLINE_EXCEEDED` error. In Ballerina, a deadline value is set directly to the headers and it is sent
+  via the request headers.
+
+##### Set a deadline in the request headers
+
+```ballerina
+    time:Utc current = time:utcNow();
+    time:Utc deadline = time:utcAddSeconds(current, 300);
+    map<string|string[]> headers = grpc:setDeadline(deadline);
+```
+
+##### Check the deadlines
+
+```ballerina
+    boolean cancel = check grpc:isCancelled(request.headers);
+    if (cancel) {
+        return error DeadlineExceededError("Deadline exceeded");
+    }
+```
+
+
+## Module: grpc.types.any
+
+## Overview
+
+This module provides APIs to represent `google.protobuf.Any` type as a stream.
+
+
+
+## Module: grpc.types.duration
+
+## Overview
+
+This module provides APIs to represent `google.protobuf.Duration` type as a stream.
+
+
+
+## Module: grpc.types.struct
+
+## Overview
+
+This module provides APIs to represent `google.protobuf.Struct` type as a stream.
+
+
+
+## Module: grpc.types.timestamp
+
+## Overview
+
+This module provides APIs to represent `google.protobuf.Timestamp` type as a stream.
+
+
+
+## Module: grpc.types.wrappers
+
+## Overview
+
+This module provides APIs to represent `google/protobuf/wrappers.proto` types as a stream.
+
+
+// --- END README ---
+
+// --- Types ---
+
+# Represents the Authorization header name.
+const string AUTH_HEADER = "authorization";
+
+# The prefix used to denote the Basic authentication scheme.
+const string AUTH_SCHEME_BASIC = "Basic";
+
+# The prefix used to denote the Bearer authentication scheme.
+const string AUTH_SCHEME_BEARER = "Bearer";
+
+# The permission denied error message.
+const string PERMISSION_DENIED_ERROR_MSG = "Permission denied";
+
+# The permission denied error message.
+const string UNAUTHENTICATED_ERROR_MSG = "Unauthenticated";
+
+const string GZIP = "gzip";
+
+# Represents the deadline header name.
+const string DEALINE_HEADER = "deadline";
+
+const string REQUIRE = "REQUIRE";
+
+const string OPTIONAL = "OPTIONAL";
+
+const string SSL = "SSL";
+
+const string TLS = "TLS";
+
+const string DTLS = "DTLS";
+
+const string OCSP_CRL = "OCSP_CRL";
+
+const string OCSP_STAPLING = "OCSP_STAPLING";
+
+# When service behaves as a HTTP gateway inbound request/response accept-encoding option is set as the
+# outbound request/response accept-encoding/content-encoding option.
+const string COMPRESSION_AUTO = "AUTO";
+
+# Always set accept-encoding/content-encoding in outbound request/response.
+const string COMPRESSION_ALWAYS = "ALWAYS";
+
+# Never set accept-encoding/content-encoding header in outbound request/response.
+const string COMPRESSION_NEVER = "NEVER";
+
+# Service descriptor data generated at the compile time.
+# 
+
+type ServiceDescriptorData record {
+    # Service descriptor, which should be set at the compile time
+    string descriptor?;
+    # Service-dependent descriptor map, which should be set at the compile time
+    map<anydata> descMap?;
+};
+
+# Service descriptor data generated at the compile time.
+# 
+
+type DescriptorData record {
+    # Descriptor, which should be set at the compile time
+    string value;
+    # Service-dependent descriptor map, which should be set at the compile time
+    map<string> descMap?;
+};
+
+# Contains the configurations for a gRPC service.
+# 
+
+type GrpcServiceConfig record {
+    # Listener authenticaton configurations
+    ListenerAuthConfig[] auth?;
+};
+
+# Represents the auth annotation for file user store configurations with scopes.
+# 
+
+type FileUserStoreConfigWithScopes record {
+    # File user store configurations for Basic Auth authentication
+    FileUserStoreConfig fileUserStoreConfig;
+    # Scopes allowed for authorization
+    string|string[] scopes?;
+};
+
+# Represents file user store configurations for Basic Auth authentication.
+
+type FileUserStoreConfig record {
+};
+
+# Represents the auth annotation for LDAP user store configurations with scopes.
+# 
+
+type LdapUserStoreConfigWithScopes record {
+    # LDAP user store configurations for Basic Auth authentication
+    LdapUserStoreConfig ldapUserStoreConfig;
+    # Scopes allowed for authorization
+    string|string[] scopes?;
+};
+
+# Represents LDAP user store configurations for Basic Auth authentication.
+
+type LdapUserStoreConfig record {
+    string domainName;
+    string connectionUrl;
+    string connectionName;
+    string connectionPassword;
+    string userSearchBase;
+    string userEntryObjectClass;
+    string userNameAttribute;
+    string userNameSearchFilter;
+    string userNameListFilter;
+    string[] groupSearchBase;
+    string groupEntryObjectClass;
+    string groupNameAttribute;
+    string groupNameSearchFilter;
+    string groupNameListFilter;
+    string membershipAttribute;
+    boolean userRolesCacheEnabled?;
+    boolean connectionPoolingEnabled?;
+    decimal connectionTimeout?;
+    decimal readTimeout?;
+    auth:SecureSocket secureSocket?; // Special Agent Note: SecureSocket FROM ballerina/auth package
+};
+
+# Represents the auth annotation for JWT validator configurations with scopes.
+# 
+
+type JwtValidatorConfigWithScopes record {
+    # JWT validator configurations for JWT authentication
+    JwtValidatorConfig jwtValidatorConfig;
+    # Scopes allowed for authorization
+    string|string[] scopes?;
+};
+
+# Represents JWT validator configurations for JWT authentication.
+# 
+
+type JwtValidatorConfig record {
+    # The key used to fetch the scopes
+    string scopeKey?;
+    string issuer?;
+    string username?;
+    string|string[] audience?;
+    string jwtId?;
+    string keyId?;
+    map<json> customClaims?;
+    decimal clockSkew?;
+    jwt:ValidatorSignatureConfig signatureConfig?; // Special Agent Note: ValidatorSignatureConfig FROM ballerina/jwt package
+    cache:CacheConfig cacheConfig?; // Special Agent Note: CacheConfig FROM ballerina/cache package
+};
+
+# Represents the auth annotation for OAuth2 introspection server configurations with scopes.
+# 
+
+type OAuth2IntrospectionConfigWithScopes record {
+    # OAuth2 introspection server configurations for OAuth2 authentication
+    OAuth2IntrospectionConfig oauth2IntrospectionConfig;
+    # Scopes allowed for authorization
+    string|string[] scopes?;
+};
+
+# Represents OAuth2 introspection server configurations for OAuth2 authentication.
+# 
+
+type OAuth2IntrospectionConfig record {
+    # The key used to fetch the scopes
+    string scopeKey?;
+    string url;
+    string tokenTypeHint?;
+    map<string> optionalParams?;
+    cache:CacheConfig cacheConfig?; // Special Agent Note: CacheConfig FROM ballerina/cache package
+    decimal defaultTokenExpTime?;
+    oauth2:ClientConfiguration clientConfig?; // Special Agent Note: ClientConfiguration FROM ballerina/oauth2 package
+};
+
+# Defines the authentication configurations for the gRPC listener.
+type ListenerAuthConfig ballerina/grpc:1.14.2:FileUserStoreConfigWithScopes|ballerina/grpc:1.14.2:LdapUserStoreConfigWithScopes|ballerina/grpc:1.14.2:JwtValidatorConfigWithScopes|ballerina/grpc:1.14.2:OAuth2IntrospectionConfigWithScopes;
+
+# Represents credentials for Basic Auth authentication.
+
+type CredentialsConfig record {
+    string username;
+    string password;
+};
+
+# Represents token for Bearer token authentication.
+# 
+
+type BearerTokenConfig record {
+    # Bearer token for authentication
+    string token;
+};
+
+# Represents JWT issuer configurations for JWT authentication.
+
+type JwtIssuerConfig record {
+    string issuer?;
+    string username?;
+    string|string[] audience?;
+    string jwtId?;
+    string keyId?;
+    map<json> customClaims?;
+    decimal expTime?;
+    jwt:IssuerSignatureConfig signatureConfig?; // Special Agent Note: IssuerSignatureConfig FROM ballerina/jwt package
+};
+
+# Represents OAuth2 client credentials grant configurations for OAuth2 authentication.
+
+type OAuth2ClientCredentialsGrantConfig record {
+    string tokenUrl;
+    string clientId;
+    string clientSecret;
+    string|string[] scopes?;
+    decimal defaultTokenExpTime?;
+    decimal clockSkew?;
+    map<string> optionalParams?;
+    oauth2:CredentialBearer credentialBearer?; // Special Agent Note: CredentialBearer FROM ballerina/oauth2 package
+    oauth2:ClientConfiguration clientConfig?; // Special Agent Note: ClientConfiguration FROM ballerina/oauth2 package
+};
+
+# Represents OAuth2 password grant configurations for OAuth2 authentication.
+
+type OAuth2PasswordGrantConfig record {
+    string tokenUrl;
+    string username;
+    string password;
+    string clientId?;
+    string clientSecret?;
+    string|string[] scopes?;
+    oauth2:RefreshConfig|"INFER_REFRESH_CONFIG" refreshConfig?; // Special Agent Note: RefreshConfig FROM ballerina/oauth2 package
+    decimal defaultTokenExpTime?;
+    decimal clockSkew?;
+    map<string> optionalParams?;
+    oauth2:CredentialBearer credentialBearer?; // Special Agent Note: CredentialBearer FROM ballerina/oauth2 package
+    oauth2:ClientConfiguration clientConfig?; // Special Agent Note: ClientConfiguration FROM ballerina/oauth2 package
+};
+
+# Represents OAuth2 refresh token grant configurations for OAuth2 authentication.
+
+type OAuth2RefreshTokenGrantConfig record {
+    string refreshUrl;
+    string refreshToken;
+    string clientId;
+    string clientSecret;
+    string|string[] scopes?;
+    decimal defaultTokenExpTime?;
+    decimal clockSkew?;
+    map<string> optionalParams?;
+    oauth2:CredentialBearer credentialBearer?; // Special Agent Note: CredentialBearer FROM ballerina/oauth2 package
+    oauth2:ClientConfiguration clientConfig?; // Special Agent Note: ClientConfiguration FROM ballerina/oauth2 package
+};
+
+# Represents OAuth2 JWT bearer grant configurations for OAuth2 authentication.
+
+type OAuth2JwtBearerGrantConfig record {
+    string tokenUrl;
+    string assertion;
+    string clientId?;
+    string clientSecret?;
+    string|string[] scopes?;
+    decimal defaultTokenExpTime?;
+    decimal clockSkew?;
+    map<string> optionalParams?;
+    oauth2:CredentialBearer credentialBearer?; // Special Agent Note: CredentialBearer FROM ballerina/oauth2 package
+    oauth2:ClientConfiguration clientConfig?; // Special Agent Note: ClientConfiguration FROM ballerina/oauth2 package
+};
+
+# Represents OAuth2 grant configurations for OAuth2 authentication.
+type OAuth2GrantConfig ballerina/grpc:1.14.2:OAuth2ClientCredentialsGrantConfig|ballerina/grpc:1.14.2:OAuth2PasswordGrantConfig|ballerina/grpc:1.14.2:OAuth2RefreshTokenGrantConfig|ballerina/grpc:1.14.2:OAuth2JwtBearerGrantConfig;
+
+# Defines the authentication configurations for the HTTP client.
+type ClientAuthConfig ballerina/grpc:1.14.2:CredentialsConfig|ballerina/grpc:1.14.2:BearerTokenConfig|ballerina/grpc:1.14.2:JwtIssuerConfig|ballerina/grpc:1.14.2:OAuth2ClientCredentialsGrantConfig|ballerina/grpc:1.14.2:OAuth2PasswordGrantConfig|ballerina/grpc:1.14.2:OAuth2RefreshTokenGrantConfig|ballerina/grpc:1.14.2:OAuth2JwtBearerGrantConfig;
+
+// Unknown type: ClientBasicAuthHandler
+
+// Unknown type: ClientBearerTokenAuthHandler
+
+// Unknown type: ClientSelfSignedJwtAuthHandler
+
+// Unknown type: ListenerFileUserStoreBasicAuthHandler
+
+// Unknown type: ListenerJwtAuthHandler
+
+# Configurations for managing the gRPC client connection pool.
+# 
+
+type PoolConfiguration record {
+    # Max active connections per route(host:port). The default value is -1, which indicates unlimited
+    int maxActiveConnections?;
+    # Maximum number of idle connections allowed per pool
+    int maxIdleConnections?;
+    # Maximum amount of time the client should wait for an idle connection before it sends an error when the pool is exhausted
+    decimal waitTime?;
+    # Maximum active streams per connection. This only applies to HTTP/2
+    int maxActiveStreamsPerConnection?;
+};
+
+# Represents the abstract gRPC client endpoint. This abstract object is used in the generated client.
+class AbstractClientEndpoint {
+}
+
+# Configurations for facilitating the retry capability of the gRPC client.
+# 
+
+type RetryConfiguration record {
+    # Maximum number of retry attempts in a failure scenario
+    int retryCount;
+    # Initial interval(in seconds) between the retry attempts
+    decimal interval;
+    # Maximum interval(in seconds) between two retry attempts
+    decimal maxInterval;
+    # Retry interval will be multiplied by this factor, in between retry attempts
+    decimal backoffFactor;
+    # Error types which should be considered as failure scenarios to retry
+    ErrorType[] errorTypes?;
+};
+
+// Unknown type: Error
+
+// Unknown type: ErrorType
+
+# Configurations for managing the gRPC client endpoint.
+# 
+
+type ClientConfiguration record {
+    # The maximum time to wait(in seconds) for a response before closing the connection
+    decimal timeout?;
+    # Connection pool configuration
+    PoolConfiguration|() poolConfig?;
+    # SSL/TLS related options
+    ClientSecureSocket|() secureSocket?;
+    # Specifies the way of handling compression (`accept-encoding`) header
+    Compression compression?;
+    # Configures the retry functionality
+    RetryConfiguration|() retryConfiguration?;
+    # Configurations related to client authentication
+    CredentialsConfig|BearerTokenConfig|JwtIssuerConfig|OAuth2ClientCredentialsGrantConfig|OAuth2PasswordGrantConfig|OAuth2RefreshTokenGrantConfig|OAuth2JwtBearerGrantConfig|() auth?;
+    # The maximum message size to be permitted for inbound messages. Default value is 4 MB
+    int maxInboundMessageSize?;
+};
+
+# Configurations for facilitating secure communication with a remote gRPC endpoint.
+# 
+
+type ClientSecureSocket record {
+    # Enable SSL validation
+    boolean enable?;
+    # Configurations associated with the `crypto:TrustStore` or a single certificate file that the client trusts
+    crypto:TrustStore|string cert?; // Special Agent Note: TrustStore FROM ballerina/crypto package
+    # Configurations associated with `crypto:KeyStore` or combination of certificate and private key of the client
+    crypto:KeyStore|CertKey key?; // Special Agent Note: KeyStore FROM ballerina/crypto package
+    # SSL/TLS protocol related options
+    record {|ballerina/grpc:1.14.2:Protocol name; string[] versions;|} protocol?;
+    # Certificate validation against OCSP_CRL, OCSP_STAPLING related options
+    record {|ballerina/grpc:1.14.2:CertValidationType 'type; int cacheSize; int cacheValidityPeriod;|} certValidation?;
+    # List of ciphers to be used
+eg: TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+    string[] ciphers?;
+    # Enable/disable host name verification
+    boolean verifyHostName?;
+    # Enable/disable new SSL session creation
+    boolean shareSession?;
+    # SSL handshake time out(in seconds)
+    decimal handshakeTimeout?;
+    # SSL session time out(in seconds)
+    decimal sessionTimeout?;
+};
+
+# Represents combination of certificate, private key and private key password if encrypted.
+# 
+
+type CertKey record {
+    # A file containing the certificate
+    string certFile;
+    # A file containing the private key
+    string keyFile;
+    # Password of the private key if it is encrypted
+    string keyPassword?;
+};
+
+# Represents protocol options.
+enum Protocol {
+    DTLS,
+    TLS,
+    SSL
+}
+
+# Represents certification validation type options.
+enum CertValidationType {
+    OCSP_STAPLING,
+    OCSP_CRL
+}
+
+# Represents compression options.
+# 
+# `AUTO`: When the service behaves as a HTTP gateway, the inbound request/response accept-encoding option is set as the
+# outbound request/response accept-encoding/content-encoding option
+# `ALWAYS`: Always set accept-encoding/content-encoding in outbound request/response
+# `NEVER`: Never set accept-encoding/content-encoding header in outbound request/response
+type Compression "AUTO"|"ALWAYS"|"NEVER";
+
+# Compression types that are supported.
+# GZIP - Gzip compression
+enum CompressionType {
+    GZIP
+}
+
+# Represents client verify options.
+enum VerifyClient {
+    OPTIONAL,
+    REQUIRE
+}
+
+// Unknown type: CancelledError
+
+// Unknown type: UnKnownError
+
+// Unknown type: InvalidArgumentError
+
+// Unknown type: DeadlineExceededError
+
+// Unknown type: NotFoundError
+
+// Unknown type: AlreadyExistsError
+
+// Unknown type: PermissionDeniedError
+
+// Unknown type: UnauthenticatedError
+
+// Unknown type: ResourceExhaustedError
+
+// Unknown type: FailedPreconditionError
+
+// Unknown type: AbortedError
+
+// Unknown type: OutOfRangeError
+
+// Unknown type: UnimplementedError
+
+// Unknown type: InternalError
+
+// Unknown type: UnavailableError
+
+// Unknown type: DataLossError
+
+// Unknown type: ResiliencyError
+
+// Unknown type: AllRetryAttemptsFailed
+
+// Unknown type: StreamClosedError
+
+// Unknown type: DataMismatchError
+
+// Unknown type: ClientAuthError
+
+# Represents gRPC trace log configuration.
+# 
+
+type TraceLogAdvancedConfiguration record {
+    # Boolean value to enable or disable console trace logs
+    boolean console?;
+    # Optional file path to store trace logs
+    string path?;
+    # Optional socket hostname to publish the trace logs
+    string host?;
+    # Optional socket port to publish the trace logs
+    int port?;
+};
+
+# Represents gRPC access log configuration.
+# 
+
+type AccessLogConfiguration record {
+    # Boolean value to enable or disable console access logs
+    boolean console?;
+    # Optional file path to store access logs
+    string path?;
+};
+
+# This is used for internal purposes to support reflection.
+# The type name and extension number sent by the client when requesting `file_containing_extension`.
+# 
+
+type ExtensionRequest record {
+    # fully-qualified type name. The format should be `<package>.<type>`
+    string containing_type?;
+    # specific extension number
+    int extension_number?;
+};
+
+# This is used for internal purposes to support reflection.
+# The information of a single service used by `ListServiceResponse` to answer `list_services` request.
+# 
+
+type ServiceResponse record {
+    # full name of a registered service, including its package name. The format is `<package>.<service>`
+    string name?;
+};
+
+# This is used for internal purposes to support reflection.
+# Serialized `FileDescriptorProto` messages sent by the server answering a 
+# `file_by_filename`, `file_containing_symbol`, or `file_containing_extension` request.
+# 
+
+type FileDescriptorResponse record {
+    # serialized `FileDescriptorProto` messages
+    byte[] file_descriptor_proto?;
+};
+
+# This is used for internal purposes to support reflection.
+# The message sent by the client when calling `ServerReflectionInfo` method.
+# 
+
+type ServerReflectionRequest record {
+    # fully-qualified type name
+    string host?;
+    # used to find a proto file by the file name
+    string file_by_filename?;
+    # used to find the proto file that declares the given fully-qualified symbol name
+    string file_containing_symbol?;
+    # find the proto file which defines an extension extending the given message 
+type with the given field number.
+    ExtensionRequest file_containing_extension?;
+    # used to find the tag numbers used by all known extensions of the 
+given message type
+    string all_extension_numbers_of_type?;
+    # used to list the full names of registered services
+    string list_services?;
+};
+
+# This is used for internal purposes to support reflection.
+# A list of extension numbers sent by the server answering all_extension_numbers_of_type request.
+# 
+
+type ExtensionNumberResponse record {
+    # full name of the base type, including the package name. The format is `<package>.<type>`
+    string base_type_name?;
+    # list of extension numbers
+    int[] extension_number?;
+};
+
+# This is used for internal purposes to support reflection.
+# The message sent by the server to answer `ServerReflectionInfo` method.
+# 
+
+type ServerReflectionResponse record {
+    # valid host as a string
+    string valid_host?;
+    # original request send by the client
+    ServerReflectionRequest original_request?;
+    # used to answer `file_by_filename`, `file_containing_symbol`, 
+`file_containing_extension` requests with transitive dependencies
+    FileDescriptorResponse file_descriptor_response?;
+    # used to answer `all_extension_numbers_of_type` requst
+    ExtensionNumberResponse all_extension_numbers_response?;
+    # used to answer list_services request
+    ListServiceResponse list_services_response?;
+    # used when an error occurs
+    ErrorResponse error_response?;
+};
+
+# This is used for internal purposes to support reflection.
+# A list of `ServiceResponse` sent by the server answering list_services request.
+# 
+
+type ListServiceResponse record {
+    # list of `ServiceResponse`s
+    ServiceResponse[] 'service?;
+};
+
+# This is used for internal purposes to support reflection.
+# This represents the error code and error message sent by the server when an error occurs.
+# 
+
+type ErrorResponse record {
+    # error codes adhering to `grpc::StatusCode`
+    int error_code?;
+    # related error message sent by the server
+    string error_message?;
+};
+
+# The gRPC service type.
+class Service {
+}
+
+# Configurations for managing the gRPC server endpoint.
+# 
+
+type ListenerConfiguration record {
+    # The server hostname
+    string host?;
+    # The SSL configurations for the server endpoint
+    ListenerSecureSocket|() secureSocket?;
+    # Period of time in seconds that a connection waits for a read/write operation. Use value 0 to
+disable the timeout
+    decimal timeout?;
+    # The maximum message size to be permitted for inbound messages. Default value is 4 MB
+    int maxInboundMessageSize?;
+    # The maximum size of the headers to be permitted for inbound messages. Default value is 8 KB
+    int maxHeaderSize?;
+    # Support reflection
+    boolean reflectionEnabled?;
+};
+
+# Configurations for facilitating secure communication for the gRPC server endpoint.
+# 
+
+type ListenerSecureSocket record {
+    # Configurations associated with a `crypto:KeyStore` or combination of a certificate and private key of the server
+    crypto:KeyStore|CertKey key; // Special Agent Note: KeyStore FROM ballerina/crypto package
+    # Configurations associated with mutual SSL operations
+    record {|ballerina/grpc:1.14.2:VerifyClient verifyClient; ballerina/crypto:2.12.1:TrustStore|string cert;|} mutualSsl?;
+    # SSL/TLS protocol related options
+    record {|ballerina/grpc:1.14.2:Protocol name; string[] versions;|} protocol?;
+    # Certificate validation against OCSP_CRL, OCSP_STAPLING related options
+    record {|ballerina/grpc:1.14.2:CertValidationType 'type; int cacheSize; int cacheValidityPeriod;|} certValidation?;
+    # List of ciphers to be used
+eg: TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+    string[] ciphers?;
+    # Enable/Disable new SSL session creation
+    boolean shareSession?;
+    # SSL handshake time out(in seconds)
+    decimal handshakeTimeout?;
+    # SSL session time out(in seconds)
+    decimal sessionTimeout?;
+};
+
+// Unknown type: Listener
+
+// --- Client ---
+
+# Defines the OAuth2 handler for client authentication.
+client class ClientOAuth2Handler {
+    function init(OAuth2GrantConfig config) returns ();
+
+    # Enriches the headers with the relevant authentication requirements.
+    # 
+    remote function enrich(map<string|string[]> headers) returns map<string|string[]>|ClientAuthError;
+}
+
+# Defines the LDAP store Basic Auth handler for listener authentication.
+client class ListenerLdapUserStoreBasicAuthHandler {
+    function init(LdapUserStoreConfig config) returns ();
+
+    # Authenticates with the relevant authentication requirements.
+    # 
+    remote function authenticate(map<string|string[]> headers) returns auth:UserDetails|UnauthenticatedError; // Special Agent Note: UserDetails FROM ballerina/auth package
+
+    # Authorizes with the relevant authorization requirements.
+    # 
+    remote function authorize(auth:UserDetails userDetails, string|string[] expectedScopes) returns PermissionDeniedError|(); // Special Agent Note: UserDetails FROM ballerina/auth package
+}
+
+# Defines the OAuth2 handler for listener authentication.
+client class ListenerOAuth2Handler {
+    function init(OAuth2IntrospectionConfig config) returns ();
+
+    # Authorizes with the relevant authentication & authorization requirements.
+    # 
+    remote function authorize(map<string|string[]> headers, string|string[]|() expectedScopes = (), map<string>|() optionalParams = ()) returns oauth2:IntrospectionResponse|UnauthenticatedError|PermissionDeniedError; // Special Agent Note: IntrospectionResponse FROM ballerina/oauth2 package
+}
+
+# The base client used in the generated client code to provide remote functions for interacting with the caller.
+# 
+client class Caller {
+    function init() returns ballerina/grpc:grpc:Caller;
+
+    # Returns the unique identification of the caller.
+    # ```ballerina
+    # int result = caller.getId();
+    # ```
+    # 
+    remote function getId() returns int;
+
+    # Sends the outbound response to the caller.
+    # ```ballerina
+    # grpc:Error? err = caller->send(message);
+    # ```
+    # 
+    remote function send(anydata res) returns Error|();
+
+    # Informs the caller, when the server has sent all the messages.
+    # ```ballerina
+    # grpc:Error? result = caller->complete();
+    # ```
+    # 
+    remote function complete() returns Error|();
+
+    # Checks whether the connection is closed by the caller.
+    # ```ballerina
+    # boolean result = caller.isCancelled();
+    # ```
+    # 
+    remote function isCancelled() returns boolean;
+
+    # Sends a server error to the caller.
+    # ```ballerina
+    # grpc:Error? result = caller->sendError(error grpc:AbortedError("Operation aborted"));
+    # ```
+    # 
+    remote function sendError(Error err) returns Error|();
+}
+
+# The base client used in the generated client code to provide the capability for initiating the contact and executing remote calls with a remote gRPC service.
+client class Client {
+    function init(string url, decimal timeout = 60, PoolConfiguration|() poolConfig = (), ClientSecureSocket|() secureSocket = (), Compression compression = AUTO, RetryConfiguration|() retryConfiguration = (), CredentialsConfig|BearerTokenConfig|JwtIssuerConfig|OAuth2ClientCredentialsGrantConfig|OAuth2PasswordGrantConfig|OAuth2RefreshTokenGrantConfig|OAuth2JwtBearerGrantConfig|() auth = (), int maxInboundMessageSize = 4194304, ClientConfiguration config) returns ballerina/grpc:1.14.2:Error?;
+
+    # Calls when initializing the client endpoint with the service descriptor data extracted from the proto file.
+    # ```ballerina
+    # grpc:Error? result = grpcClient.initStub(self, ROOT_DESCRIPTOR, getDescriptorMap());
+    # ```
+    # 
+    remote function initStub(AbstractClientEndpoint clientEndpoint, string descriptorKey, map<any> descriptorMap = {}) returns Error|();
+
+    # Calls when executing a unary gRPC service.
+    # ```ballerina
+    # [anydata, map<string|string[]>]|grpc:Error result = grpcClient->executeSimpleRPC("HelloWorld/hello", req, headers);
+    # ```
+    # 
+    remote function executeSimpleRPC(string methodID, anydata payload, map<string|string[]> headers = {}) returns [anydata, map<string|string[]>]|Error;
+
+    # Calls when executing a server streaming call with a gRPC service.
+    # ```ballerina
+    # [stream<anydata, grpc:Error?>, map<string|string[]>]|grpc:Error result = grpcClient->executeServerStreaming("HelloWorld/hello", req, headers);
+    # ```
+    # 
+    remote function executeServerStreaming(string methodID, anydata payload, map<string|string[]> headers = {}) returns [stream<anydata, ballerina/grpc:1.14.2:Error?>, map<string|string[]>]|Error;
+
+    # Calls when executing a client streaming call with a gRPC service.
+    # ```ballerina
+    # grpc:StreamingClient|grpc:Error result = grpcClient->executeClientStreaming("HelloWorld/hello", headers);
+    # ```
+    # 
+    remote function executeClientStreaming(string methodID, map<string|string[]> headers = {}) returns StreamingClient|Error;
+
+    # Calls when executing a bi-directional streaming call with a gRPC service.
+    # ```ballerina
+    # grpc:StreamingClient|grpc:Error result = grpcClient->executeBidirectionalStreaming("HelloWorld/hello", headers);
+    # ```
+    # 
+    remote function executeBidirectionalStreaming(string methodID, map<string|string[]> headers = {}) returns StreamingClient|Error;
+}
+
+# This is used for internal purposes to support reflection.
+client class ServerReflectionServerReflectionResponseCaller {
+    function init(Caller caller) returns ();
+
+    remote function getId() returns int;
+
+    remote function sendServerReflectionResponse(ServerReflectionResponse response) returns Error|();
+
+    remote function sendError(Error response) returns Error|();
+
+    remote function complete() returns Error|();
+
+    remote function isCancelled() returns boolean;
+}
+
+# The base client used in the generated client code to provide the gRPC streaming client actions for
+# interacting  with the gRPC server.
+client class StreamingClient {
+    function init() returns ballerina/grpc:grpc:StreamingClient;
+
+    # Sends the request message to the server.
+    # ```ballerina
+    # grpc:Error? err = sClient->send(message);
+    # ```
+    # 
+    remote function send(anydata res) returns Error|();
+
+    # Informs the server when the caller has sent all the messages.
+    # ```ballerina
+    # grpc:Error? result = sClient->complete();
+    # ```
+    # 
+    remote function complete() returns Error|();
+
+    # Sends an error message to the server.
+    # ```ballerina
+    # grpc:Error? result = sClient->sendError(error grpc:AbortedError("Operation aborted"));
+    # ```
+    # 
+    remote function sendError(Error err) returns Error|();
+
+    # Receives server responses in client streaming and bidirectional streaming.
+    # ```ballerina
+    # [anydata, map<string|string[]>]|grpc:Error? result = streamingClient->receive();
+    # ```
+    # 
+    remote function receive() returns [anydata, map<string|string[]>]|Error|();
+}
+
+// --- Functions ---
+
+# Uses for declarative auth design, where the authentication/authorization decision is taken
+# by reading the auth annotations provided in service/resource and the `Authorization` header of request.
+# 
+# + serviceRef - The service reference where the resource locates
+function authenticateResource(Service serviceRef) returns ();
+
+# Enables the compression support by adding the `grpc-encoding` header to the given headers.
+# ```ballerina
+# map<string|string[]> headers = grpc:setCompression(grpc:GZIP);
+# ```
+# 
+# + compressionType - The compression type.
+# + headerMap - Optional header map (if this is not specified, it creates a new header set)
+# + return - The header map that includes the compression headers
+function setCompression(CompressionType compressionType, map<string|string[]> headerMap = {}) returns map<string|string[]>;
+
+# Enables the deadline by adding the `deadline` header to the given headers.
+# ```ballerina
+# time:Utc current = time:utcNow();
+# time:Utc deadline = time:utcAddSeconds(current, 300);
+# map<string|string[]> headers = grpc:setDeadline(deadline);
+# ```
+# 
+# + deadline - The deadline time value (this should be a specific time and not a duration)
+# + headerMap - Optional header map (if this is not specified, it creates a new header set)
+# + return - The header map that includes the deadline
+function setDeadline(time:Utc deadline, map<string|string[]> headerMap = {}) returns map<string|string[]>; // Special Agent Note: Utc FROM ballerina/time package
+
+# Checks whether the deadline is already exceeded or not.
+# ```ballerina
+# boolean|time:Error isCancelled = grpc:isCancelled(map<string|string[]> headerMap);
+# ```
+# 
+# + headerMap - Optional header map sent by the client
+# + return - `true` when the deadline is exceeded, `false` when the deadline is not exceeded, or else a `time:Error` when a `deadline`-parsing error occurred
+function isCancelled(map<string|string[]> headerMap) returns boolean|time:Error; // Special Agent Note: Error FROM ballerina/time package
+
+# Returns the deadline value as `time:Utc`. This can be used to get the deadline and propagate it to subsequent internal calls.
+# ```ballerina
+# time:Utc?|time:Error deadline = grpc:getDeadline(map<string|string[]> headerMap);
+# ```
+# 
+# + headerMap - Optional header map sent by the client
+# + return - `deadline` value when the deadline is correctly specified, `()` when the deadline is not specified, or else a `time:Error` when a `deadline`-parsing error occurred
+function getDeadline(map<string|string[]> headerMap) returns time:Utc|()|time:Error; // Special Agent Note: Utc, Error FROM ballerina/time package
+
+# Returns the header value with the specified header name. If there are more than one header values for the
+# specified header name, the first value is returned.
+# ```ballerina
+# map<string|string[]> headerMap = request.headers;
+# string|grpc:Error result = grpc:getHeader(headerMap, "content-type");
+# ```
+# 
+# + headerMap - The header map instance
+# + headerName - The header name
+# + return - First header value if exists or else error
+function getHeader(map<string|string[]> headerMap, string headerName) returns string|Error;
+
+# Gets all the transport headers with the specified header name.
+# ```ballerina
+# map<string|string[]> headerMap = request.headers;
+# string[]|grpc:Error result = grpc:getHeaders(headerMap, "content-type");
+# ```
+# 
+# + headerMap - The header map instance
+# + headerName - The header name
+# + return - Header value array
+function getHeaders(map<string|string[]> headerMap, string headerName) returns string[]|Error;

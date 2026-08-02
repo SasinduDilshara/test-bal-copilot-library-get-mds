@@ -1,0 +1,4196 @@
+{
+  "name": "ballerina/grpc",
+  "description": "",
+  "readme": "## Overview\n\nThis module provides APIs for connecting and interacting with gRPC endpoints. \n\ngRPC is an inter-process communication technology that allows you to connect, invoke, and operate distributed, heterogeneous applications as easily as making a local function call. The gRPC protocol is layered over HTTP/2 and uses Protocol Buffers for marshaling/unmarshaling messages. This makes gRPC highly efficient on wire and a simple service definition framework.\n\nWhen you develop a gRPC application, the first thing you do is define a service definition using Protocol Buffers.\n\n### Protocol buffers\nThis is a mechanism to serialize the structured data introduced by Google and used by the gRPC framework. Defining the service using Protocol Buffers includes defining remote methods in the service and defining message types that are sent across the network. A sample service definition is shown below.\n\n```proto\nsyntax \u003d \"proto3\";\n\nservice Helloworld {\n    rpc hello(HelloRequest) returns (HelloResponse);\n}\n\nmessage HelloRequest {\n    string name \u003d 1;\n}\n\nmessage HelloResponse {\n    string message \u003d 1;\n}\n```\n\ngRPC allows client applications to directly call the server-side methods using the auto-generated stubs. Protocol\n Buffer compiler is used to generate the stubs for the specified language. In Ballerina, the stubs are generated using the built-in \u0027Protocol Buffers to Ballerina\u0027 tool. \n\nFor information on how to generate Ballerina code for Protocol Buffers definition, see [Write a gRPC service with Ballerina](https://ballerina.io/learn/write-a-grpc-service-with-ballerina/).\n\n### gRPC communication patterns\nThe common communication pattern between a client and server is simple request-response style communication. However, with gRPC, you can leverage different inter-process communication patterns other than the simple request-response pattern.\nThis module supports four fundamental communication patterns used in gRPC-based applications: simple RPC(unary RPC), server streaming RPC, client streaming RPC, and bidirectional streaming RPC.\n\n#### Simple RPC (Unary RPC) \nIn this pattern, the client invokes a remote function of a server and sends a single request to the server. The server sends a single response in return to the client along with status details.\n\n```proto\nservice HelloWorld {\n    rpc hello (google.protobuf.StringValue)\n          returns (google.protobuf.StringValue);\n}\n```\n##### Implement the gRPC server\nThe code snippet given below contains a service that sends a response to each request.\n\n```ballerina\n// The gRPC service is attached to the listener.\nservice HelloWorld on new grpc:Listener(9090)  {\n    // The function accepts a string message.\n    remote function hello(string name) returns string|error {\n        // Send the response to the client.\n        return \"Hi \" + name + \"! Greetings from gRPC service!\");\n    }\n}\n```\n##### Implement the gRPC client\nThe code snippet given below calls the above service in a synchronized manner using an auto-generated Ballerina stub.\n\n```ballerina\n// Use ‘HelloWorldClient’ to execute the call in the synchronized mode.\nHelloWorldClient helloClient \u003d check new(\"http://localhost:9090\");\n\n// Call the service remote function using a client stub.\nstring responseFromServer \u003d check helloClient-\u003ehello(\"Ballerina\");\n```\n\n#### Server streaming RPC\nIn server-side streaming RPC, the server sends back a sequence of responses after getting the client\u0027s request message. After sending all the server responses, the server marks the end of the stream by sending the server status details.\nYou can invoke this in a non-blocking manner.\n\n```proto\nservice HelloWorld {\n    rpc lotsOfReplies (google.protobuf.StringValue)\n          returns (stream google.protobuf.StringValue);\n}\n```\n##### Implement the gRPC server\nThe code snippet given below contains a service that sends a sequence of responses to each request.\n\n```ballerina\n// The gRPC service is attached to the listener.\nservice HelloWorld on new grpc:Listener(9090) {\n    remote function lotsOfReplies(string name) returns stream\u003cstring, grpc:Error?\u003e {\n        string[] greets \u003d [\"Hi \" + name, \"Welcome \" + name];\n        // Send multiple responses to the client.\n        return greets.toStream();\n   }\n}\n```\n\n##### Implement the gRPC server\nThe code snippet given below calls the above service using the auto-generated Ballerina client stub and reads multiple server responses using a stream.\nHere, the message stream is ended with a `()` value.\n\n```ballerina\n   // Client endpoint configurations.\n    HelloWorldClient helloworldClient \u003d check new(\"http://localhost:9090\");\n\n    // Execute the service streaming call by registering a message listener.\n    stream\u003cstring, grpc:Error?\u003e result \u003d \n                                check helloworldClient-\u003elotsOfReplies(\"Ballerina\");\n```\n\n#### Client streaming RPC\nIn client streaming RPC, the client sends multiple messages to the server instead of a single request. The server sends back a single response to the client.\n\n```proto\nservice HelloWorld {\n    rpc lotsOfGreetings (stream google.protobuf.StringValue)\n          returns (google.protobuf.StringValue);\n}\n```\n\n##### Implement the gRPC server\nThe code snippet given below contains a service that receives a sequence of requests from the client and sends a single response in return.\n\n```ballerina\n// The gRPC service is attached to the listener.\nservice HelloWorld on new grpc:Listener(9090) {\n\n    // This function is triggered when a new client connection is initialized.\n    remote function lotsOfGreetings(stream\u003cstring, grpc:Error?\u003e clientStream) \n                                                        returns string|error {\n        // Iterate through the client stream\n        check clientStream.forEach(function(string name) {\n            // Handle the message sent from the stream here\n        });\n        // A nil value is returned once the client stream is ended\n        // Return server response to the client.\n        return \"Ack\";\n    }\n}\n```\n\n##### Implement the gRPC server\nThe code snippet given below calls the above service using the auto-generated Ballerina client stub and sends multiple request messages from the server.\n\n```ballerina\n    // Client endpoint configurations.\n    HelloWorldClient helloworldClient \u003d check new(\"http://localhost:9090\");\n\n    // Execute the service streaming call by registering a message listener.\n    LotsOfGreetingsStreamingClient streamingClient \u003d \n                                        check helloworldClient-\u003elotsOfGreetings();\n\n    // Send multiple messages to the server.\n    string[] greets \u003d [\"Hi\", \"Hey\", \"GM\"];\n    foreach string greet in greets {\n        grpc:Error? connErr \u003d streamingClient-\u003esendstring(greet + \" \" + \"Ballerina\");\n    }\n\n    // Once all the messages are sent, the client notifies the server \n    // by closing the stream.\n    grpc:Error? result \u003d streamingClient-\u003ecomplete();\n    // Receive the message from the server.\n    string|grpc:Error response \u003d streamingClient-\u003ereceiveString();\n...\n```\n\n#### Bidirectional streaming RPC\nIn bidirectional streaming RPC, the client is sending a request to the server as a stream of messages. The server also responds with a stream of messages.\n\n```proto\nservice Chat {\n    rpc chat (stream ChatMessage)\n          returns (stream google.protobuf.StringValue);\n}\n```\n##### Implement the gRPC server\nThe code snippet given below includes a service that handles bidirectional streaming.\n\n```ballerina\n// The gRPC service is attached to the listener.\nservice Chat on new grpc:Listener(9090) {\n\n    //This `resource` is triggered when a new caller connection is initialized.\n    remote function chat(ChatStringCaller caller, \n                                    stream\u003cChatMessage, grpc:Error?\u003e clientStream) {\n        //Iterate through the client stream\n        check clientStream.forEach(function(ChatMessage chatMsg) {\n            // Handle the streamed messages sent from the client here\n            grpc:Error? err \u003d caller-\u003esendString(\n                                    string `${chatMsg.name}: ${chatMsg.message}`);\n        });\n        // A nil value is returned once the client stream is ended\n        // Handle once the client has completed streaming\n        caller-\u003ecomplete();\n    }\n}\n```\n##### Implement the gRPC server\nThe code snippet given below calls the above service using the auto-generated Ballerina client stub and sends multiple request messages to the server and receives multiple responses from the server.\n\n```ballerina\n    // Client endpoint configurations.\n    ChatClient chatClient \u003d check new(\"http://localhost:9090\");\n\n    // Execute the service streaming call by registering a message listener.\n    ChatStreamingClient streamingClient \u003d check chatClient-\u003echat();\n\n    // Send multiple messages to the server.\n    string[] greets \u003d [\"Hi\", \"Hey\", \"GM\"];\n    foreach string greet in greets {\n        ChatMessage mes \u003d {name: \"Ballerina\", message: greet};\n        grpc:Error? connErr \u003d streamingClient-\u003esendChatMessage(mes);\n    }\n\n    // Once all the messages are sent, the server notifies the caller \n    // with a `complete` message.\n    grpc:Error? result \u003d streamingClient-\u003ecomplete();\n    ...\n\n    // Receive the server stream response iteratively.\n    string? result \u003d check streamingClient-\u003ereceiveString();\n    while !(result is ()) {\n        io:println(result);\n        result \u003d streamingClient-\u003ereceiveString();\n    }\n```\n\n### Advanced use cases\n\n#### Use the TLS protocol\n\nThe Ballerina gRPC module allows the use of TLS in communication. This setting expects a secure socket to be \nset in the connection configuration as shown below.\n\n##### Configure TLS in server side\n\n```ballerina\n// Server endpoint configuration with the SSL configurations.\nlistener grpc:Listener ep \u003d new (9090, {\n    host: \"localhost\",\n    secureSocket: {\n        key: {\n            certFile: \"../resource/path/to/public.crt\",\n            keyFile: \"../resource/path/to/private.key\"\n        }\n    }\n});\n\nservice HelloWorld on ep {\n    \n}\n```\n\n##### Configure TLS in client side\n\n```ballerina\n    // Client endpoint configuration with SSL configurations.\n    HelloWorldClient helloWorldClient \u003d check new (\"https://localhost:9090\", {\n        secureSocket: {\n            cert: \"../resource/path/to/public.crt\"\n        }\n    });\n```\n\n#### Use headers\n\nThe Ballerina gRPC module allows to send/receive headers with the request and response using the context record type. The\n context record type consists of two fields called headers and content. E.g: For the string message, a type generated context record type will be as follows.\n  \n```ballerina\npublic type ContextString record {|\n    string content;\n    map\u003cstring|string[]\u003e headers;\n|};\n```\n\n##### Use headers at the client side\n\n```ballerina\n    // Set the custom headers to the request.\n    ContextString requestMessage \u003d\n    {content: \"WSO2\", headers: {client_header_key: \"0987654321\"}};\n    // Execute the remote call.\n    ContextString result \u003d check ep-\u003ehelloContext(requestMessage);\n    // Read Response content.\n    string content \u003d result.content;\n    // Read Response header value.\n    string headerValue \u003d check grpc:getHeader(result.headers, \n                                                    \"server_header_key\");\n```\n\n##### Use headers at the server side\n\n```ballerina\nservice \"HelloWorld\" on new grpc:Listener(9090) {\n    remote function hello(ContextString request) returns ContextString|error {\n        // Read the request content.\n        string message \u003d \"Hello \" + request.content;\n\n        // Read custom headers in request message.\n        string reqHeader \u003d check grpc:getHeader(request.headers, \n                                                        \"client_header_key\");\n\n        // Send response with custom headers.\n        return {content: message, \n                        headers: {server_header_key: \"Response Header value\"}};\n    }\n}\n```\n\n#### Use deadlines\n\nDeadlines allow gRPC clients to specify how long they are willing to wait for an RPC to complete before the RPC is\n terminated with the `DEADLINE_EXCEEDED` error. In Ballerina, a deadline value is set directly to the headers and it is sent\n  via the request headers.\n\n##### Set a deadline in the request headers\n\n```ballerina\n    time:Utc current \u003d time:utcNow();\n    time:Utc deadline \u003d time:utcAddSeconds(current, 300);\n    map\u003cstring|string[]\u003e headers \u003d grpc:setDeadline(deadline);\n```\n\n##### Check the deadlines\n\n```ballerina\n    boolean cancel \u003d check grpc:isCancelled(request.headers);\n    if (cancel) {\n        return error DeadlineExceededError(\"Deadline exceeded\");\n    }\n```\n\n\n## Module: grpc.types.any\n\n## Overview\n\nThis module provides APIs to represent `google.protobuf.Any` type as a stream.\n\n\n\n## Module: grpc.types.duration\n\n## Overview\n\nThis module provides APIs to represent `google.protobuf.Duration` type as a stream.\n\n\n\n## Module: grpc.types.struct\n\n## Overview\n\nThis module provides APIs to represent `google.protobuf.Struct` type as a stream.\n\n\n\n## Module: grpc.types.timestamp\n\n## Overview\n\nThis module provides APIs to represent `google.protobuf.Timestamp` type as a stream.\n\n\n\n## Module: grpc.types.wrappers\n\n## Overview\n\nThis module provides APIs to represent `google/protobuf/wrappers.proto` types as a stream.\n\n",
+  "typeDefs": [
+    {
+      "name": "AUTH_HEADER",
+      "description": "Represents the Authorization header name.",
+      "type": "Constant",
+      "value": "authorization",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "AUTH_SCHEME_BASIC",
+      "description": "The prefix used to denote the Basic authentication scheme.",
+      "type": "Constant",
+      "value": "Basic",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "AUTH_SCHEME_BEARER",
+      "description": "The prefix used to denote the Bearer authentication scheme.",
+      "type": "Constant",
+      "value": "Bearer",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "PERMISSION_DENIED_ERROR_MSG",
+      "description": "The permission denied error message.",
+      "type": "Constant",
+      "value": "Permission denied",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "UNAUTHENTICATED_ERROR_MSG",
+      "description": "The permission denied error message.",
+      "type": "Constant",
+      "value": "Unauthenticated",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "GZIP",
+      "description": "",
+      "type": "Constant",
+      "value": "gzip",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "DEALINE_HEADER",
+      "description": "Represents the deadline header name.",
+      "type": "Constant",
+      "value": "deadline",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "REQUIRE",
+      "description": "",
+      "type": "Constant",
+      "value": "REQUIRE",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "OPTIONAL",
+      "description": "",
+      "type": "Constant",
+      "value": "OPTIONAL",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "SSL",
+      "description": "",
+      "type": "Constant",
+      "value": "SSL",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "TLS",
+      "description": "",
+      "type": "Constant",
+      "value": "TLS",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "DTLS",
+      "description": "",
+      "type": "Constant",
+      "value": "DTLS",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "OCSP_CRL",
+      "description": "",
+      "type": "Constant",
+      "value": "OCSP_CRL",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "OCSP_STAPLING",
+      "description": "",
+      "type": "Constant",
+      "value": "OCSP_STAPLING",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "COMPRESSION_AUTO",
+      "description": "When service behaves as a HTTP gateway inbound request/response accept-encoding option is set as the\noutbound request/response accept-encoding/content-encoding option.",
+      "type": "Constant",
+      "value": "AUTO",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "COMPRESSION_ALWAYS",
+      "description": "Always set accept-encoding/content-encoding in outbound request/response.",
+      "type": "Constant",
+      "value": "ALWAYS",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "COMPRESSION_NEVER",
+      "description": "Never set accept-encoding/content-encoding header in outbound request/response.",
+      "type": "Constant",
+      "value": "NEVER",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "ServiceDescriptorData",
+      "description": "Service descriptor data generated at the compile time.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "descriptor",
+          "description": "Service descriptor, which should be set at the compile time",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "descMap",
+          "description": "Service-dependent descriptor map, which should be set at the compile time",
+          "type": {
+            "name": "map\u003canydata\u003e"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "DescriptorData",
+      "description": "Service descriptor data generated at the compile time.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "value",
+          "description": "Descriptor, which should be set at the compile time",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "descMap",
+          "description": "Service-dependent descriptor map, which should be set at the compile time",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "GrpcServiceConfig",
+      "description": "Contains the configurations for a gRPC service.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "auth",
+          "description": "Listener authenticaton configurations",
+          "type": {
+            "name": "ListenerAuthConfig[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ListenerAuthConfig"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "FileUserStoreConfigWithScopes",
+      "description": "Represents the auth annotation for file user store configurations with scopes.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "fileUserStoreConfig",
+          "description": "File user store configurations for Basic Auth authentication",
+          "type": {
+            "name": "FileUserStoreConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "FileUserStoreConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "scopes",
+          "description": "Scopes allowed for authorization",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "FileUserStoreConfig",
+      "description": "Represents file user store configurations for Basic Auth authentication.",
+      "type": "Record",
+      "fields": []
+    },
+    {
+      "name": "LdapUserStoreConfigWithScopes",
+      "description": "Represents the auth annotation for LDAP user store configurations with scopes.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "ldapUserStoreConfig",
+          "description": "LDAP user store configurations for Basic Auth authentication",
+          "type": {
+            "name": "LdapUserStoreConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "LdapUserStoreConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "scopes",
+          "description": "Scopes allowed for authorization",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "LdapUserStoreConfig",
+      "description": "Represents LDAP user store configurations for Basic Auth authentication.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "domainName",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "connectionUrl",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "connectionName",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "connectionPassword",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "userSearchBase",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "userEntryObjectClass",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "userNameAttribute",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "userNameSearchFilter",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "userNameListFilter",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "groupSearchBase",
+          "description": "",
+          "type": {
+            "name": "string[]"
+          }
+        },
+        {
+          "name": "groupEntryObjectClass",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "groupNameAttribute",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "groupNameSearchFilter",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "groupNameListFilter",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "membershipAttribute",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "userRolesCacheEnabled",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "connectionPoolingEnabled",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "connectionTimeout",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "readTimeout",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "",
+          "type": {
+            "name": "SecureSocket",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "SecureSocket",
+                "libraryName": "ballerina/auth"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "JwtValidatorConfigWithScopes",
+      "description": "Represents the auth annotation for JWT validator configurations with scopes.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "jwtValidatorConfig",
+          "description": "JWT validator configurations for JWT authentication",
+          "type": {
+            "name": "JwtValidatorConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "JwtValidatorConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "scopes",
+          "description": "Scopes allowed for authorization",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "JwtValidatorConfig",
+      "description": "Represents JWT validator configurations for JWT authentication.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "scopeKey",
+          "description": "The key used to fetch the scopes",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "issuer",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "username",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "audience",
+          "description": "",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "jwtId",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "keyId",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "customClaims",
+          "description": "",
+          "type": {
+            "name": "map\u003cjson\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "clockSkew",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "signatureConfig",
+          "description": "",
+          "type": {
+            "name": "ValidatorSignatureConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ValidatorSignatureConfig",
+                "libraryName": "ballerina/jwt"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "cacheConfig",
+          "description": "",
+          "type": {
+            "name": "CacheConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CacheConfig",
+                "libraryName": "ballerina/cache"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "OAuth2IntrospectionConfigWithScopes",
+      "description": "Represents the auth annotation for OAuth2 introspection server configurations with scopes.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "oauth2IntrospectionConfig",
+          "description": "OAuth2 introspection server configurations for OAuth2 authentication",
+          "type": {
+            "name": "OAuth2IntrospectionConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OAuth2IntrospectionConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "scopes",
+          "description": "Scopes allowed for authorization",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "OAuth2IntrospectionConfig",
+      "description": "Represents OAuth2 introspection server configurations for OAuth2 authentication.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "scopeKey",
+          "description": "The key used to fetch the scopes",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "url",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "tokenTypeHint",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "optionalParams",
+          "description": "",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "cacheConfig",
+          "description": "",
+          "type": {
+            "name": "CacheConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CacheConfig",
+                "libraryName": "ballerina/cache"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "defaultTokenExpTime",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "clientConfig",
+          "description": "",
+          "type": {
+            "name": "ClientConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientConfiguration",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ListenerAuthConfig",
+      "description": "Defines the authentication configurations for the gRPC listener.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "ballerina/grpc:1.14.2:FileUserStoreConfigWithScopes",
+          "type": {
+            "name": "FileUserStoreConfigWithScopes",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "FileUserStoreConfigWithScopes"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerina/grpc:1.14.2:LdapUserStoreConfigWithScopes",
+          "type": {
+            "name": "LdapUserStoreConfigWithScopes",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "LdapUserStoreConfigWithScopes"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerina/grpc:1.14.2:JwtValidatorConfigWithScopes",
+          "type": {
+            "name": "JwtValidatorConfigWithScopes",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "JwtValidatorConfigWithScopes"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerina/grpc:1.14.2:OAuth2IntrospectionConfigWithScopes",
+          "type": {
+            "name": "OAuth2IntrospectionConfigWithScopes",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OAuth2IntrospectionConfigWithScopes"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "CredentialsConfig",
+      "description": "Represents credentials for Basic Auth authentication.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "username",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "password",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "BearerTokenConfig",
+      "description": "Represents token for Bearer token authentication.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "token",
+          "description": "Bearer token for authentication",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "JwtIssuerConfig",
+      "description": "Represents JWT issuer configurations for JWT authentication.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "issuer",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "username",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "audience",
+          "description": "",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "jwtId",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "keyId",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "customClaims",
+          "description": "",
+          "type": {
+            "name": "map\u003cjson\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "expTime",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "signatureConfig",
+          "description": "",
+          "type": {
+            "name": "IssuerSignatureConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "IssuerSignatureConfig",
+                "libraryName": "ballerina/jwt"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "OAuth2ClientCredentialsGrantConfig",
+      "description": "Represents OAuth2 client credentials grant configurations for OAuth2 authentication.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "tokenUrl",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "clientId",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "clientSecret",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "scopes",
+          "description": "",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "defaultTokenExpTime",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "clockSkew",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "optionalParams",
+          "description": "",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "credentialBearer",
+          "description": "",
+          "type": {
+            "name": "CredentialBearer",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CredentialBearer",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "clientConfig",
+          "description": "",
+          "type": {
+            "name": "ClientConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientConfiguration",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "OAuth2PasswordGrantConfig",
+      "description": "Represents OAuth2 password grant configurations for OAuth2 authentication.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "tokenUrl",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "username",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "password",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "clientId",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "clientSecret",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "scopes",
+          "description": "",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "refreshConfig",
+          "description": "",
+          "type": {
+            "name": "RefreshConfig|\"INFER_REFRESH_CONFIG\"",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "RefreshConfig",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "defaultTokenExpTime",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "clockSkew",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "optionalParams",
+          "description": "",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "credentialBearer",
+          "description": "",
+          "type": {
+            "name": "CredentialBearer",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CredentialBearer",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "clientConfig",
+          "description": "",
+          "type": {
+            "name": "ClientConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientConfiguration",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "OAuth2RefreshTokenGrantConfig",
+      "description": "Represents OAuth2 refresh token grant configurations for OAuth2 authentication.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "refreshUrl",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "refreshToken",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "clientId",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "clientSecret",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "scopes",
+          "description": "",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "defaultTokenExpTime",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "clockSkew",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "optionalParams",
+          "description": "",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "credentialBearer",
+          "description": "",
+          "type": {
+            "name": "CredentialBearer",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CredentialBearer",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "clientConfig",
+          "description": "",
+          "type": {
+            "name": "ClientConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientConfiguration",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "OAuth2JwtBearerGrantConfig",
+      "description": "Represents OAuth2 JWT bearer grant configurations for OAuth2 authentication.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "tokenUrl",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "assertion",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "clientId",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "clientSecret",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "scopes",
+          "description": "",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "defaultTokenExpTime",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "clockSkew",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "optionalParams",
+          "description": "",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "credentialBearer",
+          "description": "",
+          "type": {
+            "name": "CredentialBearer",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CredentialBearer",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "clientConfig",
+          "description": "",
+          "type": {
+            "name": "ClientConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientConfiguration",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "OAuth2GrantConfig",
+      "description": "Represents OAuth2 grant configurations for OAuth2 authentication.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "ballerina/grpc:1.14.2:OAuth2ClientCredentialsGrantConfig",
+          "type": {
+            "name": "OAuth2ClientCredentialsGrantConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OAuth2ClientCredentialsGrantConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerina/grpc:1.14.2:OAuth2PasswordGrantConfig",
+          "type": {
+            "name": "OAuth2PasswordGrantConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OAuth2PasswordGrantConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerina/grpc:1.14.2:OAuth2RefreshTokenGrantConfig",
+          "type": {
+            "name": "OAuth2RefreshTokenGrantConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OAuth2RefreshTokenGrantConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerina/grpc:1.14.2:OAuth2JwtBearerGrantConfig",
+          "type": {
+            "name": "OAuth2JwtBearerGrantConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OAuth2JwtBearerGrantConfig"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "ClientAuthConfig",
+      "description": "Defines the authentication configurations for the HTTP client.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "ballerina/grpc:1.14.2:CredentialsConfig",
+          "type": {
+            "name": "CredentialsConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CredentialsConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerina/grpc:1.14.2:BearerTokenConfig",
+          "type": {
+            "name": "BearerTokenConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "BearerTokenConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerina/grpc:1.14.2:JwtIssuerConfig",
+          "type": {
+            "name": "JwtIssuerConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "JwtIssuerConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerina/grpc:1.14.2:OAuth2ClientCredentialsGrantConfig",
+          "type": {
+            "name": "OAuth2ClientCredentialsGrantConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OAuth2ClientCredentialsGrantConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerina/grpc:1.14.2:OAuth2PasswordGrantConfig",
+          "type": {
+            "name": "OAuth2PasswordGrantConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OAuth2PasswordGrantConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerina/grpc:1.14.2:OAuth2RefreshTokenGrantConfig",
+          "type": {
+            "name": "OAuth2RefreshTokenGrantConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OAuth2RefreshTokenGrantConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerina/grpc:1.14.2:OAuth2JwtBearerGrantConfig",
+          "type": {
+            "name": "OAuth2JwtBearerGrantConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OAuth2JwtBearerGrantConfig"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "ClientBasicAuthHandler",
+      "description": "Initializes the Basic Auth handler for client authentication.\n",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes the Basic Auth handler for client authentication.\n",
+          "parameters": [
+            {
+              "name": "config",
+              "description": "The Basic Auth credentials",
+              "type": {
+                "name": "CredentialsConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "CredentialsConfig"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        },
+        {
+          "name": "enrich",
+          "type": "Normal Function",
+          "description": "Enriches the headers with the relevant authentication requirements.\n",
+          "parameters": [
+            {
+              "name": "headers",
+              "description": "The `map\u003cstring|string[]\u003e` headers map  as an input",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              }
+            }
+          ],
+          "return": {
+            "description": "The updated `map\u003cstring|string[]\u003e` headers map  instance or else a `grpc:ClientAuthError` in case of an error",
+            "type": {
+              "name": "map\u003cstring|string[]\u003e|ClientAuthError",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "ClientAuthError"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ClientBearerTokenAuthHandler",
+      "description": "Initializes the Bearer token auth handler for client authentication.\n",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes the Bearer token auth handler for client authentication.\n",
+          "parameters": [
+            {
+              "name": "config",
+              "description": "The Bearer token",
+              "type": {
+                "name": "BearerTokenConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "BearerTokenConfig"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        },
+        {
+          "name": "enrich",
+          "type": "Normal Function",
+          "description": "Enriches the headers with the relevant authentication requirements.\n",
+          "parameters": [
+            {
+              "name": "headers",
+              "description": "The `map\u003cstring|string[]\u003e` headers map  as an input",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              }
+            }
+          ],
+          "return": {
+            "description": "The Bearer token as a `string` or else a `grpc:ClientAuthError` in case of an error",
+            "type": {
+              "name": "map\u003cstring|string[]\u003e|ClientAuthError",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "ClientAuthError"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ClientSelfSignedJwtAuthHandler",
+      "description": "Initializes the self-signed JWT handler for client authentication.\n",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes the self-signed JWT handler for client authentication.\n",
+          "parameters": [
+            {
+              "name": "config",
+              "description": "JWT issuer configurations",
+              "type": {
+                "name": "JwtIssuerConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "JwtIssuerConfig"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        },
+        {
+          "name": "enrich",
+          "type": "Normal Function",
+          "description": "Enriches the headers with the relevant authentication requirements.\n",
+          "parameters": [
+            {
+              "name": "headers",
+              "description": "The `map\u003cstring|string[]\u003e` headers map  as an input",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              }
+            }
+          ],
+          "return": {
+            "description": "The updated `map\u003cstring|string[]\u003e`headers map  instance or else a `grpc:ClientAuthError` in case of an error",
+            "type": {
+              "name": "map\u003cstring|string[]\u003e|ClientAuthError",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "ClientAuthError"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ListenerFileUserStoreBasicAuthHandler",
+      "description": "Initializes the `grpc:ListenerFileUserStoreBasicAuthHandler` object.\n",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes the `grpc:ListenerFileUserStoreBasicAuthHandler` object.\n",
+          "parameters": [
+            {
+              "name": "config",
+              "description": "The `grpc:FileUserStoreConfig` instance",
+              "type": {
+                "name": "FileUserStoreConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "FileUserStoreConfig"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        },
+        {
+          "name": "authenticate",
+          "type": "Normal Function",
+          "description": "Authenticates with the relevant authentication requirements.\n",
+          "parameters": [
+            {
+              "name": "headers",
+              "description": "The headers map `map\u003cstring|string[]\u003e` as an input",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              }
+            }
+          ],
+          "return": {
+            "description": "The `auth:UserDetails` instance or else an `UnauthenticatedError` error",
+            "type": {
+              "name": "UserDetails|UnauthenticatedError",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "UserDetails",
+                  "libraryName": "ballerina/auth"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "UnauthenticatedError"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "authorize",
+          "type": "Normal Function",
+          "description": "Authorizes with the relevant authorization requirements.\n",
+          "parameters": [
+            {
+              "name": "userDetails",
+              "description": "The `auth:UserDetails` instance which is received from authentication results",
+              "type": {
+                "name": "UserDetails",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "UserDetails",
+                    "libraryName": "ballerina/auth"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "expectedScopes",
+              "description": "The expected scopes as `string` or `string[]`",
+              "type": {
+                "name": "string|string[]"
+              }
+            }
+          ],
+          "return": {
+            "description": "`()`, if it is successful or else a `PermissionDeniedError` error",
+            "type": {
+              "name": "PermissionDeniedError|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "PermissionDeniedError"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ListenerJwtAuthHandler",
+      "description": "Initializes the JWT auth handler for the listener authentication.\n",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes the JWT auth handler for the listener authentication.\n",
+          "parameters": [
+            {
+              "name": "config",
+              "description": "JWT validator configurations",
+              "type": {
+                "name": "JwtValidatorConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "JwtValidatorConfig"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        },
+        {
+          "name": "authenticate",
+          "type": "Normal Function",
+          "description": "Authenticates with the relevant authentication requirements.\n",
+          "parameters": [
+            {
+              "name": "headers",
+              "description": "The headers map `map\u003cstring|string[]\u003e` as an input",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              }
+            }
+          ],
+          "return": {
+            "description": "The `jwt:Payload` instance or else an `grpc:UnauthenticatedError` error",
+            "type": {
+              "name": "Payload|UnauthenticatedError",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "Payload",
+                  "libraryName": "ballerina/jwt"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "UnauthenticatedError"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "authorize",
+          "type": "Normal Function",
+          "description": "Authorizes with the relevant authorization requirements.\n",
+          "parameters": [
+            {
+              "name": "jwtPayload",
+              "description": "The `jwt:Payload` instance which is received from authentication results",
+              "type": {
+                "name": "Payload",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "Payload",
+                    "libraryName": "ballerina/jwt"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "expectedScopes",
+              "description": "The expected scopes as `string` or `string[]`",
+              "type": {
+                "name": "string|string[]"
+              }
+            }
+          ],
+          "return": {
+            "description": "`()`, if it is successful or else a `grpc:PermissionDeniedError` error",
+            "type": {
+              "name": "PermissionDeniedError|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "PermissionDeniedError"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "PoolConfiguration",
+      "description": "Configurations for managing the gRPC client connection pool.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "maxActiveConnections",
+          "description": "Max active connections per route(host:port). The default value is -1, which indicates unlimited",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxIdleConnections",
+          "description": "Maximum number of idle connections allowed per pool",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "waitTime",
+          "description": "Maximum amount of time the client should wait for an idle connection before it sends an error when the pool is exhausted",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxActiveStreamsPerConnection",
+          "description": "Maximum active streams per connection. This only applies to HTTP/2",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "AbstractClientEndpoint",
+      "description": "Represents the abstract gRPC client endpoint. This abstract object is used in the generated client.",
+      "type": "Class"
+    },
+    {
+      "name": "RetryConfiguration",
+      "description": "Configurations for facilitating the retry capability of the gRPC client.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "retryCount",
+          "description": "Maximum number of retry attempts in a failure scenario",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "interval",
+          "description": "Initial interval(in seconds) between the retry attempts",
+          "type": {
+            "name": "decimal"
+          }
+        },
+        {
+          "name": "maxInterval",
+          "description": "Maximum interval(in seconds) between two retry attempts",
+          "type": {
+            "name": "decimal"
+          }
+        },
+        {
+          "name": "backoffFactor",
+          "description": "Retry interval will be multiplied by this factor, in between retry attempts",
+          "type": {
+            "name": "decimal"
+          }
+        },
+        {
+          "name": "errorTypes",
+          "description": "Error types which should be considered as failure scenarios to retry",
+          "type": {
+            "name": "ErrorType[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ErrorType"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Error",
+      "description": "Represents gRPC related errors.",
+      "type": "Error"
+    },
+    {
+      "name": "ErrorType",
+      "description": "Represents gRPC related error types.",
+      "type": "Other"
+    },
+    {
+      "name": "ClientConfiguration",
+      "description": "Configurations for managing the gRPC client endpoint.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "timeout",
+          "description": "The maximum time to wait(in seconds) for a response before closing the connection",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "poolConfig",
+          "description": "Connection pool configuration",
+          "type": {
+            "name": "PoolConfiguration|()",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PoolConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "SSL/TLS related options",
+          "type": {
+            "name": "ClientSecureSocket|()",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ClientSecureSocket"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "compression",
+          "description": "Specifies the way of handling compression (`accept-encoding`) header",
+          "type": {
+            "name": "Compression",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Compression"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "retryConfiguration",
+          "description": "Configures the retry functionality",
+          "type": {
+            "name": "RetryConfiguration|()",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RetryConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "auth",
+          "description": "Configurations related to client authentication",
+          "type": {
+            "name": "CredentialsConfig|BearerTokenConfig|JwtIssuerConfig|OAuth2ClientCredentialsGrantConfig|OAuth2PasswordGrantConfig|OAuth2RefreshTokenGrantConfig|OAuth2JwtBearerGrantConfig|()",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CredentialsConfig"
+              },
+              {
+                "category": "internal",
+                "recordName": "BearerTokenConfig"
+              },
+              {
+                "category": "internal",
+                "recordName": "JwtIssuerConfig"
+              },
+              {
+                "category": "internal",
+                "recordName": "OAuth2ClientCredentialsGrantConfig"
+              },
+              {
+                "category": "internal",
+                "recordName": "OAuth2PasswordGrantConfig"
+              },
+              {
+                "category": "internal",
+                "recordName": "OAuth2RefreshTokenGrantConfig"
+              },
+              {
+                "category": "internal",
+                "recordName": "OAuth2JwtBearerGrantConfig"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "maxInboundMessageSize",
+          "description": "The maximum message size to be permitted for inbound messages. Default value is 4 MB",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ClientSecureSocket",
+      "description": "Configurations for facilitating secure communication with a remote gRPC endpoint.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "enable",
+          "description": "Enable SSL validation",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "cert",
+          "description": "Configurations associated with the `crypto:TrustStore` or a single certificate file that the client trusts",
+          "type": {
+            "name": "TrustStore|string",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "TrustStore",
+                "libraryName": "ballerina/crypto"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "key",
+          "description": "Configurations associated with `crypto:KeyStore` or combination of certificate and private key of the client",
+          "type": {
+            "name": "KeyStore|CertKey",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "KeyStore",
+                "libraryName": "ballerina/crypto"
+              },
+              {
+                "category": "internal",
+                "recordName": "CertKey"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "protocol",
+          "description": "SSL/TLS protocol related options",
+          "type": {
+            "name": "record {|ballerina/grpc:1.14.2:Protocol name; string[] versions;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "certValidation",
+          "description": "Certificate validation against OCSP_CRL, OCSP_STAPLING related options",
+          "type": {
+            "name": "record {|ballerina/grpc:1.14.2:CertValidationType \u0027type; int cacheSize; int cacheValidityPeriod;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "ciphers",
+          "description": "List of ciphers to be used\neg: TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "verifyHostName",
+          "description": "Enable/disable host name verification",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "shareSession",
+          "description": "Enable/disable new SSL session creation",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "handshakeTimeout",
+          "description": "SSL handshake time out(in seconds)",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "sessionTimeout",
+          "description": "SSL session time out(in seconds)",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "CertKey",
+      "description": "Represents combination of certificate, private key and private key password if encrypted.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "certFile",
+          "description": "A file containing the certificate",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "keyFile",
+          "description": "A file containing the private key",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "keyPassword",
+          "description": "Password of the private key if it is encrypted",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Protocol",
+      "description": "Represents protocol options.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "DTLS",
+          "description": ""
+        },
+        {
+          "name": "TLS",
+          "description": ""
+        },
+        {
+          "name": "SSL",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "CertValidationType",
+      "description": "Represents certification validation type options.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "OCSP_STAPLING",
+          "description": ""
+        },
+        {
+          "name": "OCSP_CRL",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "Compression",
+      "description": "Represents compression options.\n\n`AUTO`: When the service behaves as a HTTP gateway, the inbound request/response accept-encoding option is set as the\noutbound request/response accept-encoding/content-encoding option\n`ALWAYS`: Always set accept-encoding/content-encoding in outbound request/response\n`NEVER`: Never set accept-encoding/content-encoding header in outbound request/response",
+      "type": "Union",
+      "members": [
+        {
+          "name": "\"AUTO\"",
+          "type": {
+            "name": "\"AUTO\""
+          }
+        },
+        {
+          "name": "\"ALWAYS\"",
+          "type": {
+            "name": "\"ALWAYS\""
+          }
+        },
+        {
+          "name": "\"NEVER\"",
+          "type": {
+            "name": "\"NEVER\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "CompressionType",
+      "description": "Compression types that are supported.\nGZIP - Gzip compression",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "GZIP",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "VerifyClient",
+      "description": "Represents client verify options.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "OPTIONAL",
+          "description": ""
+        },
+        {
+          "name": "REQUIRE",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "CancelledError",
+      "description": "Represents the operation canceled(typically by the caller) error.",
+      "type": "Error"
+    },
+    {
+      "name": "UnKnownError",
+      "description": "Represents unknown error(e.g., Status value received is unknown).",
+      "type": "Error"
+    },
+    {
+      "name": "InvalidArgumentError",
+      "description": "Represents client specified an invalid argument error.",
+      "type": "Error"
+    },
+    {
+      "name": "DeadlineExceededError",
+      "description": "Represents operation expired before completion error.",
+      "type": "Error"
+    },
+    {
+      "name": "NotFoundError",
+      "description": "Represents requested entity (e.g., file or directory) not found error.",
+      "type": "Error"
+    },
+    {
+      "name": "AlreadyExistsError",
+      "description": "Represents error occur when attempt to create an entity which already exists.",
+      "type": "Error"
+    },
+    {
+      "name": "PermissionDeniedError",
+      "description": "Represents error occur when the caller does not have permission to execute the specified operation.",
+      "type": "Error"
+    },
+    {
+      "name": "UnauthenticatedError",
+      "description": "Represents error occur when the request does not have valid authentication credentials for the operation.",
+      "type": "Error"
+    },
+    {
+      "name": "ResourceExhaustedError",
+      "description": "Represents error occur when the resource is exhausted.",
+      "type": "Error"
+    },
+    {
+      "name": "FailedPreconditionError",
+      "description": "Represents error occur when operation is rejected because the system is not in a state required for the operation\u0027s execution.",
+      "type": "Error"
+    },
+    {
+      "name": "AbortedError",
+      "description": "Represents error occur when operation is aborted.",
+      "type": "Error"
+    },
+    {
+      "name": "OutOfRangeError",
+      "description": "Represents error occur when specified value is out of range.",
+      "type": "Error"
+    },
+    {
+      "name": "UnimplementedError",
+      "description": "Represents error occur when operation is not implemented or not supported/enabled in this service.",
+      "type": "Error"
+    },
+    {
+      "name": "InternalError",
+      "description": "Represents internal error.",
+      "type": "Error"
+    },
+    {
+      "name": "UnavailableError",
+      "description": "Represents error occur when the service is currently unavailable.",
+      "type": "Error"
+    },
+    {
+      "name": "DataLossError",
+      "description": "Represents unrecoverable data loss or corruption erros.",
+      "type": "Error"
+    },
+    {
+      "name": "ResiliencyError",
+      "description": "Represents all the resiliency-related errors.",
+      "type": "Error"
+    },
+    {
+      "name": "AllRetryAttemptsFailed",
+      "description": "Represents error scenario where the maximum retry attempts are done and still received an error.",
+      "type": "Error"
+    },
+    {
+      "name": "StreamClosedError",
+      "description": "Represents an error when calling next when the stream has closed.",
+      "type": "Error"
+    },
+    {
+      "name": "DataMismatchError",
+      "description": "Represents an error when expected data type is not available.",
+      "type": "Error"
+    },
+    {
+      "name": "ClientAuthError",
+      "description": "Represents an error when client authentication error occured.",
+      "type": "Error"
+    },
+    {
+      "name": "TraceLogAdvancedConfiguration",
+      "description": "Represents gRPC trace log configuration.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "console",
+          "description": "Boolean value to enable or disable console trace logs",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "path",
+          "description": "Optional file path to store trace logs",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "host",
+          "description": "Optional socket hostname to publish the trace logs",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "port",
+          "description": "Optional socket port to publish the trace logs",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "AccessLogConfiguration",
+      "description": "Represents gRPC access log configuration.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "console",
+          "description": "Boolean value to enable or disable console access logs",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "path",
+          "description": "Optional file path to store access logs",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ExtensionRequest",
+      "description": "This is used for internal purposes to support reflection.\nThe type name and extension number sent by the client when requesting `file_containing_extension`.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "containing_type",
+          "description": "fully-qualified type name. The format should be `\u003cpackage\u003e.\u003ctype\u003e`",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "extension_number",
+          "description": "specific extension number",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ServiceResponse",
+      "description": "This is used for internal purposes to support reflection.\nThe information of a single service used by `ListServiceResponse` to answer `list_services` request.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "name",
+          "description": "full name of a registered service, including its package name. The format is `\u003cpackage\u003e.\u003cservice\u003e`",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "FileDescriptorResponse",
+      "description": "This is used for internal purposes to support reflection.\nSerialized `FileDescriptorProto` messages sent by the server answering a \n`file_by_filename`, `file_containing_symbol`, or `file_containing_extension` request.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "file_descriptor_proto",
+          "description": "serialized `FileDescriptorProto` messages",
+          "type": {
+            "name": "byte[]"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ServerReflectionRequest",
+      "description": "This is used for internal purposes to support reflection.\nThe message sent by the client when calling `ServerReflectionInfo` method.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "host",
+          "description": "fully-qualified type name",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "file_by_filename",
+          "description": "used to find a proto file by the file name",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "file_containing_symbol",
+          "description": "used to find the proto file that declares the given fully-qualified symbol name",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "file_containing_extension",
+          "description": "find the proto file which defines an extension extending the given message \ntype with the given field number.",
+          "type": {
+            "name": "ExtensionRequest",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ExtensionRequest"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "all_extension_numbers_of_type",
+          "description": "used to find the tag numbers used by all known extensions of the \ngiven message type",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "list_services",
+          "description": "used to list the full names of registered services",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ExtensionNumberResponse",
+      "description": "This is used for internal purposes to support reflection.\nA list of extension numbers sent by the server answering all_extension_numbers_of_type request.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "base_type_name",
+          "description": "full name of the base type, including the package name. The format is `\u003cpackage\u003e.\u003ctype\u003e`",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "extension_number",
+          "description": "list of extension numbers",
+          "type": {
+            "name": "int[]"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ServerReflectionResponse",
+      "description": "This is used for internal purposes to support reflection.\nThe message sent by the server to answer `ServerReflectionInfo` method.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "valid_host",
+          "description": "valid host as a string",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "original_request",
+          "description": "original request send by the client",
+          "type": {
+            "name": "ServerReflectionRequest",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ServerReflectionRequest"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "file_descriptor_response",
+          "description": "used to answer `file_by_filename`, `file_containing_symbol`, \n`file_containing_extension` requests with transitive dependencies",
+          "type": {
+            "name": "FileDescriptorResponse",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "FileDescriptorResponse"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "all_extension_numbers_response",
+          "description": "used to answer `all_extension_numbers_of_type` requst",
+          "type": {
+            "name": "ExtensionNumberResponse",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ExtensionNumberResponse"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "list_services_response",
+          "description": "used to answer list_services request",
+          "type": {
+            "name": "ListServiceResponse",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ListServiceResponse"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "error_response",
+          "description": "used when an error occurs",
+          "type": {
+            "name": "ErrorResponse",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ErrorResponse"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ListServiceResponse",
+      "description": "This is used for internal purposes to support reflection.\nA list of `ServiceResponse` sent by the server answering list_services request.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "\u0027service",
+          "description": "list of `ServiceResponse`s",
+          "type": {
+            "name": "ServiceResponse[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ServiceResponse"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ErrorResponse",
+      "description": "This is used for internal purposes to support reflection.\nThis represents the error code and error message sent by the server when an error occurs.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "error_code",
+          "description": "error codes adhering to `grpc::StatusCode`",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "error_message",
+          "description": "related error message sent by the server",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Service",
+      "description": "The gRPC service type.",
+      "type": "Class"
+    },
+    {
+      "name": "ListenerConfiguration",
+      "description": "Configurations for managing the gRPC server endpoint.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "host",
+          "description": "The server hostname",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "The SSL configurations for the server endpoint",
+          "type": {
+            "name": "ListenerSecureSocket|()",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ListenerSecureSocket"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "timeout",
+          "description": "Period of time in seconds that a connection waits for a read/write operation. Use value 0 to\ndisable the timeout",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxInboundMessageSize",
+          "description": "The maximum message size to be permitted for inbound messages. Default value is 4 MB",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxHeaderSize",
+          "description": "The maximum size of the headers to be permitted for inbound messages. Default value is 8 KB",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "reflectionEnabled",
+          "description": "Support reflection",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ListenerSecureSocket",
+      "description": "Configurations for facilitating secure communication for the gRPC server endpoint.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "key",
+          "description": "Configurations associated with a `crypto:KeyStore` or combination of a certificate and private key of the server",
+          "type": {
+            "name": "KeyStore|CertKey",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "KeyStore",
+                "libraryName": "ballerina/crypto"
+              },
+              {
+                "category": "internal",
+                "recordName": "CertKey"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mutualSsl",
+          "description": "Configurations associated with mutual SSL operations",
+          "type": {
+            "name": "record {|ballerina/grpc:1.14.2:VerifyClient verifyClient; ballerina/crypto:2.12.1:TrustStore|string cert;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "protocol",
+          "description": "SSL/TLS protocol related options",
+          "type": {
+            "name": "record {|ballerina/grpc:1.14.2:Protocol name; string[] versions;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "certValidation",
+          "description": "Certificate validation against OCSP_CRL, OCSP_STAPLING related options",
+          "type": {
+            "name": "record {|ballerina/grpc:1.14.2:CertValidationType \u0027type; int cacheSize; int cacheValidityPeriod;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "ciphers",
+          "description": "List of ciphers to be used\neg: TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "shareSession",
+          "description": "Enable/Disable new SSL session creation",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "handshakeTimeout",
+          "description": "SSL handshake time out(in seconds)",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "sessionTimeout",
+          "description": "SSL session time out(in seconds)",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Listener",
+      "description": "Gets called when the endpoint is being initialized during the module init time.\n```ballerina\nlistener grpc:Listener listenerEp \u003d new (9092);\n```\n",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Gets called when the endpoint is being initialized during the module init time.\n```ballerina\nlistener grpc:Listener listenerEp \u003d new (9092);\n```\n",
+          "parameters": [
+            {
+              "name": "port",
+              "description": "The listener port",
+              "type": {
+                "name": "int"
+              }
+            },
+            {
+              "name": "host",
+              "description": "The server hostname",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"0.0.0.0\""
+            },
+            {
+              "name": "secureSocket",
+              "description": "The SSL configurations for the server endpoint",
+              "type": {
+                "name": "ListenerSecureSocket|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ListenerSecureSocket"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "timeout",
+              "description": "Period of time in seconds that a connection waits for a read/write operation. Use value 0 to\ndisable the timeout",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "120"
+            },
+            {
+              "name": "maxInboundMessageSize",
+              "description": "The maximum message size to be permitted for inbound messages. Default value is 4 MB",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "4194304"
+            },
+            {
+              "name": "maxHeaderSize",
+              "description": "The maximum size of the headers to be permitted for inbound messages. Default value is 8 KB",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "8192"
+            },
+            {
+              "name": "reflectionEnabled",
+              "description": "Support reflection",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "config",
+              "description": "The listener endpoint configuration",
+              "type": {
+                "name": "ListenerConfiguration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ListenerConfiguration"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "name": "\u0027start",
+          "type": "Normal Function",
+          "description": "Starts the registered service.\n```ballerina\nerror? result \u003d listenerEp.\u0027start();\n```\n",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "name": "gracefulStop",
+          "type": "Normal Function",
+          "description": "Stops the service listener gracefully. Already-accepted requests will be served before the connection closure.\n```ballerina\nerror? result \u003d listenerEp.gracefulStop();\n```\n",
+          "parameters": [],
+          "return": {
+            "description": "An `error` if an error occurred during the listener stopping process or else `()`",
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "name": "immediateStop",
+          "type": "Normal Function",
+          "description": "Stops the registered service.\n```ballerina\nerror? result \u003d listenerEp.immediateStop();\n```\n",
+          "parameters": [],
+          "return": {
+            "description": "An `error` if an error occurs while stopping the server or else `()`",
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "name": "attach",
+          "type": "Normal Function",
+          "description": "Gets called every time a service attaches itself to this endpoint - also happens at module init time.\n```ballerina\nerror? result \u003d listenerEp.attach(helloService);\n```\n",
+          "parameters": [
+            {
+              "name": "grpcService",
+              "description": "The type of the service to be registered",
+              "type": {
+                "name": "Service",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Service"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "name",
+              "description": "Name of the service",
+              "type": {
+                "name": "string[]|string|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "An `error` if an error occurs while attaching the service or else `()`",
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "name": "detach",
+          "type": "Normal Function",
+          "description": "Detaches an HTTP or WebSocket service from the listener. Note that detaching a WebSocket service would not affect\nthe functionality of the existing connections.\n```ballerina\nerror? result \u003d listenerEp.detach(helloService);\n```\n",
+          "parameters": [
+            {
+              "name": "grpcService",
+              "description": "The service to be detached",
+              "type": {
+                "name": "Service",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Service"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "An `error` if an error occurred during the detaching of the service or else `()`",
+            "type": {
+              "name": "error?"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "name": "ClientOAuth2Handler",
+      "description": "Defines the OAuth2 handler for client authentication.",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes the OAuth2 handler for client authentication.\n",
+          "parameters": [
+            {
+              "name": "config",
+              "description": "OAuth2 refresh token grant configurations",
+              "type": {
+                "name": "OAuth2GrantConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "OAuth2GrantConfig"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        },
+        {
+          "name": "enrich",
+          "type": "Remote Function",
+          "description": "Enriches the headers with the relevant authentication requirements.\n",
+          "parameters": [
+            {
+              "name": "headers",
+              "description": "The `map\u003cstring|string[]\u003e` headers map  as an input",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              }
+            }
+          ],
+          "return": {
+            "description": "The updated `map\u003cstring|string[]\u003e` headers map  instance or else a `grpc:ClientAuthError` in case of\nan error",
+            "type": {
+              "name": "map\u003cstring|string[]\u003e|ClientAuthError",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "ClientAuthError"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ListenerLdapUserStoreBasicAuthHandler",
+      "description": "Defines the LDAP store Basic Auth handler for listener authentication.",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes the LDAP user store Basic Auth handler for listener authentication.\n",
+          "parameters": [
+            {
+              "name": "config",
+              "description": "LDAP user store configurations",
+              "type": {
+                "name": "LdapUserStoreConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "LdapUserStoreConfig"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        },
+        {
+          "name": "authenticate",
+          "type": "Remote Function",
+          "description": "Authenticates with the relevant authentication requirements.\n",
+          "parameters": [
+            {
+              "name": "headers",
+              "description": "The headers map `map\u003cstring|string[]\u003e` as an input",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              }
+            }
+          ],
+          "return": {
+            "description": "The `auth:UserDetails` instance or else an `grpc:UnauthenticatedError` error",
+            "type": {
+              "name": "UserDetails|UnauthenticatedError",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "UserDetails",
+                  "libraryName": "ballerina/auth"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "UnauthenticatedError"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "authorize",
+          "type": "Remote Function",
+          "description": "Authorizes with the relevant authorization requirements.\n",
+          "parameters": [
+            {
+              "name": "userDetails",
+              "description": "The `auth:UserDetails` instance which is received from authentication results",
+              "type": {
+                "name": "UserDetails",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "UserDetails",
+                    "libraryName": "ballerina/auth"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "expectedScopes",
+              "description": "The expected scopes as `string` or `string[]`",
+              "type": {
+                "name": "string|string[]"
+              }
+            }
+          ],
+          "return": {
+            "description": "`()`, if it is successful or else a `grpc:PermissionDeniedError` error",
+            "type": {
+              "name": "PermissionDeniedError|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "PermissionDeniedError"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ListenerOAuth2Handler",
+      "description": "Defines the OAuth2 handler for listener authentication.",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes the OAuth2 handler for the listener authentication.\n",
+          "parameters": [
+            {
+              "name": "config",
+              "description": "OAuth2 introspection server configurations",
+              "type": {
+                "name": "OAuth2IntrospectionConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "OAuth2IntrospectionConfig"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        },
+        {
+          "name": "authorize",
+          "type": "Remote Function",
+          "description": "Authorizes with the relevant authentication \u0026 authorization requirements.\n",
+          "parameters": [
+            {
+              "name": "headers",
+              "description": "The headers map `map\u003cstring|string[]\u003e` as an input",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              }
+            },
+            {
+              "name": "expectedScopes",
+              "description": "The expected scopes as `string` or `string[]`",
+              "type": {
+                "name": "string|string[]|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "optionalParams",
+              "description": "Map of optionalParams parameters that need to be sent to introspection endpoint",
+              "type": {
+                "name": "map\u003cstring\u003e|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "The `oauth2:IntrospectionResponse` instance or else `grpc:UnauthenticatedError` or `grpc:PermissionDeniedError` type error",
+            "type": {
+              "name": "IntrospectionResponse|UnauthenticatedError|PermissionDeniedError",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "IntrospectionResponse",
+                  "libraryName": "ballerina/oauth2"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "UnauthenticatedError"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "PermissionDeniedError"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Caller",
+      "description": "The base client used in the generated client code to provide remote functions for interacting with the caller.\n",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "The base client used in the generated client code to provide remote functions for interacting with the caller.\n",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "ballerina/grpc:grpc:Caller"
+            }
+          }
+        },
+        {
+          "name": "getId",
+          "type": "Normal Function",
+          "description": "Returns the unique identification of the caller.\n```ballerina\nint result \u003d caller.getId();\n```\n",
+          "parameters": [],
+          "return": {
+            "description": "caller ID",
+            "type": {
+              "name": "int"
+            }
+          }
+        },
+        {
+          "name": "send",
+          "type": "Remote Function",
+          "description": "Sends the outbound response to the caller.\n```ballerina\ngrpc:Error? err \u003d caller-\u003esend(message);\n```\n",
+          "parameters": [
+            {
+              "name": "res",
+              "description": "- The outbound response message",
+              "type": {
+                "name": "anydata"
+              }
+            }
+          ],
+          "return": {
+            "description": "- A `grpc:Error` if an error occurs while sending the response or else `()`",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "complete",
+          "type": "Remote Function",
+          "description": "Informs the caller, when the server has sent all the messages.\n```ballerina\ngrpc:Error? result \u003d caller-\u003ecomplete();\n```\n",
+          "parameters": [],
+          "return": {
+            "description": "A `grpc:Error` if an error occurs while sending the response or else `()`",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "isCancelled",
+          "type": "Normal Function",
+          "description": "Checks whether the connection is closed by the caller.\n```ballerina\nboolean result \u003d caller.isCancelled();\n```\n",
+          "parameters": [],
+          "return": {
+            "description": "True if the caller has already closed the connection or else false",
+            "type": {
+              "name": "boolean"
+            }
+          }
+        },
+        {
+          "name": "sendError",
+          "type": "Remote Function",
+          "description": "Sends a server error to the caller.\n```ballerina\ngrpc:Error? result \u003d caller-\u003esendError(error grpc:AbortedError(\"Operation aborted\"));\n```\n",
+          "parameters": [
+            {
+              "name": "err",
+              "description": "Error instance.",
+              "type": {
+                "name": "Error",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Error"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "A `grpc:Error` if an error occurs while sending the response or else `()`",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Client",
+      "description": "The base client used in the generated client code to provide the capability for initiating the contact and executing remote calls with a remote gRPC service.",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Gets invoked to initialize the endpoint. During the initialization, the configurations provided through the `config`\nrecord are used for the endpoint initialization.\n```ballerina\nHelloWorldClient helloWorldClient \u003d check new(\"http://localhost:9091\");\n```\n",
+          "parameters": [
+            {
+              "name": "url",
+              "description": "The server URL",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "timeout",
+              "description": "The maximum time to wait(in seconds) for a response before closing the connection",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "60"
+            },
+            {
+              "name": "poolConfig",
+              "description": "Connection pool configuration",
+              "type": {
+                "name": "PoolConfiguration|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "PoolConfiguration"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "secureSocket",
+              "description": "SSL/TLS related options",
+              "type": {
+                "name": "ClientSecureSocket|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ClientSecureSocket"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "compression",
+              "description": "Specifies the way of handling compression (`accept-encoding`) header",
+              "type": {
+                "name": "Compression",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Compression"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "AUTO"
+            },
+            {
+              "name": "retryConfiguration",
+              "description": "Configures the retry functionality",
+              "type": {
+                "name": "RetryConfiguration|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "RetryConfiguration"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "auth",
+              "description": "Configurations related to client authentication",
+              "type": {
+                "name": "CredentialsConfig|BearerTokenConfig|JwtIssuerConfig|OAuth2ClientCredentialsGrantConfig|OAuth2PasswordGrantConfig|OAuth2RefreshTokenGrantConfig|OAuth2JwtBearerGrantConfig|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "CredentialsConfig"
+                  },
+                  {
+                    "category": "internal",
+                    "recordName": "BearerTokenConfig"
+                  },
+                  {
+                    "category": "internal",
+                    "recordName": "JwtIssuerConfig"
+                  },
+                  {
+                    "category": "internal",
+                    "recordName": "OAuth2ClientCredentialsGrantConfig"
+                  },
+                  {
+                    "category": "internal",
+                    "recordName": "OAuth2PasswordGrantConfig"
+                  },
+                  {
+                    "category": "internal",
+                    "recordName": "OAuth2RefreshTokenGrantConfig"
+                  },
+                  {
+                    "category": "internal",
+                    "recordName": "OAuth2JwtBearerGrantConfig"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "maxInboundMessageSize",
+              "description": "The maximum message size to be permitted for inbound messages. Default value is 4 MB",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "4194304"
+            },
+            {
+              "name": "config",
+              "description": "- The client endpoint configurations",
+              "type": {
+                "name": "ClientConfiguration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ClientConfiguration"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "A `grpc:Error` if an error occurs while initializing the client or else `()`",
+            "type": {
+              "name": "ballerina/grpc:1.14.2:Error?"
+            }
+          }
+        },
+        {
+          "name": "initStub",
+          "type": "Normal Function",
+          "description": "Calls when initializing the client endpoint with the service descriptor data extracted from the proto file.\n```ballerina\ngrpc:Error? result \u003d grpcClient.initStub(self, ROOT_DESCRIPTOR, getDescriptorMap());\n```\n",
+          "parameters": [
+            {
+              "name": "clientEndpoint",
+              "description": "Client endpoint",
+              "type": {
+                "name": "AbstractClientEndpoint",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "AbstractClientEndpoint"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "descriptorKey",
+              "description": "Key of the proto descriptor",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "descriptorMap",
+              "description": "Proto descriptor map with all the dependent descriptors",
+              "type": {
+                "name": "map\u003cany\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "description": "A `grpc:Error` if an error occurs while initializing the stub or else `()`",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "executeSimpleRPC",
+          "type": "Remote Function",
+          "description": "Calls when executing a unary gRPC service.\n```ballerina\n[anydata, map\u003cstring|string[]\u003e]|grpc:Error result \u003d grpcClient-\u003eexecuteSimpleRPC(\"HelloWorld/hello\", req, headers);\n```\n",
+          "parameters": [
+            {
+              "name": "methodID",
+              "description": "Remote service method ID",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "payload",
+              "description": "Request message. The message type varies with the remote service method parameter",
+              "type": {
+                "name": "anydata"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Optional headers parameter. The header value are passed only if needed. The default value is `()`",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "description": "The response as an `anydata` type value or else a `grpc:Error`",
+            "type": {
+              "name": "[anydata, map\u003cstring|string[]\u003e]|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "executeServerStreaming",
+          "type": "Remote Function",
+          "description": "Calls when executing a server streaming call with a gRPC service.\n```ballerina\n[stream\u003canydata, grpc:Error?\u003e, map\u003cstring|string[]\u003e]|grpc:Error result \u003d grpcClient-\u003eexecuteServerStreaming(\"HelloWorld/hello\", req, headers);\n```\n",
+          "parameters": [
+            {
+              "name": "methodID",
+              "description": "Remote service method ID",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "payload",
+              "description": "Request message. The message type varies with the remote service method parameter",
+              "type": {
+                "name": "anydata"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Optional headers parameter. The header value are passed only if needed. The default value is `()`",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "description": "A `stream\u003canydata, grpc:Error?\u003e` or a `grpc:Error` when an error occurs while sending the request",
+            "type": {
+              "name": "[stream\u003canydata, ballerina/grpc:1.14.2:Error?\u003e, map\u003cstring|string[]\u003e]|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "executeClientStreaming",
+          "type": "Remote Function",
+          "description": "Calls when executing a client streaming call with a gRPC service.\n```ballerina\ngrpc:StreamingClient|grpc:Error result \u003d grpcClient-\u003eexecuteClientStreaming(\"HelloWorld/hello\", headers);\n```\n",
+          "parameters": [
+            {
+              "name": "methodID",
+              "description": "Remote service method ID",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Optional headers parameter. The header value are passed only if needed. The default value is `()`",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "description": "A `grpc:StreamingClient` object or a `grpc:Error` when an error occurs",
+            "type": {
+              "name": "StreamingClient|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "StreamingClient"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "executeBidirectionalStreaming",
+          "type": "Remote Function",
+          "description": "Calls when executing a bi-directional streaming call with a gRPC service.\n```ballerina\ngrpc:StreamingClient|grpc:Error result \u003d grpcClient-\u003eexecuteBidirectionalStreaming(\"HelloWorld/hello\", headers);\n```\n",
+          "parameters": [
+            {
+              "name": "methodID",
+              "description": "Remote service method ID",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Optional headers parameter. The header value are passed only if needed. The default value is `()`",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "description": "A `grpc:StreamingClient` object or a `grpc:Error` when an error occurs",
+            "type": {
+              "name": "StreamingClient|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "StreamingClient"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ServerReflectionServerReflectionResponseCaller",
+      "description": "This is used for internal purposes to support reflection.",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "caller",
+              "type": {
+                "name": "Caller",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Caller"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        },
+        {
+          "name": "getId",
+          "type": "Normal Function",
+          "description": "",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "int"
+            }
+          }
+        },
+        {
+          "name": "sendServerReflectionResponse",
+          "type": "Remote Function",
+          "description": "",
+          "parameters": [
+            {
+              "name": "response",
+              "type": {
+                "name": "ServerReflectionResponse",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ServerReflectionResponse"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "sendError",
+          "type": "Remote Function",
+          "description": "",
+          "parameters": [
+            {
+              "name": "response",
+              "type": {
+                "name": "Error",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Error"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "complete",
+          "type": "Remote Function",
+          "description": "",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "isCancelled",
+          "type": "Normal Function",
+          "description": "",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "boolean"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "StreamingClient",
+      "description": "The base client used in the generated client code to provide the gRPC streaming client actions for\ninteracting  with the gRPC server.",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "The base client used in the generated client code to provide the gRPC streaming client actions for\ninteracting  with the gRPC server.",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "ballerina/grpc:grpc:StreamingClient"
+            }
+          }
+        },
+        {
+          "name": "send",
+          "type": "Remote Function",
+          "description": "Sends the request message to the server.\n```ballerina\ngrpc:Error? err \u003d sClient-\u003esend(message);\n```\n",
+          "parameters": [
+            {
+              "name": "res",
+              "description": "The inbound request message",
+              "type": {
+                "name": "anydata"
+              }
+            }
+          ],
+          "return": {
+            "description": "A `grpc:Error` if an error occurs while sending the response or else `()`",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "complete",
+          "type": "Remote Function",
+          "description": "Informs the server when the caller has sent all the messages.\n```ballerina\ngrpc:Error? result \u003d sClient-\u003ecomplete();\n```\n",
+          "parameters": [],
+          "return": {
+            "description": "A `grpc:Error` if an error occurs while sending the response or else `()`",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "sendError",
+          "type": "Remote Function",
+          "description": "Sends an error message to the server.\n```ballerina\ngrpc:Error? result \u003d sClient-\u003esendError(error grpc:AbortedError(\"Operation aborted\"));\n```\n",
+          "parameters": [
+            {
+              "name": "err",
+              "description": "Error instance",
+              "type": {
+                "name": "Error",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Error"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "A `grpc:Error` if an error occurs while sending the response or else `()`",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "receive",
+          "type": "Remote Function",
+          "description": "Receives server responses in client streaming and bidirectional streaming.\n```ballerina\n[anydata, map\u003cstring|string[]\u003e]|grpc:Error? result \u003d streamingClient-\u003ereceive();\n```\n",
+          "parameters": [],
+          "return": {
+            "description": "An `anydata` value",
+            "type": {
+              "name": "[anydata, map\u003cstring|string[]\u003e]|Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "name": "authenticateResource",
+      "type": "Normal Function",
+      "description": "Uses for declarative auth design, where the authentication/authorization decision is taken\nby reading the auth annotations provided in service/resource and the `Authorization` header of request.\n",
+      "parameters": [
+        {
+          "name": "serviceRef",
+          "description": "The service reference where the resource locates",
+          "type": {
+            "name": "Service",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Service"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "type": {
+          "name": "()"
+        }
+      }
+    },
+    {
+      "name": "setCompression",
+      "type": "Normal Function",
+      "description": "Enables the compression support by adding the `grpc-encoding` header to the given headers.\n```ballerina\nmap\u003cstring|string[]\u003e headers \u003d grpc:setCompression(grpc:GZIP);\n```\n",
+      "parameters": [
+        {
+          "name": "compressionType",
+          "description": "The compression type.",
+          "type": {
+            "name": "CompressionType",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CompressionType"
+              }
+            ]
+          }
+        },
+        {
+          "name": "headerMap",
+          "description": "Optional header map (if this is not specified, it creates a new header set)",
+          "type": {
+            "name": "map\u003cstring|string[]\u003e"
+          },
+          "optional": true,
+          "default": "{}"
+        }
+      ],
+      "return": {
+        "description": "The header map that includes the compression headers",
+        "type": {
+          "name": "map\u003cstring|string[]\u003e"
+        }
+      }
+    },
+    {
+      "name": "setDeadline",
+      "type": "Normal Function",
+      "description": "Enables the deadline by adding the `deadline` header to the given headers.\n```ballerina\ntime:Utc current \u003d time:utcNow();\ntime:Utc deadline \u003d time:utcAddSeconds(current, 300);\nmap\u003cstring|string[]\u003e headers \u003d grpc:setDeadline(deadline);\n```\n",
+      "parameters": [
+        {
+          "name": "deadline",
+          "description": "The deadline time value (this should be a specific time and not a duration)",
+          "type": {
+            "name": "Utc",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Utc",
+                "libraryName": "ballerina/time"
+              }
+            ]
+          }
+        },
+        {
+          "name": "headerMap",
+          "description": "Optional header map (if this is not specified, it creates a new header set)",
+          "type": {
+            "name": "map\u003cstring|string[]\u003e"
+          },
+          "optional": true,
+          "default": "{}"
+        }
+      ],
+      "return": {
+        "description": "The header map that includes the deadline",
+        "type": {
+          "name": "map\u003cstring|string[]\u003e"
+        }
+      }
+    },
+    {
+      "name": "isCancelled",
+      "type": "Normal Function",
+      "description": "Checks whether the deadline is already exceeded or not.\n```ballerina\nboolean|time:Error isCancelled \u003d grpc:isCancelled(map\u003cstring|string[]\u003e headerMap);\n```\n",
+      "parameters": [
+        {
+          "name": "headerMap",
+          "description": "Optional header map sent by the client",
+          "type": {
+            "name": "map\u003cstring|string[]\u003e"
+          }
+        }
+      ],
+      "return": {
+        "description": "`true` when the deadline is exceeded, `false` when the deadline is not exceeded, or else a `time:Error` when a `deadline`-parsing error occurred",
+        "type": {
+          "name": "boolean|Error",
+          "links": [
+            {
+              "category": "external",
+              "recordName": "Error",
+              "libraryName": "ballerina/time"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "getDeadline",
+      "type": "Normal Function",
+      "description": "Returns the deadline value as `time:Utc`. This can be used to get the deadline and propagate it to subsequent internal calls.\n```ballerina\ntime:Utc?|time:Error deadline \u003d grpc:getDeadline(map\u003cstring|string[]\u003e headerMap);\n```\n",
+      "parameters": [
+        {
+          "name": "headerMap",
+          "description": "Optional header map sent by the client",
+          "type": {
+            "name": "map\u003cstring|string[]\u003e"
+          }
+        }
+      ],
+      "return": {
+        "description": "`deadline` value when the deadline is correctly specified, `()` when the deadline is not specified, or else a `time:Error` when a `deadline`-parsing error occurred",
+        "type": {
+          "name": "Utc|()|Error",
+          "links": [
+            {
+              "category": "external",
+              "recordName": "Utc",
+              "libraryName": "ballerina/time"
+            },
+            {
+              "category": "external",
+              "recordName": "Error",
+              "libraryName": "ballerina/time"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "getHeader",
+      "type": "Normal Function",
+      "description": "Returns the header value with the specified header name. If there are more than one header values for the\nspecified header name, the first value is returned.\n```ballerina\nmap\u003cstring|string[]\u003e headerMap \u003d request.headers;\nstring|grpc:Error result \u003d grpc:getHeader(headerMap, \"content-type\");\n```\n",
+      "parameters": [
+        {
+          "name": "headerMap",
+          "description": "The header map instance",
+          "type": {
+            "name": "map\u003cstring|string[]\u003e"
+          }
+        },
+        {
+          "name": "headerName",
+          "description": "The header name",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "First header value if exists or else error",
+        "type": {
+          "name": "string|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "getHeaders",
+      "type": "Normal Function",
+      "description": "Gets all the transport headers with the specified header name.\n```ballerina\nmap\u003cstring|string[]\u003e headerMap \u003d request.headers;\nstring[]|grpc:Error result \u003d grpc:getHeaders(headerMap, \"content-type\");\n```\n",
+      "parameters": [
+        {
+          "name": "headerMap",
+          "description": "The header map instance",
+          "type": {
+            "name": "map\u003cstring|string[]\u003e"
+          }
+        },
+        {
+          "name": "headerName",
+          "description": "The header name",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "Header value array",
+        "type": {
+          "name": "string[]|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "services": [],
+  "annotations": []
+}

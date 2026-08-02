@@ -1,0 +1,681 @@
+// ============================================================
+// Library: ballerinax/hubspot.crm.associations
+// [HubSpot](https://developers.hubspot.com) is an AI-powered customer relationship management (CRM) platform.
+// ============================================================
+import ballerinax/hubspot.crm.associations;
+
+// --- README ---
+## Overview
+
+[HubSpot](https://developers.hubspot.com) is an AI-powered customer relationship management (CRM) platform.
+
+The HubSpot connector offers APIs to connect and interact with the [HubSpot Association Details API](https://developers.hubspot.com/docs/reference/api/crm/associations/association-details) endpoints, specifically based on the [HubSpot REST API](https://developers.hubspot.com/docs/reference/api).
+
+### Key Features
+
+- Create and manage associations between CRM objects
+- Batch operations for bulk association management
+- Read and delete associations by type
+- Support for default and custom association types
+
+## Setup guide
+
+To use the HubSpot Association connector, you need a HubSpot developer account and an associated app with API access. If you don’t have one, register for a HubSpot developer account first.
+
+### Step 1: Login to the HubSpot developer account
+
+If you don't have a HubSpot Developer Account you can sign up to a free account [here](https://developers.hubspot.com/get-started)
+
+If you have an account already, go to the [HubSpot developer portal](https://app.hubspot.com/)
+
+### Step 2: Create a developer test account (Optional)
+
+Within app developer accounts, you can create a [developer test account](https://developers.hubspot.com/beta-docs/getting-started/account-types#developer-test-accounts) under your account to test apps and integrations without affecting any real HubSpot data.
+
+> **Note:** These accounts are only for development and testing purposes. In production you should not use developer test accounts.
+
+1. Go to the Test accounts section from the left sidebar.
+   ![Test accounts section](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.associations/refs/heads/main/docs/resources/test_account.png)
+
+2. Click on the `Create developer test account` button on the top right corner.
+   ![Create developer test account](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.associations/refs/heads/main/docs/resources/create_test_account.png)
+
+3. In the pop-up window, provide a name for the test account and click on the `Create` button.
+   ![Create test account](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.associations/refs/heads/main/docs/resources/create_account.png)
+   You will see the newly created test account in the list of test accounts.
+   ![Test account portal](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.associations/refs/heads/main/docs/resources/test_account_portal.png)
+
+### Step 3: Create a HubSpot app
+
+1. Now navigate to the `Apps` section from the left sidebar and click on the `Create app` button on the top right corner.
+   ![Create app](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.associations/refs/heads/main/docs/resources/create_app.png)
+
+2. Provide a public app name and description for your app.
+   ![App name and description](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.associations/refs/heads/main/docs/resources/app_name_desc.png)
+
+### Step 4: Setup authentication
+
+1. Move to the `Auth` tab.
+   ![Configure authentication](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.associations/refs/heads/main/docs/resources/config_auth.png)
+
+2. In the `Scopes` section, add the following scopes for your app using the `Add new scopes` button.
+   - `media_bridge.read`
+   - `tickets`
+   - `e-commerce`
+   - `crm.objects.goals.read`
+   - `crm.objects.custom.write`
+   - `crm.objects.custom.read`
+   - `crm.objects.listings.write`
+   - `crm.objects.orders.read`
+   - `crm.objects.deals.read`
+   - `crm.objects.subscriptions.read`
+   - `crm.objects.companies.read`
+   - `crm.objects.companies.write`
+   - `crm.objects.users.read`
+   - `crm.objects.users.write`
+   - `crm.objects.invoices.write`
+   - `crm.objects.carts.write`
+   - `crm.objects.appointments.write`
+   - `crm.objects.contacts.read`
+   - `crm.objects.services.write`
+   - `crm.objects.orders.write`
+   - `crm.objects.commercepayments.read`
+   - `crm.objects.deals.write`
+   - `crm.objects.invoices.read`
+   - `crm.objects.appointments.read`
+   - `crm.objects.quotes.write`
+   - `crm.objects.leads.write`
+   - `crm.objects.leads.read`
+   - `crm.objects.contacts.write`
+   - `crm.objects.partner-clients.write`
+   - `crm.objects.line_items.read`
+   - `crm.objects.line_items.write`
+   - `crm.objects.courses.read`
+   - `crm.objects.listings.read`
+   - `crm.objects.courses.write`
+   - `crm.objects.quotes.read`
+   - `crm.objects.partner-clients.read`
+   - `crm.objects.carts.read`
+   - `crm.objects.services.read`
+
+   ![Add scopes](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.associations/refs/heads/main/docs/resources/add_scopes.png)
+
+3. In the `Redirect URL` section, add the redirect URL for your app. This is the URL where the user will be redirected after the authentication process. You can use `localhost:9090` for testing purposes. Then click the `Create App` button.
+
+   ![Redirect URL](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.associations/refs/heads/main/docs/resources/redirect_url.png)
+  
+### Step 5: Get the client ID and client secret
+
+Navigate to the `Auth` tab and you will see the `Client ID` and `Client Secret` for your app. Make sure to save these values.
+![Client ID and Client Secret](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.associations/refs/heads/main/docs/resources/client_id_secret.png)
+
+### Step 6: Setup authentication flow
+
+Before proceeding with the Quickstart, ensure you have obtained the Access Token or Refresh Token using the following steps:
+
+1. Create an authorization URL using the following format:
+
+   ```
+   https://app.hubspot.com/oauth/authorize?client_id=<YOUR_CLIENT_ID>&scope=<YOUR_SCOPES>&redirect_uri=<YOUR_REDIRECT_URI>
+   ```
+
+   Replace the `<YOUR_CLIENT_ID>`, `<YOUR_REDIRECT_URI>` and `<YOUR_SCOPES>` with your specific value.
+2. Paste it in the browser and select your developer test account to install the app when prompted.
+   ![Account select](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.associations/refs/heads/main/docs/resources/account_select.png)
+
+3. A code will be displayed in the browser. Copy the code.
+
+4. Run the following curl command. Replace the `<YOUR_CLIENT_ID>`, `<YOUR_REDIRECT_URI`> and `<YOUR_CLIENT_SECRET>` with your specific value. Use the code you received in the above step 3 as the `<CODE>`.
+
+   - Linux/macOS
+
+     ```bash
+     curl --request POST \
+     --url https://api.hubapi.com/oauth/v1/token \
+     --header 'content-type: application/x-www-form-urlencoded' \
+     --data 'grant_type=authorization_code&code=<CODE>&redirect_uri=<YOUR_REDIRECT_URI>&client_id=<YOUR_CLIENT_ID>&client_secret=<YOUR_CLIENT_SECRET>'
+     ```
+   - Windows
+
+     ```bash
+     curl --request POST ^
+     --url https://api.hubapi.com/oauth/v1/token ^
+     --header 'content-type: application/x-www-form-urlencoded' ^
+     --data 'grant_type=authorization_code&code=<CODE>&redirect_uri=<YOUR_REDIRECT_URI>&client_id=<YOUR_CLIENT_ID>&client_secret=<YOUR_CLIENT_SECRET>'
+     ```
+
+   This command will return the access token and refresh token which are necessary for API calls.
+
+   ```json
+   {
+     "token_type": "bearer",
+     "refresh_token": "<Refresh Token>",
+     "access_token": "<Access Token>",
+     "expires_in": 1800
+   }
+   ```
+5. Store the refresh token securely for use in your application.
+
+## Quickstart
+
+To use the `HubSpot CRM Associations` connector in your Ballerina application, update the `.bal` file as follows:
+
+### Step 1: Import the module
+
+Import the `hubspot.crm.associations` module and `oauth2` module.
+
+```ballerina
+import ballerina/oauth2;
+import ballerinax/hubspot.crm.associations as hsassociations;
+```
+
+### Step 2: Instantiate a new connector
+
+1. Create a `Config.toml` file and, configure the obtained credentials in the above steps as follows:
+
+   ```toml
+    clientId = <Client Id>
+    clientSecret = <Client Secret>
+    refreshToken = <Refresh Token>
+   ```
+
+2. Instantiate a `hsassociations:ConnectionConfig` with the obtained credentials and initialize the connector with it.
+
+    ```ballerina
+    configurable string clientId = ?;
+    configurable string clientSecret = ?;
+    configurable string refreshToken = ?;
+
+    hsassociations:ConnectionConfig config = {
+        auth: {
+            clientId,
+            clientSecret,
+            refreshToken,
+            credentialBearer: oauth2:POST_BODY_BEARER
+        }
+    };
+
+    final hsassociations:Client hubspot = check new (config);
+    ```
+### Step 3: Invoke the connector operation
+
+Now, utilize the available connector operations. A sample usecase is shown below.
+
+#### Get list all associations of an object by object type and object id
+    
+```ballerina
+public function main() returns error? {
+    hsassociations:CollectionResponseMultiAssociatedObjectWithLabelForwardPaging readResponse 
+    = check hubspot->/objects/["fromObjectType"]/["fromObjectId"]/associations/["toObjectType"];
+}
+```
+
+## Examples
+
+The `HubSpot CRM Associations` connector provides practical examples illustrating usage in various scenarios. Explore these [examples](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.associations/tree/main/examples), covering the following use cases:
+
+1. [Create and read associations](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.associations/tree/main/examples/create-read-associations) –  This example demonstrates how to use the HubSpot CRM Associations connector to batch-create default and custom-labeled associations between deals and companies, as well as retrieve existing associations for a given deal.
+2. [Create and delete associations](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.associations/tree/main/examples/create-delete-associations) - This example demonstrates how to use the HubSpot CRM Associations connector to create individual default associations with and without labels between deals and companies. It then shows how to delete a specific association label between them, followed by deleting all associations between the two objects.
+
+// --- END README ---
+
+// --- Types ---
+
+# Standard error response structure returned by the API on failure
+
+type StandardError record {
+    # Optional sub-category providing additional error classification
+    record {|anydata...;|} subCategory?;
+    # Contextual metadata map with string array values for the error
+    record {|string[]...;|} context;
+    # Map of relevant links associated with the error response
+    record {|string...;|} links;
+    # Unique identifier for this error instance
+    string id?;
+    # High-level category classifying the type of error
+    string category;
+    # Human-readable message describing the error
+    string message;
+    # List of detailed error entries associated with this error
+    ErrorDetail[] errors;
+    # HTTP status string corresponding to the error response
+    string status;
+};
+
+# Detailed error information including message, code, field context, and remediation guidance
+
+type ErrorDetail record {
+    # A specific category that contains more specific detail about the error
+    string subCategory?;
+    # The status code associated with the error detail
+    string code?;
+    # The name of the field or parameter in which the error was found
+    string 'in?;
+    # Context about the error condition
+    record {|string[]...;|} context?;
+    # A human readable message describing the error along with remediation steps where appropriate
+    string message;
+};
+
+# Association labels defined between a specific pair of CRM objects
+
+type LabelsBetweenObjectPair record {
+    # Object type ID of the source object in the association
+    string fromObjectTypeId;
+    # Unique ID of the target object in the association
+    int toObjectId;
+    # Object type ID of the target object in the association
+    string toObjectTypeId;
+    # Unique ID of the source object in the association
+    int fromObjectId;
+    # List of association labels applied between the object pair
+    string[] labels;
+};
+
+# Response returned after successfully enqueuing an association report
+
+type ReportCreationResponse record {
+    # Email address of the user who requested the report
+    string userEmail;
+    # Numeric ID of the user who requested the report
+    ballerina/lang.int:0.0.0:Signed32 userId;
+    # Represents a date-time value with timezone offset and date-only flag
+    DateTime enqueueTime;
+};
+
+# Represents a date-time value with timezone offset and date-only flag
+
+type DateTime record {
+    # Indicates whether the value represents a date without time
+    boolean dateOnly;
+    # Timezone offset in minutes from UTC
+    ballerina/lang.int:0.0.0:Signed32 timeZoneShift;
+    # The numeric date-time value, typically as a Unix timestamp
+    int value;
+};
+
+# Source object with its associated target objects and their labels
+
+type PublicAssociationMultiWithLabel record {
+    # Represents a CRM object identifier used in association requests
+    PublicObjectId 'from;
+    # Pagination metadata containing references to the next and previous result pages
+    Paging paging?;
+    # Array of associated objects with their label definitions
+    MultiAssociatedObjectWithLabel[] to;
+};
+
+# Represents a CRM object identifier used in association requests
+
+type PublicObjectId record {
+    # Unique identifier of the CRM object
+    string id;
+};
+
+# Pagination metadata containing references to the next and previous result pages
+
+type Paging record {
+    # Pagination cursor object used to navigate to the next page of results
+    NextPage next?;
+    # Pagination cursor object used to navigate to a previous page of results
+    PreviousPage prev?;
+};
+
+# Pagination cursor object used to navigate to the next page of results
+
+type NextPage record {
+    # Direct URL to the next page of results
+    string link?;
+    # Cursor value representing the start of the next page
+    string after;
+};
+
+# Pagination cursor object used to navigate to a previous page of results
+
+type PreviousPage record {
+    # Cursor value representing the start of the previous page
+    string before;
+    # Direct URL to the previous page of results
+    string link?;
+};
+
+# Represents a target object and its typed, labeled association relationships
+
+type MultiAssociatedObjectWithLabel record {
+    # Array of association type specifications with labels
+    AssociationSpecWithLabel[] associationTypes;
+    # The unique identifier of the associated target object
+    int toObjectId;
+};
+
+# Defines an association type by category, numeric type ID, and optional label
+
+type AssociationSpecWithLabel record {
+    # Numeric identifier for the association type
+    ballerina/lang.int:0.0.0:Signed32 typeId;
+    # Optional human-readable label describing the association type
+    string? label?;
+    # Defines the origin of the association type
+    "HUBSPOT_DEFINED"|"USER_DEFINED"|"INTEGRATOR_DEFINED" category;
+};
+
+# Batch request payload for creating multiple default associations between objects
+
+type BatchInputPublicDefaultAssociationMultiPost record {
+    # Array of default association records to create in batch
+    PublicDefaultAssociationMultiPost[] inputs;
+};
+
+# Request body for creating a default association between two CRM objects
+
+type PublicDefaultAssociationMultiPost record {
+    # Represents a CRM object identifier used in association requests
+    PublicObjectId 'from;
+    # Represents a CRM object identifier used in association requests
+    PublicObjectId to;
+};
+
+# Batch request payload for archiving multiple object associations
+
+type BatchInputPublicAssociationMultiArchive record {
+    # Array of association records to archive in batch
+    PublicAssociationMultiArchive[] inputs;
+};
+
+# Request body for archiving associations between a source object and multiple target objects
+
+type PublicAssociationMultiArchive record {
+    # Represents a CRM object identifier used in association requests
+    PublicObjectId 'from;
+    # Array of target objects whose associations will be archived
+    PublicObjectId[] to;
+};
+
+# Forward-only pagination container providing a cursor to the next result page
+
+type ForwardPaging record {
+    # Pagination cursor object used to navigate to the next page of results
+    NextPage next?;
+};
+
+# Request payload for creating multiple typed associations between two CRM objects
+
+type PublicAssociationMultiPost record {
+    # List of association type specifications to apply between the objects
+    AssociationSpec[] types;
+    # Represents a CRM object identifier used in association requests
+    PublicObjectId 'from;
+    # Represents a CRM object identifier used in association requests
+    PublicObjectId to;
+};
+
+# Defines an association type by its category and numeric type identifier
+
+type AssociationSpec record {
+    # Category indicating who defined the association type
+    "HUBSPOT_DEFINED"|"USER_DEFINED"|"INTEGRATOR_DEFINED" associationCategory;
+    # Numeric identifier for the specific association type
+    ballerina/lang.int:0.0.0:Signed32 associationTypeId;
+};
+
+# Batch response containing labeled associations between object pairs with processing status
+
+type BatchResponseLabelsBetweenObjectPair record {
+    # Timestamp when the batch operation completed
+    string completedAt;
+    # Timestamp when the batch operation was requested
+    string requestedAt?;
+    # Timestamp when the batch operation started processing
+    string startedAt;
+    # Map of relevant hypermedia links for the batch response
+    record {|string...;|} links?;
+    # Collection of labeled association pairs returned by the batch operation
+    LabelsBetweenObjectPair[] results;
+    # Current processing status of the batch operation
+    "PENDING"|"PROCESSING"|"CANCELED"|"COMPLETE" status;
+};
+
+# OAuth2 Refresh Token Grant Configs
+
+type OAuth2RefreshTokenGrantConfig record {
+    # Refresh URL
+    string refreshUrl?;
+    string refreshToken;
+    string clientId;
+    string clientSecret;
+    string|string[] scopes?;
+    decimal defaultTokenExpTime?;
+    decimal clockSkew?;
+    map<string> optionalParams?;
+    oauth2:CredentialBearer credentialBearer?; // Special Agent Note: CredentialBearer FROM ballerina/oauth2 package
+    oauth2:ClientConfiguration clientConfig?; // Special Agent Note: ClientConfiguration FROM ballerina/oauth2 package
+};
+
+# Provides a set of configurations for controlling the behaviours when communicating with a remote HTTP endpoint
+
+type ConnectionConfig record {
+    # Provides Auth configurations needed when communicating with a remote HTTP endpoint
+    http:BearerTokenConfig|OAuth2RefreshTokenGrantConfig|ApiKeysConfig auth; // Special Agent Note: BearerTokenConfig FROM ballerina/http package
+    # The HTTP version understood by the client
+    http:HttpVersion httpVersion?; // Special Agent Note: HttpVersion FROM ballerina/http package
+    # Configurations related to HTTP/1.x protocol
+    http:ClientHttp1Settings http1Settings?; // Special Agent Note: ClientHttp1Settings FROM ballerina/http package
+    # Configurations related to HTTP/2 protocol
+    http:ClientHttp2Settings http2Settings?; // Special Agent Note: ClientHttp2Settings FROM ballerina/http package
+    # The maximum time to wait (in seconds) for a response before closing the connection
+    decimal timeout?;
+    # The choice of setting `forwarded`/`x-forwarded` header
+    string forwarded?;
+    # Configurations associated with Redirection
+    http:FollowRedirects followRedirects?; // Special Agent Note: FollowRedirects FROM ballerina/http package
+    # Configurations associated with request pooling
+    http:PoolConfiguration poolConfig?; // Special Agent Note: PoolConfiguration FROM ballerina/http package
+    # HTTP caching related configurations
+    http:CacheConfig cache?; // Special Agent Note: CacheConfig FROM ballerina/http package
+    # Specifies the way of handling compression (`accept-encoding`) header
+    http:Compression compression?; // Special Agent Note: Compression FROM ballerina/http package
+    # Configurations associated with the behaviour of the Circuit Breaker
+    http:CircuitBreakerConfig circuitBreaker?; // Special Agent Note: CircuitBreakerConfig FROM ballerina/http package
+    # Configurations associated with retrying
+    http:RetryConfig retryConfig?; // Special Agent Note: RetryConfig FROM ballerina/http package
+    # Configurations associated with cookies
+    http:CookieConfig cookieConfig?; // Special Agent Note: CookieConfig FROM ballerina/http package
+    # Configurations associated with inbound response size limits
+    http:ResponseLimitConfigs responseLimits?; // Special Agent Note: ResponseLimitConfigs FROM ballerina/http package
+    # SSL/TLS-related options
+    http:ClientSecureSocket secureSocket?; // Special Agent Note: ClientSecureSocket FROM ballerina/http package
+    # Proxy server related options
+    http:ProxyConfig proxy?; // Special Agent Note: ProxyConfig FROM ballerina/http package
+    # Provides settings related to client socket configuration
+    http:ClientSocketConfig socketConfig?; // Special Agent Note: ClientSocketConfig FROM ballerina/http package
+    # Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default
+    boolean validation?;
+    # Enables relaxed data binding on the client side. When enabled, `nil` values are treated as optional, 
+and absent fields are handled as `nilable` types. Enabled by default
+    boolean laxDataBinding?;
+};
+
+# Provides API key configurations needed when communicating with a remote HTTP endpoint
+
+type ApiKeysConfig record {
+    string privateAppLegacy;
+    string privateApp;
+};
+
+# Batch response for labeled multi-associations, including any per-item errors and processing status
+
+type BatchResponsePublicAssociationMultiWithLabelWithErrors record {
+    # Timestamp when the batch operation completed
+    string completedAt;
+    # Total number of errors encountered during the batch operation
+    ballerina/lang.int:0.0.0:Signed32 numErrors?;
+    # Timestamp when the batch operation was requested
+    string requestedAt?;
+    # Timestamp when the batch operation started processing
+    string startedAt;
+    # Map of relevant hypermedia links for the batch response
+    record {|string...;|} links?;
+    # Array of successfully processed association results with labels
+    PublicAssociationMultiWithLabel[] results;
+    # Array of standard errors encountered during batch processing
+    StandardError[] errors?;
+    # Current processing status of the batch operation
+    "PENDING"|"PROCESSING"|"CANCELED"|"COMPLETE" status;
+};
+
+# Represents a default association between two CRM objects, including its association specification
+
+type PublicDefaultAssociation record {
+    # Defines an association type by its category and numeric type identifier
+    AssociationSpec associationSpec;
+    # Represents a CRM object identifier used in association requests
+    PublicObjectId 'from;
+    # Represents a CRM object identifier used in association requests
+    PublicObjectId to;
+};
+
+# Batch request body containing multiple association post inputs to be created
+
+type BatchInputPublicAssociationMultiPost record {
+    # Array of association post objects to create in the batch operation
+    PublicAssociationMultiPost[] inputs;
+};
+
+# Batch request body containing multiple fetch association inputs to retrieve
+
+type BatchInputPublicFetchAssociationsBatchRequest record {
+    # Array of association fetch requests to process in batch
+    PublicFetchAssociationsBatchRequest[] inputs;
+};
+
+# Request object for fetching associations in a batch, identified by object ID with optional pagination
+
+type PublicFetchAssociationsBatchRequest record {
+    # Unique identifier of the object whose associations to retrieve
+    string id;
+    # Pagination cursor token for retrieving the next set of results
+    string after?;
+};
+
+# Batch response containing associations with labels, including processing status, timestamps, and result records
+
+type BatchResponsePublicAssociationMultiWithLabel record {
+    # Timestamp when the batch operation completed
+    string completedAt;
+    # Timestamp when the batch operation was requested
+    string requestedAt?;
+    # Timestamp when the batch operation started processing
+    string startedAt;
+    # Map of relevant navigational links related to the batch response
+    record {|string...;|} links?;
+    # Array of association records with labels returned by the batch operation
+    PublicAssociationMultiWithLabel[] results;
+    # Current processing status of the batch operation
+    "PENDING"|"PROCESSING"|"CANCELED"|"COMPLETE" status;
+};
+
+# Batch response containing default associations, including processing status, timestamps, results, and any errors encountered
+
+type BatchResponsePublicDefaultAssociation record {
+    # Timestamp when the batch operation completed
+    string completedAt;
+    # Total number of errors encountered during batch processing
+    ballerina/lang.int:0.0.0:Signed32 numErrors?;
+    # Timestamp when the batch operation was requested
+    string requestedAt?;
+    # Timestamp when the batch operation started processing
+    string startedAt;
+    # Map of relevant navigational links related to the batch response
+    record {|string...;|} links?;
+    # Array of default association records returned by the batch operation
+    PublicDefaultAssociation[] results;
+    # Array of errors encountered during batch processing
+    StandardError[] errors?;
+    # Current processing status of the batch operation
+    "PENDING"|"PROCESSING"|"CANCELED"|"COMPLETE" status;
+};
+
+# Batch response containing association labels between object pairs, including any errors encountered during processing
+
+type BatchResponseLabelsBetweenObjectPairWithErrors record {
+    # Timestamp when the batch operation completed
+    string completedAt;
+    # Total number of errors encountered in the batch
+    ballerina/lang.int:0.0.0:Signed32 numErrors?;
+    # Timestamp when the batch request was received
+    string requestedAt?;
+    # Timestamp when the batch operation began processing
+    string startedAt;
+    # Map of relevant hyperlinks associated with the batch response
+    record {|string...;|} links?;
+    # Array of association labels retrieved for each object pair
+    LabelsBetweenObjectPair[] results;
+    # Array of standard errors encountered during batch processing
+    StandardError[] errors?;
+    # Current processing status of the batch operation
+    "PENDING"|"PROCESSING"|"CANCELED"|"COMPLETE" status;
+};
+
+# Paginated collection of associated objects with their association labels, supporting forward pagination
+
+type CollectionResponseMultiAssociatedObjectWithLabelForwardPaging record {
+    # Forward-only pagination container providing a cursor to the next result page
+    ForwardPaging paging?;
+    # Array of associated objects with their association labels
+    MultiAssociatedObjectWithLabel[] results;
+};
+
+# Represents the Queries record for the operation: get-/objects/{objectType}/{objectId}/associations/{toObjectType}_getPage
+
+type GetObjectsObjectTypeObjectIdAssociationsToObjectTypeGetPageQueries record {
+    # The maximum number of results to display per page
+    ballerina/lang.int:0.0.0:Signed32 'limit?;
+    # The paging cursor token of the last successfully read resource will be returned as the `paging.next.after` JSON property of a paged response containing more results
+    string after?;
+};
+
+// --- Client ---
+
+client class Client {
+    function init(ConnectionConfig config, string serviceUrl = "https://api.hubapi.com/crm/v4") returns error?;
+
+    # Removes Links Between Objects
+    # 
+    resource function post associations/[string fromObjectType]/[string toObjectType]/batch/archive(BatchInputPublicAssociationMultiArchive payload, map<string|string[]> headers = {}) returns error?;
+
+    # Creates Custom Associations
+    # 
+    resource function post associations/[string fromObjectType]/[string toObjectType]/batch/create(BatchInputPublicAssociationMultiPost payload, map<string|string[]> headers = {}) returns BatchResponseLabelsBetweenObjectPair|BatchResponseLabelsBetweenObjectPairWithErrors|error;
+
+    # Request high-usage associations report
+    # 
+    resource function post associations/usage/high\-usage\-report/[string userId](map<string|string[]> headers = {}) returns ReportCreationResponse|error;
+
+    # Delete Specific Labels
+    # 
+    resource function post associations/[string fromObjectType]/[string toObjectType]/batch/labels/archive(BatchInputPublicAssociationMultiPost payload, map<string|string[]> headers = {}) returns error?;
+
+    # Read Associations
+    # 
+    resource function post associations/[string fromObjectType]/[string toObjectType]/batch/read(BatchInputPublicFetchAssociationsBatchRequest payload, map<string|string[]> headers = {}) returns BatchResponsePublicAssociationMultiWithLabel|BatchResponsePublicAssociationMultiWithLabelWithErrors|error;
+
+    # Batch create default associations
+    # 
+    resource function post associations/[string fromObjectType]/[string toObjectType]/batch/associate/default(BatchInputPublicDefaultAssociationMultiPost payload, map<string|string[]> headers = {}) returns BatchResponsePublicDefaultAssociation|error;
+
+    # Create association labels
+    # 
+    resource function put objects/[string objectType]/[string objectId]/associations/[string toObjectType]/[string toObjectId](AssociationSpec[] payload, map<string|string[]> headers = {}) returns LabelsBetweenObjectPair|error;
+
+    # Delete all record associations
+    # 
+    resource function delete objects/[string objectType]/[string objectId]/associations/[string toObjectType]/[string toObjectId](map<string|string[]> headers = {}) returns error?;
+
+    # List associations by type
+    # 
+    resource function get objects/[string objectType]/[string objectId]/associations/[string toObjectType](map<string|string[]> headers = {}, int:Signed32 limit = 0, string after = "", anydata Additional Values, GetObjectsObjectTypeObjectIdAssociationsToObjectTypeGetPageQueries queries) returns CollectionResponseMultiAssociatedObjectWithLabelForwardPaging|error;
+
+    # Create default association
+    # 
+    resource function put objects/[string fromObjectType]/[string fromObjectId]/associations/default/[string toObjectType]/[string toObjectId](map<string|string[]> headers = {}) returns BatchResponsePublicDefaultAssociation|error;
+}
