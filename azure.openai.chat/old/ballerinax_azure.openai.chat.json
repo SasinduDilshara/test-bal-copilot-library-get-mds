@@ -1,0 +1,3321 @@
+{
+  "name": "ballerinax/azure.openai.chat",
+  "description": "Connects to [Azure OpenAI Chat Completions API](https://learn.microsoft.com/en-us/azure/cognitive-services/openai/reference#chat-completions/) from Ballerina.",
+  "readme": "# Ballerina Azure OpenAI Chat Completions connector\n\n[![Build](https://github.com/ballerina-platform/module-ballerinax-azure.openai.chat/actions/workflows/ci.yml/badge.svg)](https://github.com/ballerina-platform/module-ballerinax-azure.openai.chat/actions/workflows/ci.yml)\n[![GitHub Last Commit](https://img.shields.io/github/last-commit/ballerina-platform/module-ballerinax-azure.openai.chat.svg)](https://github.com/ballerina-platform/module-ballerinax-azure.openai.chat/commits/main)\n[![GitHub Issues](https://img.shields.io/github/issues/ballerina-platform/ballerina-library/module/azure.openai.chat.svg?label\u003dOpen%20Issues)](https://github.com/ballerina-platform/ballerina-library/labels/module%2Fazure.openai.chat)\n\n## Overview\n\n[Azure OpenAI](https://learn.microsoft.com/en-us/azure/ai-services/openai/) provides access to OpenAI\u0027s powerful language models including GPT-4o, GPT-4, and o-series models through Microsoft Azure\u0027s enterprise-grade infrastructure. It combines OpenAI\u0027s advanced AI capabilities with Azure\u0027s security, compliance, and regional availability features.\n\nThe `ballerinax/azure.openai.chat` package offers functionality to connect and interact with the [Chat Completions API](https://learn.microsoft.com/en-us/rest/api/aifoundry/) of the Azure AI Foundry Models Service. The Chat Completions API enables you to build conversational AI applications with features like multi-turn conversations, function/tool calling, structured outputs, and vision capabilities.\n\n## Setup guide\n\nTo use the Azure OpenAI Chat Completions Connector, you must have access to an Azure OpenAI resource through a [Microsoft Azure account](https://azure.microsoft.com). If you do not have an Azure account, you can sign up for one [here](https://azure.microsoft.com/en-us/free/).\n\n#### Create an Azure OpenAI resource and obtain the API key\n\n1. Sign in to the [Azure Portal](https://portal.azure.com).\n\n2. Search for \"Azure OpenAI\" in the top search bar and select **Azure OpenAI** from the results.\n\n3. Click **Create** to create a new Azure OpenAI resource. Fill in the required details such as subscription, resource group, region, and resource name, then click **Review + create** and finally **Create**.\n\n4. Once the resource is deployed, navigate to your Azure OpenAI resource.\n\n5. In the left-hand menu, go to **Resource Management** -\u003e **Keys and Endpoint**.\n\n6. Copy one of the provided keys (Key 1 or Key 2) and the endpoint URL. Store them securely to use in your application.\n\n7. Append `/openai/v1` to the endpoint URL. The portal shows the resource root (for example\n   `https://\u003cresource-name\u003e.openai.azure.com/`), while this connector targets the v1 API surface, so the value to\n   pass as `serviceUrl` is `https://\u003cresource-name\u003e.openai.azure.com/openai/v1`. Resources provisioned through\n   Azure AI Foundry may instead show `https://\u003cresource-name\u003e.services.ai.azure.com/`, which becomes\n   `https://\u003cresource-name\u003e.services.ai.azure.com/openai/v1`.\n\n## Quickstart\n\nTo use the `Azure OpenAI Chat Completions` connector in your Ballerina application, update the `.bal` file as follows:\n\n### Step 1: Import the module\n\nImport the `ballerinax/azure.openai.chat` module.\n\n```ballerina\nimport ballerinax/azure.openai.chat;\n```\n\n### Step 2: Create a new connector instance\n\nCreate a `chat:Client` with your Azure OpenAI resource endpoint and **one** credential. Azure\naccepts either an API key or a Microsoft Entra ID access token, and the two are alternatives —\nprovide whichever you have, not both.\n\n`serviceUrl` must be the endpoint including the `/openai/v1` base path, as described in step 7 of the setup\nguide — `https://\u003cresource-name\u003e.openai.azure.com/openai/v1`. Passing the bare resource root makes every request\nreturn `404`.\n\nUsing the API key obtained in the setup guide:\n\n```ballerina\nconfigurable string apiKey \u003d ?;\nconfigurable string serviceUrl \u003d ?;\n\nfinal chat:Client azureOpenAIChat \u003d check new ({\n    auth: {\n        api\\-key: apiKey\n    }\n}, serviceUrl);\n```\n\nAlternatively, using a Microsoft Entra ID access token, which is sent as an `Authorization: Bearer`\nheader:\n\n```ballerina\nconfigurable string token \u003d ?;\nconfigurable string serviceUrl \u003d ?;\n\nfinal chat:Client azureOpenAIChat \u003d check new ({\n    auth: {\n        token\n    }\n}, serviceUrl);\n```\n\n### Step 3: Invoke the connector operation\n\nNow, you can utilize available connector operations.\n\n#### Create a chat completion\n\n```ballerina\npublic function main() returns error? {\n\n    chat:ChatCompletionsBody request \u003d {\n        model: \"gpt-4o-mini\",\n        messages: [\n            {role: \"user\", \"content\": \"What is the Ballerina programming language?\"}\n        ]\n    };\n\n    chat:InlineResponse200 response \u003d check azureOpenAIChat-\u003e/chat/completions.post(request);\n}\n```\n\n### Step 4: Run the Ballerina application\n\n```bash\nbal run\n```\n\n## Examples\n\nThe `Azure OpenAI Chat Completions` connector provides practical examples illustrating usage in various scenarios. Explore these [examples](https://github.com/ballerina-platform/module-ballerinax-azure.openai.chat/tree/main/examples/), covering the following use cases:\n\n1. [Chat completion](https://github.com/ballerina-platform/module-ballerinax-azure.openai.chat/tree/main/examples/chat-completion) - Create a basic chat completion using the Azure OpenAI Chat Completions API.\n2. [Function calling](https://github.com/ballerina-platform/module-ballerinax-azure.openai.chat/tree/main/examples/function-calling) - Use function/tool calling to extend the model\u0027s capabilities with custom functions.\n",
+  "typeDefs": [
+    {
+      "name": "OpenAIFunctionParameters",
+      "description": "The parameters the functions accepts, described as a JSON Schema object. See the [guide](/docs/guides/function-calling) for examples, and the [JSON Schema reference](https://json-schema.org/understanding-json-schema/) for documentation about the format.\nOmitting `parameters` defines a function with an empty parameter list.",
+      "type": "Record",
+      "fields": []
+    },
+    {
+      "name": "AzureAIFoundryModelsApiVersion",
+      "description": "",
+      "type": "Union",
+      "members": [
+        {
+          "name": "\"v1\"",
+          "type": {
+            "name": "\"v1\""
+          }
+        },
+        {
+          "name": "\"preview\"",
+          "type": {
+            "name": "\"preview\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "OpenAIChatCompletionStreamOptions",
+      "description": "Options for streaming response. Only set this when you set `stream: true`.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "include_usage",
+          "description": "If set, an additional chunk will be streamed before the `data: [DONE]`\nmessage. The `usage` field on this chunk shows the token usage statistics\nfor the entire request, and the `choices` field will always be an empty\narray.\nAll other chunks will also include a `usage` field, but with a null\nvalue. **NOTE:** If the stream is interrupted, you may not receive the\nfinal usage chunk which contains the total token usage for the request.",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "include_obfuscation",
+          "description": "When true, stream obfuscation will be enabled. Stream obfuscation adds\nrandom characters to an `obfuscation` field on streaming delta events to\nnormalize payload sizes as a mitigation to certain side-channel attacks.\nThese obfuscation fields are included by default, but add a small amount\nof overhead to the data stream. You can set `include_obfuscation` to\nfalse to optimize for bandwidth if you trust the network links between\nyour application and the OpenAI API.",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "OpenAICustomToolChatCompletionsCustom",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "name",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "description",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "format",
+          "description": "",
+          "type": {
+            "name": "OpenAICustomToolChatCompletionsCustomFormatText|OpenAICustomToolChatCompletionsCustomFormatGrammar",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAICustomToolChatCompletionsCustomFormatText"
+              },
+              {
+                "category": "internal",
+                "recordName": "OpenAICustomToolChatCompletionsCustomFormatGrammar"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "OpenAICustomToolChatCompletionsCustomFormatText",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "\u0027type",
+          "description": "",
+          "type": {
+            "name": "\"text\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "OpenAICustomToolChatCompletionsCustomFormatGrammar",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "\u0027type",
+          "description": "",
+          "type": {
+            "name": "\"grammar\""
+          }
+        },
+        {
+          "name": "grammar",
+          "description": "",
+          "type": {
+            "name": "OpenAICustomToolChatCompletionsCustomFormatGrammarGrammar",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAICustomToolChatCompletionsCustomFormatGrammarGrammar"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "OpenAICustomToolChatCompletionsCustomFormatGrammarGrammar",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "definition",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "syntax",
+          "description": "",
+          "type": {
+            "name": "\"lark\"|\"regex\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "OpenAIChatCompletionMessageToolCallChunkFunction",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "name",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "arguments",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "OpenAIChatCompletionAllowedToolsChoice",
+      "description": "Constrains the tools available to the model to a pre-defined set.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "\u0027type",
+          "description": "Allowed tool configuration type. Always `allowed_tools`.",
+          "type": {
+            "name": "\"allowed_tools\""
+          }
+        },
+        {
+          "name": "allowed_tools",
+          "description": "Constrains the tools available to the model to a pre-defined set.",
+          "type": {
+            "name": "OpenAIChatCompletionAllowedTools",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAIChatCompletionAllowedTools"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "OpenAIChatCompletionAllowedTools",
+      "description": "Constrains the tools available to the model to a pre-defined set.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "mode",
+          "description": "Constrains the tools available to the model to a pre-defined set.\n`auto` allows the model to pick from among the allowed tools and generate a\nmessage.\n`required` requires the model to call one or more of the allowed tools.",
+          "type": {
+            "name": "\"auto\"|\"required\""
+          }
+        },
+        {
+          "name": "tools",
+          "description": "A list of tool definitions that the model should be allowed to call.\nFor the Chat Completions API, the list of tool definitions might look like:\n```json\n  [\n    { \"type\": \"function\", \"function\": { \"name\": \"get_weather\" } },\n    { \"type\": \"function\", \"function\": { \"name\": \"get_time\" } }\n  ]\n  ```",
+          "type": {
+            "name": "record {|anydata...;|}[]"
+          }
+        }
+      ]
+    },
+    {
+      "name": "OpenAIChatCompletionStreamResponseDelta",
+      "description": "A chat completion delta generated by streamed model responses.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "content",
+          "description": "",
+          "type": {
+            "name": "string?"
+          },
+          "optional": true
+        },
+        {
+          "name": "function_call",
+          "description": "Deprecated and replaced by `tool_calls`. The name and arguments of a function that should be called, as generated by the model.\n",
+          "type": {
+            "name": "OpenAIChatCompletionStreamResponseDeltaFunctionCall",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAIChatCompletionStreamResponseDeltaFunctionCall"
+              }
+            ]
+          },
+          "optional": true,
+          "isDeprecated": true
+        },
+        {
+          "name": "tool_calls",
+          "description": "",
+          "type": {
+            "name": "OpenAIChatCompletionMessageToolCallChunk[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAIChatCompletionMessageToolCallChunk"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "role",
+          "description": "The role of the author of this message.",
+          "type": {
+            "name": "\"developer\"|\"system\"|\"user\"|\"assistant\"|\"tool\""
+          },
+          "optional": true
+        },
+        {
+          "name": "refusal",
+          "description": "",
+          "type": {
+            "name": "string?"
+          },
+          "optional": true
+        },
+        {
+          "name": "reasoning_content",
+          "description": "An Azure-specific extension property containing generated reasoning content from supported models.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "OpenAIChatCompletionStreamResponseDeltaFunctionCall",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "arguments",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "name",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "OpenAIChatCompletionMessageToolCallChunk",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "index",
+          "description": "",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "id",
+          "description": "The ID of the tool call.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "\u0027type",
+          "description": "The type of the tool. Currently, only `function` is supported.",
+          "type": {
+            "name": "\"function\""
+          },
+          "optional": true
+        },
+        {
+          "name": "\u0027function",
+          "description": "",
+          "type": {
+            "name": "OpenAIChatCompletionMessageToolCallChunkFunction",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAIChatCompletionMessageToolCallChunkFunction"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "OpenAICreateChatCompletionStreamResponseChoices",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "delta",
+          "description": "A chat completion delta generated by streamed model responses.",
+          "type": {
+            "name": "OpenAIChatCompletionStreamResponseDelta",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAIChatCompletionStreamResponseDelta"
+              }
+            ]
+          }
+        },
+        {
+          "name": "logprobs",
+          "description": "",
+          "type": {
+            "name": "OpenAICreateChatCompletionStreamResponseChoicesLogprobs",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAICreateChatCompletionStreamResponseChoicesLogprobs"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "finish_reason",
+          "description": "",
+          "type": {
+            "name": "\"function_call\"?|\"stop\"|\"length\"|\"tool_calls\"|\"content_filter\""
+          }
+        },
+        {
+          "name": "index",
+          "description": "",
+          "type": {
+            "name": "int"
+          }
+        }
+      ]
+    },
+    {
+      "name": "OpenAICreateChatCompletionStreamResponseChoicesLogprobs",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "content",
+          "description": "",
+          "type": {
+            "name": "OpenAIChatCompletionTokenLogprob[]|()",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAIChatCompletionTokenLogprob"
+              }
+            ]
+          }
+        },
+        {
+          "name": "refusal",
+          "description": "",
+          "type": {
+            "name": "OpenAIChatCompletionTokenLogprob[]|()",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAIChatCompletionTokenLogprob"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "OpenAIChatCompletionTokenLogprob",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "token",
+          "description": "The token.",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "logprob",
+          "description": "The log probability of this token, if it is within the top 20 most likely tokens. Otherwise, the value `-9999.0` is used to signify that the token is very unlikely.",
+          "type": {
+            "name": "decimal"
+          }
+        },
+        {
+          "name": "bytes",
+          "description": "",
+          "type": {
+            "name": "int[]?"
+          }
+        },
+        {
+          "name": "top_logprobs",
+          "description": "List of the most likely tokens and their log probability, at this token position. The number of entries may be fewer than the requested `top_logprobs`.",
+          "type": {
+            "name": "OpenAIChatCompletionTokenLogprobTopLogprobs[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAIChatCompletionTokenLogprobTopLogprobs"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "OpenAIChatCompletionTokenLogprobTopLogprobs",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "token",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "logprob",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          }
+        },
+        {
+          "name": "bytes",
+          "description": "",
+          "type": {
+            "name": "int[]?"
+          }
+        }
+      ]
+    },
+    {
+      "name": "OpenAICreateChatCompletionRequestResponseFormat",
+      "description": "An object specifying the format that the model must output.\nSetting to `{ \"type\": \"json_schema\", \"json_schema\": {...} }` enables\nStructured Outputs which ensures the model will match your supplied JSON\nschema. Learn more in the [Structured Outputs\nguide](/docs/guides/structured-outputs).\nSetting to `{ \"type\": \"json_object\" }` enables the older JSON mode, which\nensures the message the model generates is valid JSON. Using `json_schema`\nis preferred for models that support it.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "\u0027type",
+          "description": "",
+          "type": {
+            "name": "OpenAICreateChatCompletionRequestResponseFormatType",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAICreateChatCompletionRequestResponseFormatType"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "OpenAICreateChatCompletionRequestResponseFormatType",
+      "description": "",
+      "type": "Union",
+      "members": [
+        {
+          "name": "string",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "\"text\"",
+          "type": {
+            "name": "\"text\""
+          }
+        },
+        {
+          "name": "\"json_schema\"",
+          "type": {
+            "name": "\"json_schema\""
+          }
+        },
+        {
+          "name": "\"json_object\"",
+          "type": {
+            "name": "\"json_object\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "OpenAIStopConfiguration",
+      "description": "Not supported with latest reasoning models `o3` and `o4-mini`.\nUp to 4 sequences where the API will stop generating further tokens. The\nreturned text will not contain the stop sequence.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "string",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "string[]",
+          "type": {
+            "name": "string[]"
+          }
+        }
+      ]
+    },
+    {
+      "name": "OpenAIChatCompletionNamedToolChoiceCustom",
+      "description": "Specifies a tool the model should use. Use to force the model to call a specific custom tool.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "\u0027type",
+          "description": "For custom tool calling, the type is always `custom`.",
+          "type": {
+            "name": "\"custom\""
+          }
+        },
+        {
+          "name": "custom",
+          "description": "",
+          "type": {
+            "name": "OpenAIChatCompletionNamedToolChoiceCustomCustom",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAIChatCompletionNamedToolChoiceCustomCustom"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "OpenAIChatCompletionNamedToolChoiceCustomCustom",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "name",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "AzureUserSecurityContext",
+      "description": "User security context contains several parameters that describe the application itself, and the end user that interacts with the application. These fields assist your security operations teams to investigate and mitigate security incidents by providing a comprehensive approach to protecting your AI applications. [Learn more](https://aka.ms/TP4AI/Documentation/EndUserContext) about protecting AI applications using Microsoft Defender for Cloud.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "application_name",
+          "description": "The name of the application. Sensitive personal information should not be included in this field.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "end_user_id",
+          "description": "This identifier is the Microsoft Entra ID (formerly Azure Active Directory) user object ID used to authenticate end-users within the generative AI application. Sensitive personal information should not be included in this field.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "end_user_tenant_id",
+          "description": "The Microsoft 365 tenant ID the end user belongs to. It\u0027s required when the generative AI application is multitenant.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "source_ip",
+          "description": "Captures the original client\u0027s IP address.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ConnectionConfig",
+      "description": "Provides a set of configurations for controlling the behaviours when communicating with a remote HTTP endpoint.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "auth",
+          "description": "Provides Auth configurations needed when communicating with a remote HTTP endpoint.",
+          "type": {
+            "name": "BearerTokenConfig|ApiKeysConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "BearerTokenConfig",
+                "libraryName": "ballerina/http"
+              },
+              {
+                "category": "internal",
+                "recordName": "ApiKeysConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "httpVersion",
+          "description": "The HTTP version understood by the client",
+          "type": {
+            "name": "HttpVersion",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "HttpVersion",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "http1Settings",
+          "description": "Configurations related to HTTP/1.x protocol",
+          "type": {
+            "name": "ClientHttp1Settings",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientHttp1Settings",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "http2Settings",
+          "description": "Configurations related to HTTP/2 protocol",
+          "type": {
+            "name": "ClientHttp2Settings",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientHttp2Settings",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "timeout",
+          "description": "The maximum time to wait (in seconds) for a response before closing the connection",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "forwarded",
+          "description": "The choice of setting `forwarded`/`x-forwarded` header",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "followRedirects",
+          "description": "Configurations associated with Redirection",
+          "type": {
+            "name": "FollowRedirects",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "FollowRedirects",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "poolConfig",
+          "description": "Configurations associated with request pooling",
+          "type": {
+            "name": "PoolConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "PoolConfiguration",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "cache",
+          "description": "HTTP caching related configurations",
+          "type": {
+            "name": "CacheConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CacheConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "compression",
+          "description": "Specifies the way of handling compression (`accept-encoding`) header",
+          "type": {
+            "name": "Compression",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Compression",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "circuitBreaker",
+          "description": "Configurations associated with the behaviour of the Circuit Breaker",
+          "type": {
+            "name": "CircuitBreakerConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CircuitBreakerConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "retryConfig",
+          "description": "Configurations associated with retrying",
+          "type": {
+            "name": "RetryConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "RetryConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "cookieConfig",
+          "description": "Configurations associated with cookies",
+          "type": {
+            "name": "CookieConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CookieConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "responseLimits",
+          "description": "Configurations associated with inbound response size limits",
+          "type": {
+            "name": "ResponseLimitConfigs",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ResponseLimitConfigs",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "SSL/TLS-related options",
+          "type": {
+            "name": "ClientSecureSocket",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientSecureSocket",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "proxy",
+          "description": "Proxy server related options",
+          "type": {
+            "name": "ProxyConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ProxyConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "socketConfig",
+          "description": "Provides settings related to client socket configuration",
+          "type": {
+            "name": "ClientSocketConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientSocketConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "validation",
+          "description": "Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "laxDataBinding",
+          "description": "Enables relaxed data binding on the client side. When enabled, `nil` values are treated as optional, \nand absent fields are handled as `nilable` types. Enabled by default.",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ApiKeysConfig",
+      "description": "Provides API key configurations needed when communicating with a remote HTTP endpoint.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "api\\-key",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "OpenAIChatCompletionNamedToolChoice",
+      "description": "Specifies a tool the model should use. Use to force the model to call a specific function.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "\u0027type",
+          "description": "For function calling, the type is always `function`.",
+          "type": {
+            "name": "\"function\""
+          }
+        },
+        {
+          "name": "\u0027function",
+          "description": "",
+          "type": {
+            "name": "OpenAIChatCompletionNamedToolChoiceFunction",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAIChatCompletionNamedToolChoiceFunction"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "OpenAIChatCompletionNamedToolChoiceFunction",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "name",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "AzureContentFilterCompletionTextSpanDetectionResult",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "filtered",
+          "description": "Whether the content detection resulted in a content filtering action.",
+          "type": {
+            "name": "boolean"
+          }
+        },
+        {
+          "name": "detected",
+          "description": "Whether the labeled content category was detected in the content.",
+          "type": {
+            "name": "boolean"
+          }
+        },
+        {
+          "name": "details",
+          "description": "Detailed information about the detected completion text spans.",
+          "type": {
+            "name": "AzureContentFilterCompletionTextSpan[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AzureContentFilterCompletionTextSpan"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "AzureContentFilterCompletionTextSpan",
+      "description": "A representation of a span of completion text as used by Azure OpenAI content filter results.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "completion_start_offset",
+          "description": "Offset of the UTF32 code point which begins the span.",
+          "type": {
+            "name": "ballerina/lang.int:0.0.0:Signed32"
+          }
+        },
+        {
+          "name": "completion_end_offset",
+          "description": "Offset of the first UTF32 code point which is excluded from the span. This field is always equal to completion_start_offset for empty spans. This field is always larger than completion_start_offset for non-empty spans.",
+          "type": {
+            "name": "ballerina/lang.int:0.0.0:Signed32"
+          }
+        }
+      ]
+    },
+    {
+      "name": "OpenAIChatCompletionRequestMessageContentPartText",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "\u0027type",
+          "description": "The type of the content part.",
+          "type": {
+            "name": "\"text\""
+          }
+        },
+        {
+          "name": "text",
+          "description": "The text content.",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "OpenAIPredictionContent",
+      "description": "Static predicted output content, such as the content of a text file that is\nbeing regenerated.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "\u0027type",
+          "description": "The type of the predicted content you want to provide. This type is\ncurrently always `content`.",
+          "type": {
+            "name": "\"content\""
+          }
+        },
+        {
+          "name": "content",
+          "description": "The content that should be matched when generating a model response.\nIf generated tokens would match this content, the entire model response\ncan be returned much more quickly.",
+          "type": {
+            "name": "string|OpenAIChatCompletionRequestMessageContentPartText[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAIChatCompletionRequestMessageContentPartText"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "AzureContentFilterResultForChoiceError",
+      "description": "If present, details about an error that prevented content filtering from completing its evaluation.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "code",
+          "description": "A distinct, machine-readable code associated with the error.",
+          "type": {
+            "name": "ballerina/lang.int:0.0.0:Signed32"
+          }
+        },
+        {
+          "name": "message",
+          "description": "A human-readable message associated with the error.",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "AzureContentFilterResultForPromptContentFilterResults",
+      "description": "The content filter category details for the result.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "sexual",
+          "description": "A content filter category for language related to anatomical organs and genitals, romantic relationships, acts\nportrayed in erotic or affectionate terms, pregnancy, physical sexual acts, including those portrayed as an\nassault or a forced sexual violent act against one\u0027s will, prostitution, pornography, and abuse.",
+          "type": {
+            "name": "AzureContentFilterSeverityResult",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AzureContentFilterSeverityResult"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "hate",
+          "description": "A content filter category that can refer to any content that attacks or uses pejorative or discriminatory\nlanguage with reference to a person or identity group based on certain differentiating attributes of these groups\nincluding but not limited to race, ethnicity, nationality, gender identity and expression, sexual orientation,\nreligion, immigration status, ability status, personal appearance, and body size.",
+          "type": {
+            "name": "AzureContentFilterSeverityResult",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AzureContentFilterSeverityResult"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "violence",
+          "description": "A content filter category for language related to physical actions intended to hurt, injure, damage, or kill\nsomeone or something; describes weapons, guns and related entities, such as manufactures, associations,\nlegislation, and so on.",
+          "type": {
+            "name": "AzureContentFilterSeverityResult",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AzureContentFilterSeverityResult"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "self_harm",
+          "description": "A content filter category that describes language related to physical actions intended to purposely hurt, injure,\ndamage one\u0027s body or kill oneself.",
+          "type": {
+            "name": "AzureContentFilterSeverityResult",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AzureContentFilterSeverityResult"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "profanity",
+          "description": "A detection result that identifies whether crude, vulgar, or otherwise objection language is present in the\ncontent.",
+          "type": {
+            "name": "AzureContentFilterDetectionResult",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AzureContentFilterDetectionResult"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "custom_blocklists",
+          "description": "A collection of binary filtering outcomes for configured custom blocklists.",
+          "type": {
+            "name": "AzureContentFilterBlocklistResult",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AzureContentFilterBlocklistResult"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "custom_topics",
+          "description": "A collection of binary filtering outcomes for configured custom topics.",
+          "type": {
+            "name": "AzureContentFilterCustomTopicResult",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AzureContentFilterCustomTopicResult"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "\u0027error",
+          "description": "If present, details about an error that prevented content filtering from completing its evaluation.",
+          "type": {
+            "name": "AzureContentFilterResultForChoiceError",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AzureContentFilterResultForChoiceError"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "jailbreak",
+          "description": "A detection result that describes user prompt injection attacks, where malicious users deliberately exploit\nsystem vulnerabilities to elicit unauthorized behavior from the LLM. This could lead to inappropriate content\ngeneration or violations of system-imposed restrictions.",
+          "type": {
+            "name": "AzureContentFilterDetectionResult",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AzureContentFilterDetectionResult"
+              }
+            ]
+          }
+        },
+        {
+          "name": "indirect_attack",
+          "description": "A detection result that describes attacks on systems powered by Generative AI models that can happen every time\nan application processes information that wasn’t directly authored by either the developer of the application or\nthe user.",
+          "type": {
+            "name": "AzureContentFilterDetectionResult",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AzureContentFilterDetectionResult"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "AzureContentFilterSeverityResult",
+      "description": "A labeled content filter result item that indicates whether the content was filtered and what the qualitative\nseverity level of the content was, as evaluated against content filter configuration for the category.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "filtered",
+          "description": "Whether the content severity resulted in a content filtering action.",
+          "type": {
+            "name": "boolean"
+          }
+        },
+        {
+          "name": "severity",
+          "description": "The labeled severity of the content.",
+          "type": {
+            "name": "\"safe\"|\"low\"|\"medium\"|\"high\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "AzureContentFilterDetectionResult",
+      "description": "A labeled content filter result item that indicates whether the content was detected and whether the content was\nfiltered.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "filtered",
+          "description": "Whether the content detection resulted in a content filtering action.",
+          "type": {
+            "name": "boolean"
+          }
+        },
+        {
+          "name": "detected",
+          "description": "Whether the labeled content category was detected in the content.",
+          "type": {
+            "name": "boolean"
+          }
+        }
+      ]
+    },
+    {
+      "name": "AzureContentFilterBlocklistResult",
+      "description": "A collection of true/false filtering results for configured custom blocklists.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "filtered",
+          "description": "A value indicating whether any of the detailed blocklists resulted in a filtering action.",
+          "type": {
+            "name": "boolean"
+          }
+        },
+        {
+          "name": "details",
+          "description": "The pairs of individual blocklist IDs and whether they resulted in a filtering action.",
+          "type": {
+            "name": "AzureContentFilterBlocklistResultDetails[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AzureContentFilterBlocklistResultDetails"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "AzureContentFilterBlocklistResultDetails",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "filtered",
+          "description": "A value indicating whether the blocklist produced a filtering action.",
+          "type": {
+            "name": "boolean"
+          }
+        },
+        {
+          "name": "id",
+          "description": "The ID of the custom blocklist evaluated.",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "AzureContentFilterCustomTopicResult",
+      "description": "A collection of true/false filtering results for configured custom topics.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "filtered",
+          "description": "A value indicating whether any of the detailed topics resulted in a filtering action.",
+          "type": {
+            "name": "boolean"
+          }
+        },
+        {
+          "name": "details",
+          "description": "The pairs of individual topic IDs and whether they are detected.",
+          "type": {
+            "name": "AzureContentFilterCustomTopicResultDetails[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AzureContentFilterCustomTopicResultDetails"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "AzureContentFilterCustomTopicResultDetails",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "detected",
+          "description": "A value indicating whether the topic is detected.",
+          "type": {
+            "name": "boolean"
+          }
+        },
+        {
+          "name": "id",
+          "description": "The ID of the custom topic evaluated.",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "OpenAIChatCompletionMessageCustomToolCall",
+      "description": "A call to a custom tool created by the model.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "id",
+          "description": "The ID of the tool call.",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "\u0027type",
+          "description": "The type of the tool. Always `custom`.",
+          "type": {
+            "name": "\"custom\""
+          }
+        },
+        {
+          "name": "custom",
+          "description": "The custom tool that the model called.",
+          "type": {
+            "name": "OpenAIChatCompletionMessageCustomToolCallCustom",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAIChatCompletionMessageCustomToolCallCustom"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "OpenAIChatCompletionMessageCustomToolCallCustom",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "name",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "input",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "OpenAIChatCompletionResponseMessageAnnotations",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "\u0027type",
+          "description": "",
+          "type": {
+            "name": "\"url_citation\""
+          }
+        },
+        {
+          "name": "url_citation",
+          "description": "",
+          "type": {
+            "name": "OpenAIChatCompletionResponseMessageAnnotationsUrlCitation",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAIChatCompletionResponseMessageAnnotationsUrlCitation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "OpenAIChatCompletionResponseMessageAnnotationsUrlCitation",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "end_index",
+          "description": "",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "start_index",
+          "description": "",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "url",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "title",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "OpenAIReasoningEffort",
+      "description": "Constrains effort on reasoning for\n[reasoning models](https://platform.openai.com/docs/guides/reasoning).\nCurrently supported values are `none`, `minimal`, `low`, `medium`, `high`, and `xhigh`. Reducing\nreasoning effort can result in faster responses and fewer tokens used\non reasoning in a response.\n- `gpt-5.1` defaults to `none`, which does not perform reasoning. The supported reasoning values for `gpt-5.1` are `none`, `low`, `medium`, and `high`. Tool calls are supported for all reasoning values in gpt-5.1.\n- All models before `gpt-5.1` default to `medium` reasoning effort, and do not support `none`.\n- The `gpt-5-pro` model defaults to (and only supports) `high` reasoning effort.\n- `xhigh` is supported for all models after `gpt-5.1-codex-max`.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "\"xhigh\"",
+          "type": {
+            "name": "\"xhigh\""
+          }
+        },
+        {
+          "name": "()",
+          "type": {
+            "name": "()"
+          }
+        },
+        {
+          "name": "\"none\"",
+          "type": {
+            "name": "\"none\""
+          }
+        },
+        {
+          "name": "\"minimal\"",
+          "type": {
+            "name": "\"minimal\""
+          }
+        },
+        {
+          "name": "\"low\"",
+          "type": {
+            "name": "\"low\""
+          }
+        },
+        {
+          "name": "\"medium\"",
+          "type": {
+            "name": "\"medium\""
+          }
+        },
+        {
+          "name": "\"high\"",
+          "type": {
+            "name": "\"high\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "OpenAIMetadata",
+      "description": "Set of 16 key-value pairs that can be attached to an object. This can be\nuseful for storing additional information about the object in a structured\nformat, and querying for objects via API or the dashboard.\nKeys are strings with a maximum length of 64 characters. Values are strings\nwith a maximum length of 512 characters.",
+      "type": "Record",
+      "fields": []
+    },
+    {
+      "name": "AzureContentFilterResultForChoice",
+      "description": "A content filter result for a single response item produced by a generative AI system.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "sexual",
+          "description": "A content filter category for language related to anatomical organs and genitals, romantic relationships, acts\nportrayed in erotic or affectionate terms, pregnancy, physical sexual acts, including those portrayed as an\nassault or a forced sexual violent act against one\u0027s will, prostitution, pornography, and abuse.",
+          "type": {
+            "name": "AzureContentFilterSeverityResult",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AzureContentFilterSeverityResult"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "hate",
+          "description": "A content filter category that can refer to any content that attacks or uses pejorative or discriminatory\nlanguage with reference to a person or identity group based on certain differentiating attributes of these groups\nincluding but not limited to race, ethnicity, nationality, gender identity and expression, sexual orientation,\nreligion, immigration status, ability status, personal appearance, and body size.",
+          "type": {
+            "name": "AzureContentFilterSeverityResult",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AzureContentFilterSeverityResult"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "violence",
+          "description": "A content filter category for language related to physical actions intended to hurt, injure, damage, or kill\nsomeone or something; describes weapons, guns and related entities, such as manufactures, associations,\nlegislation, and so on.",
+          "type": {
+            "name": "AzureContentFilterSeverityResult",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AzureContentFilterSeverityResult"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "self_harm",
+          "description": "A content filter category that describes language related to physical actions intended to purposely hurt, injure,\ndamage one\u0027s body or kill oneself.",
+          "type": {
+            "name": "AzureContentFilterSeverityResult",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AzureContentFilterSeverityResult"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "profanity",
+          "description": "A detection result that identifies whether crude, vulgar, or otherwise objection language is present in the\ncontent.",
+          "type": {
+            "name": "AzureContentFilterDetectionResult",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AzureContentFilterDetectionResult"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "custom_blocklists",
+          "description": "A collection of binary filtering outcomes for configured custom blocklists.",
+          "type": {
+            "name": "AzureContentFilterBlocklistResult",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AzureContentFilterBlocklistResult"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "custom_topics",
+          "description": "A collection of binary filtering outcomes for configured custom topics.",
+          "type": {
+            "name": "AzureContentFilterCustomTopicResult",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AzureContentFilterCustomTopicResult"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "\u0027error",
+          "description": "If present, details about an error that prevented content filtering from completing its evaluation.",
+          "type": {
+            "name": "AzureContentFilterResultForChoiceError",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AzureContentFilterResultForChoiceError"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "protected_material_text",
+          "description": "A detection result that describes a match against text protected under copyright or other status.",
+          "type": {
+            "name": "AzureContentFilterDetectionResult",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AzureContentFilterDetectionResult"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "protected_material_code",
+          "description": "A detection result that describes a match against licensed code or other protected source material.",
+          "type": {
+            "name": "AzureContentFilterResultForChoiceProtectedMaterialCode",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AzureContentFilterResultForChoiceProtectedMaterialCode"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "ungrounded_material",
+          "description": "",
+          "type": {
+            "name": "AzureContentFilterCompletionTextSpanDetectionResult",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AzureContentFilterCompletionTextSpanDetectionResult"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "personally_identifiable_information",
+          "description": "A detection result that describes matches against Personal Identifiable Information with configurable subcategories.",
+          "type": {
+            "name": "AzureContentFilterPersonallyIdentifiableInformationResult",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AzureContentFilterPersonallyIdentifiableInformationResult"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "AzureContentFilterResultForChoiceProtectedMaterialCode",
+      "description": "A detection result that describes a match against licensed code or other protected source material.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "filtered",
+          "description": "Whether the content detection resulted in a content filtering action.",
+          "type": {
+            "name": "boolean"
+          }
+        },
+        {
+          "name": "detected",
+          "description": "Whether the labeled content category was detected in the content.",
+          "type": {
+            "name": "boolean"
+          }
+        },
+        {
+          "name": "citation",
+          "description": "If available, the citation details describing the associated license and its location.",
+          "type": {
+            "name": "AzureContentFilterResultForChoiceProtectedMaterialCodeCitation",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AzureContentFilterResultForChoiceProtectedMaterialCodeCitation"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "AzureContentFilterResultForChoiceProtectedMaterialCodeCitation",
+      "description": "If available, the citation details describing the associated license and its location.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "license",
+          "description": "The name or identifier of the license associated with the detection.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "URL",
+          "description": "The URL associated with the license.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "AzureContentFilterPersonallyIdentifiableInformationResult",
+      "description": "A content filter detection result for Personally Identifiable Information that includes harm extensions.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "filtered",
+          "description": "Whether the content detection resulted in a content filtering action.",
+          "type": {
+            "name": "boolean"
+          }
+        },
+        {
+          "name": "detected",
+          "description": "Whether the labeled content category was detected in the content.",
+          "type": {
+            "name": "boolean"
+          }
+        }
+      ]
+    },
+    {
+      "name": "OpenAIVerbosity",
+      "description": "Constrains the verbosity of the model\u0027s response. Lower values will result in\nmore concise responses, while higher values will result in more verbose responses.\nCurrently supported values are `low`, `medium`, and `high`.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "\"high\"",
+          "type": {
+            "name": "\"high\""
+          }
+        },
+        {
+          "name": "()",
+          "type": {
+            "name": "()"
+          }
+        },
+        {
+          "name": "\"low\"",
+          "type": {
+            "name": "\"low\""
+          }
+        },
+        {
+          "name": "\"medium\"",
+          "type": {
+            "name": "\"medium\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "OpenAICreateChatCompletionResponseChoicesLogprobs",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "content",
+          "description": "",
+          "type": {
+            "name": "OpenAIChatCompletionTokenLogprob[]|()",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAIChatCompletionTokenLogprob"
+              }
+            ]
+          }
+        },
+        {
+          "name": "refusal",
+          "description": "",
+          "type": {
+            "name": "OpenAIChatCompletionTokenLogprob[]|()",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAIChatCompletionTokenLogprob"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "AzureContentFilterResultForPrompt",
+      "description": "A content filter result associated with a single input prompt item into a generative AI system.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "prompt_index",
+          "description": "The index of the input prompt associated with the accompanying content filter result categories.",
+          "type": {
+            "name": "ballerina/lang.int:0.0.0:Signed32"
+          },
+          "optional": true
+        },
+        {
+          "name": "content_filter_results",
+          "description": "The content filter category details for the result.",
+          "type": {
+            "name": "AzureContentFilterResultForPromptContentFilterResults",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AzureContentFilterResultForPromptContentFilterResults"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "OpenAIChatCompletionResponseMessageFunctionCall",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "arguments",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "name",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "OpenAIVoiceIdsShared",
+      "description": "",
+      "type": "Union",
+      "members": [
+        {
+          "name": "string",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "\"alloy\"",
+          "type": {
+            "name": "\"alloy\""
+          }
+        },
+        {
+          "name": "\"ash\"",
+          "type": {
+            "name": "\"ash\""
+          }
+        },
+        {
+          "name": "\"ballad\"",
+          "type": {
+            "name": "\"ballad\""
+          }
+        },
+        {
+          "name": "\"coral\"",
+          "type": {
+            "name": "\"coral\""
+          }
+        },
+        {
+          "name": "\"echo\"",
+          "type": {
+            "name": "\"echo\""
+          }
+        },
+        {
+          "name": "\"sage\"",
+          "type": {
+            "name": "\"sage\""
+          }
+        },
+        {
+          "name": "\"shimmer\"",
+          "type": {
+            "name": "\"shimmer\""
+          }
+        },
+        {
+          "name": "\"verse\"",
+          "type": {
+            "name": "\"verse\""
+          }
+        },
+        {
+          "name": "\"marin\"",
+          "type": {
+            "name": "\"marin\""
+          }
+        },
+        {
+          "name": "\"cedar\"",
+          "type": {
+            "name": "\"cedar\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "OpenAIVoiceIdsOrCustomVoice",
+      "description": "A built-in voice name or a custom voice reference.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "string",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "\"alloy\"",
+          "type": {
+            "name": "\"alloy\""
+          }
+        },
+        {
+          "name": "\"ash\"",
+          "type": {
+            "name": "\"ash\""
+          }
+        },
+        {
+          "name": "\"ballad\"",
+          "type": {
+            "name": "\"ballad\""
+          }
+        },
+        {
+          "name": "\"coral\"",
+          "type": {
+            "name": "\"coral\""
+          }
+        },
+        {
+          "name": "\"echo\"",
+          "type": {
+            "name": "\"echo\""
+          }
+        },
+        {
+          "name": "\"sage\"",
+          "type": {
+            "name": "\"sage\""
+          }
+        },
+        {
+          "name": "\"shimmer\"",
+          "type": {
+            "name": "\"shimmer\""
+          }
+        },
+        {
+          "name": "\"verse\"",
+          "type": {
+            "name": "\"verse\""
+          }
+        },
+        {
+          "name": "\"marin\"",
+          "type": {
+            "name": "\"marin\""
+          }
+        },
+        {
+          "name": "\"cedar\"",
+          "type": {
+            "name": "\"cedar\""
+          }
+        },
+        {
+          "name": "record {|string id; anydata...;|}",
+          "type": {
+            "name": "record {|string id; anydata...;|}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "OpenAICreateChatCompletionResponseChoices",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "finish_reason",
+          "description": "",
+          "type": {
+            "name": "\"stop\"|\"length\"|\"tool_calls\"|\"content_filter\"|\"function_call\""
+          }
+        },
+        {
+          "name": "index",
+          "description": "",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "message",
+          "description": "If the audio output modality is requested, this object contains data\nabout the audio response from the model.",
+          "type": {
+            "name": "OpenAIChatCompletionResponseMessage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAIChatCompletionResponseMessage"
+              }
+            ]
+          }
+        },
+        {
+          "name": "logprobs",
+          "description": "",
+          "type": {
+            "name": "OpenAICreateChatCompletionResponseChoicesLogprobs|()",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAICreateChatCompletionResponseChoicesLogprobs"
+              }
+            ]
+          }
+        },
+        {
+          "name": "content_filter_results",
+          "description": "A content filter result for a single response item produced by a generative AI system.",
+          "type": {
+            "name": "AzureContentFilterResultForChoice",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AzureContentFilterResultForChoice"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "OpenAIChatCompletionResponseMessage",
+      "description": "If the audio output modality is requested, this object contains data\nabout the audio response from the model.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "content",
+          "description": "",
+          "type": {
+            "name": "string?"
+          }
+        },
+        {
+          "name": "refusal",
+          "description": "",
+          "type": {
+            "name": "string?"
+          }
+        },
+        {
+          "name": "tool_calls",
+          "description": "The tool calls generated by the model, such as function calls.",
+          "type": {
+            "name": "OpenAIChatCompletionMessageToolCallsItem",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAIChatCompletionMessageToolCallsItem"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "annotations",
+          "description": "Annotations for the message, when applicable, as when using the\n[web search tool](/docs/guides/tools-web-search?api-mode\u003dchat).",
+          "type": {
+            "name": "OpenAIChatCompletionResponseMessageAnnotations[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAIChatCompletionResponseMessageAnnotations"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "role",
+          "description": "The role of the author of this message.",
+          "type": {
+            "name": "\"assistant\""
+          }
+        },
+        {
+          "name": "function_call",
+          "description": "Deprecated and replaced by `tool_calls`. The name and arguments of a function that should be called, as generated by the model.\n",
+          "type": {
+            "name": "OpenAIChatCompletionResponseMessageFunctionCall",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAIChatCompletionResponseMessageFunctionCall"
+              }
+            ]
+          },
+          "optional": true,
+          "isDeprecated": true
+        },
+        {
+          "name": "audio",
+          "description": "",
+          "type": {
+            "name": "OpenAIChatCompletionResponseMessageAudio",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAIChatCompletionResponseMessageAudio"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "reasoning_content",
+          "description": "An Azure-specific extension property containing generated reasoning content from supported models.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "OpenAIChatCompletionMessageToolCall",
+      "description": "A call to a function tool created by the model.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "id",
+          "description": "The ID of the tool call.",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "\u0027type",
+          "description": "The type of the tool. Currently, only `function` is supported.",
+          "type": {
+            "name": "\"function\""
+          }
+        },
+        {
+          "name": "\u0027function",
+          "description": "The function that the model called.",
+          "type": {
+            "name": "OpenAIChatCompletionMessageToolCallFunction",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAIChatCompletionMessageToolCallFunction"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "OpenAIChatCompletionMessageToolCallFunction",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "name",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "arguments",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "OpenAIChatCompletionMessageToolCallsItem",
+      "description": "The tool calls generated by the model, such as function calls.",
+      "type": "Other"
+    },
+    {
+      "name": "OpenAIChatCompletionResponseMessageAudio",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "id",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "expires_at",
+          "description": "",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "data",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "transcript",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "OpenAIChatCompletionRequestMessage",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "role",
+          "description": "",
+          "type": {
+            "name": "OpenAIChatCompletionRequestMessageType",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAIChatCompletionRequestMessageType"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "OpenAIChatCompletionRequestMessageType",
+      "description": "",
+      "type": "Union",
+      "members": [
+        {
+          "name": "string",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "\"developer\"",
+          "type": {
+            "name": "\"developer\""
+          }
+        },
+        {
+          "name": "\"system\"",
+          "type": {
+            "name": "\"system\""
+          }
+        },
+        {
+          "name": "\"user\"",
+          "type": {
+            "name": "\"user\""
+          }
+        },
+        {
+          "name": "\"assistant\"",
+          "type": {
+            "name": "\"assistant\""
+          }
+        },
+        {
+          "name": "\"tool\"",
+          "type": {
+            "name": "\"tool\""
+          }
+        },
+        {
+          "name": "\"function\"",
+          "type": {
+            "name": "\"function\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "OpenAICompletionUsagePromptTokensDetails",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "audio_tokens",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "cached_tokens",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "OpenAICompletionUsage",
+      "description": "Usage statistics for the completion request.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "completion_tokens",
+          "description": "Number of tokens in the generated completion.",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "prompt_tokens",
+          "description": "Number of tokens in the prompt.",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "total_tokens",
+          "description": "Total number of tokens used in the request (prompt + completion).",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "completion_tokens_details",
+          "description": "Breakdown of tokens used in a completion.",
+          "type": {
+            "name": "OpenAICompletionUsageCompletionTokensDetails",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAICompletionUsageCompletionTokensDetails"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "prompt_tokens_details",
+          "description": "Breakdown of tokens used in the prompt.",
+          "type": {
+            "name": "OpenAICompletionUsagePromptTokensDetails",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAICompletionUsagePromptTokensDetails"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "OpenAICompletionUsageCompletionTokensDetails",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "accepted_prediction_tokens",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "audio_tokens",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "reasoning_tokens",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "rejected_prediction_tokens",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "InlineResponse200PromptFilterResults",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "prompt_index",
+          "description": "The index of the input prompt that this content filter result corresponds to.",
+          "type": {
+            "name": "ballerina/lang.int:0.0.0:Signed32"
+          }
+        },
+        {
+          "name": "content_filter_results",
+          "description": "The content filter results associated with the indexed input prompt.",
+          "type": {
+            "name": "AzureContentFilterResultForPrompt",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AzureContentFilterResultForPrompt"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "InlineResponse200",
+      "description": "",
+      "type": "Union",
+      "members": [
+        {
+          "name": "record {|string id; ballerinax/azure.openai.chat:4.0.0:OpenAICreateChatCompletionResponseChoices[] choices; int created; string model; string system_fingerprint?; \"chat.completion\" \u0027object; ballerinax/azure.openai.chat:4.0.0:OpenAICompletionUsage usage?; ballerinax/azure.openai.chat:4.0.0:InlineResponse200PromptFilterResults[] prompt_filter_results?; anydata...;|}",
+          "type": {
+            "name": "record {|string id; ballerinax/azure.openai.chat:4.0.0:OpenAICreateChatCompletionResponseChoices[] choices; int created; string model; string system_fingerprint?; \"chat.completion\" \u0027object; ballerinax/azure.openai.chat:4.0.0:OpenAICompletionUsage usage?; ballerinax/azure.openai.chat:4.0.0:InlineResponse200PromptFilterResults[] prompt_filter_results?; anydata...;|}"
+          }
+        },
+        {
+          "name": "record {|string id; ballerinax/azure.openai.chat:4.0.0:OpenAICreateChatCompletionStreamResponseChoices[] choices; int created; string model; string system_fingerprint?; \"chat.completion.chunk\" \u0027object; ballerinax/azure.openai.chat:4.0.0:OpenAICompletionUsage usage?; ballerinax/azure.openai.chat:4.0.0:OpenAIChatCompletionStreamResponseDelta delta?; ballerinax/azure.openai.chat:4.0.0:AzureContentFilterResultForChoice content_filter_results?; anydata...;|}",
+          "type": {
+            "name": "record {|string id; ballerinax/azure.openai.chat:4.0.0:OpenAICreateChatCompletionStreamResponseChoices[] choices; int created; string model; string system_fingerprint?; \"chat.completion.chunk\" \u0027object; ballerinax/azure.openai.chat:4.0.0:OpenAICompletionUsage usage?; ballerinax/azure.openai.chat:4.0.0:OpenAIChatCompletionStreamResponseDelta delta?; ballerinax/azure.openai.chat:4.0.0:AzureContentFilterResultForChoice content_filter_results?; anydata...;|}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "OpenAIResponseModalities",
+      "description": "Output types that you would like the model to generate.\nMost models are capable of generating text, which is the default:\n`[\"text\"]`\nThe `gpt-4o-audio-preview` model can also be used to\n[generate audio](/docs/guides/audio). To request that this model generate\nboth text and audio responses, you can use:\n`[\"text\", \"audio\"]`",
+      "type": "Union",
+      "members": [
+        {
+          "name": "(\"text\"|\"audio\")[]",
+          "type": {
+            "name": "(\"text\"|\"audio\")[]"
+          }
+        },
+        {
+          "name": "()",
+          "type": {
+            "name": "()"
+          }
+        }
+      ]
+    },
+    {
+      "name": "OpenAIFunctionObject",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "description",
+          "description": "A description of what the function does, used by the model to choose when and how to call the function.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "name",
+          "description": "The name of the function to be called. Must be a-z, A-Z, 0-9, or contain underscores and dashes, with a maximum length of 64.",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "parameters",
+          "description": "The parameters the functions accepts, described as a JSON Schema object. See the [guide](/docs/guides/function-calling) for examples, and the [JSON Schema reference](https://json-schema.org/understanding-json-schema/) for documentation about the format.\nOmitting `parameters` defines a function with an empty parameter list.",
+          "type": {
+            "name": "OpenAIFunctionParameters",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAIFunctionParameters"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "strict",
+          "description": "",
+          "type": {
+            "name": "boolean?"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "OpenAIChatCompletionToolChoiceOption",
+      "description": "Controls which (if any) tool is called by the model.\n`none` means the model will not call any tool and instead generates a message.\n`auto` means the model can pick between generating a message or calling one or more tools.\n`required` means the model must call one or more tools.\nSpecifying a particular tool via `{\"type\": \"function\", \"function\": {\"name\": \"my_function\"}}` forces the model to call that tool.\n`none` is the default when no tools are present. `auto` is the default if tools are present.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "ballerinax/azure.openai.chat:4.0.0:OpenAIChatCompletionAllowedToolsChoice",
+          "type": {
+            "name": "OpenAIChatCompletionAllowedToolsChoice",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAIChatCompletionAllowedToolsChoice"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerinax/azure.openai.chat:4.0.0:OpenAIChatCompletionNamedToolChoice",
+          "type": {
+            "name": "OpenAIChatCompletionNamedToolChoice",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAIChatCompletionNamedToolChoice"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerinax/azure.openai.chat:4.0.0:OpenAIChatCompletionNamedToolChoiceCustom",
+          "type": {
+            "name": "OpenAIChatCompletionNamedToolChoiceCustom",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAIChatCompletionNamedToolChoiceCustom"
+              }
+            ]
+          }
+        },
+        {
+          "name": "\"none\"",
+          "type": {
+            "name": "\"none\""
+          }
+        },
+        {
+          "name": "\"auto\"",
+          "type": {
+            "name": "\"auto\""
+          }
+        },
+        {
+          "name": "\"required\"",
+          "type": {
+            "name": "\"required\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "OpenAIChatCompletionTool",
+      "description": "A function tool that can be used to generate a response.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "\u0027type",
+          "description": "The type of the tool. Currently, only `function` is supported.",
+          "type": {
+            "name": "\"function\""
+          }
+        },
+        {
+          "name": "\u0027function",
+          "description": "",
+          "type": {
+            "name": "OpenAIFunctionObject",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAIFunctionObject"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "OpenAICustomToolChatCompletions",
+      "description": "A custom tool that processes input using a specified format.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "\u0027type",
+          "description": "The type of the custom tool. Always `custom`.",
+          "type": {
+            "name": "\"custom\""
+          }
+        },
+        {
+          "name": "custom",
+          "description": "Properties of the custom tool.",
+          "type": {
+            "name": "OpenAICustomToolChatCompletionsCustom",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAICustomToolChatCompletionsCustom"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "OpenAIChatCompletionFunctions",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "description",
+          "description": "A description of what the function does, used by the model to choose when and how to call the function.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "name",
+          "description": "The name of the function to be called. Must be a-z, A-Z, 0-9, or contain underscores and dashes, with a maximum length of 64.",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "parameters",
+          "description": "The parameters the functions accepts, described as a JSON Schema object.\nSee the [JSON Schema reference](https://json-schema.org/understanding-json-schema/)\nfor documentation about the format.\n\nOmitting `parameters` defines a function with an empty parameter list.",
+          "type": {
+            "name": "OpenAIFunctionParameters",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAIFunctionParameters"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ],
+      "isDeprecated": true
+    },
+    {
+      "name": "OpenAICreateChatCompletionRequestAudio",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "voice",
+          "description": "A built-in voice name or a custom voice reference.",
+          "type": {
+            "name": "OpenAIVoiceIdsOrCustomVoice",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAIVoiceIdsOrCustomVoice"
+              }
+            ]
+          }
+        },
+        {
+          "name": "format",
+          "description": "",
+          "type": {
+            "name": "\"wav\"|\"aac\"|\"mp3\"|\"flac\"|\"opus\"|\"pcm16\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "OpenAIChatCompletionFunctionCallOption",
+      "description": "Specifying a particular function via `{\"name\": \"my_function\"}` forces the model to call that function.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "name",
+          "description": "The name of the function to call.",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ChatCompletionsBody",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "metadata",
+          "description": "Set of 16 key-value pairs that can be attached to an object. This can be\nuseful for storing additional information about the object in a structured\nformat, and querying for objects via API or the dashboard.\nKeys are strings with a maximum length of 64 characters. Values are strings\nwith a maximum length of 512 characters.",
+          "type": {
+            "name": "OpenAIMetadata",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAIMetadata"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "top_logprobs",
+          "description": "",
+          "type": {
+            "name": "int?"
+          },
+          "optional": true
+        },
+        {
+          "name": "temperature",
+          "description": "",
+          "type": {
+            "name": "decimal?"
+          },
+          "optional": true
+        },
+        {
+          "name": "top_p",
+          "description": "",
+          "type": {
+            "name": "decimal?"
+          },
+          "optional": true
+        },
+        {
+          "name": "user",
+          "description": "A unique identifier representing your end-user, which can help to\nmonitor and detect abuse.\n",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "isDeprecated": true
+        },
+        {
+          "name": "safety_identifier",
+          "description": "A stable identifier used to help detect users of your application that may be violating OpenAI\u0027s usage policies.\nThe IDs should be a string that uniquely identifies each user, with a maximum length of 64 characters. We recommend hashing their username or email address, in order to avoid sending us any identifying information. [Learn more](/docs/guides/safety-best-practices#safety-identifiers).",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "prompt_cache_key",
+          "description": "Used by OpenAI to cache responses for similar requests to optimize your cache hit rates. Replaces the `user` field. [Learn more](/docs/guides/prompt-caching).",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "prompt_cache_retention",
+          "description": "",
+          "type": {
+            "name": "\"24h\"?|\"in_memory\""
+          },
+          "optional": true
+        },
+        {
+          "name": "messages",
+          "description": "A list of messages comprising the conversation so far. Depending on the\nmodel you use, different message types (modalities) are supported,\nlike text, images, and audio.",
+          "type": {
+            "name": "OpenAIChatCompletionRequestMessage[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAIChatCompletionRequestMessage"
+              }
+            ]
+          }
+        },
+        {
+          "name": "model",
+          "description": "Model ID used to generate the response, like `gpt-4o` or `o3`. OpenAI\noffers a wide range of models with different capabilities, performance\ncharacteristics, and price points. Refer to the [model guide](/docs/models)\nto browse and compare available models.",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "modalities",
+          "description": "Output types that you would like the model to generate.\nMost models are capable of generating text, which is the default:\n`[\"text\"]`\nThe `gpt-4o-audio-preview` model can also be used to\n[generate audio](/docs/guides/audio). To request that this model generate\nboth text and audio responses, you can use:\n`[\"text\", \"audio\"]`",
+          "type": {
+            "name": "ballerinax/azure.openai.chat:4.0.0:OpenAIResponseModalities?"
+          },
+          "optional": true
+        },
+        {
+          "name": "verbosity",
+          "description": "Constrains the verbosity of the model\u0027s response. Lower values will result in\nmore concise responses, while higher values will result in more verbose responses.\nCurrently supported values are `low`, `medium`, and `high`.",
+          "type": {
+            "name": "ballerinax/azure.openai.chat:4.0.0:OpenAIVerbosity?"
+          },
+          "optional": true
+        },
+        {
+          "name": "reasoning_effort",
+          "description": "Constrains effort on reasoning for\n[reasoning models](https://platform.openai.com/docs/guides/reasoning).\nCurrently supported values are `none`, `minimal`, `low`, `medium`, `high`, and `xhigh`. Reducing\nreasoning effort can result in faster responses and fewer tokens used\non reasoning in a response.\n- `gpt-5.1` defaults to `none`, which does not perform reasoning. The supported reasoning values for `gpt-5.1` are `none`, `low`, `medium`, and `high`. Tool calls are supported for all reasoning values in gpt-5.1.\n- All models before `gpt-5.1` default to `medium` reasoning effort, and do not support `none`.\n- The `gpt-5-pro` model defaults to (and only supports) `high` reasoning effort.\n- `xhigh` is supported for all models after `gpt-5.1-codex-max`.",
+          "type": {
+            "name": "ballerinax/azure.openai.chat:4.0.0:OpenAIReasoningEffort?"
+          },
+          "optional": true
+        },
+        {
+          "name": "max_completion_tokens",
+          "description": "An upper bound for the number of tokens that can be generated for a\ncompletion, including visible output tokens and reasoning tokens.",
+          "type": {
+            "name": "int?"
+          },
+          "optional": true
+        },
+        {
+          "name": "frequency_penalty",
+          "description": "Number between -2.0 and 2.0. Positive values penalize new tokens based on\ntheir existing frequency in the text so far, decreasing the model\u0027s\nlikelihood to repeat the same line verbatim.",
+          "type": {
+            "name": "decimal?"
+          },
+          "optional": true
+        },
+        {
+          "name": "presence_penalty",
+          "description": "Number between -2.0 and 2.0. Positive values penalize new tokens based on\nwhether they appear in the text so far, increasing the model\u0027s likelihood\nto talk about new topics.",
+          "type": {
+            "name": "decimal?"
+          },
+          "optional": true
+        },
+        {
+          "name": "response_format",
+          "description": "An object specifying the format that the model must output.\n\nSetting to `{ \"type\": \"json_schema\", \"json_schema\": {...} }` enables\nStructured Outputs which ensures the model will match your supplied JSON\nschema.\n\nSetting to `{ \"type\": \"json_object\" }` enables JSON mode, which ensures\nthe message the model generates is valid JSON.\n\n**Important:** when using JSON mode, you **must** also instruct the model\nto produce JSON yourself via a system or user message. Without this, the\nmodel may generate an unending stream of whitespace until the generation\nreaches the token limit, resulting in a long-running and seemingly \"stuck\"\nrequest. Also note that the message content may be partially cut off if\n`finish_reason\u003d\"length\"`, which indicates the generation exceeded\n`max_tokens` or the conversation exceeded the max context length.",
+          "type": {
+            "name": "OpenAICreateChatCompletionRequestResponseFormat",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAICreateChatCompletionRequestResponseFormat"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "audio",
+          "description": "",
+          "type": {
+            "name": "OpenAICreateChatCompletionRequestAudio",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAICreateChatCompletionRequestAudio"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "store",
+          "description": "Whether or not to store the output of this chat completion request for\nuse in model distillation or evals products.",
+          "type": {
+            "name": "boolean?"
+          },
+          "optional": true
+        },
+        {
+          "name": "\u0027stream",
+          "description": "If set to true, the model response data will be streamed to the client\nas it is generated using server-sent events.",
+          "type": {
+            "name": "boolean?"
+          },
+          "optional": true
+        },
+        {
+          "name": "stop",
+          "description": "Not supported with latest reasoning models `o3` and `o4-mini`.\nUp to 4 sequences where the API will stop generating further tokens. The\nreturned text will not contain the stop sequence.",
+          "type": {
+            "name": "OpenAIStopConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAIStopConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "logit_bias",
+          "description": "Modify the likelihood of specified tokens appearing in the completion.\nAccepts a JSON object that maps tokens (specified by their token ID in the\ntokenizer) to an associated bias value from -100 to 100. Mathematically,\nthe bias is added to the logits generated by the model prior to sampling.\nThe exact effect will vary per model, but values between -1 and 1 should\ndecrease or increase likelihood of selection; values like -100 or 100\nshould result in a ban or exclusive selection of the relevant token.",
+          "type": {
+            "name": "record {|anydata...;|}?"
+          },
+          "optional": true
+        },
+        {
+          "name": "logprobs",
+          "description": "Whether to return log probabilities of the output tokens or not. If true,\nreturns the log probabilities of each output token returned in the\n`content` of `message`.",
+          "type": {
+            "name": "boolean?"
+          },
+          "optional": true
+        },
+        {
+          "name": "max_tokens",
+          "description": "The maximum number of tokens that can be generated in the chat completion.\nThis value can be used to control costs for text generated via API.\n\nThis value is now deprecated in favor of `max_completion_tokens`, and is\nnot compatible with o1 series models.\n",
+          "type": {
+            "name": "int?"
+          },
+          "optional": true,
+          "isDeprecated": true
+        },
+        {
+          "name": "n",
+          "description": "How many chat completion choices to generate for each input message. Note that you will be charged based on the number of generated tokens across all of the choices. Keep `n` as `1` to minimize costs.",
+          "type": {
+            "name": "int?"
+          },
+          "optional": true
+        },
+        {
+          "name": "prediction",
+          "description": "Static predicted output content, such as the content of a text file that is\nbeing regenerated.",
+          "type": {
+            "name": "OpenAIPredictionContent",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAIPredictionContent"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "seed",
+          "description": "This feature is in Beta.\nIf specified, our system will make a best effort to sample deterministically, such that repeated requests with the same `seed` and parameters should return the same result.\nDeterminism is not guaranteed, and you should refer to the `system_fingerprint` response parameter to monitor changes in the backend.\n",
+          "type": {
+            "name": "int?"
+          },
+          "optional": true,
+          "isDeprecated": true
+        },
+        {
+          "name": "stream_options",
+          "description": "Options for streaming response. Only set this when you set `stream: true`.",
+          "type": {
+            "name": "OpenAIChatCompletionStreamOptions",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAIChatCompletionStreamOptions"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "tools",
+          "description": "A list of tools the model may call. You can provide either\n[custom tools](/docs/guides/function-calling#custom-tools) or\n[function tools](/docs/guides/function-calling).",
+          "type": {
+            "name": "OpenAIChatCompletionTool|OpenAICustomToolChatCompletions[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAIChatCompletionTool"
+              },
+              {
+                "category": "internal",
+                "recordName": "OpenAICustomToolChatCompletions"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "tool_choice",
+          "description": "Controls which (if any) tool is called by the model.\n`none` means the model will not call any tool and instead generates a message.\n`auto` means the model can pick between generating a message or calling one or more tools.\n`required` means the model must call one or more tools.\nSpecifying a particular tool via `{\"type\": \"function\", \"function\": {\"name\": \"my_function\"}}` forces the model to call that tool.\n`none` is the default when no tools are present. `auto` is the default if tools are present.",
+          "type": {
+            "name": "OpenAIChatCompletionToolChoiceOption",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAIChatCompletionToolChoiceOption"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "parallel_tool_calls",
+          "description": "Whether to enable [parallel function calling](/docs/guides/function-calling#configuring-parallel-function-calling) during tool use.",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "function_call",
+          "description": "Deprecated in favor of `tool_choice`.\nControls which (if any) function is called by the model.\n`none` means the model will not call a function and instead generates a\nmessage.\n`auto` means the model can pick between generating a message or calling a\nfunction.\nSpecifying a particular function via `{\"name\": \"my_function\"}` forces the\nmodel to call that function.\n`none` is the default when no functions are present. `auto` is the default\nif functions are present.\n",
+          "type": {
+            "name": "OpenAIChatCompletionFunctionCallOption|\"none\"|\"auto\"",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAIChatCompletionFunctionCallOption"
+              }
+            ]
+          },
+          "optional": true,
+          "isDeprecated": true
+        },
+        {
+          "name": "functions",
+          "description": "Deprecated in favor of `tools`.\nA list of functions the model may generate JSON inputs for.\n",
+          "type": {
+            "name": "OpenAIChatCompletionFunctions[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OpenAIChatCompletionFunctions"
+              }
+            ]
+          },
+          "optional": true,
+          "isDeprecated": true
+        },
+        {
+          "name": "user_security_context",
+          "description": "User security context contains several parameters that describe the application itself, and the end user that interacts with the application. These fields assist your security operations teams to investigate and mitigate security incidents by providing a comprehensive approach to protecting your AI applications. [Learn more](https://aka.ms/TP4AI/Documentation/EndUserContext) about protecting AI applications using Microsoft Defender for Cloud.",
+          "type": {
+            "name": "AzureUserSecurityContext",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AzureUserSecurityContext"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "CreateChatCompletionQueries",
+      "description": "Represents the Queries record for the operation: createChatCompletion",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "api\\-version",
+          "description": "The explicit Azure AI Foundry Models API version to use for this request.\n`v1` if not otherwise specified.",
+          "type": {
+            "name": "AzureAIFoundryModelsApiVersion",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AzureAIFoundryModelsApiVersion"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "name": "Client",
+      "description": "",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Gets invoked to initialize the `connector`.\n",
+          "parameters": [
+            {
+              "name": "config",
+              "description": "The configurations to be used when initializing the `connector` ",
+              "type": {
+                "name": "ConnectionConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ConnectionConfig"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "serviceUrl",
+              "description": "URL of the target service ",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "An error if connector initialization failed ",
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Creates a chat completion.\n",
+          "accessor": "post",
+          "paths": [
+            "chat",
+            "completions"
+          ],
+          "parameters": [
+            {
+              "name": "payload",
+              "type": {
+                "name": "ChatCompletionsBody",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ChatCompletionsBody"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "api\\-version",
+              "description": "The explicit Azure AI Foundry Models API version to use for this request.\n`v1` if not otherwise specified.",
+              "type": {
+                "name": "AzureAIFoundryModelsApiVersion",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "AzureAIFoundryModelsApiVersion"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "\"v1\""
+            },
+            {
+              "name": "Additional Values",
+              "description": "Capture key value pairs",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true
+            },
+            {
+              "name": "queries",
+              "description": "Queries to be sent with the request ",
+              "type": {
+                "name": "CreateChatCompletionQueries",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "CreateChatCompletionQueries"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "InlineResponse200|error"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "functions": [],
+  "services": [],
+  "annotations": []
+}

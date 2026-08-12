@@ -1,0 +1,1159 @@
+{
+  "name": "ballerinax/ai.googleapis.vertex",
+  "description": "This module offers APIs for connecting with models hosted on",
+  "readme": "## Overview\n\nThis module offers APIs for connecting with models hosted on\n[Google Vertex AI](https://cloud.google.com/vertex-ai), including Google Gemini models and partner\nmodels from Anthropic, Mistral, Meta, DeepSeek, Qwen, Kimi, and MiniMax available through the\nVertex AI Model Garden.\n\n## Prerequisites\n\nBefore using this module in your Ballerina application, you must have a Google Cloud project with\nVertex AI enabled.\n\n- Create a [Google Cloud account](https://cloud.google.com) and set up a project.\n- Enable the [Vertex AI API](https://console.cloud.google.com/apis/library/aiplatform.googleapis.com) for your project.\n- Set up authentication using one of the supported methods below.\n\n## Quickstart\n\nTo use the `ai.googleapis.vertex` module in your Ballerina application, update the `.bal` file as follows:\n\n### Step 1: Import the module\n\nImport the `ai.googleapis.vertex` module.\n\n```ballerina\nimport ballerinax/ai.googleapis.vertex;\n```\n\n### Step 2: Initialize the Model Provider\n\nThree authentication options are supported:\n\n**Option 1 — OAuth2 refresh token** (recommended for development; credentials from `~/.config/gcloud/application_default_credentials.json`):\n\n```ballerina\nimport ballerina/ai;\nimport ballerinax/ai.googleapis.vertex;\n\nfinal ai:ModelProvider vertexModel \u003d check new vertex:ModelProvider(\n    auth \u003d {\n        clientId: \"your-client-id\",\n        clientSecret: \"your-client-secret\",\n        refreshToken: \"your-refresh-token\"\n    },\n    projectId \u003d \"your-gcp-project-id\",\n    location \u003d \"us-central1\",\n    model \u003d \"google/gemini-2.0-flash\"\n);\n```\n\n**Option 2 — Service account JSON key file** (recommended for production):\n\n```ballerina\nfinal ai:ModelProvider vertexModel \u003d check new vertex:ModelProvider(\n    auth \u003d \"/path/to/service-account-key.json\",\n    projectId \u003d \"your-gcp-project-id\",\n    location \u003d \"us-central1\",\n    model \u003d \"google/gemini-2.0-flash\"\n);\n```\n\n**Option 3 — Service account inline credentials** (use when you need to override scopes):\n\n```ballerina\nfinal ai:ModelProvider vertexModel \u003d check new vertex:ModelProvider(\n    auth \u003d {\n        clientEmail: \"your-sa@your-project.iam.gserviceaccount.com\",\n        privateKey: \"-----BEGIN RSA PRIVATE KEY-----\\n...\"\n    },\n    projectId \u003d \"your-gcp-project-id\",\n    location \u003d \"us-central1\",\n    model \u003d \"google/gemini-2.0-flash\"\n);\n```\n\n### Step 3: Invoke chat completion\n\n```ballerina\nai:ChatMessage[] chatMessages \u003d [{role: \"user\", content: \"hi\"}];\nai:ChatAssistantMessage response \u003d check vertexModel-\u003echat(chatMessages, tools \u003d []);\n\nchatMessages.push(response);\n```\n\n### Step 4: Generate typed output\n\n```ballerina\ntype Sentiment record {|\n    string label;\n    decimal score;\n|};\n\n@ai:JsonSchema {\n    \"type\": \"object\",\n    \"required\": [\"label\", \"score\"],\n    \"properties\": {\n        \"label\": {\"type\": \"string\", \"enum\": [\"positive\", \"neutral\", \"negative\"]},\n        \"score\": {\"type\": \"number\"}\n    }\n}\ntype SentimentType Sentiment;\n\nSentiment|error result \u003d vertexModel-\u003egenerate(\n    `Analyze the sentiment of: \"I love this product!\"`\n);\n```\n\n### Step 5: Use an embedding provider\n\n```ballerina\nimport ballerina/ai;\nimport ballerinax/ai.googleapis.vertex;\n\nfinal ai:EmbeddingProvider vertexEmbedding \u003d check new vertex:EmbeddingProvider(\n    auth \u003d \"/path/to/service-account-key.json\",\n    projectId \u003d \"your-gcp-project-id\",\n    location \u003d \"us-central1\"\n);\n\nai:Embedding embedding \u003d check vertexEmbedding-\u003eembed(\u003cai:TextChunk\u003e{content: \"Hello, world!\"});\n```\n",
+  "typeDefs": [
+    {
+      "name": "TEXT_EMBEDDING_005",
+      "description": "",
+      "type": "Constant",
+      "value": "text-embedding-005",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "TEXT_MULTILINGUAL_EMBEDDING_002",
+      "description": "",
+      "type": "Constant",
+      "value": "text-multilingual-embedding-002",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "TEXT_EMBEDDING_004",
+      "description": "",
+      "type": "Constant",
+      "value": "text-embedding-004",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "ConnectionConfig",
+      "description": "Configurations for controlling the behaviours when communicating with a remote HTTP endpoint.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "httpVersion",
+          "description": "The HTTP version understood by the client",
+          "type": {
+            "name": "HttpVersion",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "HttpVersion",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "http1Settings",
+          "description": "Configurations related to HTTP/1.x protocol",
+          "type": {
+            "name": "ClientHttp1Settings",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientHttp1Settings",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "http2Settings",
+          "description": "Configurations related to HTTP/2 protocol",
+          "type": {
+            "name": "ClientHttp2Settings",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientHttp2Settings",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "timeout",
+          "description": "The maximum time to wait (in seconds) for a response before closing the connection",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "forwarded",
+          "description": "The choice of setting `forwarded`/`x-forwarded` header",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "poolConfig",
+          "description": "Configurations associated with request pooling",
+          "type": {
+            "name": "PoolConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "PoolConfiguration",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "cache",
+          "description": "HTTP caching related configurations",
+          "type": {
+            "name": "CacheConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CacheConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "compression",
+          "description": "Specifies the way of handling compression (`accept-encoding`) header",
+          "type": {
+            "name": "Compression",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Compression",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "circuitBreaker",
+          "description": "Configurations associated with the behaviour of the Circuit Breaker",
+          "type": {
+            "name": "CircuitBreakerConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CircuitBreakerConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "retryConfig",
+          "description": "Configurations associated with retrying",
+          "type": {
+            "name": "RetryConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "RetryConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "responseLimits",
+          "description": "Configurations associated with inbound response size limits",
+          "type": {
+            "name": "ResponseLimitConfigs",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ResponseLimitConfigs",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "SSL/TLS-related options",
+          "type": {
+            "name": "ClientSecureSocket",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientSecureSocket",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "proxy",
+          "description": "Proxy server related options",
+          "type": {
+            "name": "ProxyConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ProxyConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "validation",
+          "description": "Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "OAuth2RefreshConfig",
+      "description": "Google OAuth2 refresh token credentials. The HTTP client exchanges the refresh\ntoken for a short-lived access token and renews it transparently before expiry.\nGet credentials via: `gcloud auth application-default login`\nthen read `~/.config/gcloud/application_default_credentials.json`.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "clientId",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "clientSecret",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "refreshToken",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "refreshUrl",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ServiceAccountConfig",
+      "description": "Google Cloud Service Account credentials for Vertex AI authentication.\nA new signed JWT is built and exchanged for a fresh access token automatically,\n5 minutes before the current token expires. Works for long-running services.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "clientEmail",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "privateKey",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "scopes",
+          "description": "",
+          "type": {
+            "name": "string[] \u0026 readonly"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ServiceAccountJsonFilePath",
+      "description": "Path to a Google Cloud service account JSON key file.\nThe connector reads `client_email` and `private_key` from the file and refreshes\nthe token automatically. Use `ServiceAccountConfig` if you need to override scopes.",
+      "type": "Other"
+    },
+    {
+      "name": "VertexAiAuth",
+      "description": "Authentication configuration for Vertex AI.\n- `OAuth2RefreshConfig` — OAuth2 refresh token flow. HTTP client auto-refreshes forever.\n- `ServiceAccountConfig` — Service account JWT Bearer with inline credentials. Tokens\nre-signed and exchanged automatically before expiry.\n- `ServiceAccountJsonFilePath` — Path to a Google Cloud service account JSON key file.\nUse `ServiceAccountConfig` instead if you need to override scopes.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "ballerinax/ai.googleapis.vertex:1.0.2:OAuth2RefreshConfig",
+          "type": {
+            "name": "OAuth2RefreshConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OAuth2RefreshConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerinax/ai.googleapis.vertex:1.0.2:ServiceAccountConfig",
+          "type": {
+            "name": "ServiceAccountConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ServiceAccountConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerinax/ai.googleapis.vertex:1.0.2:ServiceAccountJsonFilePath",
+          "type": {
+            "name": "ServiceAccountJsonFilePath",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ServiceAccountJsonFilePath"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "VertexAiEmbeddingModelNames",
+      "description": "Embedding model names supported by the Vertex AI embedding provider.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "TEXT_EMBEDDING_004",
+          "description": ""
+        },
+        {
+          "name": "TEXT_MULTILINGUAL_EMBEDDING_002",
+          "description": ""
+        },
+        {
+          "name": "TEXT_EMBEDDING_005",
+          "description": ""
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "name": "EmbeddingProvider",
+      "description": "EmbeddingProvider is a client class that provides an interface for generating\nvector embeddings using Google Vertex AI text embedding models.",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes the Vertex AI embedding provider with the given configuration.\n",
+          "parameters": [
+            {
+              "name": "auth",
+              "description": "Authentication config: `OAuth2RefreshConfig` for OAuth2 refresh token flow,\nor `ServiceAccountConfig` for automatic token refresh via service account",
+              "type": {
+                "name": "VertexAiAuth",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "VertexAiAuth"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "projectId",
+              "description": "The Google Cloud project ID",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "location",
+              "description": "The Google Cloud region (e.g., `\"global\"`)",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"global\""
+            },
+            {
+              "name": "modelType",
+              "description": "The embedding model to use",
+              "type": {
+                "name": "VertexAiEmbeddingModelNames",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "VertexAiEmbeddingModelNames"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "TEXT_EMBEDDING_005"
+            },
+            {
+              "name": "serviceUrl",
+              "description": "The base URL of the Vertex AI API endpoint (defaults to the regional URL)",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "httpVersion",
+              "description": "The HTTP version understood by the client",
+              "type": {
+                "name": "HttpVersion",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "HttpVersion",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "http:HTTP_2_0"
+            },
+            {
+              "name": "http1Settings",
+              "description": "Configurations related to HTTP/1.x protocol",
+              "type": {
+                "name": "ClientHttp1Settings",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ClientHttp1Settings",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "http2Settings",
+              "description": "Configurations related to HTTP/2 protocol",
+              "type": {
+                "name": "ClientHttp2Settings",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ClientHttp2Settings",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "timeout",
+              "description": "The maximum time to wait (in seconds) for a response before closing the connection",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "60"
+            },
+            {
+              "name": "forwarded",
+              "description": "The choice of setting `forwarded`/`x-forwarded` header",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"disable\""
+            },
+            {
+              "name": "poolConfig",
+              "description": "Configurations associated with request pooling",
+              "type": {
+                "name": "PoolConfiguration",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "PoolConfiguration",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "cache",
+              "description": "HTTP caching related configurations",
+              "type": {
+                "name": "CacheConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "CacheConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "compression",
+              "description": "Specifies the way of handling compression (`accept-encoding`) header",
+              "type": {
+                "name": "Compression",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "Compression",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "AUTO"
+            },
+            {
+              "name": "circuitBreaker",
+              "description": "Configurations associated with the behaviour of the Circuit Breaker",
+              "type": {
+                "name": "CircuitBreakerConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "CircuitBreakerConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "retryConfig",
+              "description": "Configurations associated with retrying",
+              "type": {
+                "name": "RetryConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "RetryConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "responseLimits",
+              "description": "Configurations associated with inbound response size limits",
+              "type": {
+                "name": "ResponseLimitConfigs",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ResponseLimitConfigs",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "secureSocket",
+              "description": "SSL/TLS-related options",
+              "type": {
+                "name": "ClientSecureSocket",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ClientSecureSocket",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "proxy",
+              "description": "Proxy server related options",
+              "type": {
+                "name": "ProxyConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ProxyConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "validation",
+              "description": "Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "true"
+            },
+            {
+              "name": "connectionConfig",
+              "description": "Additional HTTP connection configuration",
+              "type": {
+                "name": "ConnectionConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ConnectionConfig"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "`()` on successful initialization; otherwise, returns an `ai:Error`",
+            "type": {
+              "name": "ballerina/ai:1.13.0:Error?"
+            }
+          }
+        },
+        {
+          "name": "embed",
+          "type": "Remote Function",
+          "description": "Converts the given chunk into a vector embedding.\n",
+          "parameters": [
+            {
+              "name": "chunk",
+              "description": "The chunk to convert into an embedding (only `ai:TextChunk` and `ai:TextDocument` are supported)",
+              "type": {
+                "name": "Chunk",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "Chunk",
+                    "libraryName": "ballerina/ai"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "The embedding vector representation on success; `ai:LlmConnectionError` if the HTTP call\nfails; `ai:LlmInvalidResponseError` if the model returns no embeddings;\n`ai:Error` if the chunk type is not supported",
+            "type": {
+              "name": "Vector|SparseVector|HybridVector|Error",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "Vector",
+                  "libraryName": "ballerina/ai"
+                },
+                {
+                  "category": "external",
+                  "recordName": "SparseVector",
+                  "libraryName": "ballerina/ai"
+                },
+                {
+                  "category": "external",
+                  "recordName": "HybridVector",
+                  "libraryName": "ballerina/ai"
+                },
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/ai"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "batchEmbed",
+          "type": "Remote Function",
+          "description": "Converts a batch of chunks into vector embeddings by calling the embed endpoint for each chunk.\nChunks are processed sequentially. On the first failure, processing halts and no partial\nresults are returned. Vertex AI does not expose a native batch embedding endpoint for\nGemini models, so each chunk requires its own HTTP round trip.\n",
+          "parameters": [
+            {
+              "name": "chunks",
+              "description": "The chunks to convert into embeddings (only `ai:TextChunk` and `ai:TextDocument` are supported)",
+              "type": {
+                "name": "Chunk[]",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "Chunk",
+                    "libraryName": "ballerina/ai"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "An array of embedding vectors on success; or an error if ANY single chunk fails",
+            "type": {
+              "name": "Embedding[]|Error",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "Embedding",
+                  "libraryName": "ballerina/ai"
+                },
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/ai"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ModelProvider",
+      "description": "ModelProvider is a client class that provides an interface for interacting with\nmodels hosted on Google Vertex AI, including Google Gemini models and partner\nmodels (Anthropic Claude, Mistral) available through Vertex AI Model Garden.\n\nThe `model` parameter uses `\"publisher/model-name\"` format, which determines both\nthe endpoint path and the wire format used for requests:\n- `\"google/gemini-2.0-flash\"` — Vertex AI `generateContent` API\n- `\"anthropic/claude-sonnet-4-6\"` — Anthropic Messages API via `rawPredict`\n- `\"mistralai/mistral-medium-3\"` — OpenAI-compatible format via `rawPredict`\n- `\"meta/llama-4-maverick-17b-128e-instruct-maas\"` — OpenAI-compatible open-models endpoint\n- `\"deepseek-ai/deepseek-v3-0324\"` — OpenAI-compatible open-models endpoint\n- `\"qwen/qwen3-235b-a22b\"` — OpenAI-compatible open-models endpoint\n- `\"kimi/kimi-k2\"` — OpenAI-compatible open-models endpoint\n- `\"minimax/minimax-m2\"` — OpenAI-compatible open-models endpoint",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes the Vertex AI model provider with the given configuration.\n",
+          "parameters": [
+            {
+              "name": "auth",
+              "description": "Authentication config: `OAuth2RefreshConfig` for OAuth2 refresh token flow,\nor `ServiceAccountConfig` for automatic token refresh via service account",
+              "type": {
+                "name": "VertexAiAuth",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "VertexAiAuth"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "projectId",
+              "description": "The Google Cloud project ID",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "model",
+              "description": "The model in `\"publisher/model-name\"` format, e.g.:\n`\"google/gemini-2.0-flash\"`.",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "location",
+              "description": "The Google Cloud region (e.g., `\"global\",\"us-central1\"`)",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"global\""
+            },
+            {
+              "name": "serviceUrl",
+              "description": "The base URL of the Vertex AI API endpoint. Defaults to the\nregional URL `https://{location}-aiplatform.googleapis.com`",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "maxTokens",
+              "description": "The upper limit for the number of tokens in the model\u0027s response",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "512"
+            },
+            {
+              "name": "temperature",
+              "description": "Controls randomness in the model\u0027s output. Pass `()` to omit\nthe field entirely (required for models that do not accept it)",
+              "type": {
+                "name": "decimal|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "httpVersion",
+              "description": "The HTTP version understood by the client",
+              "type": {
+                "name": "HttpVersion",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "HttpVersion",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "http:HTTP_2_0"
+            },
+            {
+              "name": "http1Settings",
+              "description": "Configurations related to HTTP/1.x protocol",
+              "type": {
+                "name": "ClientHttp1Settings",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ClientHttp1Settings",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "http2Settings",
+              "description": "Configurations related to HTTP/2 protocol",
+              "type": {
+                "name": "ClientHttp2Settings",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ClientHttp2Settings",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "timeout",
+              "description": "The maximum time to wait (in seconds) for a response before closing the connection",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "60"
+            },
+            {
+              "name": "forwarded",
+              "description": "The choice of setting `forwarded`/`x-forwarded` header",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"disable\""
+            },
+            {
+              "name": "poolConfig",
+              "description": "Configurations associated with request pooling",
+              "type": {
+                "name": "PoolConfiguration",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "PoolConfiguration",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "cache",
+              "description": "HTTP caching related configurations",
+              "type": {
+                "name": "CacheConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "CacheConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "compression",
+              "description": "Specifies the way of handling compression (`accept-encoding`) header",
+              "type": {
+                "name": "Compression",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "Compression",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "AUTO"
+            },
+            {
+              "name": "circuitBreaker",
+              "description": "Configurations associated with the behaviour of the Circuit Breaker",
+              "type": {
+                "name": "CircuitBreakerConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "CircuitBreakerConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "retryConfig",
+              "description": "Configurations associated with retrying",
+              "type": {
+                "name": "RetryConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "RetryConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "responseLimits",
+              "description": "Configurations associated with inbound response size limits",
+              "type": {
+                "name": "ResponseLimitConfigs",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ResponseLimitConfigs",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "secureSocket",
+              "description": "SSL/TLS-related options",
+              "type": {
+                "name": "ClientSecureSocket",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ClientSecureSocket",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "proxy",
+              "description": "Proxy server related options",
+              "type": {
+                "name": "ProxyConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ProxyConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "validation",
+              "description": "Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "true"
+            },
+            {
+              "name": "connectionConfig",
+              "description": "Additional HTTP connection configuration",
+              "type": {
+                "name": "ConnectionConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ConnectionConfig"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "`()` on successful initialization; otherwise, returns an `ai:Error`",
+            "type": {
+              "name": "ballerina/ai:1.13.0:Error?"
+            }
+          }
+        },
+        {
+          "name": "chat",
+          "type": "Remote Function",
+          "description": "Sends a chat request to the model. The request is routed to the correct\npublisher-specific endpoint and serialised using the appropriate wire format.\n",
+          "parameters": [
+            {
+              "name": "messages",
+              "description": "List of chat messages or a single user message",
+              "type": {
+                "name": "ChatMessage[]|ChatUserMessage",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ChatMessage",
+                    "libraryName": "ballerina/ai"
+                  },
+                  {
+                    "category": "external",
+                    "recordName": "ChatUserMessage",
+                    "libraryName": "ballerina/ai"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "tools",
+              "description": "Tool definitions to be used for tool calling",
+              "type": {
+                "name": "ChatCompletionFunctions[]",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ChatCompletionFunctions",
+                    "libraryName": "ballerina/ai"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "[]"
+            },
+            {
+              "name": "stop",
+              "description": "Stop sequence to stop the completion",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "The assistant\u0027s response, or an error if the request fails",
+            "type": {
+              "name": "ChatAssistantMessage|Error",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "ChatAssistantMessage",
+                  "libraryName": "ballerina/ai"
+                },
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/ai"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "generate",
+          "type": "Remote Function",
+          "description": "Sends a prompt to the model and generates a value of the type specified by\nthe `td` type descriptor. Supports all publishers (Gemini, Anthropic, Mistral).\n",
+          "parameters": [
+            {
+              "name": "prompt",
+              "description": "The prompt to use",
+              "type": {
+                "name": "Prompt",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "Prompt",
+                    "libraryName": "ballerina/ai"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "td",
+              "description": "Type descriptor specifying the expected return type format",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "Generates a value that belongs to the type, or an error if generation fails",
+            "type": {
+              "name": "td|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "td"
+                },
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/ai"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "functions": [],
+  "services": [],
+  "annotations": []
+}

@@ -1,0 +1,1207 @@
+{
+  "name": "ballerinax/sap",
+  "description": "[SAP](https://www.sap.com/index.html) is a global leader in enterprise resource planning (ERP) software. Beyond ERP, SAP offers a diverse range of solutions including human capital management (HCM), customer relationship management (CRM), enterprise performance management (EPM), product lifecycle management (PLM), supplier relationship management (SRM), supply chain management (SCM), and business technology platform (BTP).",
+  "readme": "## Overview\n\n[SAP](https://www.sap.com/index.html) is a global leader in enterprise resource planning (ERP) software. Beyond ERP, SAP offers a diverse range of solutions including human capital management (HCM), customer relationship management (CRM), enterprise performance management (EPM), product lifecycle management (PLM), supplier relationship management (SRM), supply chain management (SCM), and business technology platform (BTP).\n\nThe SAP connector provides an HTTP client for interfacing with APIs across SAP\u0027s product suite. This client comes with built-in SAP system-compliant CSRF token authentication.\n\n### Key Features\n\n- Built-in CSRF token authentication support\n- Seamless integration with various SAP product APIs\n- Efficient handling of HTTP-based SAP service communications\n- Support for complex SAP business object interactions\n\n## Setup guide\n\nIn this guide, we\u0027ll be utilizing the `S/4HANA` Sales Order API to showcase the capabilities of the SAP Client.\n\n### Step 1: Login\n\n1. Sign in to your S/4HANA dashboard.\n\n### Step 2: Create a Communication System\n\n1. Under the `Communication Management` section, click on the `Display Communications Scenario` title.\n\n   ![Communication Systems](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-sap/main/docs/setup/2-1-communications-system.png)\n\n2. In the top right corner of the screen, click `New`.\n\n   ![Click New](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-sap/main/docs/setup/2-2-create-new.png)\n\n3. Give a system id.\n\n   ![System Id](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-sap/main/docs/setup/2-3-system-id.png)\n\n4. Give the hostname as your S/4HANA hostname.\n\n   ![Give Hostname](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-sap/main/docs/setup/2-4-give-hostname.png)\n\n5. Add `Users` for `Inbound Communication`.\n\n   ![Add User](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-sap/main/docs/setup/2-5-add-user.png)\n\n6. Select the `Authentication Method` and `User`.\n\n   ![Select User](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-sap/main/docs/setup/2-6-select-user.png)\n\n7. Click Save.\n\n### Step 3: Create a Communication Arrangement\n\n1. Under the `Communication Management` section, click on the `Display Communications Scenario` title.\n\n   ![Display Scenarios](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-sap/main/docs/setup/3-1-display-scenarios.png)\n\n2. In the search bar, type `Sales Order Integration` and select the corresponding scenario from the results.\n\n   ![Search Sales Order](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-sap/main/docs/setup/3-2-search-sales-order.png)\n\n3. In the top right corner of the screen, click on `Create Communication Arrangement`.\n\n   ![Click Create Arrangement](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-sap/main/docs/setup/3-3-click-create-arrangement.png)\n\n4. Enter a unique name for the arrangement.\n\n   ![Give Arrangement Name](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-sap/main/docs/setup/3-4-give-arrangement-name.png)\n\n5. Choose an existing `Communication System` from the dropdown menu and save your arrangement.\n\n   ![Select Existing Communication Arrangement](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-sap/main/docs/setup/3-5-select-communication-system.png)\n\n6. The hostname (`\u003cunique id\u003e-api.s4hana.cloud.sap`) will be displayed in the top right corner of the screen.\n\n   ![View Hostname](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-sap/main/docs/setup/3-6-view-hostname.png)\n\n## Quickstart\n\nTo use the `sap` connector in your Ballerina application, modify the `.bal` file as follows:\n\n### Step 1: Import the module\n\nImport the `sap` module.\n\n```ballerina\nimport ballerinax/sap;\n```\n\n### Step 2: Instantiate a new connector\n\n```ballerina\nconfigurable string hostname \u003d ?;\nconfigurable string username \u003d ?;\nconfigurable string password \u003d ?;\n\nsap:Client sapClient \u003d check new (string `https://${hostname}/sap/opu/odata/sap/API_SALES_ORDER_SRV`, {\n    auth: {\n        username,\n        password\n    }\n});\n```\n\n### Step 3: Invoke the connector operation\n\nNow, utilize the available connector operations.\n\n```ballerina\njson salesOrderList \u003d check sapClient-\u003e/A_SalesOrder();\n```\n\n### Step 4: Run the Ballerina application\n\n```bash\nbal run\n```\n\n## Examples\n\nThe `sap` connector provides practical examples illustrating usage in various scenarios. Explore\nthese [examples](https://github.com/ballerina-platform/module-ballerinax-sap/tree/master/examples), covering use cases\nlike accessing S/4HANA Sales Order (A2X) API.\n\n1. [Send a reminder on approval of pending orders](https://github.com/ballerina-platform/module-ballerinax-sap/tree/main/examples/pending-order-reminder) -\n   This example illustrates the use of the `sap:Client` in Ballerina to interact with S/4HANA APIs. Specifically, it\n   demonstrates how to send a reminder email for sales orders that are pending approval.\n",
+  "typeDefs": [
+    {
+      "name": "ClientError",
+      "description": "Defines the possible client error types.",
+      "type": "Error"
+    },
+    {
+      "name": "CSRFTokenFetchFailure",
+      "description": "Represents an error, which occured due to a CSRF token fetch failure.",
+      "type": "Error"
+    },
+    {
+      "name": "TargetType",
+      "description": "The `sap` client return type for the HTTP client actions.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "ballerina/http:2.16.6:Response",
+          "type": {
+            "name": "Response",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Response",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          }
+        },
+        {
+          "name": "anydata",
+          "type": {
+            "name": "anydata"
+          }
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "name": "Client",
+      "description": "The `sap` client provides the capability for initiating contact with a remote HTTP service provided by any SAP products. The API it\nprovides includes the functions for the standard HTTP methods.",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Gets invoked to initialize the `client`. During initialization, the configurations provided through the `config`\nrecord is used to determine which type of additional behaviours are added to the endpoint (e.g.\nsecurity, circuit breaking). Caching is enabled always.\n",
+          "parameters": [
+            {
+              "name": "url",
+              "description": "URL of the target service",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "config",
+              "description": "The configurations to be used when initializing the `client`",
+              "type": {
+                "name": "ClientConfiguration",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ClientConfiguration",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "The `client` or an `sap:ClientError` if the initialization failed",
+            "type": {
+              "name": "ballerinax/sap:1.3.1:ClientError?"
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "The client resource function to send HTTP POST requests to SAP HTTP endpoints.\n",
+          "accessor": "post",
+          "paths": [
+            {
+              "name": "path",
+              "type": "..."
+            }
+          ],
+          "parameters": [
+            {
+              "name": "message",
+              "description": "An HTTP outbound request or any allowed payload",
+              "type": {
+                "name": "RequestMessage",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "RequestMessage",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "The entity headers",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "mediaType",
+              "description": "The MIME type header of the request entity",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "targetType",
+              "description": "HTTP response or `anydata`, which is expected to be returned after data binding",
+              "type": {
+                "name": "TargetType",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "TargetType"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "sap:TargetType"
+            },
+            {
+              "name": "Additional Values",
+              "description": "Capture key value pairs",
+              "type": {
+                "name": "QueryParamType",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "QueryParamType",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true
+            },
+            {
+              "name": "params",
+              "description": "The query parameters",
+              "type": {
+                "name": "QueryParams",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "QueryParams",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "The response or the payload (if the `targetType` is configured) or an `sap:ClientError` if failed to\nestablish the communication with the upstream server or a data binding failure",
+            "type": {
+              "name": "targetType|ClientError",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "targetType"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "ClientError"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "post",
+          "type": "Remote Function",
+          "description": "The `Client.post()` function can be used to send HTTP POST requests to SAP HTTP endpoints.\n",
+          "parameters": [
+            {
+              "name": "path",
+              "description": "Resource path",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "message",
+              "description": "An HTTP outbound request or any allowed payload",
+              "type": {
+                "name": "RequestMessage",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "RequestMessage",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "The entity headers",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "mediaType",
+              "description": "The MIME type header of the request entity",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "targetType",
+              "description": "HTTP response or `anydata`, which is expected to be returned after data binding",
+              "type": {
+                "name": "TargetType",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "TargetType"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "sap:TargetType"
+            }
+          ],
+          "return": {
+            "description": "The response or the payload (if the `targetType` is configured) or an `sap:ClientError` if failed to\nestablish the communication with the upstream server or a data binding failure",
+            "type": {
+              "name": "targetType|ClientError",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "targetType"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "ClientError"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "The client resource function to send HTTP PUT requests to SAP HTTP endpoints.\n",
+          "accessor": "put",
+          "paths": [
+            {
+              "name": "path",
+              "type": "..."
+            }
+          ],
+          "parameters": [
+            {
+              "name": "message",
+              "description": "An HTTP outbound request or any allowed payload",
+              "type": {
+                "name": "RequestMessage",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "RequestMessage",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "The entity headers",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "mediaType",
+              "description": "The MIME type header of the request entity",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "targetType",
+              "description": "HTTP response or `anydata`, which is expected to be returned after data binding",
+              "type": {
+                "name": "TargetType",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "TargetType"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "sap:TargetType"
+            },
+            {
+              "name": "Additional Values",
+              "description": "Capture key value pairs",
+              "type": {
+                "name": "QueryParamType",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "QueryParamType",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true
+            },
+            {
+              "name": "params",
+              "description": "The query parameters",
+              "type": {
+                "name": "QueryParams",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "QueryParams",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "The response or the payload (if the `targetType` is configured) or an `sap:ClientError` if failed to\nestablish the communication with the upstream server or a data binding failure",
+            "type": {
+              "name": "targetType|ClientError",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "targetType"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "ClientError"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "put",
+          "type": "Remote Function",
+          "description": "The `Client.put()` function can be used to send HTTP PUT requests to SAP HTTP endpoints.\n",
+          "parameters": [
+            {
+              "name": "path",
+              "description": "Resource path",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "message",
+              "description": "An HTTP outbound request or any allowed payload",
+              "type": {
+                "name": "RequestMessage",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "RequestMessage",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "The entity headers",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "mediaType",
+              "description": "The MIME type header of the request entity",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "targetType",
+              "description": "HTTP response or `anydata`, which is expected to be returned after data binding",
+              "type": {
+                "name": "TargetType",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "TargetType"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "sap:TargetType"
+            }
+          ],
+          "return": {
+            "description": "The response or the payload (if the `targetType` is configured) or an `sap:ClientError` if failed to\nestablish the communication with the upstream server or a data binding failure",
+            "type": {
+              "name": "targetType|ClientError",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "targetType"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "ClientError"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "The client resource function to send HTTP PATCH requests to SAP HTTP endpoints.\n",
+          "accessor": "patch",
+          "paths": [
+            {
+              "name": "path",
+              "type": "..."
+            }
+          ],
+          "parameters": [
+            {
+              "name": "message",
+              "description": "An HTTP outbound request or any allowed payload",
+              "type": {
+                "name": "RequestMessage",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "RequestMessage",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "The entity headers",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "mediaType",
+              "description": "The MIME type header of the request entity",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "targetType",
+              "description": "HTTP response or `anydata`, which is expected to be returned after data binding",
+              "type": {
+                "name": "TargetType",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "TargetType"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "sap:TargetType"
+            },
+            {
+              "name": "Additional Values",
+              "description": "Capture key value pairs",
+              "type": {
+                "name": "QueryParamType",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "QueryParamType",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true
+            },
+            {
+              "name": "params",
+              "description": "The query parameters",
+              "type": {
+                "name": "QueryParams",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "QueryParams",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "The response or the payload (if the `targetType` is configured) or an `sap:ClientError` if failed to\nestablish the communication with the upstream server or a data binding failure",
+            "type": {
+              "name": "targetType|ClientError",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "targetType"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "ClientError"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "patch",
+          "type": "Remote Function",
+          "description": "The `Client.patch()` function can be used to send HTTP PATCH requests to SAP HTTP endpoints.\n",
+          "parameters": [
+            {
+              "name": "path",
+              "description": "Resource path",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "message",
+              "description": "An HTTP outbound request or any allowed payload",
+              "type": {
+                "name": "RequestMessage",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "RequestMessage",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "The entity headers",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "mediaType",
+              "description": "The MIME type header of the request entity",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "targetType",
+              "description": "HTTP response or `anydata`, which is expected to be returned after data binding",
+              "type": {
+                "name": "TargetType",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "TargetType"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "sap:TargetType"
+            }
+          ],
+          "return": {
+            "description": "The response or the payload (if the `targetType` is configured) or an `sap:ClientError` if failed to\nestablish the communication with the upstream server or a data binding failure",
+            "type": {
+              "name": "targetType|ClientError",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "targetType"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "ClientError"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "The client resource function to send HTTP DELETE requests to SAP HTTP endpoints.\n",
+          "accessor": "delete",
+          "paths": [
+            {
+              "name": "path",
+              "type": "..."
+            }
+          ],
+          "parameters": [
+            {
+              "name": "message",
+              "description": "An optional HTTP outbound request or any allowed payload",
+              "type": {
+                "name": "RequestMessage",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "RequestMessage",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "headers",
+              "description": "The entity headers",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "mediaType",
+              "description": "The MIME type header of the request entity",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "targetType",
+              "description": "HTTP response or `anydata`, which is expected to be returned after data binding",
+              "type": {
+                "name": "TargetType",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "TargetType"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "sap:TargetType"
+            },
+            {
+              "name": "Additional Values",
+              "description": "Capture key value pairs",
+              "type": {
+                "name": "QueryParamType",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "QueryParamType",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true
+            },
+            {
+              "name": "params",
+              "description": "The query parameters",
+              "type": {
+                "name": "QueryParams",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "QueryParams",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "The response or the payload (if the `targetType` is configured) or an `sap:ClientError` if failed to\nestablish the communication with the upstream server or a data binding failure",
+            "type": {
+              "name": "targetType|ClientError",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "targetType"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "ClientError"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "delete",
+          "type": "Remote Function",
+          "description": "The `Client.delete()` function can be used to send HTTP DELETE requests to SAP HTTP endpoints.\n",
+          "parameters": [
+            {
+              "name": "path",
+              "description": "Resource path",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "message",
+              "description": "An optional HTTP outbound request message or any allowed payload",
+              "type": {
+                "name": "RequestMessage",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "RequestMessage",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "headers",
+              "description": "The entity headers",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "mediaType",
+              "description": "The MIME type header of the request entity",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "targetType",
+              "description": "HTTP response or `anydata`, which is expected to be returned after data binding",
+              "type": {
+                "name": "TargetType",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "TargetType"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "sap:TargetType"
+            }
+          ],
+          "return": {
+            "description": "The response or the payload (if the `targetType` is configured) or an `sap:ClientError` if failed to\nestablish the communication with the upstream server or a data binding failure",
+            "type": {
+              "name": "targetType|ClientError",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "targetType"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "ClientError"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "The client resource function to send HTTP HEAD requests to SAP HTTP endpoints.\n",
+          "accessor": "head",
+          "paths": [
+            {
+              "name": "path",
+              "type": "..."
+            }
+          ],
+          "parameters": [
+            {
+              "name": "headers",
+              "description": "The entity headers",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "Additional Values",
+              "description": "Capture key value pairs",
+              "type": {
+                "name": "QueryParamType",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "QueryParamType",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true
+            },
+            {
+              "name": "params",
+              "description": "The query parameters",
+              "type": {
+                "name": "QueryParams",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "QueryParams",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "The response or an `sap:ClientError` if failed to establish the communication with the upstream server",
+            "type": {
+              "name": "Response|ClientError",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "Response",
+                  "libraryName": "ballerina/http"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "ClientError"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "head",
+          "type": "Remote Function",
+          "description": "The `Client.head()` function can be used to send HTTP HEAD requests to SAP HTTP endpoints.\n",
+          "parameters": [
+            {
+              "name": "path",
+              "description": "Resource path",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "The entity headers",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "The response or an `sap:ClientError` if failed to establish the communication with the upstream server",
+            "type": {
+              "name": "Response|ClientError",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "Response",
+                  "libraryName": "ballerina/http"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "ClientError"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "The client resource function to send HTTP GET requests to SAP HTTP endpoints.\n",
+          "accessor": "get",
+          "paths": [
+            {
+              "name": "path",
+              "type": "..."
+            }
+          ],
+          "parameters": [
+            {
+              "name": "headers",
+              "description": "The entity headers",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "targetType",
+              "description": "HTTP response or `anydata`, which is expected to be returned after data binding",
+              "type": {
+                "name": "TargetType",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "TargetType"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "sap:TargetType"
+            },
+            {
+              "name": "Additional Values",
+              "description": "Capture key value pairs",
+              "type": {
+                "name": "QueryParamType",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "QueryParamType",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true
+            },
+            {
+              "name": "params",
+              "description": "The query parameters",
+              "type": {
+                "name": "QueryParams",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "QueryParams",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "The response or the payload (if the `targetType` is configured) or an `sap:ClientError` if failed to\nestablish the communication with the upstream server or a data binding failure",
+            "type": {
+              "name": "targetType|ClientError",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "targetType"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "ClientError"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "get",
+          "type": "Remote Function",
+          "description": "The `Client.get()` function can be used to send HTTP GET requests to SAP HTTP endpoints.\n",
+          "parameters": [
+            {
+              "name": "path",
+              "description": "Request path",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "The entity headers",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "targetType",
+              "description": "HTTP response or `anydata`, which is expected to be returned after data binding",
+              "type": {
+                "name": "TargetType",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "TargetType"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "sap:TargetType"
+            }
+          ],
+          "return": {
+            "description": "The response or the payload (if the `targetType` is configured) or an `sap:ClientError` if failed to\nestablish the communication with the upstream server or a data binding failure",
+            "type": {
+              "name": "targetType|ClientError",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "targetType"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "ClientError"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "The client resource function to send HTTP OPTIONS requests to SAP HTTP endpoints.\n",
+          "accessor": "options",
+          "paths": [
+            {
+              "name": "path",
+              "type": "..."
+            }
+          ],
+          "parameters": [
+            {
+              "name": "headers",
+              "description": "The entity headers",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "targetType",
+              "description": "HTTP response or `anydata`, which is expected to be returned after data binding",
+              "type": {
+                "name": "TargetType",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "TargetType"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "sap:TargetType"
+            },
+            {
+              "name": "Additional Values",
+              "description": "Capture key value pairs",
+              "type": {
+                "name": "QueryParamType",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "QueryParamType",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true
+            },
+            {
+              "name": "params",
+              "description": "The query parameters",
+              "type": {
+                "name": "QueryParams",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "QueryParams",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "The response or the payload (if the `targetType` is configured) or an `sap:ClientError` if failed to\nestablish the communication with the upstream server or a data binding failure",
+            "type": {
+              "name": "targetType|ClientError",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "targetType"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "ClientError"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "options",
+          "type": "Remote Function",
+          "description": "The `Client.options()` function can be used to send HTTP OPTIONS requests to SAP HTTP endpoints.\n",
+          "parameters": [
+            {
+              "name": "path",
+              "description": "Request path",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "The entity headers",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "targetType",
+              "description": "HTTP response or `anydata`, which is expected to be returned after data binding",
+              "type": {
+                "name": "TargetType",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "TargetType"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "sap:TargetType"
+            }
+          ],
+          "return": {
+            "description": "The response or the payload (if the `targetType` is configured) or an `sap:ClientError` if failed to\nestablish the communication with the upstream server or a data binding failure",
+            "type": {
+              "name": "targetType|ClientError",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "targetType"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "ClientError"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "functions": [],
+  "services": [],
+  "annotations": []
+}

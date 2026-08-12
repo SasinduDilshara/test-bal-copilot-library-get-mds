@@ -1,0 +1,4288 @@
+{
+  "name": "ballerina/mcp",
+  "description": "This module offers APIs for developing MCP (Model Context Protocol) clients and servers in Ballerina.",
+  "readme": "## Overview\n\nThis module offers APIs for developing MCP (Model Context Protocol) clients and servers in Ballerina.\n\nMCP is an open standard that enables seamless integration between Large Language Models (LLMs) and external data sources, tools, and services. It facilitates structured communication through JSON-RPC 2.0 over HTTP transport, allowing AI applications to access and interact with external capabilities in a standardized way. This module provides both client-side APIs for consuming MCP services and server-side APIs for exposing tools and capabilities to AI applications.\n\n## Quickstart\n\nTo use the `mcp` module in your Ballerina application, update the `.bal` file as follows:\n\n### MCP Server Implementation\n\n#### Step 1: Import the module\n\nImport the `mcp` module.\n\n```ballerina\nimport ballerina/mcp;\n```\n\n#### Step 2: Initialize the MCP Listener\n\nCreate an MCP listener to expose tools to AI applications:\n\n```ballerina\nlistener mcp:Listener mcpListener \u003d check new (9090);\n```\n\n#### Step 3: Create the MCP Service\n\nCreate an MCP service using the Basic Service pattern with automatic tool discovery. Server information and session management can be configured using the `@mcp:ServiceConfig` annotation. If not provided, default values are used:\n\n```ballerina\n@mcp:ServiceConfig {\n    info: {\n        name: \"MCP Weather Server\",\n        version: \"1.0.0\"\n    },\n    // Optional: Configure session management mode\n    sessionMode: mcp:AUTO  // STATEFUL, STATELESS, or AUTO (default)\n}\nservice mcp:Service /mcp on mcpListener {\n\n    @mcp:Tool {\n        description: \"Get current weather conditions for a location\"\n    }\n    remote function getCurrentWeather(string city) returns Weather|error {\n        return {\n            location: city,\n            temperature: 22.5,\n            condition: \"Sunny\"\n        };\n    }\n\n    # Get weather forecast for multiple days\n    #\n    # + location - The location for which to retrieve the weather forecast\n    # + days - Number of days to include in the forecast\n    # + return - Weather forecast data for the specified location and duration, or an error if the request fails\n    remote function getWeatherForecast(string location, int days) returns WeatherForecast|error {\n        // Implementation logic\n        return {\n            location: location,\n            forecast: []\n        };\n    }\n}\n```\n\n**Session Management Modes:**\n\nMCP services support three session management modes:\n\n- **`STATEFUL`**: Sessions are managed by the transport. Clients must initialize and maintain session IDs. Use this for services that need to track client state.\n- **`STATELESS`**: No session management. Each request is independent. Ideal for simple, stateless services.\n- **`AUTO`** (default): Automatically determined based on client initialization behavior. Recommended for most use cases.\n\n**Stateless Example:**\n```ballerina\n@mcp:ServiceConfig {\n    info: {\n        name: \"Calculator Service\",\n        version: \"1.0.0\"\n    },\n    sessionMode: mcp:STATELESS\n}\nservice mcp:Service /mcp on mcpListener {\n    @mcp:Tool\n    remote function add(int a, int b) returns int {\n        return a + b;\n    }\n}\n```\n\n**Advanced Configuration Example:**\n```ballerina\n@mcp:ServiceConfig {\n    info: {\n        name: \"Advanced MCP Server\",\n        version: \"1.0.0\"\n    },\n    sessionMode: mcp:STATEFUL,\n    // Optional HTTP configuration\n    httpConfig: {\n        cors: {\n            allowOrigins: [\"http://localhost:3000\"],\n            allowCredentials: true\n        }\n    },\n    options: {\n        instructions: \"This server provides advanced mathematical operations with session support.\"\n    }\n}\nservice mcp:Service /mcp on mcpListener {\n    // Service implementation...\n}\n```\n\n**Constraints for defining MCP tools:**\n\n1. Parameters should be a subtype of `anydata` (exception: first parameter can be `mcp:Session` for stateful services).\n2. The tool should return a subtype of `anydata|error`.\n3. The `@mcp:Tool` annotation is not required unless you want fine-grained control. If the annotation is not provided, the documentation string will be considered as the description.\n4. For session-enabled tools, the `mcp:Session` parameter must be the first parameter if present.\n\n#### Step 4: Advanced Service Implementation (Optional)\n\nFor more control over tool management, use the Advanced Service pattern:\n\n```ballerina\nservice mcp:AdvancedService /mcp on mcpListener {\n    \n    remote isolated function onListTools() returns mcp:ListToolsResult|mcp:ServerError {\n        return {\n            tools: [\n                {\n                    name: \"getCurrentWeather\",\n                    description: \"Get current weather conditions\",\n                    inputSchema: {\n                        \"type\": \"object\",\n                        \"properties\": {\n                            \"city\": {\"type\": \"string\"},\n                            \"country\": {\"type\": \"string\"}\n                        },\n                        \"required\": [\"city\"]\n                    }\n                }\n            ]\n        };\n    }\n    \n    remote isolated function onCallTool(mcp:CallToolParams params) returns mcp:CallToolResult|mcp:ServerError {\n        match params.name {\n            \"getCurrentWeather\" \u003d\u003e {\n                return {\n                    content: [\n                        {\n                            \u0027type: \"text\",\n                            text: \"Weather data here\"\n                        }\n                    ]\n                };\n            }\n            _ \u003d\u003e {\n                return error mcp:ServerError(string `Unknown tool: ${params.name}`);\n            }\n        }\n    }\n}\n```\n\n### MCP Client Implementation\n\n#### Step 1: Import the module\n\nImport the `mcp` module.\n\n```ballerina\nimport ballerina/mcp;\n```\n\n#### Step 2: Initialize the MCP Client\n\nCreate an MCP client to connect to an external MCP server:\n\n```ballerina\nfinal mcp:StreamableHttpClient mcpClient \u003d check new (\"http://localhost:3000/mcp\");\n```\n\n#### Step 3: Initialize Connection and Discover Tools\n\nInitialize the connection with client information and discover available tools:\n\n```ballerina\npublic function main() returns error? {\n    // Initialize the client with implementation info\n    check mcpClient-\u003einitialize({\n        name: \"My MCP Client\",\n        version: \"1.0.0\"\n    });\n\n    // List available tools\n    mcp:ListToolsResult toolsResult \u003d check mcpClient-\u003elistTools();\n    foreach mcp:ToolDefinition tool in toolsResult.tools {\n        io:println(string `Available tool: ${tool.name} - ${tool.description ?: \"\"}`);\n    }\n}\n```\n\n#### Step 4: Invoke Tools\n\nCall specific tools with parameters and optional custom headers:\n\n```ballerina\npublic function main() returns error? {\n    // Call a specific tool with optional custom headers\n    mcp:CallToolResult result \u003d check mcpClient-\u003ecallTool({\n        name: \"getCurrentWeather\",\n        arguments: {\n            city: \"London\",\n            country: \"UK\"\n        }\n    }, {\n        \"X-Request-ID\": \"req-12345\",\n        \"Authorization\": \"Bearer token123\"\n    });\n\n    io:println(\"Tool result: \" + result.toString());\n\n    // Close connection\n    check mcpClient-\u003eclose();\n}\n```\n\n#### Step 5: Handle Client Configuration (Optional)\n\nConfigure the client with additional capabilities and custom headers:\n\n```ballerina\n// Create client with custom configuration\nmcp:StreamableHttpClientTransportConfig config \u003d {\n    timeout: 30,\n    followRedirects: {enabled: true}\n};\nfinal mcp:StreamableHttpClient mcpClient \u003d check new (\"http://localhost:3000/mcp\", config);\n\npublic function main() returns error? {\n    // Initialize with client info, capabilities, and optional custom headers\n    check mcpClient-\u003einitialize(\n        {\n            name: \"Advanced MCP Client\",\n            version: \"1.0.0\"\n        },\n        {\n            roots: {\n                listChanged: true\n            }\n        },\n        {\n            \"X-Custom-Header\": \"custom-value\"\n        }\n    );\n}\n```\n\n## Examples\n\nThe `mcp` module provides practical examples illustrating usage in various scenarios. Explore these examples in the [examples directory](https://github.com/ballerina-platform/module-ballerina-mcp/tree/main/examples/), covering the following use cases:\n\n### Server Examples\n1. [Weather MCP Server](https://github.com/ballerina-platform/module-ballerina-mcp/tree/main/examples/servers/mcp-weather-server) - Demonstrates the Basic Service pattern with AUTO session mode for weather-related tools\n2. [Crypto MCP Server](https://github.com/ballerina-platform/module-ballerina-mcp/tree/main/examples/servers/mcp-crypto-server) - Shows the Advanced Service pattern with STATELESS session mode for cryptographic operations\n3. [Shopping Cart Server](https://github.com/ballerina-platform/module-ballerina-mcp/tree/main/examples/servers/mcp-shopping-server) - Demonstrates STATEFUL session mode with persistent shopping cart functionality across session interactions\n\n### Client Examples\n1. [Weather Client Demo](https://github.com/ballerina-platform/module-ballerina-mcp/tree/main/examples/clients/mcp-weather-client-demo) - Shows how to build an MCP client that discovers and invokes weather tools\n2. [Crypto Client Demo](https://github.com/ballerina-platform/module-ballerina-mcp/tree/main/examples/clients/mcp-crypto-client-demo) - Demonstrates client interaction with cryptographic MCP services\n3. [Shopping Client Demo](https://github.com/ballerina-platform/module-ballerina-mcp/tree/main/examples/clients/mcp-shopping-client-demo) - Shows session-based client usage with parallel session execution for stateful services\n",
+  "typeDefs": [
+    {
+      "name": "LATEST_PROTOCOL_VERSION",
+      "description": "",
+      "type": "Constant",
+      "value": "2025-11-25",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "SUPPORTED_PROTOCOL_VERSIONS",
+      "description": "",
+      "type": "Constant",
+      "value": "[2025-11-25, 2025-06-18, 2025-03-26, 2024-11-05, 2024-10-07]",
+      "varType": {
+        "name": "intersection"
+      }
+    },
+    {
+      "name": "JSONRPC_VERSION",
+      "description": "",
+      "type": "Constant",
+      "value": "2.0",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "REQUEST_INITIALIZE",
+      "description": "Initialize request to start a new MCP session",
+      "type": "Constant",
+      "value": "initialize",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "REQUEST_LIST_TOOLS",
+      "description": "Request to list all available tools from the server",
+      "type": "Constant",
+      "value": "tools/list",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "REQUEST_CALL_TOOL",
+      "description": "Request to execute a specific tool with given parameters",
+      "type": "Constant",
+      "value": "tools/call",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "STATEFUL",
+      "description": "Stateful mode - sessions are managed by the transport",
+      "type": "Constant",
+      "value": "stateful",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "STATELESS",
+      "description": "Stateless mode - no session management",
+      "type": "Constant",
+      "value": "stateless",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "AUTO",
+      "description": "Automatic mode - determined based on client initialization",
+      "type": "Constant",
+      "value": "auto",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "NOTIFICATION_INITIALIZED",
+      "description": "Notification sent by client to indicate successful initialization",
+      "type": "Constant",
+      "value": "notifications/initialized",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "PARSE_ERROR",
+      "description": "Standard JSON-RPC 2.0 error code indicating that the JSON sent is not a valid JSON object.",
+      "type": "Constant",
+      "value": "-32700",
+      "varType": {
+        "name": "int"
+      }
+    },
+    {
+      "name": "INVALID_REQUEST",
+      "description": "Standard JSON-RPC 2.0 error code indicating that the JSON sent is not a valid request object.",
+      "type": "Constant",
+      "value": "-32600",
+      "varType": {
+        "name": "int"
+      }
+    },
+    {
+      "name": "METHOD_NOT_FOUND",
+      "description": "Standard JSON-RPC 2.0 error code indicating that the method does not exist or is not available.",
+      "type": "Constant",
+      "value": "-32601",
+      "varType": {
+        "name": "int"
+      }
+    },
+    {
+      "name": "INVALID_PARAMS",
+      "description": "Standard JSON-RPC 2.0 error code indicating that invalid method parameters were provided.",
+      "type": "Constant",
+      "value": "-32602",
+      "varType": {
+        "name": "int"
+      }
+    },
+    {
+      "name": "INTERNAL_ERROR",
+      "description": "Standard JSON-RPC 2.0 error code indicating that an internal error occurred on the server.",
+      "type": "Constant",
+      "value": "-32603",
+      "varType": {
+        "name": "int"
+      }
+    },
+    {
+      "name": "NOT_ACCEPTABLE",
+      "description": "MCP library-defined error code indicating that the request is not acceptable.",
+      "type": "Constant",
+      "value": "-32001",
+      "varType": {
+        "name": "int"
+      }
+    },
+    {
+      "name": "UNSUPPORTED_MEDIA_TYPE",
+      "description": "MCP library-defined error code indicating that the media type is not supported.",
+      "type": "Constant",
+      "value": "-32002",
+      "varType": {
+        "name": "int"
+      }
+    },
+    {
+      "name": "TASK_SUPPORT_FORBIDDEN",
+      "description": "Task-augmented execution is not allowed for this tool.",
+      "type": "Constant",
+      "value": "forbidden",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "TASK_SUPPORT_OPTIONAL",
+      "description": "Task-augmented execution is allowed but not required for this tool.",
+      "type": "Constant",
+      "value": "optional",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "TASK_SUPPORT_REQUIRED",
+      "description": "Task-augmented execution is required for this tool.",
+      "type": "Constant",
+      "value": "required",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "Error",
+      "description": "Defines the common base error type for this module.",
+      "type": "Error"
+    },
+    {
+      "name": "ClientError",
+      "description": "Error for failures occurring within client operations.",
+      "type": "Error"
+    },
+    {
+      "name": "StreamError",
+      "description": "Error for failures during streaming operations.",
+      "type": "Error"
+    },
+    {
+      "name": "TransportError",
+      "description": "Error for failures during transport operations.",
+      "type": "Error"
+    },
+    {
+      "name": "ServerResponseError",
+      "description": "Error for invalid or unexpected responses from the server.",
+      "type": "Error"
+    },
+    {
+      "name": "SseEventStreamError",
+      "description": "Error for failures while processing SSE event streams.",
+      "type": "Error"
+    },
+    {
+      "name": "JsonRpcMessageTransformationError",
+      "description": "Error for JSON-RPC message transformation failures during streaming.",
+      "type": "Error"
+    },
+    {
+      "name": "MissingSseDataError",
+      "description": "Error when required data is missing from an SSE event.",
+      "type": "Error"
+    },
+    {
+      "name": "TypeConversionError",
+      "description": "Error for failures converting JSON to JsonRpcMessage.",
+      "type": "Error"
+    },
+    {
+      "name": "InvalidMessageTypeError",
+      "description": "Error when an invalid message type is received from the server.",
+      "type": "Error"
+    },
+    {
+      "name": "MalformedResponseError",
+      "description": "Error when the server response is malformed or unexpected.",
+      "type": "Error"
+    },
+    {
+      "name": "StreamableHttpTransportError",
+      "description": "Error for failures during HTTP transport operations.",
+      "type": "Error"
+    },
+    {
+      "name": "HttpClientError",
+      "description": "Error for failures during HTTP client operations.",
+      "type": "Error"
+    },
+    {
+      "name": "UnsupportedContentTypeError",
+      "description": "Error for unsupported content types in HTTP responses.",
+      "type": "Error"
+    },
+    {
+      "name": "SessionOperationError",
+      "description": "Error for failures during session operations.",
+      "type": "Error"
+    },
+    {
+      "name": "ResponseParsingError",
+      "description": "Error for failures while parsing HTTP response content.",
+      "type": "Error"
+    },
+    {
+      "name": "SseStreamEstablishmentError",
+      "description": "Error for failures during SSE stream establishment.",
+      "type": "Error"
+    },
+    {
+      "name": "UninitializedTransportError",
+      "description": "Error for operations attempted before transport initialization.",
+      "type": "Error"
+    },
+    {
+      "name": "ClientInitializationError",
+      "description": "Error for failures during client initialization.",
+      "type": "Error"
+    },
+    {
+      "name": "ProtocolVersionError",
+      "description": "Error for protocol version negotiation failures.",
+      "type": "Error"
+    },
+    {
+      "name": "ListToolsError",
+      "description": "Error for failures during tool listing operations.",
+      "type": "Error"
+    },
+    {
+      "name": "ToolCallError",
+      "description": "Error for failures during tool execution operations.",
+      "type": "Error"
+    },
+    {
+      "name": "ServerError",
+      "description": "Errors for failures occurring during server operations.",
+      "type": "Error"
+    },
+    {
+      "name": "ParameterBindingError",
+      "description": "Error for failures while binding tool parameters from the incoming request,\nsuch as missing or invalid header values.",
+      "type": "Error"
+    },
+    {
+      "name": "Request",
+      "description": "Represents a generic request in the protocol",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "method",
+          "description": "The method name for the request",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "params",
+          "description": "Optional parameters for the request",
+          "type": {
+            "name": "RequestParams",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RequestParams"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "RequestParams",
+      "description": "Parameters for the request",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "_meta",
+          "description": "Optional metadata for the request",
+          "type": {
+            "name": "Meta",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Meta"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Meta",
+      "description": "Optional metadata for requests",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "progressToken",
+          "description": "If specified, the caller is requesting out-of-band progress notifications for this request (as represented by notifications/progress).\nThe value of this parameter is an opaque token that will be attached to any subsequent notifications. The receiver is not obligated to provide these notifications.",
+          "type": {
+            "name": "ProgressToken",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ProgressToken"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ProgressToken",
+      "description": "A progress token, used to associate progress notifications with the original request.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "string",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "int",
+          "type": {
+            "name": "int"
+          }
+        }
+      ]
+    },
+    {
+      "name": "JsonRpcRequest",
+      "description": "A request that expects a response.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "jsonrpc",
+          "description": "The JSON-RPC protocol version",
+          "type": {
+            "name": "\"2.0\""
+          }
+        },
+        {
+          "name": "id",
+          "description": "Identifier established by the client that should be returned in the response",
+          "type": {
+            "name": "RequestId",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RequestId"
+              }
+            ]
+          }
+        },
+        {
+          "name": "method",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "params",
+          "description": "",
+          "type": {
+            "name": "RequestParams",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RequestParams"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "RequestId",
+      "description": "A uniquely identifying ID for a request in JSON-RPC.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "string",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "int",
+          "type": {
+            "name": "int"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notification",
+      "description": "Represents a notification.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "method",
+          "description": "The method name of the notification",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "params",
+          "description": "Additional parameters for the notification",
+          "type": {
+            "name": "record {|record {|anydata...;|} _meta?; anydata...;|}"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "JsonRpcNotification",
+      "description": "A notification which does not expect a response.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "jsonrpc",
+          "description": "The JSON-RPC protocol version",
+          "type": {
+            "name": "\"2.0\""
+          }
+        },
+        {
+          "name": "method",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "params",
+          "description": "",
+          "type": {
+            "name": "record {|record {|anydata...;|} _meta?; anydata...;|}"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "JsonRpcError",
+      "description": "A response to a request that indicates an error occurred.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "jsonrpc",
+          "description": "The JSON-RPC protocol version",
+          "type": {
+            "name": "\"2.0\""
+          }
+        },
+        {
+          "name": "id",
+          "description": "Identifier of the request",
+          "type": {
+            "name": "ballerina/mcp:1.2.0:RequestId?"
+          }
+        },
+        {
+          "name": "\u0027error",
+          "description": "The error information",
+          "type": {
+            "name": "record {|int code; string message; anydata data?; anydata...;|}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "JsonRpcResponse",
+      "description": "A successful (non-error) response to a request.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "jsonrpc",
+          "description": "The JSON-RPC protocol version",
+          "type": {
+            "name": "\"2.0\""
+          }
+        },
+        {
+          "name": "id",
+          "description": "Identifier of the request",
+          "type": {
+            "name": "RequestId",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RequestId"
+              }
+            ]
+          }
+        },
+        {
+          "name": "result",
+          "description": "The result of the request",
+          "type": {
+            "name": "ServerResult",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ServerResult"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Result",
+      "description": "Base result type with common fields.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "_meta",
+          "description": "This result property is reserved by the protocol to allow clients and servers\nto attach additional metadata to their responses.",
+          "type": {
+            "name": "record {|anydata...;|}"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "InitializeResult",
+      "description": "After receiving an initialize request from the client, the server sends this response.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "protocolVersion",
+          "description": "The version of the Model Context Protocol that the server wants to use.\nThis may not match the version that the client requested.\nIf the client cannot support this version, it MUST disconnect.",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "capabilities",
+          "description": "The capabilities of the server.",
+          "type": {
+            "name": "ServerCapabilities",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ServerCapabilities"
+              }
+            ]
+          }
+        },
+        {
+          "name": "serverInfo",
+          "description": "Information about the server implementation",
+          "type": {
+            "name": "Implementation",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Implementation"
+              }
+            ]
+          }
+        },
+        {
+          "name": "instructions",
+          "description": "Instructions describing how to use the server and its features.\nThis can be used by clients to improve the LLM\u0027s understanding of available tools, resources, etc.\nIt can be thought of like a \"hint\" to the model.\nFor example, this information MAY be added to the system prompt.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "_meta",
+          "description": "",
+          "type": {
+            "name": "record {|anydata...;|}"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ServerCapabilities",
+      "description": "Capabilities that a server may support. Known capabilities are defined here, in this schema,\nbut this is not a closed set: any server can define its own, additional capabilities.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "experimental",
+          "description": "Experimental, non-standard capabilities that the server supports.",
+          "type": {
+            "name": "map\u003canydata\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "logging",
+          "description": "Present if the server supports sending log messages to the client.",
+          "type": {
+            "name": "map\u003canydata\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "completions",
+          "description": "Present if the server supports argument autocompletion suggestions.",
+          "type": {
+            "name": "map\u003canydata\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "prompts",
+          "description": "Present if the server offers any prompt templates.",
+          "type": {
+            "name": "record {|boolean listChanged?; anydata...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "resources",
+          "description": "Present if the server offers any resources to read.",
+          "type": {
+            "name": "record {|boolean subscribe?; boolean listChanged?; anydata...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "tools",
+          "description": "Present if the server offers any tools to call.",
+          "type": {
+            "name": "record {|boolean listChanged?; anydata...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "tasks",
+          "description": "Present if the server supports task-augmented requests.",
+          "type": {
+            "name": "record {|map\u003canydata\u003e list?; map\u003canydata\u003e cancel?; record {|record {|map\u003canydata\u003e call?; anydata...;|} tools?; anydata...;|} requests?; anydata...;|}"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "BaseMetadata",
+      "description": "Base metadata with name (identifier) and title (display name) properties.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "name",
+          "description": "Intended for programmatic or logical use, but used as a display name in past specs or fallback (if title isn\u0027t present).",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "title",
+          "description": "Intended for UI and end-user contexts — optimized to be human-readable and easily understood,\neven by those unfamiliar with domain-specific terminology.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Icons",
+      "description": "Optional set of sized icons that the client can display in a user interface.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "icons",
+          "description": "Optional set of sized icons that the client can display in a user interface.\nSupported MIME types: image/png, image/jpeg, image/svg+xml, image/webp",
+          "type": {
+            "name": "Icon[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Icon"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Icon",
+      "description": "Represents a sized icon that can be displayed in a user interface.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "mimeType",
+          "description": "The MIME type of the icon (e.g. image/png, image/jpeg, image/svg+xml, image/webp)",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "data",
+          "description": "The URL or base64-encoded data of the icon",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "size",
+          "description": "The size of the icon (e.g. 16, 32, 64, 128, 256)",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Implementation",
+      "description": "Describes the name and version of an MCP implementation.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "version",
+          "description": "The version of the implementation",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "description",
+          "description": "An optional human-readable description of what this implementation does.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "websiteUrl",
+          "description": "An optional URL of the website for this implementation.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "name",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "title",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "icons",
+          "description": "",
+          "type": {
+            "name": "Icon[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Icon"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "CallToolResult",
+      "description": "The server\u0027s response to a tool call.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "content",
+          "description": "A list of content objects that represent the unstructured result of the tool call.",
+          "type": {
+            "name": "ContentBlock[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ContentBlock"
+              }
+            ]
+          }
+        },
+        {
+          "name": "structuredContent",
+          "description": "An optional JSON object that represents the structured result of the tool call.",
+          "type": {
+            "name": "map\u003canydata\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "isError",
+          "description": "Whether the tool call ended in an error.\nIf not set, this is assumed to be false (the call was successful).",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "_meta",
+          "description": "",
+          "type": {
+            "name": "record {|anydata...;|}"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "TextContent",
+      "description": "Text provided to or from an LLM.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "\u0027type",
+          "description": "The type of content",
+          "type": {
+            "name": "\"text\""
+          }
+        },
+        {
+          "name": "text",
+          "description": "The text content of the message",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "annotations",
+          "description": "Optional annotations for the client",
+          "type": {
+            "name": "Annotations",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Annotations"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Annotations",
+      "description": "Optional annotations for the client. The client can use annotations to inform how objects are used or displayed",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "audience",
+          "description": "Describes who the intended audience of this object or data is.\nThis can include multiple entries to indicate content useful for multiple audiences (e.g., `[\"user\", \"assistant\"]`).",
+          "type": {
+            "name": "Role[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Role"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "priority",
+          "description": "Describes how important this data is for operating the server.\nA value of 1 means \"most important,\" and indicates that the data is effectively required,\nwhile 0 means \"least important,\" and indicates that the data is entirely optional.",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "lastModified",
+          "description": "The moment the resource was last modified, as an ISO 8601 formatted string.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Role",
+      "description": "The sender or recipient of messages and data in a conversation.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "\"user\"",
+          "type": {
+            "name": "\"user\""
+          }
+        },
+        {
+          "name": "\"assistant\"",
+          "type": {
+            "name": "\"assistant\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "ImageContent",
+      "description": "An image provided to or from an LLM.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "\u0027type",
+          "description": "The type of content",
+          "type": {
+            "name": "\"image\""
+          }
+        },
+        {
+          "name": "data",
+          "description": "The base64-encoded image data",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "mimeType",
+          "description": "The MIME type of the image. Different providers may support different image types.",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "annotations",
+          "description": "Optional annotations for the client",
+          "type": {
+            "name": "Annotations",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Annotations"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "AudioContent",
+      "description": "Audio provided to or from an LLM.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "\u0027type",
+          "description": "The type of content",
+          "type": {
+            "name": "\"audio\""
+          }
+        },
+        {
+          "name": "data",
+          "description": "The base64-encoded audio data",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "mimeType",
+          "description": "The MIME type of the audio. Different providers may support different audio types.",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "annotations",
+          "description": "Optional annotations for the client",
+          "type": {
+            "name": "Annotations",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Annotations"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Resource",
+      "description": "A known resource that the server is capable of reading.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "uri",
+          "description": "The URI of this resource.",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "description",
+          "description": "A description of what this resource represents.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "mimeType",
+          "description": "The MIME type of this resource, if known.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "annotations",
+          "description": "Optional annotations for the client.",
+          "type": {
+            "name": "Annotations",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Annotations"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "size",
+          "description": "The size of the raw resource content, in bytes, if known.",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "name",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "title",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "icons",
+          "description": "",
+          "type": {
+            "name": "Icon[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Icon"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ResourceLink",
+      "description": "A resource that the server is capable of reading, included in a prompt or tool call result.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "\u0027type",
+          "description": "The type of content",
+          "type": {
+            "name": "\"resource_link\""
+          }
+        },
+        {
+          "name": "uri",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "description",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "mimeType",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "annotations",
+          "description": "",
+          "type": {
+            "name": "Annotations",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Annotations"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "size",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "name",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "title",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "icons",
+          "description": "",
+          "type": {
+            "name": "Icon[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Icon"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "EmbeddedResource",
+      "description": "The contents of a resource, embedded into a prompt or tool call result.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "\u0027type",
+          "description": "The type of content",
+          "type": {
+            "name": "\"resource\""
+          }
+        },
+        {
+          "name": "\u0027resource",
+          "description": "The resource content",
+          "type": {
+            "name": "TextResourceContents|BlobResourceContents",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TextResourceContents"
+              },
+              {
+                "category": "internal",
+                "recordName": "BlobResourceContents"
+              }
+            ]
+          }
+        },
+        {
+          "name": "annotations",
+          "description": "Optional annotations for the client",
+          "type": {
+            "name": "Annotations",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Annotations"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ResourceContents",
+      "description": "The contents of a specific resource or sub-resource.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "uri",
+          "description": "The URI of this resource.",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "mimeType",
+          "description": "The MIME type of this resource, if known.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "TextResourceContents",
+      "description": "Text resource contents",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "text",
+          "description": "The text of the item. This must only be set if the item can actually be represented as text (not binary data).",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "uri",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "mimeType",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "BlobResourceContents",
+      "description": "Binary resource contents",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "blob",
+          "description": "A base64-encoded string representing the binary data of the item.",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "uri",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "mimeType",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ContentBlock",
+      "description": "A content block that can be text, image, audio, resource link, or embedded resource.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "ballerina/mcp:1.2.0:TextContent",
+          "type": {
+            "name": "TextContent",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TextContent"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerina/mcp:1.2.0:ImageContent",
+          "type": {
+            "name": "ImageContent",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ImageContent"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerina/mcp:1.2.0:AudioContent",
+          "type": {
+            "name": "AudioContent",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AudioContent"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerina/mcp:1.2.0:ResourceLink",
+          "type": {
+            "name": "ResourceLink",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ResourceLink"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerina/mcp:1.2.0:EmbeddedResource",
+          "type": {
+            "name": "EmbeddedResource",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "EmbeddedResource"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PaginatedResult",
+      "description": "Result that supports pagination",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "nextCursor",
+          "description": "An opaque token representing the pagination position after the last returned result.\nIf present, there may be more results available.",
+          "type": {
+            "name": "Cursor",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Cursor"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "_meta",
+          "description": "",
+          "type": {
+            "name": "record {|anydata...;|}"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Cursor",
+      "description": "An opaque token used to represent a cursor for pagination.",
+      "type": "Other"
+    },
+    {
+      "name": "ListToolsResult",
+      "description": "The server\u0027s response to a tools/list request from the client.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "tools",
+          "description": "A list of tools available on the server.",
+          "type": {
+            "name": "ToolDefinition[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ToolDefinition"
+              }
+            ]
+          }
+        },
+        {
+          "name": "nextCursor",
+          "description": "",
+          "type": {
+            "name": "Cursor",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Cursor"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "_meta",
+          "description": "",
+          "type": {
+            "name": "record {|anydata...;|}"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ToolDefinition",
+      "description": "Definition for a tool the client can call.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "description",
+          "description": "A human-readable description of the tool.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "inputSchema",
+          "description": "A JSON Schema object defining the expected parameters for the tool.",
+          "type": {
+            "name": "JsonSchema",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "JsonSchema"
+              }
+            ]
+          }
+        },
+        {
+          "name": "execution",
+          "description": "Execution-related properties for this tool.",
+          "type": {
+            "name": "ToolExecution",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ToolExecution"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "outputSchema",
+          "description": "An optional JSON Schema object defining the structure of the tool\u0027s output.",
+          "type": {
+            "name": "JsonSchema",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "JsonSchema"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "annotations",
+          "description": "Optional additional tool information.",
+          "type": {
+            "name": "ToolAnnotations",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ToolAnnotations"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "name",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "title",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "icons",
+          "description": "",
+          "type": {
+            "name": "Icon[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Icon"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "JsonSchema",
+      "description": "A JSON Schema object describing the parameters or output of a tool.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "\\$schema",
+          "description": "The JSON Schema version",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "\u0027type",
+          "description": "The type of the schema",
+          "type": {
+            "name": "\"object\""
+          }
+        },
+        {
+          "name": "properties",
+          "description": "The properties of the schema",
+          "type": {
+            "name": "map\u003canydata\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "required",
+          "description": "The required properties of the schema",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ToolExecution",
+      "description": "Execution-related properties for a tool.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "taskSupport",
+          "description": "Indicates whether this tool supports task-augmented execution.",
+          "type": {
+            "name": "TaskSupport",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TaskSupport"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "TaskSupport",
+      "description": "Indicates whether a tool supports task-augmented execution.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "TASK_SUPPORT_REQUIRED",
+          "description": "Task-augmented execution is required for this tool."
+        },
+        {
+          "name": "TASK_SUPPORT_OPTIONAL",
+          "description": "Task-augmented execution is allowed but not required for this tool."
+        },
+        {
+          "name": "TASK_SUPPORT_FORBIDDEN",
+          "description": "Task-augmented execution is not allowed for this tool."
+        }
+      ]
+    },
+    {
+      "name": "ToolAnnotations",
+      "description": "Additional properties describing a Tool to clients.\nNOTE: all properties in ToolAnnotations are **hints**.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "title",
+          "description": "A human-readable title for the tool.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "readOnlyHint",
+          "description": "If true, the tool does not modify its environment.\nDefault: false",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "destructiveHint",
+          "description": "If true, the tool may perform destructive updates to its environment.\nIf false, the tool performs only additive updates.\n(This property is meaningful only when `readOnlyHint \u003d\u003d false`)\nDefault: true",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "idempotentHint",
+          "description": "If true, calling the tool repeatedly with the same arguments\nwill have no additional effect on the its environment.\n(This property is meaningful only when `readOnlyHint \u003d\u003d false`)\nDefault: false",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "openWorldHint",
+          "description": "If true, this tool may interact with an \"open world\" of external\nentities. If false, the tool\u0027s domain of interaction is closed.\nFor example, the world of a web search tool is open, whereas that\nof a memory tool is not.\nDefault: true",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ServerResult",
+      "description": "Represents a result sent from the server to the client.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "ballerina/mcp:1.2.0:InitializeResult",
+          "type": {
+            "name": "InitializeResult",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "InitializeResult"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerina/mcp:1.2.0:CallToolResult",
+          "type": {
+            "name": "CallToolResult",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CallToolResult"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerina/mcp:1.2.0:ListToolsResult",
+          "type": {
+            "name": "ListToolsResult",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ListToolsResult"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "JsonRpcMessage",
+      "description": "Refers to any valid JSON-RPC object that can be decoded off the wire, or encoded to be sent.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "ballerina/mcp:1.2.0:JsonRpcRequest",
+          "type": {
+            "name": "JsonRpcRequest",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "JsonRpcRequest"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerina/mcp:1.2.0:JsonRpcNotification",
+          "type": {
+            "name": "JsonRpcNotification",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "JsonRpcNotification"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerina/mcp:1.2.0:JsonRpcError",
+          "type": {
+            "name": "JsonRpcError",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "JsonRpcError"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerina/mcp:1.2.0:JsonRpcResponse",
+          "type": {
+            "name": "JsonRpcResponse",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "JsonRpcResponse"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "ListenerConfiguration",
+      "description": "Configuration options for initializing an MCP listener.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "host",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "http1Settings",
+          "description": "",
+          "type": {
+            "name": "ListenerHttp1Settings",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ListenerHttp1Settings",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "",
+          "type": {
+            "name": "ListenerSecureSocket|()",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ListenerSecureSocket",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "httpVersion",
+          "description": "",
+          "type": {
+            "name": "HttpVersion",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "HttpVersion",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "timeout",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "server",
+          "description": "",
+          "type": {
+            "name": "string?"
+          },
+          "optional": true
+        },
+        {
+          "name": "requestLimits",
+          "description": "",
+          "type": {
+            "name": "RequestLimitConfigs",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "RequestLimitConfigs",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "gracefulStopTimeout",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "socketConfig",
+          "description": "",
+          "type": {
+            "name": "ServerSocketConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ServerSocketConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "http2InitialWindowSize",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "minIdleTimeInStaleState",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "timeBetweenStaleEviction",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Cloneable",
+      "description": "Represents a non-error type that can be cloned.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "any \u0026 readonly",
+          "type": {
+            "name": "any \u0026 readonly"
+          }
+        },
+        {
+          "name": "xml",
+          "type": {
+            "name": "xml"
+          }
+        },
+        {
+          "name": "ballerina/mcp:1.2.0:Cloneable[]",
+          "type": {
+            "name": "Cloneable[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Cloneable"
+              }
+            ]
+          }
+        },
+        {
+          "name": "map\u003cballerina/mcp:1.2.0:Cloneable\u003e",
+          "type": {
+            "name": "map\u003cballerina/mcp:1.2.0:Cloneable\u003e"
+          }
+        },
+        {
+          "name": "table\u003cmap\u003cballerina/mcp:1.2.0:Cloneable\u003e\u003e",
+          "type": {
+            "name": "table\u003cmap\u003cballerina/mcp:1.2.0:Cloneable\u003e\u003e"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SessionEntry",
+      "description": "Represents the type of a value stored in the `Session` object.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "any \u0026 readonly",
+          "type": {
+            "name": "any \u0026 readonly"
+          }
+        },
+        {
+          "name": "xml",
+          "type": {
+            "name": "xml"
+          }
+        },
+        {
+          "name": "ballerina/mcp:1.2.0:Cloneable[]",
+          "type": {
+            "name": "Cloneable[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Cloneable"
+              }
+            ]
+          }
+        },
+        {
+          "name": "map\u003cballerina/mcp:1.2.0:Cloneable\u003e",
+          "type": {
+            "name": "map\u003cballerina/mcp:1.2.0:Cloneable\u003e"
+          }
+        },
+        {
+          "name": "table\u003cmap\u003cballerina/mcp:1.2.0:Cloneable\u003e\u003e",
+          "type": {
+            "name": "table\u003cmap\u003cballerina/mcp:1.2.0:Cloneable\u003e\u003e"
+          }
+        },
+        {
+          "name": "isolated object {}",
+          "type": {
+            "name": "isolated object {}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "StreamableHttpClientTransportConfig",
+      "description": "Configuration options for the Streamable HTTP client transport.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "sessionId",
+          "description": "Optional session identifier for continued interactions.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "",
+          "type": {
+            "name": "ClientSecureSocket|()",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientSecureSocket",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "httpVersion",
+          "description": "",
+          "type": {
+            "name": "HttpVersion",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "HttpVersion",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "http1Settings",
+          "description": "",
+          "type": {
+            "name": "ClientHttp1Settings",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientHttp1Settings",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "http2Settings",
+          "description": "",
+          "type": {
+            "name": "ClientHttp2Settings",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientHttp2Settings",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "timeout",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "forwarded",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "followRedirects",
+          "description": "",
+          "type": {
+            "name": "FollowRedirects|()",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "FollowRedirects",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "poolConfig",
+          "description": "",
+          "type": {
+            "name": "PoolConfiguration|()",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "PoolConfiguration",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "cache",
+          "description": "",
+          "type": {
+            "name": "CacheConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CacheConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "compression",
+          "description": "",
+          "type": {
+            "name": "Compression",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Compression",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "auth",
+          "description": "",
+          "type": {
+            "name": "CredentialsConfig|BearerTokenConfig|JwtIssuerConfig|OAuth2ClientCredentialsGrantConfig|OAuth2PasswordGrantConfig|OAuth2RefreshTokenGrantConfig|OAuth2JwtBearerGrantConfig|()",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CredentialsConfig",
+                "libraryName": "ballerina/http"
+              },
+              {
+                "category": "external",
+                "recordName": "BearerTokenConfig",
+                "libraryName": "ballerina/http"
+              },
+              {
+                "category": "external",
+                "recordName": "JwtIssuerConfig",
+                "libraryName": "ballerina/http"
+              },
+              {
+                "category": "external",
+                "recordName": "OAuth2ClientCredentialsGrantConfig",
+                "libraryName": "ballerina/http"
+              },
+              {
+                "category": "external",
+                "recordName": "OAuth2PasswordGrantConfig",
+                "libraryName": "ballerina/http"
+              },
+              {
+                "category": "external",
+                "recordName": "OAuth2RefreshTokenGrantConfig",
+                "libraryName": "ballerina/http"
+              },
+              {
+                "category": "external",
+                "recordName": "OAuth2JwtBearerGrantConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "circuitBreaker",
+          "description": "",
+          "type": {
+            "name": "CircuitBreakerConfig|()",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CircuitBreakerConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "retryConfig",
+          "description": "",
+          "type": {
+            "name": "RetryConfig|()",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "RetryConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "cookieConfig",
+          "description": "",
+          "type": {
+            "name": "CookieConfig|()",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CookieConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "responseLimits",
+          "description": "",
+          "type": {
+            "name": "ResponseLimitConfigs",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ResponseLimitConfigs",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "proxy",
+          "description": "",
+          "type": {
+            "name": "ProxyConfig|()",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ProxyConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "validation",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "socketConfig",
+          "description": "",
+          "type": {
+            "name": "ClientSocketConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientSocketConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "laxDataBinding",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "RequestMethod",
+      "description": "Standard JSON-RPC request methods supported by the MCP protocol",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "REQUEST_CALL_TOOL",
+          "description": "Request to execute a specific tool with given parameters"
+        },
+        {
+          "name": "REQUEST_LIST_TOOLS",
+          "description": "Request to list all available tools from the server"
+        },
+        {
+          "name": "REQUEST_INITIALIZE",
+          "description": "Initialize request to start a new MCP session"
+        }
+      ]
+    },
+    {
+      "name": "SessionMode",
+      "description": "Represents the session management modes supported by the MCP server transport.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "AUTO",
+          "description": "Automatic mode - determined based on client initialization"
+        },
+        {
+          "name": "STATELESS",
+          "description": "Stateless mode - no session management"
+        },
+        {
+          "name": "STATEFUL",
+          "description": "Stateful mode - sessions are managed by the transport"
+        }
+      ]
+    },
+    {
+      "name": "NotificationMethod",
+      "description": "JSON-RPC notification methods used for one-way communication in MCP",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "NOTIFICATION_INITIALIZED",
+          "description": "Notification sent by client to indicate successful initialization"
+        }
+      ]
+    },
+    {
+      "name": "ClientCapabilities",
+      "description": "Capabilities a client may support. Known capabilities are defined here, in this schema,\nbut this is not a closed set: any client can define its own, additional capabilities.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "experimental",
+          "description": "Experimental, non-standard capabilities that the client supports.",
+          "type": {
+            "name": "map\u003canydata\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "roots",
+          "description": "Present if the client supports listing roots.",
+          "type": {
+            "name": "record {|boolean listChanged?; anydata...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "sampling",
+          "description": "Present if the client supports sampling from an LLM.",
+          "type": {
+            "name": "record {|map\u003canydata\u003e context?; map\u003canydata\u003e tools?; anydata...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "elicitation",
+          "description": "Present if the client supports elicitation from the server.",
+          "type": {
+            "name": "record {|map\u003canydata\u003e form?; map\u003canydata\u003e url?; anydata...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "tasks",
+          "description": "Present if the client supports task-augmented requests.",
+          "type": {
+            "name": "record {|map\u003canydata\u003e list?; map\u003canydata\u003e cancel?; record {|record {|map\u003canydata\u003e createMessage?; anydata...;|} sampling?; record {|map\u003canydata\u003e create?; anydata...;|} elicitation?; anydata...;|} requests?; anydata...;|}"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "InitializedNotification",
+      "description": "This notification is sent from the client to the server after initialization has finished.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "method",
+          "description": "The method identifier for the notification, must be \"notifications/initialized\"",
+          "type": {
+            "name": "\"notifications/initialized\""
+          },
+          "optional": true
+        },
+        {
+          "name": "params",
+          "description": "",
+          "type": {
+            "name": "record {|record {|anydata...;|} _meta?; anydata...;|}"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "PaginatedRequest",
+      "description": "Represents a paginated request with optional cursor-based pagination.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "params",
+          "description": "Optional pagination parameters",
+          "type": {
+            "name": "RequestParams",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RequestParams"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ListToolsRequest",
+      "description": "Sent from the client to request a list of tools the server has.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "method",
+          "description": "The method identifier for this request",
+          "type": {
+            "name": "\"tools/list\""
+          },
+          "optional": true
+        },
+        {
+          "name": "params",
+          "description": "",
+          "type": {
+            "name": "RequestParams",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RequestParams"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "CallToolRequest",
+      "description": "Used by the client to invoke a tool provided by the server.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "method",
+          "description": "The JSON-RPC method name",
+          "type": {
+            "name": "\"tools/call\""
+          },
+          "optional": true
+        },
+        {
+          "name": "params",
+          "description": "The parameters for the tool call",
+          "type": {
+            "name": "CallToolParams",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CallToolParams"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "CallToolParams",
+      "description": "Parameters for the tools/call request",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "name",
+          "description": "The name of the tool to invoke",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "arguments",
+          "description": "Optional arguments to pass to the tool",
+          "type": {
+            "name": "record {|anydata...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "task",
+          "description": "If present, this is a task-augmented request (MCP 2025-11-25 TaskAugmentedRequestParams).\nCurrently disallowed — no server advertises `tasks.requests.tools.call` yet.",
+          "type": {
+            "name": "record {|int ttl?;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "_meta",
+          "description": "",
+          "type": {
+            "name": "Meta",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Meta"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "McpToolConfig",
+      "description": "Represents a tool configuration that can be used to define tools available in the MCP service.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "description",
+          "description": "The description of the tool.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "schema",
+          "description": "The JSON schema for the tool\u0027s parameters.",
+          "type": {
+            "name": "map\u003cjson\u003e"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ServerOptions",
+      "description": "Represents the options for configuring an MCP server.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "capabilities",
+          "description": "Capabilities to advertise as being supported by this server.",
+          "type": {
+            "name": "ServerCapabilities",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ServerCapabilities"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "instructions",
+          "description": "Optional instructions describing how to use the server and its features.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "enforceStrictCapabilities",
+          "description": "Whether to enforce strict capabilities compliance.",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ServiceConfiguration",
+      "description": "Transport-agnostic configuration for an MCP service, defining server metadata and options.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "info",
+          "description": "Server implementation information",
+          "type": {
+            "name": "Implementation",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Implementation"
+              }
+            ]
+          }
+        },
+        {
+          "name": "options",
+          "description": "Optional server configuration options",
+          "type": {
+            "name": "ServerOptions",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ServerOptions"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "httpConfig",
+          "description": "HTTP service configuration for the underlying transport.\n",
+          "type": {
+            "name": "HttpServiceConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "HttpServiceConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true,
+          "isDeprecated": true
+        },
+        {
+          "name": "sessionMode",
+          "description": "Controls the session management mode for the transport.\n- STATEFUL → Sessions are managed by the transport with session IDs\n- STATELESS → No session management, each request is independent\n- AUTO → Automatically determined based on client initialization behavior (default)\n",
+          "type": {
+            "name": "SessionMode",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SessionMode"
+              }
+            ]
+          },
+          "optional": true,
+          "isDeprecated": true
+        }
+      ]
+    },
+    {
+      "name": "StreamableHttpServiceConfiguration",
+      "description": "Configuration for an MCP service exposed over the Streamable HTTP transport.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "info",
+          "description": "Server implementation information",
+          "type": {
+            "name": "Implementation",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Implementation"
+              }
+            ]
+          }
+        },
+        {
+          "name": "options",
+          "description": "Optional server configuration options",
+          "type": {
+            "name": "ServerOptions",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ServerOptions"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "httpConfig",
+          "description": "HTTP service configuration for the underlying transport",
+          "type": {
+            "name": "HttpServiceConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "HttpServiceConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "sessionMode",
+          "description": "Controls the session management mode for the transport.\n- STATEFUL → Sessions are managed by the transport with session IDs\n- STATELESS → No session management, each request is independent\n- AUTO → Automatically determined based on client initialization behavior (default)",
+          "type": {
+            "name": "SessionMode",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SessionMode"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "AdvancedService",
+      "description": "Defines a transport-agnostic MCP service interface that handles incoming MCP requests with\nmanual control over tool listing and invocation.",
+      "type": "Class"
+    },
+    {
+      "name": "Service",
+      "description": "Defines a transport-agnostic basic MCP service interface. Tools are declared as `remote`\nfunctions and cannot access transport-specific request information.",
+      "type": "Class"
+    },
+    {
+      "name": "StreamableHttpService",
+      "description": "Defines a basic MCP service interface exposed over the Streamable HTTP transport. Tool\n`remote` functions may additionally bind HTTP request information (e.g. `@http:Header`\nparameters, an `http:Headers` parameter, or an `http:Request` parameter).",
+      "type": "Class"
+    },
+    {
+      "name": "StreamableHttpAdvancedService",
+      "description": "Defines an MCP service interface exposed over the Streamable HTTP transport with manual control\nover tool listing and invocation. The service must declare `onListTools` and `onCallTool` `remote`\nmethods. In addition to `mcp:CallToolParams` and an optional `mcp:Session`, these methods may bind\ntransport-specific request information the same way `mcp:StreamableHttpService` tools can — via\n`@http:Header` parameters, an `http:Headers` parameter, and/or an `http:Request` parameter. The\ncompiler plugin validates the shape of these methods.",
+      "type": "Class"
+    },
+    {
+      "name": "StreamableHttpListener",
+      "description": "Initializes the Listener.\n",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes the Listener.\n",
+          "parameters": [
+            {
+              "name": "listenTo",
+              "description": "Either a port number (int) or an existing http:Listener.",
+              "type": {
+                "name": "int|Listener",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "Listener",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "host",
+              "description": "The host name/IP of the endpoint",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "http1Settings",
+              "description": "Configurations related to HTTP/1.x protocol",
+              "type": {
+                "name": "ListenerHttp1Settings",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ListenerHttp1Settings",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "secureSocket",
+              "description": "The SSL configurations for the service endpoint. This needs to be configured in order to\ncommunicate through HTTPS.",
+              "type": {
+                "name": "ListenerSecureSocket|()",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ListenerSecureSocket",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "httpVersion",
+              "description": "Highest HTTP version supported by the endpoint",
+              "type": {
+                "name": "HttpVersion",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "HttpVersion",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "\"2.0\""
+            },
+            {
+              "name": "timeout",
+              "description": "Period of time in seconds that a connection waits for a read/write operation. Use value 0 to\ndisable timeout",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "0.0d"
+            },
+            {
+              "name": "server",
+              "description": "The server name which should appear as a response header",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "requestLimits",
+              "description": "Configurations associated with inbound request size limits",
+              "type": {
+                "name": "RequestLimitConfigs",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "RequestLimitConfigs",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "gracefulStopTimeout",
+              "description": "Grace period of time in seconds for listener gracefulStop",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "0.0d"
+            },
+            {
+              "name": "socketConfig",
+              "description": "Provides settings related to server socket configuration",
+              "type": {
+                "name": "ServerSocketConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ServerSocketConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "http2InitialWindowSize",
+              "description": "Configuration to change the initial window size in HTTP/2",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "0"
+            },
+            {
+              "name": "minIdleTimeInStaleState",
+              "description": "Minimum time in seconds for a connection to be kept open which has received a GOAWAY.\nThis only applies for HTTP/2. Default value is 5 minutes. If the value is set to -1,\nthe connection will be closed after all in-flight streams are completed",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "0.0d"
+            },
+            {
+              "name": "timeBetweenStaleEviction",
+              "description": "Time between the connection stale eviction runs in seconds. This only applies for HTTP/2.\nDefault value is 30 seconds",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "0.0d"
+            },
+            {
+              "name": "config",
+              "description": "Listener configuration.",
+              "type": {
+                "name": "ListenerConfiguration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ListenerConfiguration"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "Error? if listener initialization fails.",
+            "type": {
+              "name": "ballerina/mcp:1.2.0:Error?"
+            }
+          }
+        },
+        {
+          "name": "attach",
+          "type": "Normal Function",
+          "description": "Attaches an MCP service to the listener under the specified path(s).\n",
+          "parameters": [
+            {
+              "name": "mcpService",
+              "description": "Service to attach.",
+              "type": {
+                "name": "Service|AdvancedService|StreamableHttpService|StreamableHttpAdvancedService",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Service"
+                  },
+                  {
+                    "category": "internal",
+                    "recordName": "AdvancedService"
+                  },
+                  {
+                    "category": "internal",
+                    "recordName": "StreamableHttpService"
+                  },
+                  {
+                    "category": "internal",
+                    "recordName": "StreamableHttpAdvancedService"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "name",
+              "description": "Path(s) to mount the service on (string or string array).",
+              "type": {
+                "name": "string[]|string|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "Error? if attachment fails.",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "detach",
+          "type": "Normal Function",
+          "description": "Detaches the MCP service from the listener.\n",
+          "parameters": [
+            {
+              "name": "mcpService",
+              "description": "Service to detach.",
+              "type": {
+                "name": "Service|AdvancedService|StreamableHttpService|StreamableHttpAdvancedService",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Service"
+                  },
+                  {
+                    "category": "internal",
+                    "recordName": "AdvancedService"
+                  },
+                  {
+                    "category": "internal",
+                    "recordName": "StreamableHttpService"
+                  },
+                  {
+                    "category": "internal",
+                    "recordName": "StreamableHttpAdvancedService"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "Error? if detachment fails.",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "\u0027start",
+          "type": "Normal Function",
+          "description": "Starts the listener (begin accepting connections).\n",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "gracefulStop",
+          "type": "Normal Function",
+          "description": "Gracefully stops the listener (completes active requests before shutting down).\n",
+          "parameters": [],
+          "return": {
+            "description": "Error? if graceful stop fails.",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "immediateStop",
+          "type": "Normal Function",
+          "description": "Immediately stops the listener (terminates all connections).\n",
+          "parameters": [],
+          "return": {
+            "description": "Error? if immediate stop fails.",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Listener",
+      "description": "Initializes the Listener.\n",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes the Listener.\n",
+          "parameters": [
+            {
+              "name": "listenTo",
+              "description": "Either a port number (int) or an existing http:Listener.",
+              "type": {
+                "name": "int|Listener",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "Listener",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "host",
+              "description": "The host name/IP of the endpoint",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "http1Settings",
+              "description": "Configurations related to HTTP/1.x protocol",
+              "type": {
+                "name": "ListenerHttp1Settings",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ListenerHttp1Settings",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "secureSocket",
+              "description": "The SSL configurations for the service endpoint. This needs to be configured in order to\ncommunicate through HTTPS.",
+              "type": {
+                "name": "ListenerSecureSocket|()",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ListenerSecureSocket",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "httpVersion",
+              "description": "Highest HTTP version supported by the endpoint",
+              "type": {
+                "name": "HttpVersion",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "HttpVersion",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "\"2.0\""
+            },
+            {
+              "name": "timeout",
+              "description": "Period of time in seconds that a connection waits for a read/write operation. Use value 0 to\ndisable timeout",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "0.0d"
+            },
+            {
+              "name": "server",
+              "description": "The server name which should appear as a response header",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "requestLimits",
+              "description": "Configurations associated with inbound request size limits",
+              "type": {
+                "name": "RequestLimitConfigs",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "RequestLimitConfigs",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "gracefulStopTimeout",
+              "description": "Grace period of time in seconds for listener gracefulStop",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "0.0d"
+            },
+            {
+              "name": "socketConfig",
+              "description": "Provides settings related to server socket configuration",
+              "type": {
+                "name": "ServerSocketConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ServerSocketConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "http2InitialWindowSize",
+              "description": "Configuration to change the initial window size in HTTP/2",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "0"
+            },
+            {
+              "name": "minIdleTimeInStaleState",
+              "description": "Minimum time in seconds for a connection to be kept open which has received a GOAWAY.\nThis only applies for HTTP/2. Default value is 5 minutes. If the value is set to -1,\nthe connection will be closed after all in-flight streams are completed",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "0.0d"
+            },
+            {
+              "name": "timeBetweenStaleEviction",
+              "description": "Time between the connection stale eviction runs in seconds. This only applies for HTTP/2.\nDefault value is 30 seconds",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "0.0d"
+            },
+            {
+              "name": "config",
+              "description": "Listener configuration.",
+              "type": {
+                "name": "ListenerConfiguration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ListenerConfiguration"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "Error? if listener initialization fails.",
+            "type": {
+              "name": "ballerina/mcp:1.2.0:Error?"
+            }
+          }
+        },
+        {
+          "name": "attach",
+          "type": "Normal Function",
+          "description": "Attaches an MCP service to the listener under the specified path(s).\n",
+          "parameters": [
+            {
+              "name": "mcpService",
+              "description": "Service to attach.",
+              "type": {
+                "name": "Service|AdvancedService|StreamableHttpService|StreamableHttpAdvancedService",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Service"
+                  },
+                  {
+                    "category": "internal",
+                    "recordName": "AdvancedService"
+                  },
+                  {
+                    "category": "internal",
+                    "recordName": "StreamableHttpService"
+                  },
+                  {
+                    "category": "internal",
+                    "recordName": "StreamableHttpAdvancedService"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "name",
+              "description": "Path(s) to mount the service on (string or string array).",
+              "type": {
+                "name": "string[]|string|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "Error? if attachment fails.",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "detach",
+          "type": "Normal Function",
+          "description": "Detaches the MCP service from the listener.\n",
+          "parameters": [
+            {
+              "name": "mcpService",
+              "description": "Service to detach.",
+              "type": {
+                "name": "Service|AdvancedService|StreamableHttpService|StreamableHttpAdvancedService",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Service"
+                  },
+                  {
+                    "category": "internal",
+                    "recordName": "AdvancedService"
+                  },
+                  {
+                    "category": "internal",
+                    "recordName": "StreamableHttpService"
+                  },
+                  {
+                    "category": "internal",
+                    "recordName": "StreamableHttpAdvancedService"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "Error? if detachment fails.",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "\u0027start",
+          "type": "Normal Function",
+          "description": "Starts the listener (begin accepting connections).\n",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "gracefulStop",
+          "type": "Normal Function",
+          "description": "Gracefully stops the listener (completes active requests before shutting down).\n",
+          "parameters": [],
+          "return": {
+            "description": "Error? if graceful stop fails.",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "immediateStop",
+          "type": "Normal Function",
+          "description": "Immediately stops the listener (terminates all connections).\n",
+          "parameters": [],
+          "return": {
+            "description": "Error? if immediate stop fails.",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "isDeprecated": true
+    },
+    {
+      "name": "Session",
+      "description": "Creates a new MCP session with the given session ID.\n",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Creates a new MCP session with the given session ID.\n",
+          "parameters": [
+            {
+              "name": "sessionId",
+              "description": "Unique identifier for the session",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        },
+        {
+          "name": "getSessionId",
+          "type": "Normal Function",
+          "description": "Gets the session ID.\n",
+          "parameters": [],
+          "return": {
+            "description": "The session ID",
+            "type": {
+              "name": "string"
+            }
+          }
+        },
+        {
+          "name": "set",
+          "type": "Normal Function",
+          "description": "Adds or updates an entry in the session.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Represents the entry key",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "value",
+              "description": "Represents the entry value",
+              "type": {
+                "name": "SessionEntry",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "SessionEntry"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "()"
+            }
+          }
+        },
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Retrieves a value from the session by key. Panics if the key does not exist.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "The key identifying the entry",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "The value associated with the key",
+            "type": {
+              "name": "SessionEntry",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "SessionEntry"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "hasKey",
+          "type": "Normal Function",
+          "description": "Checks if the session contains an entry for the given key.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "The key to check",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "`true` if the entry exists, otherwise `false`",
+            "type": {
+              "name": "boolean"
+            }
+          }
+        },
+        {
+          "name": "keys",
+          "type": "Normal Function",
+          "description": "Returns all the keys currently stored in the session.\n",
+          "parameters": [],
+          "return": {
+            "description": "An array of all entry keys",
+            "type": {
+              "name": "string[]"
+            }
+          }
+        },
+        {
+          "name": "getWithType",
+          "type": "Normal Function",
+          "description": "Retrieves and casts a value from the session to the specified type.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "The key identifying the entry",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "targetType",
+              "description": "The expected type of the entry",
+              "type": {
+                "name": "any \u0026 readonly|xml|mcp:Cloneable[]|map\u003cmcp:Cloneable\u003e|table\u003cmap\u003cmcp:Cloneable\u003e\u003e|isolated object {}"
+              },
+              "optional": true,
+              "default": "mcp:SessionEntry"
+            }
+          ],
+          "return": {
+            "description": "The casted value or an error if the entry is missing or of the wrong type",
+            "type": {
+              "name": "targetType|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "targetType"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "remove",
+          "type": "Normal Function",
+          "description": "Removes the entry associated with the given key. Panics if the key does not exist.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "The key identifying the entry to remove",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "()"
+            }
+          }
+        },
+        {
+          "name": "size",
+          "type": "Normal Function",
+          "description": "Gets the number of entries in the session.\n",
+          "parameters": [],
+          "return": {
+            "description": "The number of entries in the session",
+            "type": {
+              "name": "int"
+            }
+          }
+        },
+        {
+          "name": "clear",
+          "type": "Normal Function",
+          "description": "Clears all entries from the session.",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "()"
+            }
+          }
+        },
+        {
+          "name": "isEmpty",
+          "type": "Normal Function",
+          "description": "Checks if the session is empty.\n",
+          "parameters": [],
+          "return": {
+            "description": "`true` if the session has no entries, otherwise `false`",
+            "type": {
+              "name": "boolean"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "name": "StreamableHttpClient",
+      "description": "Represents an MCP client built on top of the Streamable HTTP transport.",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Creates a new MCP client with the specified transport configuration.\n",
+          "parameters": [
+            {
+              "name": "serverUrl",
+              "description": "MCP server URL",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "httpVersion",
+              "description": "HTTP protocol version supported by the client",
+              "type": {
+                "name": "HttpVersion",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "HttpVersion",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "\"2.0\""
+            },
+            {
+              "name": "http1Settings",
+              "description": "HTTP/1.x specific settings",
+              "type": {
+                "name": "ClientHttp1Settings",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ClientHttp1Settings",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "http2Settings",
+              "description": "HTTP/2 specific settings",
+              "type": {
+                "name": "ClientHttp2Settings",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ClientHttp2Settings",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "timeout",
+              "description": "Maximum time(in seconds) to wait for a response before the request times out",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "0.0d"
+            },
+            {
+              "name": "forwarded",
+              "description": "The choice of setting `Forwarded`/`X-Forwarded-For` header, when acting as a proxy",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "followRedirects",
+              "description": "HTTP redirect handling configurations (with 3xx status codes)",
+              "type": {
+                "name": "FollowRedirects|()",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "FollowRedirects",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "poolConfig",
+              "description": "Configurations associated with the request connection pool",
+              "type": {
+                "name": "PoolConfiguration|()",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "PoolConfiguration",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "cache",
+              "description": "HTTP response caching related configurations",
+              "type": {
+                "name": "CacheConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "CacheConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "compression",
+              "description": "Enable request/response compression (using `accept-encoding` header)",
+              "type": {
+                "name": "Compression",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "Compression",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "\"AUTO\""
+            },
+            {
+              "name": "auth",
+              "description": "Client authentication options (Basic, Bearer token, OAuth, etc.)",
+              "type": {
+                "name": "CredentialsConfig|BearerTokenConfig|JwtIssuerConfig|OAuth2ClientCredentialsGrantConfig|OAuth2PasswordGrantConfig|OAuth2RefreshTokenGrantConfig|OAuth2JwtBearerGrantConfig|()",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "CredentialsConfig",
+                    "libraryName": "ballerina/http"
+                  },
+                  {
+                    "category": "external",
+                    "recordName": "BearerTokenConfig",
+                    "libraryName": "ballerina/http"
+                  },
+                  {
+                    "category": "external",
+                    "recordName": "JwtIssuerConfig",
+                    "libraryName": "ballerina/http"
+                  },
+                  {
+                    "category": "external",
+                    "recordName": "OAuth2ClientCredentialsGrantConfig",
+                    "libraryName": "ballerina/http"
+                  },
+                  {
+                    "category": "external",
+                    "recordName": "OAuth2PasswordGrantConfig",
+                    "libraryName": "ballerina/http"
+                  },
+                  {
+                    "category": "external",
+                    "recordName": "OAuth2RefreshTokenGrantConfig",
+                    "libraryName": "ballerina/http"
+                  },
+                  {
+                    "category": "external",
+                    "recordName": "OAuth2JwtBearerGrantConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "circuitBreaker",
+              "description": "Circuit breaker configurations to prevent cascading failures",
+              "type": {
+                "name": "CircuitBreakerConfig|()",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "CircuitBreakerConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "retryConfig",
+              "description": "Automatic retry settings for failed requests",
+              "type": {
+                "name": "RetryConfig|()",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "RetryConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "cookieConfig",
+              "description": "Cookie handling settings for session management",
+              "type": {
+                "name": "CookieConfig|()",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "CookieConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "responseLimits",
+              "description": "Limits for response size and headers (to prevent memory issues)",
+              "type": {
+                "name": "ResponseLimitConfigs",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ResponseLimitConfigs",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "proxy",
+              "description": "Proxy server settings if requests need to go through a proxy",
+              "type": {
+                "name": "ProxyConfig|()",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ProxyConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "validation",
+              "description": "Enable automatic payload validation for request/response data against constraints",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "socketConfig",
+              "description": "Low-level socket settings (timeouts, buffer sizes, etc.)",
+              "type": {
+                "name": "ClientSocketConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ClientSocketConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "laxDataBinding",
+              "description": "Enable relaxed data binding on the client side.\nWhen enabled:\n- `null` values in JSON are allowed to be mapped to optional fields\n- missing fields in JSON are allowed to be mapped as `null` values",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "secureSocket",
+              "description": "SSL/TLS security settings for HTTPS connections",
+              "type": {
+                "name": "ClientSecureSocket|()",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ClientSecureSocket",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "sessionId",
+              "description": "Optional session identifier for continued interactions.",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "config",
+              "description": "Client transport configuration",
+              "type": {
+                "name": "StreamableHttpClientTransportConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "StreamableHttpClientTransportConfig"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "`ClientError` if transport creation fails, `()` on success",
+            "type": {
+              "name": "ballerina/mcp:1.2.0:ClientError?"
+            }
+          }
+        },
+        {
+          "name": "initialize",
+          "type": "Remote Function",
+          "description": "Initializes the MCP connection by performing protocol handshake and capability exchange.\n",
+          "parameters": [
+            {
+              "name": "clientInfo",
+              "description": "Client implementation information",
+              "type": {
+                "name": "Implementation",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Implementation"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{version: \"\", name: \"\"}"
+            },
+            {
+              "name": "capabilities",
+              "description": "Client capabilities to advertise",
+              "type": {
+                "name": "ClientCapabilities",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ClientCapabilities"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "headers",
+              "description": "Optional headers to include with the request",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "description": "`ClientError` if initialization fails, `()` on success",
+            "type": {
+              "name": "ClientError|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "ClientError"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "subscribeToServerMessages",
+          "type": "Remote Function",
+          "description": "Opens a server-sent events (SSE) stream for asynchronous server-to-client communication.\n",
+          "parameters": [],
+          "return": {
+            "description": "Stream of JsonRpcMessages or a ClientError.",
+            "type": {
+              "name": "stream\u003cballerina/mcp:1.2.0:JsonRpcMessage, ballerina/mcp:1.2.0:StreamError?\u003e|ClientError",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "ClientError"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "listTools",
+          "type": "Remote Function",
+          "description": "Retrieves the list of available tools from the server.\n",
+          "parameters": [
+            {
+              "name": "headers",
+              "description": "Optional headers to include with the request",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "description": "List of available tools or a ClientError.",
+            "type": {
+              "name": "ListToolsResult|ClientError",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "ListToolsResult"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "ClientError"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "callTool",
+          "type": "Remote Function",
+          "description": "Executes a tool on the server with the given parameters.\n",
+          "parameters": [
+            {
+              "name": "params",
+              "description": "Tool execution parameters, including name and arguments",
+              "type": {
+                "name": "CallToolParams",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "CallToolParams"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Optional headers to include with the request",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "description": "Result of the tool execution or a ClientError.",
+            "type": {
+              "name": "CallToolResult|ClientError",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "CallToolResult"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "ClientError"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "close",
+          "type": "Remote Function",
+          "description": "Closes the session and disconnects from the server.\n",
+          "parameters": [],
+          "return": {
+            "description": "A `ClientError` if closure fails, or `()` on success.",
+            "type": {
+              "name": "ClientError|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "ClientError"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "functions": [],
+  "services": [
+    {
+      "type": "fixed",
+      "name": "Service",
+      "listener": {
+        "name": "mcp:Listener",
+        "parameters": [
+          {
+            "name": "listenTo",
+            "description": "Either a port number (int) or an existing http:Listener.",
+            "type": {
+              "name": "int|http:Listener"
+            },
+            "default": "0"
+          },
+          {
+            "name": "config",
+            "description": "Listener configuration.",
+            "type": {
+              "name": "ListenerConfiguration",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "ListenerConfiguration"
+                }
+              ]
+            },
+            "optional": true,
+            "default": "{}"
+          }
+        ]
+      }
+    }
+  ],
+  "annotations": [
+    {
+      "name": "ServiceConfig",
+      "attachmentPoint": "SERVICE",
+      "displayName": "Service Configuration",
+      "description": "Define mcp service configuration",
+      "typeConstraint": {
+        "name": "ServiceConfiguration",
+        "links": [
+          {
+            "category": "internal",
+            "recordName": "ServiceConfiguration"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,650 @@
+// ============================================================
+// Library: ballerinax/aws.s3
+// Connects to AWS S3 from Ballerina
+// ============================================================
+import ballerinax/aws.s3;
+
+// --- README ---
+## Overview
+
+[Amazon S3](https://aws.amazon.com/s3/) (Simple Storage Service) is a highly scalable, durable, and secure object storage service provided by Amazon Web Services (AWS). It is designed to store and retrieve any amount of data from anywhere on the web, making it ideal for a wide range of use cases, including data backup, archiving, content distribution, and big data analytics.
+
+The `ballerinax/aws.s3` connector offers APIs to connect and interact with [Amazon S3](https://docs.aws.amazon.com/AmazonS3/latest/API/Welcome.html), specifically based on the `2006-03-01` version of the Amazon S3 REST API. It supports creating, listing, and deleting buckets, uploading, retrieving, and deleting objects, managing object metadata and tagging, multipart uploads, and bucket and object access control lists (ACLs).
+
+## Setup guide
+
+To use the Ballerina AWS S3 connector, you need an AWS account with the necessary IAM user credentials. For detailed steps on obtaining these credentials, refer to the [Obtaining IAM user credentials](https://central.ballerina.io/ballerinax/aws/latest#obtaining-iam-user-credentials) guide.
+
+## Quickstart
+
+To use the `aws.s3` connector in your Ballerina application, update your `.bal` file as follows.
+
+### Step 1: Import the module
+
+Import the `aws.s3` module and the `aws` module.
+
+```ballerina
+import ballerinax/aws;
+import ballerinax/aws.s3;
+```
+
+### Step 2: Instantiate a new connector
+
+1. Create a `Config.toml` file and configure the credentials obtained above:
+
+```toml
+accessKeyId = "<ACCESS_KEY_ID>"
+secretAccessKey = "<SECRET_ACCESS_KEY>"
+```
+
+2. Instantiate an `s3:Client` with the obtained credentials and initialize the connector with it.
+
+```ballerina
+configurable string accessKeyId = ?;
+configurable string secretAccessKey = ?;
+
+final s3:Client s3Client = check new ({
+   region: aws:US_EAST_1,
+   auth: {
+      accessKeyId,
+      secretAccessKey
+   }
+});
+```
+
+#### Alternative authentication methods
+
+##### Profile-based authentication
+
+You can use AWS profile-based authentication as an alternative to static credentials.
+
+```ballerina
+final s3:Client s3Client = check new ({
+   region: aws:US_EAST_1,
+   auth: {
+      profileName: "myAwsProfile",
+      credentialsFilePath: "/path/to/custom/credentials"
+   }
+});
+```
+
+> **Note:** Ensure your AWS credentials file follows the standard format.
+>
+> ```ini
+> [default]
+> aws_access_key_id = YOUR_ACCESS_KEY_ID
+> aws_secret_access_key = YOUR_SECRET_ACCESS_KEY
+>
+> [myAwsProfile]
+> aws_access_key_id = ANOTHER_ACCESS_KEY_ID
+> aws_secret_access_key = ANOTHER_SECRET_ACCESS_KEY
+> ```
+
+##### Default credential provider chain
+
+The standard default credential provider chain, trying each of the following in order and taking the first source that yields credentials:
+
+1. Environment variables (`AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`, and `AWS_WEB_IDENTITY_TOKEN_FILE` if set)
+2. The shared config/credentials file's active profile (`AWS_PROFILE`, or `default` if unset) — which may itself resolve via SSO, an external process, or a chained `AssumeRole` call, depending on that profile's configuration
+3. Container credentials (ECS/EKS)
+4. EC2 instance profile (IMDS)
+
+```ballerina
+import ballerinax/aws.auth;
+
+final s3:Client s3Client = check new ({
+   region: aws:US_EAST_1,
+   auth: auth:DEFAULT_CREDENTIALS
+});
+```
+
+### Step 3: Invoke the connector operations
+
+Now, utilize the available connector operations. A sample use case is shown below.
+
+```ballerina
+public function main() returns error? {
+   check s3Client->createBucket("add-unique-bucket-name");
+}
+```
+
+### Step 4: Run the Ballerina application
+
+Use the following command to compile and run the Ballerina program.
+
+```bash
+bal run
+```
+
+## Examples
+
+The `ballerinax/aws.s3` connector provides practical examples illustrating usage in various scenarios. Explore these [examples](https://github.com/ballerina-platform/module-ballerinax-aws.s3/tree/master/examples), covering the following use cases.
+
+1. [S3 Report Archiver](https://github.com/ballerina-platform/module-ballerinax-aws.s3/tree/master/examples/s3-report-archiver): Implements an ETL-style workflow that processes CSV reports and archives them to Amazon S3. Reads report data, transforms it, and uploads the results to a designated S3 bucket for long-term storage.
+
+2. [FTP to S3 Sync](https://github.com/ballerina-platform/module-ballerinax-aws.s3/tree/master/examples/ftp-to-s3-sync): Syncs files from an FTP server to Amazon S3. Downloads files from the FTP source, uploads them to an S3 bucket, and generates a summary report of skipped or failed transfers.
+
+// --- END README ---
+
+// --- Types ---
+
+# JSON format
+const string JSON = "JSON";
+
+# XML format
+const string XML = "XML";
+
+# CSV format
+const string CSV = "CSV";
+
+# Only the owner has access
+const string PRIVATE = "private";
+
+# Anyone can read
+const string PUBLIC_READ = "public-read";
+
+# Anyone can read and write
+const string PUBLIC_READ_WRITE = "public-read-write";
+
+# Only authenticated AWS users can read
+const string AUTHENTICATED_READ = "authenticated-read";
+
+# EC2 gets read access to GET the object
+const string AWS_EXEC_READ = "aws-exec-read";
+
+# Bucket owner can read
+const string BUCKET_OWNER_READ = "bucket-owner-read";
+
+# Bucket owner has full control
+const string BUCKET_OWNER_FULL_CONTROL = "bucket-owner-full-control";
+
+# Bucket owner owns all objects (recommended, ACLs disabled)
+const string BUCKET_OWNER_ENFORCED = "BucketOwnerEnforced";
+
+# The uploader owns the object
+const string OBJECT_WRITER = "ObjectWriter";
+
+# Bucket owner owns if uploader grants full control
+const string BUCKET_OWNER_PREFERRED = "BucketOwnerPreferred";
+
+# Default storage for frequently accessed data
+const string STANDARD = "STANDARD";
+
+# Lower cost for less critical, reproducible data
+const string REDUCED_REDUNDANCY = "REDUCED_REDUNDANCY";
+
+# Lower cost for infrequently accessed data (min 30 days)
+const string STANDARD_IA = "STANDARD_IA";
+
+# Lower cost, single availability zone (min 30 days)
+const string ONEZONE_IA = "ONEZONE_IA";
+
+# Auto-moves data between tiers based on access patterns
+const string INTELLIGENT_TIERING = "INTELLIGENT_TIERING";
+
+# Low cost archive, retrieval takes minutes to hours
+const string GLACIER = "GLACIER";
+
+# Archive with instant retrieval (min 90 days)
+const string GLACIER_IR = "GLACIER_IR";
+
+# Lowest cost archive, retrieval takes hours (min 180 days)
+const string DEEP_ARCHIVE = "DEEP_ARCHIVE";
+
+# HTTP GET method
+const string GET = "GET";
+
+# HTTP PUT method
+const string PUT = "PUT";
+
+// Unknown type: Error
+
+// Unknown type: NoSuchKeyError
+
+// Unknown type: BucketAlreadyExistsError
+
+// Unknown type: BucketAlreadyOwnedByYouError
+
+// Unknown type: NoSuchBucketError
+
+// Unknown type: BucketNotEmptyError
+
+# Configuration for the AWS S3 Client.
+
+type ConnectionConfig record {
+    # Authentication configuration
+    auth:AuthConfig auth; // Special Agent Note: AuthConfig FROM ballerinax/aws.auth package
+    # The AWS Region. If you don't specify an AWS region, Client uses US East (N. Virginia) as default region
+    ballerinax/aws:1.0.1:Region|string region?;
+    # Optional endpoint configuration for FIPS, dualstack, or custom endpoint overrides (e.g., LocalStack)
+    aws:EndpointConfig endpoint?; // Special Agent Note: EndpointConfig FROM ballerinax/aws package
+};
+
+# Configuration for creating a bucket.
+
+type CreateBucketConfig record {
+    # Specifies accessibility for this object (e.g., "private", "public-read")
+    CannedACL acl?;
+    # Specifies ownership of objects uploaded to this bucket (e.g., "BucketOwnerEnforced", "ObjectWriter")
+    ObjectOwnership objectOwnership?;
+    # Enable Object Lock to prevent objects from being deleted or overwritten
+    boolean objectLockEnabled?;
+};
+
+# Access control options for buckets and objects.
+enum CannedACL {
+    BUCKET_OWNER_FULL_CONTROL,
+    BUCKET_OWNER_READ,
+    AWS_EXEC_READ,
+    AUTHENTICATED_READ,
+    PUBLIC_READ_WRITE,
+    PUBLIC_READ,
+    PRIVATE
+}
+
+# Who owns objects uploaded to the bucket.
+enum ObjectOwnership {
+    BUCKET_OWNER_PREFERRED,
+    OBJECT_WRITER,
+    BUCKET_OWNER_ENFORCED
+}
+
+# Defines bucket.
+
+type Bucket record {
+    # The name of the bucket
+    string name;
+    # The creation date of the bucket
+    string creationDate;
+};
+
+# Represents byte[], string, json and xml
+type ContentType byte[]|string|json|xml;
+
+# Represents the content types supported for uploading an S3 object.
+type UploadContent byte[]|string|json|xml|record {|anydata...;|}|record {|anydata...;|}[]|stream<byte[], error?>|stream<record {|anydata...;|}, error?>;
+
+# Represents the types that can be returned when retrieving an S3 object.
+type RetrievableType byte[]|string|json|xml|record {|anydata...;|}|record {|anydata...;|}[]|stream<byte[], error?>|stream<record {|anydata...;|}, error?>;
+
+# Represents the file format for serializing record content.
+enum FileFormat {
+    CSV,
+    XML,
+    JSON
+}
+
+# Configuration for uploading an object.
+
+type PutObjectConfig record {
+    # The MIME type of the content
+    string contentType?;
+    # Specifies accessibility for this object (e.g., "private", "public-read")
+    CannedACL acl?;
+    # The Storage class of the object (e.g., "STANDARD", "GLACIER" for archive, "INTELLIGENT_TIERING")
+    StorageClass storageClass?;
+    # Custom data to attach to the object (e.g., {"author": "John", "project": "demo"})
+    map<string> metadata?;
+    # Specifies caching behavior along the request/reply chain
+    string cacheControl?;
+    # Specifies presentational information for the object
+    string contentDisposition?;
+    # Specifies what content encodings have been applied to the object and thus what decoding mechanisms must be applied to obtain the media-type referenced by the Content-Type header field
+    string contentEncoding?;
+    # The language the content is in (e.g., "en-US", "fr")
+    string contentLanguage?;
+    # The date and time at which the object is no longer cacheable
+    string expires?;
+    # Tags for the object
+    string tagging?;
+    # Encryption type ("AES256" or "aws:kms")
+    string serverSideEncryption?;
+    # The file format to use for serializing record content. Overrides the format inferred from the object key extension
+    FileFormat fileFormat?;
+};
+
+# Storage options for S3 objects (affects cost and access speed).
+enum StorageClass {
+    DEEP_ARCHIVE,
+    GLACIER_IR,
+    GLACIER,
+    INTELLIGENT_TIERING,
+    ONEZONE_IA,
+    STANDARD_IA,
+    REDUCED_REDUNDANCY,
+    STANDARD
+}
+
+# Configuration for uploading an object as a stream.
+
+type PutObjectStreamConfig record {
+    # The Size of the content, in bytes
+    int contentLength;
+    string contentType?;
+    CannedACL acl?;
+    StorageClass storageClass?;
+    map<string> metadata?;
+    string cacheControl?;
+    string contentDisposition?;
+    string contentEncoding?;
+    string contentLanguage?;
+    string expires?;
+    string tagging?;
+    string serverSideEncryption?;
+    FileFormat fileFormat?;
+};
+
+# Configuration for retrieving an object.
+
+type GetObjectConfig record {
+    # Get a specific version of the object (when versioning is enabled)
+    string versionId?;
+    # Downloads the specified range bytes of an object
+    string range?;
+    # Return the object only if its entity tag (ETag) is the same as the one specified
+    string ifMatch?;
+    # Return the object only if its entity tag (ETag) is different from the one specified
+    string ifNoneMatch?;
+    # Return the object only if it has been modified since the specified time (e.g., "2024-01-15T00:00:00Z")
+    string ifModifiedSince?;
+    # Return the object only if it has not been modified since the specified time (e.g., "2024-01-15T00:00:00Z")
+    string ifUnmodifiedSince?;
+    # The part number of the file part
+    int partNumber?;
+    # Override the MIME type of the content
+    string responseContentType?;
+    # Override presentational information for the object
+    string responseContentDisposition?;
+};
+
+# Configuration for deleting an object.
+
+type DeleteObjectConfig record {
+    # Delete a specific version of the object (when versioning is enabled)
+    string versionId?;
+    # Multi-factor authentication token (needed if MFA Delete is turned on for the bucket)
+    string mfa?;
+    # Skip the lock protection and delete the object even if it's protected (use with caution)
+    boolean bypassGovernanceRetention?;
+};
+
+# Configuration for listing objects.
+
+type ListObjectsConfig record {
+    # Filter objects that start with this value (e.g., "photos/" for all objects in photos folder)
+    string prefix?;
+    # Character to group object keys (e.g., "/" to list like folders)
+    string delimiter?;
+    # Maximum number of objects to return (1-1000)
+    int maxKeys?;
+    # Token to get the next page of results
+    string continuationToken?;
+    # List objects after this key name
+    string startAfter?;
+    # Include owner info in the results
+    boolean fetchOwner?;
+    # Encoding type for object keys (e.g., "url")
+    string encodingType?;
+};
+
+# Configuration for copying an object.
+
+type CopyObjectConfig record {
+    # Specifies accessibility for the copied object (e.g., "private", "public-read")
+    CannedACL acl?;
+    # Storage type for the copied object (e.g., "STANDARD", "GLACIER")
+    StorageClass storageClass?;
+    # "COPY" to keep original metadata or "REPLACE" to use new metadata
+    string metadataDirective?;
+    # New metadata for the copied object (only used when metadataDirective is "REPLACE")
+    map<string> metadata?;
+    # The MIME type of the copied object
+    string contentType?;
+    # Specifies caching behavior along the request/reply chain
+    string cacheControl?;
+    # Specifies presentational information for the object
+    string contentDisposition?;
+    # Specifies what content encodings have been applied to the object and thus what decoding mechanisms must be applied to obtain the media-type referenced by the Content-Type header field
+    string contentEncoding?;
+    # Tags for the copied object (e.g., "env=prod&team=finance")
+    string tagging?;
+    # Copy the object only if its entity tag (ETag) is the same as the one specified
+    string copySourceIfMatch?;
+    # Copy the object only if its entity tag (ETag) is different from the one specified
+    string copySourceIfNoneMatch?;
+    # Copy the object only if it has been modified since the specified time (e.g., "2024-01-15T00:00:00Z")
+    string copySourceIfModifiedSince?;
+    # Copy the object only if it has not been modified since the specified time (e.g., "2024-01-15T00:00:00Z")
+    string copySourceIfUnmodifiedSince?;
+};
+
+# Configuration for getting object metadata.
+
+type HeadObjectConfig record {
+    # Get metadata for a specific version of the object (when versioning is enabled)
+    string versionId?;
+    # The part number of the file part to get metadata for
+    int partNumber?;
+    # Return the metadata only if its entity tag (ETag) is the same as the one specified
+    string ifMatch?;
+    # Return the metadata only if its entity tag (ETag) is different from the one specified
+    string ifNoneMatch?;
+    # Return the metadata only if it has been modified since the specified time
+    string ifModifiedSince?;
+    # Return the metadata only if it has not been modified since the specified time
+    string ifUnmodifiedSince?;
+};
+
+# Configuration for creating presigned URLs.
+
+type PresignedUrlConfig record {
+    # Specifies how long the URL is valid in minutes (default: 15, max: 10080 for 7 days)
+    int expirationMinutes?;
+    # Specifies what action the URL allows ("GET" to download, "PUT" to upload)
+    HttpMethod httpMethod?;
+    # The MIME type of the content (for PUT requests)
+    string contentType?;
+    # Specifies presentational information for the object (for GET requests)
+    string contentDisposition?;
+    # Override file type when downloading (for GET requests)
+    string responseContentType?;
+    # Get URL for a specific version of the object (when versioning is enabled)
+    string versionId?;
+};
+
+# HTTP methods for presigned URLs.
+enum HttpMethod {
+    PUT,
+    GET
+}
+
+# Configuration for multipart upload (for large files uploaded in parts).
+
+type MultipartUploadConfig record {
+    # The MIME type of the content
+    string contentType?;
+    # Specifies accessibility for this object (e.g., "private", "public-read")
+    CannedACL acl?;
+    # The Storage class of the object (e.g., "STANDARD", "GLACIER" for archive)
+    StorageClass storageClass?;
+    # Custom data to attach to the object (e.g., {"author": "John"})
+    map<string> metadata?;
+    # Specifies caching behavior along the request/reply chain
+    string cacheControl?;
+    # Specifies presentational information for the object
+    string contentDisposition?;
+    # Specifies what content encodings have been applied to the object and thus what decoding mechanisms must be applied to obtain the media-type referenced by the Content-Type header field
+    string contentEncoding?;
+    # Tags for the object (e.g., "env=prod&team=finance")
+    string tagging?;
+    # Encryption type ("AES256" or "aws:kms")
+    string serverSideEncryption?;
+};
+
+# Configuration for uploading a single part in a multipart upload.
+
+type UploadPartConfig record {
+    # Size of the part in bytes
+    int contentLength?;
+    # MD5 hash of the part content (for data integrity check)
+    string contentMD5?;
+    # The file format to use for serializing record content. Overrides the format inferred from the object key extension
+    FileFormat fileFormat?;
+};
+
+# Configuration for uploading a part as a stream in a multipart upload.
+
+type UploadStreamPartConfig record {
+    # Size of the part in bytes
+    int contentLength;
+    string contentMD5?;
+    FileFormat fileFormat?;
+};
+
+# Represents a single S3 object in a listing.
+
+type S3Object record {
+    # The object's path/name in the bucket (e.g., "photos/image.jpg")
+    string key;
+    # Size of the object in bytes
+    int size;
+    # When the object was last changed
+    string lastModified;
+    # Represents the hash value of the object, which reflects modifications made exclusively to the contents of the object
+    string eTag;
+    # The Storage class of the object (e.g., "STANDARD", "GLACIER")
+    StorageClass storageClass?;
+};
+
+# Response from listing objects in a bucket.
+
+type ListObjectsResponse record {
+    # List of objects found
+    S3Object[] objects;
+    # Number of objects returned
+    int count;
+    # True if there are more results (use nextContinuationToken to get them)
+    boolean isTruncated;
+    # Token to get the next page of results
+    string nextContinuationToken?;
+};
+
+# Metadata information about an S3 object.
+
+type ObjectMetadata record {
+    # The object's path/name in the bucket (e.g., "photos/image.jpg")
+    string key;
+    # Size of the object in bytes
+    int contentLength;
+    # The MIME type of the content
+    string contentType?;
+    # Unique ID of the object's content 
+    string eTag;
+    # When the object was last changed 
+    string lastModified;
+    # The Storage class of the object (e.g., "STANDARD", "GLACIER")
+    StorageClass storageClass?;
+    # Version ID of the object (when versioning is enabled)
+    string versionId?;
+    # Custom data attached to the object
+    map<anydata> userMetadata?;
+};
+
+// --- Client ---
+
+# The AWS S3 Client Connector.
+# 
+# Provides access to Amazon Simple Storage Service (S3) using the AWS SDK for Java V2.
+# Supports static credentials, profile-based credentials, and the default AWS credential
+# provider chain (environment variables, ECS container credentials, EC2 instance profiles, etc.).
+client class Client {
+    function init(auth:AuthConfig auth = {accessKeyId: "", secretAccessKey: ""}, "us-west-2"|"us-west-1"|"us-isof-south-1"|"us-isof-east-1"|"us-isob-west-1"|"us-isob-east-1"|"us-iso-west-1"|"us-iso-east-1"|"us-gov-west-1"|"us-gov-east-1"|"us-east-2"|"us-east-1"|"sa-east-1"|"mx-central-1"|"me-south-1"|"me-central-1"|"il-central-1"|"eusc-de-east-1"|"eu-isoe-west-1"|"eu-west-3"|"eu-west-2"|"eu-west-1"|"eu-south-2"|"eu-south-1"|"eu-north-1"|"eu-central-2"|"eu-central-1"|"cn-northwest-1"|"cn-north-1"|"ca-west-1"|"ca-central-1"|"aws-iso-f-global"|"aws-iso-e-global"|"aws-iso-b-global"|"aws-iso-global"|"aws-us-gov-global"|"aws-cn-global"|"aws-global"|"ap-southeast-7"|"ap-southeast-6"|"ap-southeast-5"|"ap-southeast-4"|"ap-southeast-3"|"ap-southeast-2"|"ap-southeast-1"|"ap-south-2"|"ap-south-1"|"ap-northeast-3"|"ap-northeast-2"|"ap-northeast-1"|"ap-east-2"|"ap-east-1"|"af-south-1"|string region = aws:US_EAST_1, aws:EndpointConfig endpoint = {}, ConnectionConfig config) returns ballerinax/aws.s3:4.0.0:Error?; // Special Agent Note: AuthConfig FROM ballerinax/aws.auth package, EndpointConfig FROM ballerinax/aws package
+
+    # Creates an S3 bucket.
+    # 
+    remote function createBucket(string bucketName, CannedACL acl = "bucket-owner-full-control", ObjectOwnership objectOwnership = "BucketOwnerPreferred", boolean objectLockEnabled = false, CreateBucketConfig config) returns Error|();
+
+    # Deletes an S3 bucket.
+    # 
+    remote function deleteBucket(string bucketName) returns Error|();
+
+    # Lists all buckets in the AWS account.
+    # 
+    remote function listBuckets() returns Bucket[]|Error;
+
+    # Gets the AWS region of a bucket.
+    # 
+    remote function getBucketLocation(string bucketName) returns string|Error;
+
+    # Uploads an S3 object from a file path.
+    # 
+    remote function putObjectFromFile(string bucketName, string objectKey, string filePath, string contentType = "", CannedACL acl = "bucket-owner-full-control", StorageClass storageClass = "DEEP_ARCHIVE", map<string> metadata = {}, string cacheControl = "", string contentDisposition = "", string contentEncoding = "", string contentLanguage = "", string expires = "", string tagging = "", string serverSideEncryption = "", FileFormat fileFormat = "CSV", PutObjectConfig config) returns Error|();
+
+    # Uploads an S3 object from content.
+    # 
+    remote function putObject(string bucketName, string objectKey, UploadContent content, string contentType = "", CannedACL acl = "bucket-owner-full-control", StorageClass storageClass = "DEEP_ARCHIVE", map<string> metadata = {}, string cacheControl = "", string contentDisposition = "", string contentEncoding = "", string contentLanguage = "", string expires = "", string tagging = "", string serverSideEncryption = "", FileFormat fileFormat = "CSV", PutObjectConfig config) returns Error|();
+
+    # Uploads an S3 object from a stream.
+    # 
+    remote function putObjectAsStream(string bucketName, string objectKey, stream<byte[], error?> contentStream, string contentType = "", CannedACL acl = "bucket-owner-full-control", StorageClass storageClass = "DEEP_ARCHIVE", map<string> metadata = {}, string cacheControl = "", string contentDisposition = "", string contentEncoding = "", string contentLanguage = "", string expires = "", string tagging = "", string serverSideEncryption = "", FileFormat fileFormat = "CSV", int contentLength = 0, PutObjectStreamConfig config) returns Error|();
+
+    # Downloads an S3 object from an S3 bucket.
+    # 
+    remote function getObject(string bucketName, string objectKey, byte[]|string|json|xml|record {|anydata...;|}|record {|anydata...;|}[]|stream<byte[], error?>|stream<record {|anydata...;|}, error?> targetType = s3:RetrievableType, string versionId = "", string range = "", string ifMatch = "", string ifNoneMatch = "", string ifModifiedSince = "", string ifUnmodifiedSince = "", int partNumber = 0, string responseContentType = "", string responseContentDisposition = "", GetObjectConfig config) returns targetType|Error;
+
+    # Deletes an S3 object from an S3 bucket.
+    # 
+    remote function deleteObject(string bucketName, string objectKey, string versionId = "", string mfa = "", boolean bypassGovernanceRetention = false, DeleteObjectConfig config) returns Error|();
+
+    # Lists S3 objects in an S3 bucket.
+    # 
+    remote function listObjects(string bucketName, string prefix = "", string delimiter = "", int maxKeys = 0, string continuationToken = "", string startAfter = "", boolean fetchOwner = false, string encodingType = "", ListObjectsConfig config) returns ListObjectsResponse|Error;
+
+    # Creates a presigned URL for temporary access to an S3 object.
+    # 
+    remote function createPresignedUrl(string bucketName, string objectKey, int expirationMinutes = 0, HttpMethod httpMethod = "PUT", string contentType = "", string contentDisposition = "", string responseContentType = "", string versionId = "", PresignedUrlConfig config) returns string|Error;
+
+    # Gets metadata for an S3 object without downloading it.
+    # 
+    remote function getObjectMetadata(string bucketName, string objectKey, string versionId = "", int partNumber = 0, string ifMatch = "", string ifNoneMatch = "", string ifModifiedSince = "", string ifUnmodifiedSince = "", HeadObjectConfig config) returns ObjectMetadata|Error;
+
+    # Copies an S3 object from one location to another.
+    # 
+    remote function copyObject(string sourceBucket, string sourceKey, string destinationBucket, string destinationKey, CannedACL acl = "bucket-owner-full-control", StorageClass storageClass = "DEEP_ARCHIVE", string metadataDirective = "", map<string> metadata = {}, string contentType = "", string cacheControl = "", string contentDisposition = "", string contentEncoding = "", string tagging = "", string copySourceIfMatch = "", string copySourceIfNoneMatch = "", string copySourceIfModifiedSince = "", string copySourceIfUnmodifiedSince = "", CopyObjectConfig config) returns Error|();
+
+    # Checks if an S3 object exists in an S3 bucket.
+    # 
+    remote function doesObjectExist(string bucketName, string objectKey) returns boolean|Error;
+
+    # Creates a multipart upload.
+    # 
+    remote function createMultipartUpload(string bucketName, string objectKey, string contentType = "", CannedACL acl = "bucket-owner-full-control", StorageClass storageClass = "DEEP_ARCHIVE", map<string> metadata = {}, string cacheControl = "", string contentDisposition = "", string contentEncoding = "", string tagging = "", string serverSideEncryption = "", MultipartUploadConfig config) returns string|Error;
+
+    # Uploads a part in a multipart upload.
+    # Supported content types: `byte[]`, `string`, `json`, `xml`, `record {}`, `record {}[]`,
+    # `stream<byte[], error?>`, and `stream<record {}, error?>`.
+    # 
+    # For `record {}` content, the object key must end with `.json` or `.xml`.
+    # `.json` keys serialize the record as JSON; `.xml` keys serialize as XML.
+    # For `record {}[]` and `stream<record {}, error?>` content, the object key must end with `.csv`.
+    # The records are serialized as CSV (field names as headers).
+    # `stream<byte[], error?>` content is collected into bytes before uploading.
+    # 
+    remote function uploadPart(string bucketName, string objectKey, string uploadId, int partNumber, UploadContent content, int contentLength = 0, string contentMD5 = "", FileFormat fileFormat = "CSV", UploadPartConfig config) returns string|Error;
+
+    # Uploads a part from a stream.
+    # 
+    remote function uploadPartAsStream(string bucketName, string objectKey, string uploadId, int partNumber, stream<byte[], error?> contentStream, int contentLength = 0, string contentMD5 = "", FileFormat fileFormat = "CSV", UploadStreamPartConfig config) returns string|Error;
+
+    # Completes a multipart upload.
+    # 
+    remote function completeMultipartUpload(string bucketName, string objectKey, string uploadId, int[] partNumbers, string[] etags) returns Error|();
+
+    # Aborts a multipart upload.
+    # 
+    remote function abortMultipartUpload(string bucketName, string objectKey, string uploadId) returns Error|();
+
+    # Closes the underlying S3 client and releases resources.
+    # 
+    remote function close() returns Error|();
+}

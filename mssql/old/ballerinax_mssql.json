@@ -1,0 +1,2289 @@
+{
+  "name": "ballerinax/mssql",
+  "description": "This module provides the functionality required to access and manipulate data stored in an MSSQL database. It enables seamless integration with Microsoft SQL Server, supporting various data types and advanced database features.",
+  "readme": "## Overview\n\nThis module provides the functionality required to access and manipulate data stored in an MSSQL database. It enables seamless integration with Microsoft SQL Server, supporting various data types and advanced database features.\n\n### Key Features\n\n- Reliable and high-performance database connectivity\n- Support for common SQL operations (Query, Execute, Batch)\n- Efficient connection pooling and resource management\n- Support for Change Data Capture (CDC) and SSL\n- GraalVM compatible for native image builds\n\n### Prerequisite\nAdd the MSSQL driver as a dependency to the Ballerina project.\n\n\u003e**Note**: `ballerinax/mssql` supports MSSQL driver versions above 9.20.\n\nYou can achieve this by importing the `ballerinax/mssql.driver` module,\n ```ballerina\n import ballerinax/mssql.driver as _;\n ```\n\n`ballerinax/mssql.driver` package bundles the latest MSSQL driver JAR.\n\n\u003e**Tip**: GraalVM native build is supported when `ballerinax/mssql` is used along with the `ballerinax/mssql.driver`\n\nIf you want to add a MSSQL driver of a specific version, you can add it as a dependency in Ballerina.toml.\nFollow one of the following ways to add the JAR in the file:\n\n* Download the JAR and update the path.\n    ```\n    [[platform.java21.dependency]]\n    path \u003d \"PATH\"\n    ```\n\n* Add JAR with the maven dependency params.\n    ```\n    [[platform.java21.dependency]]\n    groupId \u003d \"com.microsoft.sqlserver\"\n    artifactId \u003d \"mssql-jdbc\"\n    version \u003d \"12.8.1.jre11\"\n    ```\n\n### Setup guide\n\n#### Change Data Capture\n\n1. **Ensure SQL Server Agent is Enabled**:\n   - The SQL Server Agent must be running to use CDC. Start the agent if it is not already running.\n\n2. **Enable CDC for the Database**:\n   - Run the following command to enable CDC for the database:\n     ```sql\n     USE \u003cyour_database_name\u003e;\n     EXEC sys.sp_cdc_enable_db;\n     ```\n\n3. **Enable CDC for Specific Tables**:\n   - Enable CDC for the required tables by specifying the schema and table name:\n     ```sql\n     EXEC sys.sp_cdc_enable_table\n         @source_schema \u003d \u0027your_schema_name\u0027,\n         @source_name \u003d \u0027your_table_name\u0027,\n         @role_name \u003d NULL;\n     ```\n\n4. **Verify CDC Configuration**:\n   - Run the following query to verify that CDC is enabled for the database:\n     ```sql\n     SELECT name, is_cdc_enabled FROM sys.databases WHERE name \u003d \u0027your_database_name\u0027;\n     ```\n\n### Client\nTo access a database, you must first create an\n[`mssql:Client`](https://docs.central.ballerina.io/ballerinax/mssql/latest#Client) object.\nThe examples for creating an MSSQL client can be found below.\n\n\u003e **Tip**: The client should be used throughout the application lifetime.\n\n#### Create a client\nThese examples show the different methods of creating an `mssql:Client`.\n\nThe client can be created with an empty constructor, and thereby, will be initialized with the default properties.\n\n```ballerina\nmssql:Client|sql:Error dbClient \u003d new();\n```\n\nThe `mssql:Client` receives the host, username, and password. Since the properties are passed in the same order as they are defined\nin the `mssql:Client`, you can pass them without named parameters.\n\n```ballerina\nmssql:Client|sql:Error dbClient \u003d new(\n   \"localhost\", \"rootUser\", \"rootPass\", \"information_schema\", 1443\n);\n```\n\nThe sample below shows an `mssql:Client`, which uses named parameters to pass the attributes since some parameters are skipped in the constructor.\nFurther, the [`mssql:Options`](https://docs.central.ballerina.io/ballerinax/mssql/latest#Options)\nproperty is passed to configure the SSL and login timeout properties in the MSSQL client.\n\n```ballerina\nmssql:Options mssqlOptions \u003d {\n  secureSocket: {\n    encrypt: true,\n    cert: {\n       path: \"trustStorePath\",\n       password: \"password\"\n    }\n  },\n  loginTimeout: 10\n};\n\nmssql:Client|sql:Error dbClient \u003d new(\n   user \u003d \"rootUser\", password \u003d \"rootPass\", options \u003d mssqlOptions\n);\n```\n\nSimilarly, in the sample below, the `mssql:Client` uses named parameters, and it provides an unshared connection pool of the\n[`sql:ConnectionPool`](https://docs.central.ballerina.io/ballerina/sql/latest#ConnectionPool)\ntype to be used within the client.\nFor more details about connection pooling, see the [`sql` module](https://docs.central.ballerina.io/ballerina/sql/latest).\n\n```ballerina\nmssql:Client|sql:Error dbClient \u003d new(\n   user \u003d \"rootUser\", password \u003d \"rootPass\", \n   connectionPool \u003d {maxOpenConnections: 5}\n);\n```\n\n#### SSL usage\nTo connect to the MSSQL database using an SSL connection, you must add the SSL configurations to the `mssql:Options` when creating the `mssql:Client`.\nThe value of `encrypt` must be set to `true`.\nIf `trustServerCertificate` is set to `true`, the client will not validate the server TLS/SSL certificate (used for testing in local environments).\nThe key and cert files must be provided in the `.p12` format.\n\n```ballerina\nstring clientStorePath \u003d \"/path/to/keystore.p12\";\nstring trustStorePath \u003d \"/path/to/truststore.p12\";\n\nmssql:Options mssqlOptions \u003d {\n  secureSocket: {\n    encrypt: true,\n    trustServerCertificate: false\n    key: {\n        path: clientStorePath,\n        password: \"password\"\n    },\n    cert: {\n        path: trustStorePath,\n        password: \"password\"\n    }\n  }\n};\n```\n\n#### Handle connection pools\n\nAll database modules share the same connection pooling concept and there are three possible scenarios for\nconnection pool handling. For its properties and possible values, see [`sql:ConnectionPool`](https://docs.central.ballerina.io/ballerina/sql/latest#ConnectionPool).\n\n\u003e**Note**: Connection pooling is used to optimize opening and closing connections to the database. However, the pool comes with an overhead. It is best to configure the connection pool properties as per the application need to get the best performance.\n\n1. Global, shareable, default connection pool\n\n   If you do not provide the `connectionPool` field when creating the database client, a globally-shareable pool will be\n   created for your database unless a connection pool matching with the properties you provided already exists.\n\n    ```ballerina\n    mssql:Client|sql:Error dbClient \u003d new (\"localhost\", \"rootUser\", \"rootPass\");\n    ```\n\n2. Client-owned, unsharable connection pool\n\n   If you define the `connectionPool` field inline when creating the client with the `sql:ConnectionPool` type,\n   an unsharable connection pool will be created.\n\n    ```ballerina\n    mssql:Client|sql:Error dbClient \u003d new (\"localhost\", \"rootUser\", \"rootPass\", \n                                           connectionPool \u003d { maxOpenConnections: 5 });\n    ```\n\n3. Local, shareable connection pool\n\n   If you create a record of the `sql:ConnectionPool` type and reuse that in the configuration of multiple clients,\n   for each set of clients that connects to the same database instance with the same set of properties, a shared\n   connection pool will be created.\n\n    ```ballerina\n    sql:ConnectionPool connPool \u003d {maxOpenConnections: 5};\n    \n    mssql:Client|sql:Error dbClient1 \u003d new(\n        \"localhost\", \"rootUser\", \"rootPass\", connectionPool \u003d connPool\n    );\n    mssql:Client|sql:Error dbClient2 \u003d new(\n        \"localhost\", \"rootUser\", \"rootPass\", connectionPool \u003d connPool\n    );\n    mssql:Client|sql:Error dbClient3 \u003d new(\n        \"localhost\", \"rootUser\", \"rootPass\", connectionPool \u003d connPool\n    );\n    ```\n\nFor more details about each property, see the [`mssql:Client`](https://docs.central.ballerina.io/ballerinax/mssql/latest#Client) constructor.\n\nThe [`mssql:Client`](https://docs.central.ballerina.io/ballerinax/mssql/latest#Client) references\n[`sql:Client`](https://docs.central.ballerina.io/ballerina/sql/latest#Client) and all the operations\ndefined by the `sql:Client` will be supported by the `mssql:Client` as well.\n\n#### Close the client\n\nOnce all the database operations are performed, you can close the client you have created by invoking the `close()`\noperation. This will close the corresponding connection pool if it is not shared by any other database clients.\n\n\u003e **Note**: The client must be closed only at the end of the application lifetime (or closed for graceful stops in a service).\n\n```ballerina\nerror? e \u003d dbClient.close();\n```\nOr\n```ballerina\ncheck dbClient.close();\n```\n\n### Database operations\n\nOnce the client is created, database operations can be executed through that client. This module defines the interface\nand common properties that are shared among multiple database clients. It also supports querying, inserting, deleting,\nupdating, and batch updating data.\n\n#### Parameterized query\n\nThe `sql:ParameterizedQuery` is used to construct the SQL query to be executed by the client.\nYou can create a query with constant or dynamic input data as follows.\n\n*Query with constant values*\n\n```ballerina\nsql:ParameterizedQuery query \u003d `SELECT * FROM students \n                                WHERE id \u003c 10 AND age \u003e 12`;\n```\n\n*Query with dynamic values*\n\n```ballerina\nint[] ids \u003d [10, 50];\nint age \u003d 12;\nsql:ParameterizedQuery query \u003d `SELECT * FROM students\n                                WHERE id \u003c ${ids[0]} AND age \u003e ${age}`;\n```\n\nMoreover, the SQL module has `sql:queryConcat()` and `sql:arrayFlattenQuery()` util functions which make it easier\nto create a dynamic/constant complex query.\n\nThe `sql:queryConcat()` is used to create a single parameterized query by concatenating a set of parameterized queries.\nThe sample below shows how to concatenate queries.\n\n```ballerina\nint id \u003d 10;\nint age \u003d 12;\nsql:ParameterizedQuery query \u003d `SELECT * FROM students`;\nsql:ParameterizedQuery query1 \u003d ` WHERE id \u003c ${id} AND age \u003e ${age}`;\nsql:ParameterizedQuery sqlQuery \u003d sql:queryConcat(query, query1);\n```\n\nA query with the `IN` operator can be created using the `sql:ParameterizedQuery` as shown below. Here, you need to flatten the array and pass each element separated by a comma.\n\n```ballerina\nint[] ids \u003d [1, 2, 3];\nsql:ParameterizedQuery query \u003d `SELECT count(*) as total FROM DataTable \n                                WHERE row_id IN (${ids[0]}, ${ids[1]}, ${ids[2]})`;\n```\n\nThe `sql:arrayFlattenQuery()` util function is used to make the array flattening easier. It makes the inclusion of varying array elements into the query easier by flattening the array to return a parameterized query. You can construct the complex dynamic query with the `IN` operator by using both functions as shown below.\n\n```ballerina\nint[] ids \u003d [1, 2];\nsql:ParameterizedQuery sqlQuery \u003d \n                         sql:queryConcat(`SELECT * FROM DataTable WHERE id IN (`, \n                                          sql:arrayFlattenQuery(ids), `)`);\n```\n\n#### Create tables\n\nThis sample creates a table with three columns. The first column is a primary key of type `int`\nwhile the second column is of type `int` and the other is of type `varchar`.\nThe `CREATE` statement is executed via the `execute` remote method of the client.\n\n```ballerina\n// Create the ‘Students’ table with the ‘id’, ’age’, and ’name’ fields.\nsql:ExecutionResult result \u003d \n                check dbClient-\u003eexecute(`CREATE TABLE student (\n                                           id INT AUTO_INCREMENT,\n                                           age INT, \n                                           name VARCHAR(255), \n                                           PRIMARY KEY (id)\n                                         )`);\n// A value of the sql:ExecutionResult type is returned for \u0027result\u0027. \n```\n\n#### Insert data\n\nThese samples show the data insertion by executing an `INSERT` statement using the `execute` remote method\nof the client.\n\nIn this sample, the query parameter values are passed directly into the query statement of the `execute`\nremote method.\n\n```ballerina\nsql:ExecutionResult result \u003d check dbClient-\u003eexecute(`INSERT INTO student(age, name)\n                                                        VALUES (23, \u0027john\u0027)`);\n```\n\nIn this sample, the parameter values, which are assigned to local variables are used to parameterize the SQL query in\nthe `execute` remote method. This type of parameterized SQL query can be used with any primitive Ballerina type\nsuch as `string`, `int`, `float`, or `boolean` and in that case, the corresponding SQL type of the parameter is derived\nfrom the type of the Ballerina variable that is passed.\n\n```ballerina\nstring name \u003d \"Anne\";\nint age \u003d 8;\n\nsql:ParameterizedQuery query \u003d `INSERT INTO student(age, name)\n                                  VALUES (${age}, ${name})`;\nsql:ExecutionResult result \u003d check dbClient-\u003eexecute(query);\n```\n\nIn this sample, the parameter values are passed as an `sql:TypedValue` to the `execute` remote method. Use the\ncorresponding subtype of the `sql:TypedValue` such as `sql:VarcharValue`, `sql:CharValue`, `sql:IntegerValue`, etc., when you need to\nprovide more details such as the exact SQL type of the parameter.\n\n```ballerina\nsql:VarcharValue name \u003d new (\"James\");\nsql:IntegerValue age \u003d new (10);\n\nsql:ParameterizedQuery query \u003d `INSERT INTO student(age, name)\n                                  VALUES (${age}, ${name})`;\nsql:ExecutionResult result \u003d check dbClient-\u003eexecute(query);\n```\n\n#### Insert data with auto-generated keys\n\nThis sample demonstrates inserting data while returning the auto-generated keys. It achieves this by using the\n`execute` remote method to execute the `INSERT` statement.\n\n```ballerina\nint age \u003d 31;\nstring name \u003d \"Kate\";\n\nsql:ParameterizedQuery query \u003d `INSERT INTO student(age, name)\n                                  VALUES (${age}, ${name})`;\nsql:ExecutionResult result \u003d check dbClient-\u003eexecute(query);\n\n// Number of rows affected by the execution of the query.\nint? count \u003d result.affectedRowCount;\n\n// The integer or string generated by the database in response to a query execution.\nstring|int? generatedKey \u003d result.lastInsertId;\n```\n\n#### Query data\n\nThese samples show how to demonstrate the different usages of the `query` operation to query the\ndatabase table and obtain the results as a stream.\n\n\u003e**Note**: When processing the stream, make sure to consume all fetched data or close the stream.\n\nThis sample demonstrates querying data from a table in a database.\nFirst, a type is created to represent the returned result set. This record can be defined as an open or a closed record\naccording to the requirement. If an open record is defined, the returned stream type will include both defined fields\nin the record and additional database columns fetched by the SQL query, which are not defined in the record.\n\n\u003e**Note**: the mapping of the database column to the returned record\u0027s property is case-insensitive if it is defined in  the record(i.e., the `ID` column in the result can be mapped to the `id` property in the record). Additional column names are added to the returned record as in the SQL query. If the record is defined as a closed record, only the  defined fields in the record are returned or gives an error when additional columns are present in the SQL query. \n\nNext, the `SELECT` query is executed via the `query` remote method of the client. Once the query is executed, each data record \ncan be retrieved by iterating through the result set. The `stream` returned by the `SELECT` operation holds a pointer to the\nactual data in the database, and it loads data from the table only when it is accessed. This stream can be iterated only\nonce.\n\n```ballerina\n// Define an open record type to represent the results.\ntype Student record {\n    int id;\n    int age;\n    string name;\n};\n\n// Select the data from the database table. The query parameters are passed \n// directly. Similar to the `execute` samples, parameters can be passed as\n// sub types of `sql:TypedValue` as well.\nint id \u003d 10;\nint age \u003d 12;\nsql:ParameterizedQuery query \u003d `SELECT * FROM students\n                                WHERE id \u003c ${id} AND age \u003e ${age}`;\nstream\u003cStudent, sql:Error?\u003e resultStream \u003d dbClient-\u003equery(query);\n\n// Iterating the returned table.\ncheck from Student student in resultStream\n   do {\n       // Can perform operations using the record \u0027student\u0027 of type `Student`.\n   };\n```\n\nDefining the return type is optional, and you can query the database without providing the result type. Hence,\nthe above sample can be modified as follows with an open record type as the return type. The property name in the open record\ntype will be the same as how the column is defined in the database.\n\n```ballerina\n// Select the data from the database table. The query parameters are passed \n// directly. Similar to the `execute` samples, parameters can be passed as \n// sub types of `sql:TypedValue` as well.\nint id \u003d 10;\nint age \u003d 12;\nsql:ParameterizedQuery query \u003d `SELECT * FROM students\n                                WHERE id \u003c ${id} AND age \u003e ${age}`;\nstream\u003crecord{}, sql:Error?\u003e resultStream \u003d dbClient-\u003equery(query);\n\n// Iterating the returned table.\ncheck from record{} student in resultStream\n   do {\n      // Can perform operations using the record \u0027student\u0027.\n      io:println(\"Student name: \", student.value[\"name\"]);\n   };\n```\n\nThere are situations in which you may not want to iterate through the database, and in that case, you may decide\nto use the `queryRow()` operation. If the provided return type is a record, this method returns only the first row\nretrieved by the query as a record.\n\n```ballerina\nint id \u003d 10;\nsql:ParameterizedQuery query \u003d `SELECT * FROM students WHERE id \u003d ${id}`;\nStudent retrievedStudent \u003d check dbClient-\u003equeryRow(query);\n```\n\nThe `queryRow()` operation can also be used to retrieve a single value from the database (e.g., when querying using\n`COUNT()` and other SQL aggregation functions). If the provided return type is not a record (i.e., a primitive data type)\n, this operation will return the value of the first column of the first row retrieved by the query.\n\n```ballerina\nint age \u003d 12;\nsql:ParameterizedQuery query \u003d `SELECT COUNT(*) FROM students WHERE age \u003c ${age}`;\nint youngStudents \u003d check dbClient-\u003equeryRow(query);\n```\n\n#### Update data\n\nThis sample demonstrates modifying data by executing an `UPDATE` statement via the `execute` remote method of\nthe client.\n\n```ballerina\nint age \u003d 23;\nsql:ParameterizedQuery query \u003d `UPDATE students SET name \u003d \u0027John\u0027 WHERE age \u003d ${age}`;\nsql:ExecutionResult result \u003d check dbClient-\u003eexecute(query);\n```\n\n#### Delete data\n\nThis sample demonstrates deleting data by executing a `DELETE` statement via the `execute` remote method of\nthe client.\n\n```ballerina\nstring name \u003d \"John\";\nsql:ParameterizedQuery query \u003d `DELETE from students WHERE name \u003d ${name}`;\nsql:ExecutionResult result \u003d check dbClient-\u003eexecute(query);\n```\n\n#### Batch update data\n\nThis sample demonstrates how to insert multiple records with a single `INSERT` statement that is executed via the\n`batchExecute` remote method of the client. This is done by creating a `table` with multiple records and\nparameterized SQL query as same as the above `execute` operations.\n\n```ballerina\n// Create the table with the records that need to be inserted.\nvar data \u003d [\n  { name: \"John\", age: 25 },\n  { name: \"Peter\", age: 24 },\n  { name: \"jane\", age: 22 }\n];\n\n// Do the batch update by passing the batches.\nsql:ParameterizedQuery[] batch \u003d from var row in data\n                                 select `INSERT INTO students (\u0027name\u0027, \u0027age\u0027)\n                                           VALUES (${row.name}, ${row.age})`;\nsql:ExecutionResult[] result \u003d check dbClient-\u003ebatchExecute(batch);\n```\n\n#### Execute SQL stored procedures\n\nThis sample demonstrates how to execute a stored procedure with a single `INSERT` statement that is executed via the\n`call` remote method of the client.\n\n```ballerina\nint uid \u003d 10;\nsql:IntegerOutParameter insertId \u003d new;\n\nsql:ProcedureCallResult result \u003d \n                         check dbClient-\u003ecall(`call InsertPerson(${uid}, ${insertId})`);\nstream\u003crecord{}, sql:Error?\u003e? resultStr \u003d result.queryResult;\nif resultStr is stream\u003crecord{}, sql:Error?\u003e {\n   check from record{} result in resultStr\n      do {\n         // Can perform operations using the record \u0027result\u0027.\n      };\n}\ncheck result.close();\n```\n\n\u003e**Note**: Once the results are processed, the `close` method on the `sql:ProcedureCallResult` must be called.\n\n\u003e**Note**: The default thread pool size used in Ballerina is: `the number of processors available * 2`. You can configure the thread pool size by using the `BALLERINA_MAX_POOL_SIZE` environment variable.\n\n### Change Data Capture Listener\n\nTo listen for change data capture (CDC) events from a MSSQL database, you must create a [`mssql:CdcListener`](https://docs.central.ballerina.io/ballerinax/mssql/latest#CdcListener) object. The listener allows your Ballerina application to react to changes (such as inserts, updates, and deletes) in real time.\n\n#### Create a listener\n\nYou can create a CDC listener by specifying the required configurations such as host, port, username, password, and database name. Additional options can be provided using the [`cdc:Options`](https://docs.central.ballerina.io/ballerinax/cdc/latest#Options) record.\n\n```ballerina\nlistener mssql:CdcListener cdcListener \u003d new (database \u003d {\n    username: \u003cusername\u003e,\n    password: \u003cpassword\u003e\n});\n```\n\n#### Implement a service to handle CDC events\n\nYou can attach a service to the listener to handle CDC events. The service can define remote methods for different event types such as `onRead`, `onCreate`, `onUpdate`, and `onDelete`.\n\n```ballerina\nservice on cdcListener {\n    remote function onRead(record{} after) returns cdc:Error? {\n        io:println(\"Insert event: \", after);\n    }\n\n    remote function onCreate(record{} after) returns cdc:Error? {\n        io:println(\"Insert event: \", after);\n    }\n\n    remote function onUpdate(record{} before, record{} after) returns cdc:Error? {\n        io:println(\"Update event - Before: \", before, \" After: \", after);\n    }\n\n    remote function onDelete(record{} before) returns error? {\n        io:println(\"Delete event: \", before);\n    }\n}\n```\n",
+  "typeDefs": [
+    {
+      "name": "FUNCTION",
+      "description": "",
+      "type": "Constant",
+      "value": "function",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "DIRECT",
+      "description": "",
+      "type": "Constant",
+      "value": "direct",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "V1",
+      "description": "",
+      "type": "Constant",
+      "value": "v1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "V2",
+      "description": "",
+      "type": "Constant",
+      "value": "v2",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "Options",
+      "description": "Advanced MSSQL connection options.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "secureSocket",
+          "description": "SSL/TLS security settings",
+          "type": {
+            "name": "SecureSocket",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SecureSocket"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "socketTimeout",
+          "description": "Socket read/write timeout in seconds (0 means no timeout)",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "queryTimeout",
+          "description": "Query execution timeout in seconds (-1/0 means no timeout)",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "loginTimeout",
+          "description": "Connection and authentication timeout in seconds (default is 15 seconds)",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "useXADatasource",
+          "description": "Enable XA transactions",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "SecureSocket",
+      "description": "SSL configurations to be used when connecting to the MSSQL server.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "encrypt",
+          "description": "Enable encryption for all data sent between client and server if server has a certificate installed",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "trustServerCertificate",
+          "description": "Automatically trust the MSSQL server SSL certificate when communication layer is encrypted using TLS",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "cert",
+          "description": "Keystore configuration of the trust certificates",
+          "type": {
+            "name": "TrustStore",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "TrustStore",
+                "libraryName": "ballerina/crypto"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "key",
+          "description": "Keystore configuration of the client certificates",
+          "type": {
+            "name": "KeyStore",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "KeyStore",
+                "libraryName": "ballerina/crypto"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "DataQueryMode",
+      "description": "Represents the data query modes for SQL Server CDC.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "DIRECT",
+          "description": ""
+        },
+        {
+          "name": "FUNCTION",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "SourceStructVersion",
+      "description": "Represents the source struct version for SQL Server connector.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "V2",
+          "description": ""
+        },
+        {
+          "name": "V1",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "Point",
+      "description": "Represents the MSSQL Point type parameter in the `sql:ParameterizedQuery`.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "x",
+          "description": "The x coordinate of the point",
+          "type": {
+            "name": "decimal"
+          }
+        },
+        {
+          "name": "y",
+          "description": "The y coordinate of the point",
+          "type": {
+            "name": "decimal"
+          }
+        }
+      ]
+    },
+    {
+      "name": "LineStringValue",
+      "description": "",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "Point[]|string|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Point"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "srid",
+              "type": {
+                "name": "int|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "CircularStringValue",
+      "description": "",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "Point[]|string|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Point"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "srid",
+              "type": {
+                "name": "int|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "CompoundCurveElement",
+      "description": "Represents an element (LineString or Circular String) of a MSSQL Compound Curve type.\n",
+      "type": "Union",
+      "members": [
+        {
+          "name": "ballerinax/mssql:1.19.0:LineStringValue",
+          "type": {
+            "name": "LineStringValue",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "LineStringValue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerinax/mssql:1.19.0:CircularStringValue",
+          "type": {
+            "name": "CircularStringValue",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CircularStringValue"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "CompoundCurveValue",
+      "description": "",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "CompoundCurveElement[]|string|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "CompoundCurveElement"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "srid",
+              "type": {
+                "name": "int|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "CircularArcRing",
+      "description": "Represents the MSSQL circular arc ring (LineString, Circular String or Compound Curve) type.\n",
+      "type": "Union",
+      "members": [
+        {
+          "name": "ballerinax/mssql:1.19.0:LineStringValue",
+          "type": {
+            "name": "LineStringValue",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "LineStringValue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerinax/mssql:1.19.0:CircularStringValue",
+          "type": {
+            "name": "CircularStringValue",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CircularStringValue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerinax/mssql:1.19.0:CompoundCurveValue",
+          "type": {
+            "name": "CompoundCurveValue",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CompoundCurveValue"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PointValue",
+      "description": "",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "Point|string|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Point"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "srid",
+              "type": {
+                "name": "int|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "PolygonValue",
+      "description": "",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "LineStringValue[]|string|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "LineStringValue"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "srid",
+              "type": {
+                "name": "int|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "CurvePolygonValue",
+      "description": "",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "CircularArcRing[]|string|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "CircularArcRing"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "srid",
+              "type": {
+                "name": "int|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "MultiPointValue",
+      "description": "",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "Point[]|string|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Point"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "srid",
+              "type": {
+                "name": "int|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "MultiLineStringValue",
+      "description": "",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "LineStringValue[]|string|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "LineStringValue"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "srid",
+              "type": {
+                "name": "int|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "MultiPolygonValue",
+      "description": "",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "PolygonValue[]|string|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "PolygonValue"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "srid",
+              "type": {
+                "name": "int|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "GeometryCollectionElement",
+      "description": "Represents an element of an MSSQL Geometry Collection type.\n",
+      "type": "Union",
+      "members": [
+        {
+          "name": "ballerinax/mssql:1.19.0:PointValue",
+          "type": {
+            "name": "PointValue",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PointValue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerinax/mssql:1.19.0:LineStringValue",
+          "type": {
+            "name": "LineStringValue",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "LineStringValue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerinax/mssql:1.19.0:CircularStringValue",
+          "type": {
+            "name": "CircularStringValue",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CircularStringValue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerinax/mssql:1.19.0:CompoundCurveValue",
+          "type": {
+            "name": "CompoundCurveValue",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CompoundCurveValue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerinax/mssql:1.19.0:PolygonValue",
+          "type": {
+            "name": "PolygonValue",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PolygonValue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerinax/mssql:1.19.0:CurvePolygonValue",
+          "type": {
+            "name": "CurvePolygonValue",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CurvePolygonValue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerinax/mssql:1.19.0:MultiPointValue",
+          "type": {
+            "name": "MultiPointValue",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "MultiPointValue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerinax/mssql:1.19.0:MultiLineStringValue",
+          "type": {
+            "name": "MultiLineStringValue",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "MultiLineStringValue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerinax/mssql:1.19.0:MultiPolygonValue",
+          "type": {
+            "name": "MultiPolygonValue",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "MultiPolygonValue"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "StreamingConfiguration",
+      "description": "SQL Server streaming and query configuration.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "dataQueryMode",
+          "description": "CDC query method (function or direct)",
+          "type": {
+            "name": "DataQueryMode",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DataQueryMode"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "streamingDelayMs",
+          "description": "Delay before starting streaming after snapshot",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "streamingFetchSize",
+          "description": "Maximum rows per streaming round trip",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxIterationTransactions",
+          "description": "Maximum number of transactions per iteration",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "MsSqlListenerConfiguration",
+      "description": "SQL Server CDC listener configuration including database connection, storage, and CDC options.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "database",
+          "description": "SQL Server database connection and capture settings",
+          "type": {
+            "name": "MsSqlDatabaseConnection",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "MsSqlDatabaseConnection"
+              }
+            ]
+          }
+        },
+        {
+          "name": "options",
+          "description": "SQL Server-specific CDC options including snapshot, heartbeat, signals, and data type handling",
+          "type": {
+            "name": "MssqlOptions",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "MssqlOptions"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "engineName",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "internalSchemaStorage",
+          "description": "",
+          "type": {
+            "name": "InternalSchemaStorage",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "InternalSchemaStorage",
+                "libraryName": "ballerinax/cdc"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "offsetStorage",
+          "description": "",
+          "type": {
+            "name": "OffsetStorage",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "OffsetStorage",
+                "libraryName": "ballerinax/cdc"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "livenessInterval",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "MsSqlDatabaseConnection",
+      "description": "Represents the configuration for the MSSQL CDC database connection.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "connectorClass",
+          "description": "The class name of the MSSQL connector implementation to use",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "hostname",
+          "description": "The hostname of the MSSQL server",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "port",
+          "description": "The port number of the MSSQL server",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "databaseInstance",
+          "description": "The name of the database instance",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "databaseNames",
+          "description": "A list of database names to capture changes from",
+          "type": {
+            "name": "string|string[]"
+          }
+        },
+        {
+          "name": "includedSchemas",
+          "description": "A list of regular expressions matching fully-qualified schema identifiers to capture changes from",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "excludedSchemas",
+          "description": "A list of regular expressions matching fully-qualified schema identifiers to exclude from change capture",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "includedTables",
+          "description": "Regex patterns for tables to capture (mutually exclusive with `excludedTables`)",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "excludedTables",
+          "description": "Regex patterns for tables to exclude (mutually exclusive with `includedTables`)",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "includedColumns",
+          "description": "Regex patterns for columns to capture (mutually exclusive with `excludedColumns`)",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "excludedColumns",
+          "description": "Regex patterns for columns to exclude (mutually exclusive with `includedColumns`)",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "messageKeyColumns",
+          "description": "Composite message key columns for change events",
+          "type": {
+            "name": "MessageKeyColumns[]",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "MessageKeyColumns",
+                "libraryName": "ballerinax/cdc"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "tasksMax",
+          "description": "The maximum number of tasks to create for this connector. If the `databaseNames` contains more than one element, you can increase the value of this property to a number less than or equal to the number of elements in the list",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "streamingConfig",
+          "description": "SQL Server streaming and query configuration",
+          "type": {
+            "name": "StreamingConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "StreamingConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "username",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "password",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "connectTimeout",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "secure",
+          "description": "",
+          "type": {
+            "name": "SecureDatabaseConnection",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "SecureDatabaseConnection",
+                "libraryName": "ballerinax/cdc"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "MssqlOptions",
+      "description": "SQL Server-specific CDC options for configuring snapshot behavior and data type handling.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "extendedSnapshot",
+          "description": "Extended snapshot configuration with SQL Server-specific lock timeout and query settings",
+          "type": {
+            "name": "ExtendedSnapshotConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ExtendedSnapshotConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "dataTypeConfig",
+          "description": "Data type handling configuration including schema change tracking",
+          "type": {
+            "name": "DataTypeConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DataTypeConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "heartbeatConfig",
+          "description": "Heartbeat configuration for keeping the SQL Server CDC connection active",
+          "type": {
+            "name": "RelationalHeartbeatConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "RelationalHeartbeatConfiguration",
+                "libraryName": "ballerinax/cdc"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "snapshotMode",
+          "description": "",
+          "type": {
+            "name": "SnapshotMode",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "SnapshotMode",
+                "libraryName": "ballerinax/cdc"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "eventProcessingFailureHandlingMode",
+          "description": "",
+          "type": {
+            "name": "EventProcessingFailureHandlingMode",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "EventProcessingFailureHandlingMode",
+                "libraryName": "ballerinax/cdc"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "skippedOperations",
+          "description": "",
+          "type": {
+            "name": "Operation[]",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Operation",
+                "libraryName": "ballerinax/cdc"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "skipMessagesWithoutChange",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "decimalHandlingMode",
+          "description": "",
+          "type": {
+            "name": "DecimalHandlingMode",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "DecimalHandlingMode",
+                "libraryName": "ballerinax/cdc"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "maxQueueSize",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxBatchSize",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "queryTimeout",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "signalConfig",
+          "description": "",
+          "type": {
+            "name": "SignalConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "SignalConfiguration",
+                "libraryName": "ballerinax/cdc"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "transactionMetadataConfig",
+          "description": "",
+          "type": {
+            "name": "TransactionMetadataConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "TransactionMetadataConfiguration",
+                "libraryName": "ballerinax/cdc"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "columnTransformConfig",
+          "description": "",
+          "type": {
+            "name": "ColumnTransformConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ColumnTransformConfiguration",
+                "libraryName": "ballerinax/cdc"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "topicConfig",
+          "description": "",
+          "type": {
+            "name": "TopicConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "TopicConfiguration",
+                "libraryName": "ballerinax/cdc"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "connectionRetryConfig",
+          "description": "",
+          "type": {
+            "name": "ConnectionRetryConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ConnectionRetryConfiguration",
+                "libraryName": "ballerinax/cdc"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "performanceConfig",
+          "description": "",
+          "type": {
+            "name": "PerformanceConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "PerformanceConfiguration",
+                "libraryName": "ballerinax/cdc"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ExtendedSnapshotConfiguration",
+      "description": "SQL Server-specific extended snapshot configuration.\nExtends generic relational snapshot configuration with MSSQL-specific options.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "lockTimeout",
+          "description": "Lock acquisition timeout in seconds",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "isolationMode",
+          "description": "Transaction isolation level during snapshot",
+          "type": {
+            "name": "SnapshotIsolationMode",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "SnapshotIsolationMode",
+                "libraryName": "ballerinax/cdc"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "incrementalSnapshotOptionRecompile",
+          "description": "Use OPTION(RECOMPILE) for incremental snapshot queries",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "lockingMode",
+          "description": "",
+          "type": {
+            "name": "SnapshotLockingMode",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "SnapshotLockingMode",
+                "libraryName": "ballerinax/cdc"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "selectStatementOverrides",
+          "description": "",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "queryMode",
+          "description": "",
+          "type": {
+            "name": "SnapshotQueryMode",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "SnapshotQueryMode",
+                "libraryName": "ballerinax/cdc"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "delay",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "fetchSize",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxThreads",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "includeCollectionList",
+          "description": "",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "incrementalConfig",
+          "description": "",
+          "type": {
+            "name": "IncrementalSnapshotConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "IncrementalSnapshotConfiguration",
+                "libraryName": "ballerinax/cdc"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "DataTypeConfiguration",
+      "description": "Represents data type handling configuration.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "includeSchemaChanges",
+          "description": "Whether to include schema change events",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "binaryHandlingMode",
+          "description": "",
+          "type": {
+            "name": "BinaryHandlingMode",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "BinaryHandlingMode",
+                "libraryName": "ballerinax/cdc"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "timePrecisionMode",
+          "description": "",
+          "type": {
+            "name": "TimePrecisionMode",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "TimePrecisionMode",
+                "libraryName": "ballerinax/cdc"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "CdcListener",
+      "description": "Initializes the MSSQL listener with the given configuration.\n",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes the MSSQL listener with the given configuration.\n",
+          "parameters": [
+            {
+              "name": "engineName",
+              "description": "Debezium engine instance name",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "internalSchemaStorage",
+              "description": "Schema history storage configuration",
+              "type": {
+                "name": "InternalSchemaStorage",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "InternalSchemaStorage",
+                    "libraryName": "ballerinax/cdc"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "offsetStorage",
+              "description": "Offset storage configuration",
+              "type": {
+                "name": "OffsetStorage",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "OffsetStorage",
+                    "libraryName": "ballerinax/cdc"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "livenessInterval",
+              "description": "Interval in seconds for checking CDC listener liveness",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "0.0d"
+            },
+            {
+              "name": "database",
+              "description": "Database connection configuration (provided by DB-specific listener configs)",
+              "type": {
+                "name": "MsSqlDatabaseConnection",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "MsSqlDatabaseConnection"
+                  }
+                ]
+              },
+              "default": "{databaseNames: \"\", username: \"\", password: \"\"}"
+            },
+            {
+              "name": "options",
+              "description": "Connector options",
+              "type": {
+                "name": "MssqlOptions",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "MssqlOptions"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "config",
+              "description": "The configuration for the MSSQL connector",
+              "type": {
+                "name": "MsSqlListenerConfiguration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "MsSqlListenerConfiguration"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        },
+        {
+          "name": "attach",
+          "type": "Normal Function",
+          "description": "Attaches a CDC service to the MSSQL listener.\n",
+          "parameters": [
+            {
+              "name": "s",
+              "description": "The CDC service to attach",
+              "type": {
+                "name": "Service",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "Service",
+                    "libraryName": "ballerinax/cdc"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "name",
+              "description": "Attachment points",
+              "type": {
+                "name": "string[]|string|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "An error if the service cannot be attached, or `()` if successful",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerinax/cdc"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "\u0027start",
+          "type": "Normal Function",
+          "description": "Starts the MSSQL listener.\n",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerinax/cdc"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "detach",
+          "type": "Normal Function",
+          "description": "Detaches a CDC service from the MSSQL listener.\n",
+          "parameters": [
+            {
+              "name": "s",
+              "description": "The CDC service to detach",
+              "type": {
+                "name": "Service",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "Service",
+                    "libraryName": "ballerinax/cdc"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "An error if the service cannot be detached, or `()` if successful",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerinax/cdc"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "gracefulStop",
+          "type": "Normal Function",
+          "description": "Stops the MSSQL listener gracefully.\n",
+          "parameters": [],
+          "return": {
+            "description": "An error if the listener cannot be stopped, or `()` if successful",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerinax/cdc"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "immediateStop",
+          "type": "Normal Function",
+          "description": "Stops the MSSQL listener immediately.\n",
+          "parameters": [],
+          "return": {
+            "description": "An error if the listener cannot be stopped, or `()` if successful",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerinax/cdc"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "GeometryCollectionValue",
+      "description": "",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "GeometryCollectionElement[]|string|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "GeometryCollectionElement"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "srid",
+              "type": {
+                "name": "int|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "MoneyValue",
+      "description": "",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "decimal|float|string|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "SmallMoneyValue",
+      "description": "",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "decimal|float|string|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "name": "Client",
+      "description": "MSSQL (Microsoft SQL) client that enables interaction with MSSQL servers and supports standard SQL operations.",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Connects to a MSSQL database with the specified configuration.\n",
+          "parameters": [
+            {
+              "name": "host",
+              "description": "MSSQL server hostname",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"localhost\""
+            },
+            {
+              "name": "user",
+              "description": "Database username (if secured)",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "\"sa\""
+            },
+            {
+              "name": "password",
+              "description": "Database password (if secured)",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "database",
+              "description": "Database name to connect to (optional)",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "port",
+              "description": "MSSQL server port",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "1433"
+            },
+            {
+              "name": "instance",
+              "description": "MSSQL server instance name (optional)",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "options",
+              "description": "Advanced connection options (optional)",
+              "type": {
+                "name": "Options|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Options"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "connectionPool",
+              "description": "Connection pool for connection reuse. If not provided, the global connection pool (shared by all clients) will be used",
+              "type": {
+                "name": "ConnectionPool|()",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ConnectionPool",
+                    "libraryName": "ballerina/sql"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "`sql:Error` if the client creation fails",
+            "type": {
+              "name": "ballerina/sql:1.19.0:Error?"
+            }
+          }
+        },
+        {
+          "name": "query",
+          "type": "Remote Function",
+          "description": "Executes a SQL query and returns multiple results as a stream.\n",
+          "parameters": [
+            {
+              "name": "sqlQuery",
+              "description": "SQL query with optional parameters (e.g., `SELECT * FROM users WHERE id\u003d${userId}`)",
+              "type": {
+                "name": "ParameterizedQuery",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ParameterizedQuery",
+                    "libraryName": "ballerina/sql"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "rowType",
+              "description": "Record type to map query results to",
+              "type": {
+                "name": "record {|anydata...;|}"
+              },
+              "optional": true,
+              "default": "record {|anydata...;|}"
+            }
+          ],
+          "return": {
+            "description": "Stream of records containing the query results. Please ensure that the stream is fully consumed, or close the stream.",
+            "type": {
+              "name": "Error?\u003e"
+            }
+          }
+        },
+        {
+          "name": "queryRow",
+          "type": "Remote Function",
+          "description": "Executes a SQL query that is expected to return a single row or value as the result.\nIf the query returns no results, `sql:NoRowsError` is returned.\n",
+          "parameters": [
+            {
+              "name": "sqlQuery",
+              "description": "The SQL query (e.g., `` `SELECT * FROM Album WHERE name\u003d${albumName}` ``)",
+              "type": {
+                "name": "ParameterizedQuery",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ParameterizedQuery",
+                    "libraryName": "ballerina/sql"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "returnType",
+              "description": "The `typedesc` of the record to which the result should be mapped.\nIt can be a basic type if the query result contains only one column",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "Result in the `returnType` type or an `sql:Error`",
+            "type": {
+              "name": "returnType|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "returnType"
+                },
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/sql"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "execute",
+          "type": "Remote Function",
+          "description": "Executes a SQL query and returns execution metadata (not the actual query results).\n",
+          "parameters": [
+            {
+              "name": "sqlQuery",
+              "description": "SQL query with parameters (e.g., `` `DELETE FROM Album WHERE artist\u003d${artistName}` ``)",
+              "type": {
+                "name": "ParameterizedQuery",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ParameterizedQuery",
+                    "libraryName": "ballerina/sql"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "Execution metadata as an `sql:ExecutionResult`, or an `sql:Error` if execution fails",
+            "type": {
+              "name": "ExecutionResult|Error",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "ExecutionResult",
+                  "libraryName": "ballerina/sql"
+                },
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/sql"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "batchExecute",
+          "type": "Remote Function",
+          "description": "Executes multiple SQL commands in a single batch operation, and returns execution metadata (not the actual query results).\nIf one command fails (except due to a syntax error), execution continues for the remaining commands and\nthe `sql:BatchExecuteError` will be returned at the end with details of all errors.\n",
+          "parameters": [
+            {
+              "name": "sqlQueries",
+              "description": "Array of SQL queries with parameters",
+              "type": {
+                "name": "ParameterizedQuery[]",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ParameterizedQuery",
+                    "libraryName": "ballerina/sql"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "Array of execution results or an `sql:Error` if the operation fails",
+            "type": {
+              "name": "ExecutionResult[]|Error",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "ExecutionResult",
+                  "libraryName": "ballerina/sql"
+                },
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/sql"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "call",
+          "type": "Remote Function",
+          "description": "Calls a stored procedure with the given SQL query.\nOnce the results are processed, invoke the `close` method on the `sql:ProcedureCallResult`.\n",
+          "parameters": [
+            {
+              "name": "sqlQuery",
+              "description": "SQL query to call the procedure (e.g., `` `CALL sp_GetAlbums()` ``)",
+              "type": {
+                "name": "ParameterizedCallQuery",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ParameterizedCallQuery",
+                    "libraryName": "ballerina/sql"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "rowTypes",
+              "description": "`typedesc` array of the records to which the results should be mapped",
+              "type": {
+                "name": "typedesc\u003crecord {|anydata...;|}\u003e[]"
+              },
+              "optional": true,
+              "default": "[]"
+            }
+          ],
+          "return": {
+            "description": "Summary of the execution and results as `sql:ProcedureCallResult`, or an `sql:Error` if the call fails",
+            "type": {
+              "name": "ProcedureCallResult|Error",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "ProcedureCallResult",
+                  "libraryName": "ballerina/sql"
+                },
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/sql"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "close",
+          "type": "Normal Function",
+          "description": "Closes the MSSQL client and shuts down the connection pool.\nThe client should be closed only at the end of the application lifetime, or when performing graceful stops in a service.\n",
+          "parameters": [],
+          "return": {
+            "description": "`sql:Error` if closing the client fails",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/sql"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "functions": [],
+  "services": [
+    {
+      "type": "fixed",
+      "name": "Service",
+      "listener": {
+        "name": "mssql:CdcListener",
+        "parameters": [
+          {
+            "name": "config",
+            "description": "The configuration for the MSSQL connector",
+            "type": {
+              "name": "MsSqlListenerConfiguration",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "MsSqlListenerConfiguration"
+                }
+              ]
+            },
+            "optional": true,
+            "default": "{database: {databaseNames: \"\", username: \"\", password: \"\"}}"
+          }
+        ]
+      },
+      "methods": [
+        {
+          "name": "onRead",
+          "type": "remote",
+          "description": "Triggers initially to read existing records from the monitored table",
+          "parameters": [
+            {
+              "name": "afterEntry",
+              "description": "The existing record from the monitored table",
+              "type": {
+                "name": "record {}"
+              }
+            },
+            {
+              "name": "tableName",
+              "description": "The name of the table where the record was created",
+              "type": {
+                "name": "string"
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          },
+          "optional": false
+        },
+        {
+          "name": "onCreate",
+          "type": "remote",
+          "description": "Triggers when a new record is created in the monitored table",
+          "parameters": [
+            {
+              "name": "afterEntry",
+              "description": "The new record created in the monitored table",
+              "type": {
+                "name": "record {}"
+              }
+            },
+            {
+              "name": "tableName",
+              "description": "The name of the table where the record was created",
+              "type": {
+                "name": "string"
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          },
+          "optional": false
+        },
+        {
+          "name": "onUpdate",
+          "type": "remote",
+          "description": "Triggers when an existing record is updated in the monitored table",
+          "parameters": [
+            {
+              "name": "beforeEntry",
+              "description": "The record before the update in the monitored table",
+              "type": {
+                "name": "record {}"
+              }
+            },
+            {
+              "name": "afterEntry",
+              "description": "The record after the update in the monitored table",
+              "type": {
+                "name": "record {}"
+              }
+            },
+            {
+              "name": "tableName",
+              "description": "The name of the table where the record was created",
+              "type": {
+                "name": "string"
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          },
+          "optional": false
+        },
+        {
+          "name": "onDelete",
+          "type": "remote",
+          "description": "Triggers when a record is deleted from the monitored table",
+          "parameters": [
+            {
+              "name": "beforeEntry",
+              "description": "The record before the deletion in the monitored table",
+              "type": {
+                "name": "record {}"
+              }
+            },
+            {
+              "name": "tableName",
+              "description": "The name of the table where the record was created",
+              "type": {
+                "name": "string"
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          },
+          "optional": false
+        },
+        {
+          "name": "onError",
+          "type": "remote",
+          "description": "Triggers when an error occurs during event processing before mandatory functions are invoked",
+          "parameters": [
+            {
+              "name": "cdcError",
+              "description": "The error occurred during message processing",
+              "type": {
+                "name": "cdc:Error"
+              }
+            }
+          ],
+          "optional": false
+        }
+      ]
+    }
+  ],
+  "annotations": []
+}

@@ -1,0 +1,4624 @@
+{
+  "name": "ballerina/graphql",
+  "description": "This module provides APIs for connecting and interacting with GraphQL endpoints.",
+  "readme": "## Overview\n\nThis module provides APIs for connecting and interacting with GraphQL endpoints.\n\nGraphQL is an open-source data query and manipulation language for APIs. GraphQL allows clients to define the structure of the data required and the same structure of the data is returned from the server, preventing the returning of excessively large amounts of data or reducing the number of requests sent to the server.\n\nThe Ballerina GraphQL implementation is using HTTP as the underlying protocol.\n\n## Listener\n\nThe `graphql:Listener` is used to listen to a given IP/Port. To create a `graphql:Listener`, an `http:Listener` or a port number can be used.\n\n### Create a standalone `graphql:Listener`\n\n```ballerina\nimport ballerina/graphql;\n\nlistener graphql:Listener graphqlListener \u003d check new(4000);\n```\n\n### Create a `graphql:Listener` using an `http:Listener`\n\n```ballerina\nimport ballerina/graphql;\nimport ballerina/http;\n\nlistener http:Listener httpListener \u003d check new(4000);\nlistener graphql:Listener graphqlListener \u003d check new(httpListener);\n```\n\n## Service\n\nThe Ballerina GraphQL service represents the GraphQL schema. When a service is attached to a `graphql:Listener`, a GraphQL schema will be auto-generated.\n\nThe GraphQL services are exposed through a single endpoint. The path of the GraphQL service endpoint can be provided via the service path of the GraphQL service. The endpoint of the following Ballerina GraphQL service will be `/graphql`.\n\n```ballerina\nimport ballerina/graphql;\n\nservice graphql:Service /graphql on graphqlListener {\n    // ...\n}\n```\n\nThe GraphQL service endpoint URL will be `\u003chost\u003e:\u003cport\u003e/graphql`.\n\nAlternatively, a Ballerina graphql service can not have a path, in which case the endpoint will be the host URL and the port as following example.\n\n```ballerina\nimport ballerina/graphql;\n\nservice graphql:Service on graphqlListener {\n    // ...\n}\n```\n\nThe GraphQL service endpoint URL will be `\u003chost\u003e:\u003cport\u003e`\n\nAlternatively, the listener and service initialization can be combined into a single statement as follows:\n\n```ballerina\nservice graphql:Service on new graphql:Listener(9090) {\n\n}\n```\n\n### Query type\n\nThe `resource` functions inside the GraphQL service can represent the resolvers of the `Query` root type.\n\nWhen a `resource` function is defined inside a GraphQL service with the `get` accessor, the generated schema will have a `Query` root type and the `resource` function will be a field of the `Query` object.\n\n\u003e**Note:** A GraphQL service must have at least one resource function defined. Otherwise, it will result in a compilation error.\n\nThe `resource` method must use the `get` accessor for a field to be considered as a `Query` field. The `resource` function name will become the name of the particular field in the GraphQL schema. The return type of the `resource` function will be the type of the corresponding field.\n\n```ballerina\nimport ballerina/graphql;\n\nservice graphql:Service /graphql on new graphql:Listener(4000) {\n    resource function get greeting(string name) returns string {\n        return \"Hello, \" + name;\n    }\n}\n```\n\nThe above can be queried using the GraphQL document below:\n\n```graphql\n{\n    greeting(name: \"John\")\n}\n```\n\nThe result will be the following JSON.\n\n```json\n{\n    \"data\": {\n        \"greeting\": \"Hello, John\"\n    }\n}\n```\n\n### Mutation type\n\nThe `remote` functions inside the GraphQL service represent the resolvers of the `Mutation` root type.\n\nWhen a `remote` function is defined inside a GraphQL service, the schema will have a `Mutation` operation and the `remote` function will be a field of the `Mutation` object.\n\nFor example, consider the following service that has a `Person` record named `profile`. It has a `Query` field named `profile`, which returns the `Person` record. It also has two `remote` functions named `updateName` and `updateCity`, which are used as mutations.\n\n```ballerina\nimport ballerina/graphql;\n\npublic type Person record {|\n    string name;\n    int age;\n    string city;\n|};\n\nservice /graphql on new graphql:Listener(4000) {\n    private Person profile;\n\n    function init() {\n        self.profile \u003d { name: \"Walter White\", age: 50, city: \"Albuquerque\" };\n    }\n\n    resource function get profile() returns Person {\n        return self.profile;\n    }\n\n    remote function updateName(string name) returns Person {\n        self.profile.name \u003d name;\n        return self.profile;\n    }\n\n    remote function updateCity(string city) returns Person {\n        self.profile.city \u003d city;\n        return self.profile;\n    }\n}\n```\n\nThis will generate the following schema:\n\n```graphql\ntype Query {\n    profile: Person!\n}\n\ntype Mutation {\n    updateName(name: String!): Person!\n    updateCity(city: String!): Person!\n}\n\ntype Person {\n    name: String!\n    age: Int!\n    city: String!\n}\n```\n\n\u003e**Note:** A GraphQL schema must have a root `Query` type. Therefore, a Ballerina GraphQL service must have at least one `resource` function defined.\n\nThis can be mutated using the following document.\n\n```graphql\nmutation updatePerson {\n    updateName(name: \"Mr. Lambert\") {\n        ... ProfileFragment\n    }\n    updateCity(city: \"New Hampshire\") {\n        ... ProfileFragment\n    }\n}\n\nfragment ProfileFragment on Person {\n    name\n    city\n}\n```\n\n\u003e**Note:** This document uses two mutations and each mutation requests the same fields from the service using a fragment (`ProfileFragment`).\n\nResult:\n\n```json\n{\n    \"data\": {\n        \"updateName\": {\n            \"name\": \"Mr. Lambert\",\n            \"city\": \"Albuquerque\"\n        },\n        \"updateCity\": {\n            \"name\": \"Mr. Lambert\",\n            \"city\": \"New Hampshire\"\n        }\n    }\n}\n```\n\nSee how the result changes the `Person` record. The first mutation changes only the name and it populates the result of the `updateName` field. Then, it will execute the `updateCity` operation and populate the result. This is because the execution of the mutation operations will be done serially in the same order as they are specified in the document.\n\n### Subscription Type\n\nThe subscription type can be used to continuously fetch the data from a GraphQL service.\n\nThe `resource` functions inside the GraphQL service with the `subscribe` accessor can represent the resolvers of the `Subscription` root type.\n\nWhen a `resource` function is defined inside a GraphQL service with the `subscribe` accessor, the generated schema will have a `Subscription` root type and the `resource` function will be a field of the `Subscription` object.\n\nThe `resource` method must use the `subscribe` accessor for a field to be considered as a `Subscription` field. The `resource` function name will become the name of the particular field in the GraphQL schema. The return type of the `resource` function will be the type of the corresponding field.\n\nThe `resource` functions that belong to `Subscription` type must return a stream of `any` type. Any other return type will result in a compilation error.\n\nThe return type\n\n```ballerina\nimport ballerina/graphql;\n\nservice graphql:Service /graphql on new graphql:Listener(4000) {\n    resource function subscribe messages() returns stream\u003cstring\u003e {\n        return [\"Walter\", \"Jesse\", \"Mike\"].toStream();\n    }\n}\n```\n\nThe above can be queried using the GraphQL document below:\n\n```graphql\nsubscription {\n    messages\n}\n```\n\nWhen a subscription type is defined, a WebSocket service will be created to call the subscription. The above service\nwill create the service as follows:\n\n```none\nws://\u003chost\u003e:4000/graphql\n```\n\nThis can be accessed using a WebSocket client. When the returned stream has a new entry, it will be broadcast to the subscribers.\n\n## Types\n\nThe Ballerina GraphQL resolver (`resource`/`remote`) methods can return the following types:\n\n### Return types\n\n#### Scalar types\n\nWhen a Ballerina primitive type is returned from a `resource` or a `remote` method, it will be mapped to a GraphQL `NON_NULL` type of the corresponding GraphQL scalar type.\n\nThe following Ballerina types are considered as Scalar types:\n\n* `int`\n* `string`\n* `boolean`\n* `float`\n\n```ballerina\nresource function get greeting() returns string {\n    return \"Hello, World\";\n}\n```\n\nThis can be queried using the following document:\n\n```graphql\n{\n    greeting\n}\n```\n\nResult:\n\n```json\n{\n    \"data\": {\n        \"greeting\": \"Hello, World\"\n    }\n}\n```\n\n#### Enums\n\nWhen a `resource` or a `remote` function returns an `enum` value, it will be mapped to a GraphQL `ENUM` type.\n\n```ballerina\nimport ballerina/graphql;\n\npublic enum Color {\n    RED,\n    GREEN,\n    BLUE\n}\n\nservice on new graphql:Listener(4000) {\n    resource function get color(int code) returns Color {\n        // ...\n    }\n}\n```\n\nThe above service will generate the following GraphQL schema.\n\n```graphql\ntype Query {\n    color: Color!\n}\n\nenum Color {\n    RED\n    GREEN\n    BLUE\n}\n```\n\n#### Record types\n\nWhen a `resource` or `remote` method is returning a `record` type, each field of the record can be queried separately.\nEach `record` type is mapped to a GraphQL `OBJECT` type and the fields of the `record` type are mapped to the fields of the `OBJECT` type.\n\n```ballerina\npublic type Person record {|\n    string name;\n    int age;\n|};\n\nresource function get profile() returns Person {\n    return { name: \"Walter White\", age: 51 };\n}\n```\n\nThis will generate the following schema.\n\n```graphql\ntype Query {\n    profile: Person!\n}\n\ntype Person {\n    name: String!\n    age: Int!\n}\n```\n\nThis can be queried using the following document:\n\n```graphql\n{\n    profile {\n        name\n        age\n    }\n}\n```\n\nResult:\n\n```json\n{\n    \"data\": {\n        \"profile\": {\n            \"name\": \"Walter White\",\n            \"age\": 51\n        }\n    }\n}\n```\n\nEach field can be queried separately as shown in the following document:\n\n```graphql\n{\n    profile {\n        name\n    }\n}\n```\n\nResult:\n\n```json\n{\n    \"data\": {\n        \"profile\": {\n            \"name\": \"Walter White\"\n        }\n    }\n}\n```\n\n#### Service types\n\nWhen a `resource` function returns a service type, the service type is mapped to a GraphQL `OBJECT` type and the `resource` methods of the service type will be mapped as the fields of the `OBJECT`.\n\nWhen a service type is returned from a `graphql:Service`, the returning service type should also follow the rules of the `graphql:Service` explained above.\n\n```ballerina\nimport ballerina/graphql;\n\nservice graphql:Service /graphql on new graphql:Listener(4000) {\n    resource function get profile() returns Person {\n        return new(\"Walter White\", 51);\n    }\n}\n\nservice class Person {\n    private string name;\n    private int age;\n\n    public function init(string name, int age) {\n        self.name \u003d name;\n        self.age \u003d age;\n    }\n\n    resource function get name() returns string \u003d\u003e self.name;\n\n    resource function get age() returns int \u003d\u003e self.age;\n}\n```\n\nThis will generate the following schema:\n\n```graphql\ntype Query {\n    profile: Person!\n}\n\ntype Person {\n    name: String!\n    age: Int!\n}\n```\n\nThis can be queried using the following document:\n\n```graphql\nquery getProfile {\n    profile {\n        name\n    }\n}\n```\n\nThe above will result in the following JSON:\n\n```json\n{\n    \"data\": {\n        \"profile\": {\n            \"name\": \"Walter White\"\n        }\n    }\n}\n```\n\n#### Arrays\n\nA GraphQL `resource` function can return an array of the types mentioned above. When a `resource` method returns an array, the corresponding GraphQL field will be the type of `LIST`.\n\n```ballerina\npublic type Person record {|\n    string name;\n    int age;\n|};\n\nresource function get people() returns Person[] {\n    Person p1 \u003d { name: \"Walter White\", age: 51 };\n    Person p2 \u003d { name: \"James Moriarty\", age: 45 };\n    Person p3 \u003d { name: \"Tom Marvolo Riddle\", age: 71 };\n    return [p1, p2, p3];\n}\n```\n\nThis will generate the following schema:\n\n```graphql\ntype Query {\n    profile: [Person!]!\n}\n\ntype Person {\n    name: String!\n    age: Int!\n}\n```\n\nThis can be queried using the following document:\n\n```graphql\n{\n    people {\n        name\n    }\n}\n```\n\nResult:\n\n```json\n{\n    \"data\": {\n        \"people\": [\n            {\n                \"name\": \"Walter White\"\n            },\n            {\n                \"name\": \"James Moriarty\"\n            },\n            {\n                \"name\": \"Tom Marvolo Riddle\"\n            }\n        ]\n    }\n}\n```\n\n\u003e **Note:** Each element in the array consists only of the required `name` field.\n\n#### Nullable types\n\nA Ballerina GraphQL `resource` function can return a union of a type and nil. When a `resource` method returns a union of a type and nil, the corresponding GraphQL field will be of a nullable type.\n\n```ballerina\npublic type Person record {|\n    string name;\n    int age;\n|};\n\nresource function get profile(int id) returns Person? {\n    if (id \u003d\u003d 1) {\n        return { name: \"Walter White\", age: 51 };\n    }\n}\n```\n\nThis will generate the following schema:\n\n```graphql\ntype Query {\n    profile: Person\n}\n\ntype Person {\n    name: String!\n    age: Int!\n}\n```\n\nThis can be queried using the following document:\n\n```graphql\n{\n    profile(id: 1) {\n        name\n    }\n}\n```\n\nResult:\n\n```json\n{\n    \"data\": {\n        \"profile\": {\n            \"name\": \"Walter White\"\n        }\n    }\n}\n```\n\nIf the following document is used:\n\n```graphql\n{\n    profile(id: 4) {\n        name\n    }\n}\n```\n\nThis will be the result:\n\n```json\n{\n    \"data\": {\n        \"profile\": null\n    }\n}\n```\n\n#### Union types\n\nThe Ballerina GraphQL service can return a union of distinct service types. This will be mapped to a GraphQL `UNION` type.\n\n\u003e **Note:** If a union type is returned directly without providing a type name (`returns T1|T2|T3`), the type name will be `T1_T2_T3`.\n\n```ballerina\nimport ballerina/graphql;\n\npublic type Profile Student|Teacher;\n\nservice /graphql on new graphql:Listener(4000) {\n    resource function get profile(int purity) returns Profile {\n        if (purity \u003c 90) {\n            return new Student(1, \"Jesse Pinkman\");\n        } else {\n            return new Teacher(737, \"Walter White\", \"Chemistry\");\n        }\n    }\n}\n\ndistinct service class Student {\n    private int id;\n    private string name;\n\n    public function init(int id, string name) {\n        self.id \u003d id;\n        self.name \u003d name;\n    }\n\n    resource function get id() returns int {\n        return self.id;\n    }\n\n    resource function get name() returns string {\n        return self.name;\n    }\n}\n\ndistinct service class Teacher {\n    private int id;\n    private string name;\n    private string subject;\n\n    public function init(int id, string name, string subject) {\n        self.id \u003d id;\n        self.name \u003d name;\n        self.subject \u003d subject;\n    }\n\n    resource function get id() returns int {\n        return self.id;\n    }\n\n    resource function get name() returns string {\n        return self.name;\n    }\n\n    resource function get subject() returns string {\n        return self.subject;\n    }\n}\n```\n\nThis will generate the following schema:\n\n```graphql\ntype Query {\n    profile(purity: Int!): Profile!\n}\n\ntype Student {\n    id: Int!\n    name: String!\n}\n\ntype Teacher {\n    id: Int!\n    name: String!\n    subject: String!\n}\n\nunion Profile \u003d Student|Teacher\n```\n\nThis can be queried using the following document:\n\n```graphql\nquery {\n    profile(purity: 75) {\n        ... on Student {\n            name\n        }\n        ... on Teacher {\n            name\n            subject\n        }\n    }\n}\n```\n\nThe result will be:\n\n```json\n{\n    \"data\": {\n        \"profile\": {\n            \"name\": \"Jesse Pinkman\"\n        }\n    }\n}\n```\n\nIf the following document is used:\n\n```graphql\nquery {\n    profile(purity: 99) {\n        ... on Student {\n            name\n        }\n        ... on Teacher {\n            name\n            subject\n        }\n    }\n}\n```\n\nThe result will be:\n\n```json\n{\n    \"data\": {\n        \"profile\": {\n            \"name\": \"Walter White\",\n            \"subject\": \"Chemistry\"\n        }\n    }\n}\n```\n\n#### Errors\n\nA Ballerina GraphQL `resource` or `remote` method can return an `error` with the union of the types mentioned above.\n\n\u003e **Note:** A `resource` or a `remote` function cannot return only an `error`, any subtype of an `error`, or, an `error?`, which will result in a compilation error.\n\n```ballerina\npublic type Person record {|\n    string name;\n    int age;\n|};\n\nresource function get profile(int id) returns Person|error {\n    if (id \u003d\u003d 1) {\n        return { name: \"Walter White\", age: 51 };\n    } else {\n        return error(string `Invalid ID provided: ${id}`);\n    }\n}\n```\n\nThis can be queried using the following document:\n\n```graphql\n{\n    profile(id: 5) {\n        name\n    }\n}\n```\n\nResult:\n\n```json\n{\n    \"errors\": [\n        {\n            \"message\": \"Invalid ID provided: 5\",\n            \"locations\": [\n                {\n                    \"line\": 2,\n                    \"column\": 4\n                }\n            ]\n        }\n    ]\n}\n```\n\n\u003e **Note:** The error message will be logged to the console and the error will be returned to the client.\n\n### Hierarchical resource paths\n\nA `resource` method inside a GraphQL service can have hierarchical paths.\n\nWhen a hierarchical path is present, each level of the hierarchical path maps to the GraphQL field of the same name, and the type of that field will be mapped to an `OBJECT` type with the same name.\n\n```ballerina\nimport ballerina/graphql;\n\nservice graphql:Service /graphql on new graphq:Listener(4000) {\n    resource function profile/name/first() returns string {\n        return \"Walter\";\n    }\n\n    resource function profile/name/last() returns string {\n        return \"White\"\n    }\n\n    resource function profile/age() returns int {\n        return 51;\n    }\n}\n```\n\nThe above service will create the following schema:\n\n```graphql\ntype Query {\n    profile: profile!\n}\n\ntype profile {\n    name: name!\n    age: Int!\n}\n\ntype name {\n    first: String!\n    last: String!\n}\n```\n\n\u003e **Note:** The field name and the type names are equal.\n\nRefer to the [Ballerina GraphQL specification](https://ballerina.io/spec/graphql) for more information.\n",
+  "typeDefs": [
+    {
+      "name": "AUTH_SCHEME_BASIC",
+      "description": "The prefix used to denote the Basic authentication scheme.",
+      "type": "Constant",
+      "value": "Basic",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "AUTH_SCHEME_BEARER",
+      "description": "The prefix used to denote the Bearer authentication scheme.",
+      "type": "Constant",
+      "value": "Bearer",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "SCALAR",
+      "description": "",
+      "type": "Constant",
+      "value": "SCALAR",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "OBJECT",
+      "description": "",
+      "type": "Constant",
+      "value": "OBJECT",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "ENUM",
+      "description": "",
+      "type": "Constant",
+      "value": "ENUM",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "NON_NULL",
+      "description": "",
+      "type": "Constant",
+      "value": "NON_NULL",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "LIST",
+      "description": "",
+      "type": "Constant",
+      "value": "LIST",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "UNION",
+      "description": "",
+      "type": "Constant",
+      "value": "UNION",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "INTERFACE",
+      "description": "",
+      "type": "Constant",
+      "value": "INTERFACE",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "INPUT_OBJECT",
+      "description": "",
+      "type": "Constant",
+      "value": "INPUT_OBJECT",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "COMPRESSION_AUTO",
+      "description": "When service behaves as a HTTP gateway inbound request/response accept-encoding option is set as the\noutbound request/response accept-encoding/content-encoding option.",
+      "type": "Constant",
+      "value": "AUTO",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "COMPRESSION_ALWAYS",
+      "description": "Always set accept-encoding/content-encoding in outbound request/response.",
+      "type": "Constant",
+      "value": "ALWAYS",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "COMPRESSION_NEVER",
+      "description": "Never set accept-encoding/content-encoding header in outbound request/response.",
+      "type": "Constant",
+      "value": "NEVER",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "GraphqlServiceConfig",
+      "description": "Provides a set of configurations for the GraphQL service.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "maxQueryDepth",
+          "description": "The maximum depth allowed for a query",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "auth",
+          "description": "Listener authentication configurations",
+          "type": {
+            "name": "ListenerAuthConfig[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ListenerAuthConfig"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "contextInit",
+          "description": "Function to initialize the context. If not provided, an empty context will be created",
+          "type": {
+            "name": "ContextInit",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ContextInit"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "cors",
+          "description": "The cross origin resource sharing configurations for the service",
+          "type": {
+            "name": "CorsConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CorsConfig"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "graphiql",
+          "description": "GraphiQL client configurations",
+          "type": {
+            "name": "Graphiql",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Graphiql"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "schemaString",
+          "description": "The generated schema. This is auto-generated at the compile-time. Providing a value for this field will end up in\na compilation error.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "interceptors",
+          "description": "GraphQL service level interceptors",
+          "type": {
+            "name": "(ballerina/graphql:1.17.0:Interceptor \u0026 readonly)|(ballerina/graphql:1.17.0:Interceptor \u0026 readonly)[] \u0026 readonly"
+          },
+          "optional": true
+        },
+        {
+          "name": "introspection",
+          "description": "Whether to enable or disable the introspection on the service",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "validation",
+          "description": "Whether to enable or disable the constraint validation",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "cacheConfig",
+          "description": "The cache configurations for the operations",
+          "type": {
+            "name": "ServerCacheConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ServerCacheConfig"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "fieldCacheConfig",
+          "description": "The field cache config derived from the resource annotations. This is auto-generated at the compile time",
+          "type": {
+            "name": "ServerCacheConfig|()",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ServerCacheConfig"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "queryComplexityConfig",
+          "description": "The query complexity configuration for the service.",
+          "type": {
+            "name": "QueryComplexityConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "QueryComplexityConfig"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "documentCacheConfig",
+          "description": "The document cache configurations for the service",
+          "type": {
+            "name": "DocumentCacheConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DocumentCacheConfig"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "FileUserStoreConfigWithScopes",
+      "description": "Represents the auth annotation for file user store configurations with scopes.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "fileUserStoreConfig",
+          "description": "File user store configurations for Basic Auth authentication",
+          "type": {
+            "name": "FileUserStoreConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "FileUserStoreConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "scopes",
+          "description": "Scopes allowed for authorization",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "FileUserStoreConfig",
+      "description": "Represents file user store configurations for Basic Auth authentication.",
+      "type": "Record",
+      "fields": []
+    },
+    {
+      "name": "LdapUserStoreConfigWithScopes",
+      "description": "Represents the auth annotation for LDAP user store configurations with scopes.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "ldapUserStoreConfig",
+          "description": "LDAP user store configurations for Basic Auth authentication",
+          "type": {
+            "name": "LdapUserStoreConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "LdapUserStoreConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "scopes",
+          "description": "Scopes allowed for authorization",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "LdapUserStoreConfig",
+      "description": "Represents LDAP user store configurations for Basic Auth authentication.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "domainName",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "connectionUrl",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "connectionName",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "connectionPassword",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "userSearchBase",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "userEntryObjectClass",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "userNameAttribute",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "userNameSearchFilter",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "userNameListFilter",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "groupSearchBase",
+          "description": "",
+          "type": {
+            "name": "string[]"
+          }
+        },
+        {
+          "name": "groupEntryObjectClass",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "groupNameAttribute",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "groupNameSearchFilter",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "groupNameListFilter",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "membershipAttribute",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "userRolesCacheEnabled",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "connectionPoolingEnabled",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "connectionTimeout",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "readTimeout",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "",
+          "type": {
+            "name": "SecureSocket",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "SecureSocket",
+                "libraryName": "ballerina/auth"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "JwtValidatorConfigWithScopes",
+      "description": "Represents the auth annotation for JWT validator configurations with scopes.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "jwtValidatorConfig",
+          "description": "JWT validator configurations for JWT authentication",
+          "type": {
+            "name": "JwtValidatorConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "JwtValidatorConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "scopes",
+          "description": "Scopes allowed for authorization",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "JwtValidatorConfig",
+      "description": "Represents JWT validator configurations for JWT authentication.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "scopeKey",
+          "description": "The key used to fetch the scopes",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "issuer",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "username",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "audience",
+          "description": "",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "jwtId",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "keyId",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "customClaims",
+          "description": "",
+          "type": {
+            "name": "map\u003cjson\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "clockSkew",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "signatureConfig",
+          "description": "",
+          "type": {
+            "name": "ValidatorSignatureConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ValidatorSignatureConfig",
+                "libraryName": "ballerina/jwt"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "cacheConfig",
+          "description": "",
+          "type": {
+            "name": "CacheConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CacheConfig",
+                "libraryName": "ballerina/cache"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "OAuth2IntrospectionConfigWithScopes",
+      "description": "Represents the auth annotation for OAuth2 introspection server configurations with scopes.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "oauth2IntrospectionConfig",
+          "description": "OAuth2 introspection server configurations for OAuth2 authentication",
+          "type": {
+            "name": "OAuth2IntrospectionConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OAuth2IntrospectionConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "scopes",
+          "description": "Scopes allowed for authorization",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "OAuth2IntrospectionConfig",
+      "description": "Represents OAuth2 introspection server configurations for OAuth2 authentication.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "scopeKey",
+          "description": "The key used to fetch the scopes",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "url",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "tokenTypeHint",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "optionalParams",
+          "description": "",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "cacheConfig",
+          "description": "",
+          "type": {
+            "name": "CacheConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CacheConfig",
+                "libraryName": "ballerina/cache"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "defaultTokenExpTime",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "clientConfig",
+          "description": "",
+          "type": {
+            "name": "ClientConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientConfiguration",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ListenerAuthConfig",
+      "description": "Defines the authentication configurations for the GraphQL listener.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "ballerina/graphql:1.17.0:FileUserStoreConfigWithScopes",
+          "type": {
+            "name": "FileUserStoreConfigWithScopes",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "FileUserStoreConfigWithScopes"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerina/graphql:1.17.0:LdapUserStoreConfigWithScopes",
+          "type": {
+            "name": "LdapUserStoreConfigWithScopes",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "LdapUserStoreConfigWithScopes"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerina/graphql:1.17.0:JwtValidatorConfigWithScopes",
+          "type": {
+            "name": "JwtValidatorConfigWithScopes",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "JwtValidatorConfigWithScopes"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerina/graphql:1.17.0:OAuth2IntrospectionConfigWithScopes",
+          "type": {
+            "name": "OAuth2IntrospectionConfigWithScopes",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OAuth2IntrospectionConfigWithScopes"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Context",
+      "description": "",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        },
+        {
+          "name": "set",
+          "type": "Normal Function",
+          "description": "Sets a given value for a given key in the GraphQL context.\n",
+          "parameters": [
+            {
+              "name": "\u0027key",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "value",
+              "description": "Value to be set",
+              "type": {
+                "name": "readonly|xml\u003cxml:Element|xml:Comment|xml:ProcessingInstruction|xml:Text\u003e|value:Cloneable[]|map\u003cvalue:Cloneable\u003e|table\u003cmap\u003cvalue:Cloneable\u003e\u003e|isolated object {}"
+              }
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "()"
+            }
+          }
+        },
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Retrieves a value using the given key from the GraphQL context.\n```ballerina\nstring userId \u003d check context.get(\"userId\").ensureType();  \n```\n",
+          "parameters": [
+            {
+              "name": "\u0027key",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "The value if the key is present in the context, a `graphql:Error` otherwise",
+            "type": {
+              "name": "readonly|xml\u003c\u003e|Cloneable[]|map\u003cballerina/lang.value:0.0.0:Cloneable\u003e|table\u003cmap\u003cballerina/lang.value:0.0.0:Cloneable\u003e\u003e|isolated object {}|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "remove",
+          "type": "Normal Function",
+          "description": "Removes a value using the given key from the GraphQL context.\n```ballerina\nstring userId \u003d check context.remove(\"userId\").ensureType();  \n```\n",
+          "parameters": [
+            {
+              "name": "\u0027key",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "The value if the key is present in the context, a `graphql:Error` otherwise",
+            "type": {
+              "name": "readonly|xml\u003c\u003e|Cloneable[]|map\u003cballerina/lang.value:0.0.0:Cloneable\u003e|table\u003cmap\u003cballerina/lang.value:0.0.0:Cloneable\u003e\u003e|isolated object {}|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "registerDataLoader",
+          "type": "Normal Function",
+          "description": "Register a given DataLoader instance for a given key in the GraphQL context.\n```ballerina\ndataloader:DataLoader userDataLoader \u003d new dataloader:DefaultDataLoader(batchUsers);\ncheck context.registerDataLoader(\"user\", userDataLoader);\n```\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "The key for the DataLoader to be registered",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "dataloader",
+              "description": "The DataLoader instance to be registered",
+              "type": {
+                "name": "DataLoader",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "DataLoader",
+                    "libraryName": "ballerina/graphql.dataloader"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "()"
+            }
+          }
+        },
+        {
+          "name": "getDataLoader",
+          "type": "Normal Function",
+          "description": "Retrieves a DataLoader instance using the given key from the GraphQL context.\n```ballerina\ndataloader:DataLoader userDataLoader \u003d check context.getDataLoader(\"user\");\n```",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "The key corresponding to the required DataLoader instance",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "The DataLoader instance if the key is present in the context otherwise panics",
+            "type": {
+              "name": "DataLoader",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "DataLoader",
+                  "libraryName": "ballerina/graphql.dataloader"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "invalidate",
+          "type": "Normal Function",
+          "description": "Remove cache entries related to the given path.\n",
+          "parameters": [
+            {
+              "name": "path",
+              "description": "The path corresponding to the cache entries to be removed (Ex: \"person.address.city\")",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "The error if the cache invalidateion fails or nil otherwise",
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "name": "invalidateAll",
+          "type": "Normal Function",
+          "description": "Remove all cache entries.\n",
+          "parameters": [],
+          "return": {
+            "description": "The error if the cache invalidateion fails or nil otherwise",
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "name": "resolve",
+          "type": "Normal Function",
+          "description": "",
+          "parameters": [
+            {
+              "name": "\u0027field",
+              "type": {
+                "name": "Field",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Field"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "anydata"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ErrorDetail",
+      "description": "Represents an error in GraphQL.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "message",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "locations",
+          "description": "",
+          "type": {
+            "name": "Location[]",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Location",
+                "libraryName": "ballerina/graphql.parser"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "path",
+          "description": "",
+          "type": {
+            "name": "(int|string)[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "extensions",
+          "description": "",
+          "type": {
+            "name": "map\u003canydata\u003e"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "__Type",
+      "description": "Represents a GraphQL schema type.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "kind",
+          "description": "The `__TypeKind` of the type",
+          "type": {
+            "name": "__TypeKind",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "__TypeKind"
+              }
+            ]
+          }
+        },
+        {
+          "name": "name",
+          "description": "The name of the type. This can be nil if the type is `NON_NULL` or `LIST`",
+          "type": {
+            "name": "string?"
+          },
+          "optional": true
+        },
+        {
+          "name": "description",
+          "description": "The description of the type",
+          "type": {
+            "name": "string?"
+          },
+          "optional": true
+        },
+        {
+          "name": "fields",
+          "description": "The fields of the type. This only applies if the `kind` is `OBJECT` or `INTERFACE`. Otherwise,\nthis will be nil.",
+          "type": {
+            "name": "__Field[]|()",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "__Field"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "interfaces",
+          "description": "The interfaces of the type. This only applies if the `kind` is `OBJECT` or `INTERFACE`. Otherwise,\nthis will be nil.",
+          "type": {
+            "name": "__Type[]|()",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "__Type"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "possibleTypes",
+          "description": "The possible types of the type. This only applies if the `kind` is `UNION` or `INTERFACE`.\nOtherwise, this will be nil.",
+          "type": {
+            "name": "__Type[]|()",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "__Type"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "enumValues",
+          "description": "The enum values of the type. This only applies if the `kind` is `ENUM`. Otherwise, this will be nil.",
+          "type": {
+            "name": "__EnumValue[]|()",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "__EnumValue"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "inputFields",
+          "description": "The input fields of the type. This only applies if the `kind` is `INPUT_OBJECT`. Otherwise,\nthis will be nil.",
+          "type": {
+            "name": "__InputValue[]|()",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "__InputValue"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "ofType",
+          "description": "The type of the type. This only applies if the `kind` is `NON_NULL` or `LIST`. Otherwise, this will be nil.",
+          "type": {
+            "name": "__Type|()",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "__Type"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "__TypeKind",
+      "description": "Represents a GraphQL type kind. This is used to represent the kind of a GraphQL type.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "INPUT_OBJECT",
+          "description": ""
+        },
+        {
+          "name": "INTERFACE",
+          "description": ""
+        },
+        {
+          "name": "UNION",
+          "description": ""
+        },
+        {
+          "name": "LIST",
+          "description": ""
+        },
+        {
+          "name": "NON_NULL",
+          "description": ""
+        },
+        {
+          "name": "ENUM",
+          "description": ""
+        },
+        {
+          "name": "OBJECT",
+          "description": ""
+        },
+        {
+          "name": "SCALAR",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "__Field",
+      "description": "Represents a GraphQL field.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "name",
+          "description": "The name of the field",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "description",
+          "description": "The description of the field",
+          "type": {
+            "name": "string?"
+          },
+          "optional": true
+        },
+        {
+          "name": "args",
+          "description": "The arguments of the field",
+          "type": {
+            "name": "__InputValue[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "__InputValue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "\u0027type",
+          "description": "",
+          "type": {
+            "name": "__Type",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "__Type"
+              }
+            ]
+          }
+        },
+        {
+          "name": "isDeprecated",
+          "description": "Whether the field is deprecated",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "deprecationReason",
+          "description": "The reason for deprecation of the field",
+          "type": {
+            "name": "string?"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "__InputValue",
+      "description": "Represents a GraphQL input value.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "name",
+          "description": "The name of the input value",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "description",
+          "description": "The description of the input value",
+          "type": {
+            "name": "string?"
+          },
+          "optional": true
+        },
+        {
+          "name": "\u0027type",
+          "description": "",
+          "type": {
+            "name": "__Type",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "__Type"
+              }
+            ]
+          }
+        },
+        {
+          "name": "defaultValue",
+          "description": "The default value of the input value, if there is one",
+          "type": {
+            "name": "string?"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "__EnumValue",
+      "description": "Represents a GraphQL enum value.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "name",
+          "description": "The name of the enum value",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "description",
+          "description": "The description of the enum value",
+          "type": {
+            "name": "string?"
+          },
+          "optional": true
+        },
+        {
+          "name": "isDeprecated",
+          "description": "Whether the enum value is deprecated",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "deprecationReason",
+          "description": "The reason for deprecation of the enum value",
+          "type": {
+            "name": "string?"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Interceptor",
+      "description": "Represent a GraphQL interceptor",
+      "type": "Class"
+    },
+    {
+      "name": "ServerCacheConfig",
+      "description": "Represent the cache configurations of GraphQL server.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "enabled",
+          "description": "State of the caching",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxAge",
+          "description": "TTL of the cache in seconds",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxSize",
+          "description": "Maximum number of cache entries",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "QueryComplexityConfig",
+      "description": "Defines the query complexity configuration for the GraphQL service.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "maxComplexity",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "defaultFieldComplexity",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "warnOnly",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ContextInit",
+      "description": "Function type for initializing the `graphql:Context` object.\nThis function will be called with the `http:Request` and the `http:RequestContext` objects from the original request\nreceived to the GraphQL endpoint.\n",
+      "type": "Other"
+    },
+    {
+      "name": "CorsConfig",
+      "description": "Represent CORS configurations for internal HTTP service",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "allowHeaders",
+          "description": "",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "allowMethods",
+          "description": "",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "allowOrigins",
+          "description": "",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "exposeHeaders",
+          "description": "",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "allowCredentials",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxAge",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Graphiql",
+      "description": "Represent GraphiQL client configurations\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "enabled",
+          "description": "Status of the client",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "path",
+          "description": "Path for the client",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "printUrl",
+          "description": "Enable/disable printing the GraphiQL client URL to the stdout",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "DocumentCacheConfig",
+      "description": "Represent the document cache configurations of GraphQL server.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "enabled",
+          "description": "State of the document caching",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxSize",
+          "description": "Maximum number of cache entries",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "GraphqlResourceConfig",
+      "description": "Provides a set of configurations for the GraphQL resolvers.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "interceptors",
+          "description": "GraphQL field level interceptors",
+          "type": {
+            "name": "(ballerina/graphql:1.17.0:Interceptor \u0026 readonly)|(ballerina/graphql:1.17.0:Interceptor \u0026 readonly)[] \u0026 readonly"
+          },
+          "optional": true
+        },
+        {
+          "name": "prefetchMethodName",
+          "description": "The name of the instance method to be used for prefetching",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "cacheConfig",
+          "description": "The cache configurations for the fields",
+          "type": {
+            "name": "ServerCacheConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ServerCacheConfig"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "complexity",
+          "description": "The complexity value of the field",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "GraphqlInterceptorConfig",
+      "description": "Provides a set of configurations for the GraphQL interceptors.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "global",
+          "description": "Scope of the interceptor. If `true`, the interceptor will be applied to all the resolvers.",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "CredentialsConfig",
+      "description": "Represents credentials for Basic Auth authentication.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "username",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "password",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "BearerTokenConfig",
+      "description": "Represents token for Bearer token authentication.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "token",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "JwtIssuerConfig",
+      "description": "Represents JWT issuer configurations for JWT authentication.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "issuer",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "username",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "audience",
+          "description": "",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "jwtId",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "keyId",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "customClaims",
+          "description": "",
+          "type": {
+            "name": "map\u003cjson\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "expTime",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "signatureConfig",
+          "description": "",
+          "type": {
+            "name": "IssuerSignatureConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "IssuerSignatureConfig",
+                "libraryName": "ballerina/jwt"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "OAuth2ClientCredentialsGrantConfig",
+      "description": "Represents OAuth2 client credentials grant configurations for OAuth2 authentication.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "tokenUrl",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "clientId",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "clientSecret",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "scopes",
+          "description": "",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "defaultTokenExpTime",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "clockSkew",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "optionalParams",
+          "description": "",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "credentialBearer",
+          "description": "",
+          "type": {
+            "name": "CredentialBearer",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CredentialBearer",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "clientConfig",
+          "description": "",
+          "type": {
+            "name": "ClientConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientConfiguration",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "OAuth2PasswordGrantConfig",
+      "description": "Represents OAuth2 password grant configurations for OAuth2 authentication.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "tokenUrl",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "username",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "password",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "clientId",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "clientSecret",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "scopes",
+          "description": "",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "refreshConfig",
+          "description": "",
+          "type": {
+            "name": "RefreshConfig|\"INFER_REFRESH_CONFIG\"",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "RefreshConfig",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "defaultTokenExpTime",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "clockSkew",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "optionalParams",
+          "description": "",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "credentialBearer",
+          "description": "",
+          "type": {
+            "name": "CredentialBearer",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CredentialBearer",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "clientConfig",
+          "description": "",
+          "type": {
+            "name": "ClientConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientConfiguration",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "OAuth2RefreshTokenGrantConfig",
+      "description": "Represents OAuth2 refresh token grant configurations for OAuth2 authentication.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "refreshUrl",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "refreshToken",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "clientId",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "clientSecret",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "scopes",
+          "description": "",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "defaultTokenExpTime",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "clockSkew",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "optionalParams",
+          "description": "",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "credentialBearer",
+          "description": "",
+          "type": {
+            "name": "CredentialBearer",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CredentialBearer",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "clientConfig",
+          "description": "",
+          "type": {
+            "name": "ClientConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientConfiguration",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "OAuth2JwtBearerGrantConfig",
+      "description": "Represents OAuth2 JWT bearer grant configurations for OAuth2 authentication.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "tokenUrl",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "assertion",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "clientId",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "clientSecret",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "scopes",
+          "description": "",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "defaultTokenExpTime",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "clockSkew",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "optionalParams",
+          "description": "",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "credentialBearer",
+          "description": "",
+          "type": {
+            "name": "CredentialBearer",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CredentialBearer",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "clientConfig",
+          "description": "",
+          "type": {
+            "name": "ClientConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientConfiguration",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "OAuth2GrantConfig",
+      "description": "Represents OAuth2 grant configurations for OAuth2 authentication.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "ballerina/graphql:1.17.0:OAuth2ClientCredentialsGrantConfig",
+          "type": {
+            "name": "OAuth2ClientCredentialsGrantConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OAuth2ClientCredentialsGrantConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerina/graphql:1.17.0:OAuth2PasswordGrantConfig",
+          "type": {
+            "name": "OAuth2PasswordGrantConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OAuth2PasswordGrantConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerina/graphql:1.17.0:OAuth2RefreshTokenGrantConfig",
+          "type": {
+            "name": "OAuth2RefreshTokenGrantConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OAuth2RefreshTokenGrantConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerina/graphql:1.17.0:OAuth2JwtBearerGrantConfig",
+          "type": {
+            "name": "OAuth2JwtBearerGrantConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OAuth2JwtBearerGrantConfig"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "ClientAuthConfig",
+      "description": "Defines the authentication configurations for the GraphQL client.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "ballerina/graphql:1.17.0:CredentialsConfig",
+          "type": {
+            "name": "CredentialsConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CredentialsConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerina/graphql:1.17.0:BearerTokenConfig",
+          "type": {
+            "name": "BearerTokenConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "BearerTokenConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerina/graphql:1.17.0:JwtIssuerConfig",
+          "type": {
+            "name": "JwtIssuerConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "JwtIssuerConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerina/graphql:1.17.0:OAuth2ClientCredentialsGrantConfig",
+          "type": {
+            "name": "OAuth2ClientCredentialsGrantConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OAuth2ClientCredentialsGrantConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerina/graphql:1.17.0:OAuth2PasswordGrantConfig",
+          "type": {
+            "name": "OAuth2PasswordGrantConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OAuth2PasswordGrantConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerina/graphql:1.17.0:OAuth2RefreshTokenGrantConfig",
+          "type": {
+            "name": "OAuth2RefreshTokenGrantConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OAuth2RefreshTokenGrantConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerina/graphql:1.17.0:OAuth2JwtBearerGrantConfig",
+          "type": {
+            "name": "OAuth2JwtBearerGrantConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OAuth2JwtBearerGrantConfig"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Error",
+      "description": "Represents any error related to the Ballerina GraphQL module.",
+      "type": "Error"
+    },
+    {
+      "name": "AuthnError",
+      "description": "Represents the authentication error type.",
+      "type": "Error"
+    },
+    {
+      "name": "AuthzError",
+      "description": "Represents the authorization error type.",
+      "type": "Error"
+    },
+    {
+      "name": "ClientError",
+      "description": "Represents GraphQL client related generic errors.",
+      "type": "Error"
+    },
+    {
+      "name": "RequestError",
+      "description": "Represents GraphQL client side or network level errors.",
+      "type": "Error"
+    },
+    {
+      "name": "HttpError",
+      "description": "Represents network level errors.",
+      "type": "Error"
+    },
+    {
+      "name": "InvalidDocumentError",
+      "description": "Represents GraphQL errors due to request validation.",
+      "type": "Error"
+    },
+    {
+      "name": "ServerError",
+      "description": "Represents GraphQL API response during GraphQL API server side errors.",
+      "type": "Error",
+      "isDeprecated": true
+    },
+    {
+      "name": "PayloadBindingError",
+      "description": "Represents client side data binding error.",
+      "type": "Error"
+    },
+    {
+      "name": "ListenerConfiguration",
+      "description": "Provides a set of configurations for configure the underlying HTTP listener of the GraphQL listener.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "host",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "http1Settings",
+          "description": "",
+          "type": {
+            "name": "ListenerHttp1Settings",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ListenerHttp1Settings",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "",
+          "type": {
+            "name": "ListenerSecureSocket|()",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ListenerSecureSocket",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "httpVersion",
+          "description": "",
+          "type": {
+            "name": "HttpVersion",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "HttpVersion",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "timeout",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "server",
+          "description": "",
+          "type": {
+            "name": "string?"
+          },
+          "optional": true
+        },
+        {
+          "name": "requestLimits",
+          "description": "",
+          "type": {
+            "name": "RequestLimitConfigs",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "RequestLimitConfigs",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "gracefulStopTimeout",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "socketConfig",
+          "description": "",
+          "type": {
+            "name": "ServerSocketConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ServerSocketConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "http2InitialWindowSize",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "minIdleTimeInStaleState",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "timeBetweenStaleEviction",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ListenerHttp1Settings",
+      "description": "Provides settings related to HTTP/1.x protocol, when using HTTP 1.x as the underlying protocol for the GraphQL\nservice.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "keepAlive",
+          "description": "",
+          "type": {
+            "name": "KeepAlive",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "KeepAlive",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "maxPipelinedRequests",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ListenerSecureSocket",
+      "description": "Configures the SSL/TLS options to be used for the underlying HTTP service used in GraphQL service.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "key",
+          "description": "",
+          "type": {
+            "name": "KeyStore|CertKey",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "KeyStore",
+                "libraryName": "ballerina/crypto"
+              },
+              {
+                "category": "external",
+                "recordName": "CertKey",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mutualSsl",
+          "description": "",
+          "type": {
+            "name": "record {|ballerina/http:2.16.6:VerifyClient verifyClient; ballerina/crypto:2.12.1:TrustStore|string cert;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "protocol",
+          "description": "",
+          "type": {
+            "name": "record {|ballerina/http:2.16.6:Protocol name; string[] versions;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "certValidation",
+          "description": "",
+          "type": {
+            "name": "record {|ballerina/http:2.16.6:CertValidationType \u0027type; int cacheSize; int cacheValidityPeriod;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "ciphers",
+          "description": "",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "shareSession",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "handshakeTimeout",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "sessionTimeout",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "RequestLimitConfigs",
+      "description": "Provides inbound request URI, total header and entity body size threshold configurations.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "maxUriLength",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxHeaderSize",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxEntityBodySize",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ClientHttp1Settings",
+      "description": "Provides settings related to HTTP/1.x protocol.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "keepAlive",
+          "description": "",
+          "type": {
+            "name": "KeepAlive",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "KeepAlive",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "chunking",
+          "description": "",
+          "type": {
+            "name": "Chunking",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Chunking",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "proxy",
+          "description": "",
+          "type": {
+            "name": "ProxyConfig|()",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ProxyConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "FollowRedirects",
+      "description": "Provides configurations for controlling the endpoint\u0027s behaviour in response to HTTP redirect related responses.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "enabled",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxCount",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "allowAuthHeaders",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "PoolConfiguration",
+      "description": "Configurations for managing GraphQL client connection pool.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "maxActiveConnections",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxIdleConnections",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "waitTime",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxActiveStreamsPerConnection",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "minEvictableIdleTime",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "timeBetweenEvictionRuns",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "minIdleTimeInStaleState",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "timeBetweenStaleEviction",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "CacheConfig",
+      "description": "Provides a set of configurations for controlling the caching behaviour of the endpoint.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "enabled",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "isShared",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "capacity",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "evictionFactor",
+          "description": "",
+          "type": {
+            "name": "float"
+          },
+          "optional": true
+        },
+        {
+          "name": "policy",
+          "description": "",
+          "type": {
+            "name": "CachingPolicy",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CachingPolicy",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "CircuitBreakerConfig",
+      "description": "Provides a set of configurations for controlling the behaviour of the Circuit Breaker.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "rollingWindow",
+          "description": "",
+          "type": {
+            "name": "RollingWindow",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "RollingWindow",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "failureThreshold",
+          "description": "",
+          "type": {
+            "name": "float"
+          },
+          "optional": true
+        },
+        {
+          "name": "resetTime",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "statusCodes",
+          "description": "",
+          "type": {
+            "name": "int[]"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "RetryConfig",
+      "description": "Provides configurations for controlling the retrying behavior in failure scenarios.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "count",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "interval",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "backOffFactor",
+          "description": "",
+          "type": {
+            "name": "float"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxWaitInterval",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "statusCodes",
+          "description": "",
+          "type": {
+            "name": "int[]"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "CookieConfig",
+      "description": "Client configuration for cookies.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "enabled",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxCookiesPerDomain",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxTotalCookieCount",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "blockThirdPartyCookies",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "persistentCookieHandler",
+          "description": "",
+          "type": {
+            "name": "PersistentCookieHandler",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "PersistentCookieHandler",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ResponseLimitConfigs",
+      "description": "Provides inbound response status line, total header and entity body size threshold configurations.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "maxStatusLineLength",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxHeaderSize",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxEntityBodySize",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ClientSecureSocket",
+      "description": "Provides configurations for facilitating secure communication with a remote GraphQL endpoint.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "enable",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "cert",
+          "description": "",
+          "type": {
+            "name": "TrustStore|string",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "TrustStore",
+                "libraryName": "ballerina/crypto"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "key",
+          "description": "",
+          "type": {
+            "name": "KeyStore|CertKey",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "KeyStore",
+                "libraryName": "ballerina/crypto"
+              },
+              {
+                "category": "external",
+                "recordName": "CertKey",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "protocol",
+          "description": "",
+          "type": {
+            "name": "record {|ballerina/http:2.16.6:Protocol name; string[] versions;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "certValidation",
+          "description": "",
+          "type": {
+            "name": "record {|ballerina/http:2.16.6:CertValidationType \u0027type; int cacheSize; int cacheValidityPeriod;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "ciphers",
+          "description": "",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "verifyHostName",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "shareSession",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "handshakeTimeout",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "sessionTimeout",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "serverName",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ProxyConfig",
+      "description": "Proxy server configurations to be used with the GraphQL client endpoint.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "host",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "port",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "userName",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "password",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ClientConfiguration",
+      "description": "Provides a set of configurations for controlling the behaviour of the GraphQL client when communicating with\nthe GraphQL server that operates over HTTP.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "http1Settings",
+          "description": "Configurations related to HTTP/1.1 protocol",
+          "type": {
+            "name": "ClientHttp1Settings",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ClientHttp1Settings"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "timeout",
+          "description": "The maximum time to wait (in seconds) for a response before closing the connection",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "forwarded",
+          "description": "The choice of setting `forwarded`/`x-forwarded` header",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "followRedirects",
+          "description": "Configurations associated with Redirection",
+          "type": {
+            "name": "FollowRedirects|()",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "FollowRedirects"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "poolConfig",
+          "description": "Configurations associated with request pooling",
+          "type": {
+            "name": "PoolConfiguration|()",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PoolConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "cache",
+          "description": "HTTP caching related configurations",
+          "type": {
+            "name": "CacheConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CacheConfig"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "compression",
+          "description": "Specifies the way of handling compression (`accept-encoding`) header",
+          "type": {
+            "name": "Compression",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Compression"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "auth",
+          "description": "Configurations related to client authentication",
+          "type": {
+            "name": "CredentialsConfig|BearerTokenConfig|JwtIssuerConfig|OAuth2ClientCredentialsGrantConfig|OAuth2PasswordGrantConfig|OAuth2RefreshTokenGrantConfig|OAuth2JwtBearerGrantConfig|()",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CredentialsConfig"
+              },
+              {
+                "category": "internal",
+                "recordName": "BearerTokenConfig"
+              },
+              {
+                "category": "internal",
+                "recordName": "JwtIssuerConfig"
+              },
+              {
+                "category": "internal",
+                "recordName": "OAuth2ClientCredentialsGrantConfig"
+              },
+              {
+                "category": "internal",
+                "recordName": "OAuth2PasswordGrantConfig"
+              },
+              {
+                "category": "internal",
+                "recordName": "OAuth2RefreshTokenGrantConfig"
+              },
+              {
+                "category": "internal",
+                "recordName": "OAuth2JwtBearerGrantConfig"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "circuitBreaker",
+          "description": "Configurations associated with the behaviour of the Circuit Breaker",
+          "type": {
+            "name": "CircuitBreakerConfig|()",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CircuitBreakerConfig"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "retryConfig",
+          "description": "Configurations associated with retrying",
+          "type": {
+            "name": "RetryConfig|()",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RetryConfig"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "cookieConfig",
+          "description": "Configurations associated with cookies",
+          "type": {
+            "name": "CookieConfig|()",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CookieConfig"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "responseLimits",
+          "description": "Configurations associated with inbound response size limits",
+          "type": {
+            "name": "ResponseLimitConfigs",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ResponseLimitConfigs"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "SSL/TLS-related options",
+          "type": {
+            "name": "ClientSecureSocket|()",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ClientSecureSocket"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "proxy",
+          "description": "Proxy server related options",
+          "type": {
+            "name": "ProxyConfig|()",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ProxyConfig"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "validation",
+          "description": "Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Compression",
+      "description": "Options to compress using gzip or deflate.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "\"AUTO\"",
+          "type": {
+            "name": "\"AUTO\""
+          }
+        },
+        {
+          "name": "\"ALWAYS\"",
+          "type": {
+            "name": "\"ALWAYS\""
+          }
+        },
+        {
+          "name": "\"NEVER\"",
+          "type": {
+            "name": "\"NEVER\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "Location",
+      "description": "Represents a location in a GraphQL document.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "line",
+          "description": "",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "column",
+          "description": "",
+          "type": {
+            "name": "int"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Scalar",
+      "description": "Represents the Scalar types supported by the Ballerina GraphQL module.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "boolean",
+          "type": {
+            "name": "boolean"
+          }
+        },
+        {
+          "name": "int",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "float",
+          "type": {
+            "name": "float"
+          }
+        },
+        {
+          "name": "string",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "decimal",
+          "type": {
+            "name": "decimal"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Service",
+      "description": "Represents a GraphQL service.",
+      "type": "Class"
+    },
+    {
+      "name": "Upload",
+      "description": "The input parameter type used for file uploads in GraphQL mutations.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "fileName",
+          "description": "Name of the file",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "mimeType",
+          "description": "File mime type according to the content",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "encoding",
+          "description": "File stream encoding",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "byteStream",
+          "description": "File content as a stream of `byte[]`",
+          "type": {
+            "name": "stream\u003cbyte[], ballerina/io:1.8.1:Error?\u003e"
+          }
+        }
+      ]
+    },
+    {
+      "name": "GenericResponse",
+      "description": "Represents the target type binding record with data and extensions of a GraphQL response for `executeWithType` method.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "extensions",
+          "description": "Meta information on protocol extensions from the GraphQL server",
+          "type": {
+            "name": "map\u003cjson?\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "data",
+          "description": "The requested data from the GraphQL server",
+          "type": {
+            "name": "record {|anydata...;|}|map\u003cjson?\u003e"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "GenericResponseWithErrors",
+      "description": "Represents the target type binding record with data, extensions and errors of a GraphQL response for `execute` method.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "errors",
+          "description": "The errors occurred (if present) while processing the GraphQL request.",
+          "type": {
+            "name": "ErrorDetail[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ErrorDetail"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "extensions",
+          "description": "",
+          "type": {
+            "name": "map\u003cjson?\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "data",
+          "description": "",
+          "type": {
+            "name": "record {|anydata...;|}|map\u003cjson?\u003e"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Field",
+      "description": "",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "internalNode",
+              "type": {
+                "name": "FieldNode",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "FieldNode",
+                    "libraryName": "ballerina/graphql.parser"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "fieldType",
+              "type": {
+                "name": "__Type",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "__Type"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "parentType",
+              "type": {
+                "name": "__Type",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "__Type"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "serviceObject",
+              "type": {
+                "name": "service object {}|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "path",
+              "type": {
+                "name": "(string|int)[] \u0026 readonly"
+              },
+              "optional": true,
+              "default": "[]"
+            },
+            {
+              "name": "operationType",
+              "type": {
+                "name": "RootOperationType",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "RootOperationType",
+                    "libraryName": "ballerina/graphql.parser"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "parser:OPERATION_QUERY"
+            },
+            {
+              "name": "resourcePath",
+              "type": {
+                "name": "string[]"
+              },
+              "optional": true,
+              "default": "[]"
+            },
+            {
+              "name": "fieldValue",
+              "type": {
+                "name": "any|error"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "cacheConfig",
+              "type": {
+                "name": "ServerCacheConfig|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ServerCacheConfig"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "parentArgHashes",
+              "type": {
+                "name": "string[] \u0026 readonly"
+              },
+              "optional": true,
+              "default": "[]"
+            },
+            {
+              "name": "isAlreadyCached",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        },
+        {
+          "name": "getName",
+          "type": "Normal Function",
+          "description": "Returns the name of the field.",
+          "parameters": [],
+          "return": {
+            "description": "The name of the field",
+            "type": {
+              "name": "string"
+            }
+          }
+        },
+        {
+          "name": "getAlias",
+          "type": "Normal Function",
+          "description": "Returns the effective alias of the field.",
+          "parameters": [],
+          "return": {
+            "description": "The alias of the field. If an alias is not present, the field name will be returned",
+            "type": {
+              "name": "string"
+            }
+          }
+        },
+        {
+          "name": "getPath",
+          "type": "Normal Function",
+          "description": "Returns the current path of the field. If the field returns an array, the path will include the index of the\nelement.",
+          "parameters": [],
+          "return": {
+            "description": "The path of the field",
+            "type": {
+              "name": "(string|int)[] \u0026 readonly"
+            }
+          }
+        },
+        {
+          "name": "getSubfields",
+          "type": "Normal Function",
+          "description": "Returns the subfields of this field as a `Field` object array.",
+          "parameters": [],
+          "return": {
+            "description": "The subfield objects of this field",
+            "type": {
+              "name": "Field[]|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Field"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "getSubfieldNames",
+          "type": "Normal Function",
+          "description": "Returns the names of the subfields of this field as a string array.",
+          "parameters": [],
+          "return": {
+            "description": "The names of the subfields of this field",
+            "type": {
+              "name": "string[]"
+            }
+          }
+        },
+        {
+          "name": "getType",
+          "type": "Normal Function",
+          "description": "Returns the type of the field.",
+          "parameters": [],
+          "return": {
+            "description": "The type of the field",
+            "type": {
+              "name": "__Type",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "__Type"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "getLocation",
+          "type": "Normal Function",
+          "description": "Returns the location of the field in the GraphQL document.",
+          "parameters": [],
+          "return": {
+            "description": "The location of the field",
+            "type": {
+              "name": "Location",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Location"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Listener",
+      "description": "Invoked during the initialization of a `graphql:Listener`. Either an `http:Listener` or a port number must be\nprovided to initialize the listener.\n",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Invoked during the initialization of a `graphql:Listener`. Either an `http:Listener` or a port number must be\nprovided to initialize the listener.\n",
+          "parameters": [
+            {
+              "name": "listenTo",
+              "description": "An `http:Listener` or a port number to listen to the GraphQL service endpoint",
+              "type": {
+                "name": "int|Listener",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "Listener",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "host",
+              "description": "The host name/IP of the endpoint",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "http1Settings",
+              "description": "Configurations related to HTTP/1.x protocol",
+              "type": {
+                "name": "ListenerHttp1Settings",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ListenerHttp1Settings",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "secureSocket",
+              "description": "The SSL configurations for the service endpoint. This needs to be configured in order to\ncommunicate through HTTPS.",
+              "type": {
+                "name": "ListenerSecureSocket|()",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ListenerSecureSocket",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "httpVersion",
+              "description": "Highest HTTP version supported by the endpoint",
+              "type": {
+                "name": "HttpVersion",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "HttpVersion",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "\"2.0\""
+            },
+            {
+              "name": "timeout",
+              "description": "Period of time in seconds that a connection waits for a read/write operation. Use value 0 to\ndisable timeout",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "0.0d"
+            },
+            {
+              "name": "server",
+              "description": "The server name which should appear as a response header",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "requestLimits",
+              "description": "Configurations associated with inbound request size limits",
+              "type": {
+                "name": "RequestLimitConfigs",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "RequestLimitConfigs",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "gracefulStopTimeout",
+              "description": "Grace period of time in seconds for listener gracefulStop",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "0.0d"
+            },
+            {
+              "name": "socketConfig",
+              "description": "Provides settings related to server socket configuration",
+              "type": {
+                "name": "ServerSocketConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ServerSocketConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "http2InitialWindowSize",
+              "description": "Configuration to change the initial window size in HTTP/2",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "0"
+            },
+            {
+              "name": "minIdleTimeInStaleState",
+              "description": "Minimum time in seconds for a connection to be kept open which has received a GOAWAY.\nThis only applies for HTTP/2. Default value is 5 minutes. If the value is set to -1,\nthe connection will be closed after all in-flight streams are completed",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "0.0d"
+            },
+            {
+              "name": "timeBetweenStaleEviction",
+              "description": "Time between the connection stale eviction runs in seconds. This only applies for HTTP/2.\nDefault value is 30 seconds",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "0.0d"
+            },
+            {
+              "name": "configuration",
+              "description": "The additional configurations for the GraphQL listener",
+              "type": {
+                "name": "ListenerConfiguration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ListenerConfiguration"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "A `graphql:Error` if the listener initialization is failed or else `()`",
+            "type": {
+              "name": "ballerina/graphql:1.17.0:Error?"
+            }
+          }
+        },
+        {
+          "name": "attach",
+          "type": "Normal Function",
+          "description": "Attaches the provided service to the Listener.\n",
+          "parameters": [
+            {
+              "name": "s",
+              "description": "The `graphql:Service` object to attach to the listener",
+              "type": {
+                "name": "Service",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Service"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "name",
+              "description": "The path of the service to be hosted",
+              "type": {
+                "name": "string[]|string|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "A `graphql:Error` if an error occurred during the service-attaching process or the schema\ngeneration process or else `()`",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "detach",
+          "type": "Normal Function",
+          "description": "Detaches the provided service from the Listener.\n",
+          "parameters": [
+            {
+              "name": "s",
+              "description": "The service to be detached from the listener",
+              "type": {
+                "name": "Service",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Service"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "A `graphql:Error` if an error occurred during the service detaching process or else `()`",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "\u0027start",
+          "type": "Normal Function",
+          "description": "Starts the attached service.\n",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "gracefulStop",
+          "type": "Normal Function",
+          "description": "Gracefully stops the graphql listener. Already accepted requests will be served before the connection closure.\n",
+          "parameters": [],
+          "return": {
+            "description": "A `graphql:Error`, if an error occurred during the service stopping process, otherwise nil",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "immediateStop",
+          "type": "Normal Function",
+          "description": "Stops the service listener immediately.\n",
+          "parameters": [],
+          "return": {
+            "description": "A `graphql:Error` if an error occurred during the service stopping process or else `()`",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "name": "Client",
+      "description": "The Ballerina GraphQL client that can be used to communicate with GraphQL APIs.",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Gets invoked to initialize the `connector`.\n",
+          "parameters": [
+            {
+              "name": "serviceUrl",
+              "description": "URL of the target service",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "http1Settings",
+              "description": "Configurations related to HTTP/1.1 protocol",
+              "type": {
+                "name": "ClientHttp1Settings",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ClientHttp1Settings"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "timeout",
+              "description": "The maximum time to wait (in seconds) for a response before closing the connection",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "60"
+            },
+            {
+              "name": "forwarded",
+              "description": "The choice of setting `forwarded`/`x-forwarded` header",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"disable\""
+            },
+            {
+              "name": "followRedirects",
+              "description": "Configurations associated with Redirection",
+              "type": {
+                "name": "FollowRedirects|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "FollowRedirects"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "poolConfig",
+              "description": "Configurations associated with request pooling",
+              "type": {
+                "name": "PoolConfiguration|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "PoolConfiguration"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "cache",
+              "description": "HTTP caching related configurations",
+              "type": {
+                "name": "CacheConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "CacheConfig"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "compression",
+              "description": "Specifies the way of handling compression (`accept-encoding`) header",
+              "type": {
+                "name": "Compression",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Compression"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "AUTO"
+            },
+            {
+              "name": "auth",
+              "description": "Configurations related to client authentication",
+              "type": {
+                "name": "CredentialsConfig|BearerTokenConfig|JwtIssuerConfig|OAuth2ClientCredentialsGrantConfig|OAuth2PasswordGrantConfig|OAuth2RefreshTokenGrantConfig|OAuth2JwtBearerGrantConfig|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "CredentialsConfig"
+                  },
+                  {
+                    "category": "internal",
+                    "recordName": "BearerTokenConfig"
+                  },
+                  {
+                    "category": "internal",
+                    "recordName": "JwtIssuerConfig"
+                  },
+                  {
+                    "category": "internal",
+                    "recordName": "OAuth2ClientCredentialsGrantConfig"
+                  },
+                  {
+                    "category": "internal",
+                    "recordName": "OAuth2PasswordGrantConfig"
+                  },
+                  {
+                    "category": "internal",
+                    "recordName": "OAuth2RefreshTokenGrantConfig"
+                  },
+                  {
+                    "category": "internal",
+                    "recordName": "OAuth2JwtBearerGrantConfig"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "circuitBreaker",
+              "description": "Configurations associated with the behaviour of the Circuit Breaker",
+              "type": {
+                "name": "CircuitBreakerConfig|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "CircuitBreakerConfig"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "retryConfig",
+              "description": "Configurations associated with retrying",
+              "type": {
+                "name": "RetryConfig|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "RetryConfig"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "cookieConfig",
+              "description": "Configurations associated with cookies",
+              "type": {
+                "name": "CookieConfig|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "CookieConfig"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "responseLimits",
+              "description": "Configurations associated with inbound response size limits",
+              "type": {
+                "name": "ResponseLimitConfigs",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ResponseLimitConfigs"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "secureSocket",
+              "description": "SSL/TLS-related options",
+              "type": {
+                "name": "ClientSecureSocket|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ClientSecureSocket"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "proxy",
+              "description": "Proxy server related options",
+              "type": {
+                "name": "ProxyConfig|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ProxyConfig"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "validation",
+              "description": "Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "true"
+            },
+            {
+              "name": "clientConfig",
+              "description": "The configurations to be used when initializing the `connector`",
+              "type": {
+                "name": "ClientConfiguration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ClientConfiguration"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "An error at the failure of client initialization",
+            "type": {
+              "name": "ballerina/graphql:1.17.0:ClientError?"
+            }
+          }
+        },
+        {
+          "name": "executeWithType",
+          "type": "Remote Function",
+          "description": "Executes a GraphQL document and data binds the GraphQL response to a record with data and extensions\nwhich is a subtype of GenericResponse.\n",
+          "parameters": [
+            {
+              "name": "document",
+              "description": "The GraphQL document. It can include queries \u0026 mutations.\nFor example `query OperationName($code:ID!) {country(code:$code) {name}}`.",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "variables",
+              "description": "The GraphQL variables. For example `{\"code\": \"\u003cvariable_value\u003e\"}`.",
+              "type": {
+                "name": "map\u003canydata\u003e|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "operationName",
+              "description": "The GraphQL operation name. If a request has two or more operations, then each operation must have a name.\nA request can only execute one operation, so you must also include the operation name to execute.",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "headers",
+              "description": "The GraphQL API headers to execute each query",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "targetType",
+              "description": "The payload, which is expected to be returned after data binding. For example\n`type CountryByCodeResponse record {| map\u003cjson?\u003e extensions?; record {| record{|string name;|}? country; |} data;`",
+              "type": {
+                "name": "GenericResponse|record {|anydata...;|}|json",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "GenericResponse"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "graphql:GenericResponse|record {|anydata...;|}|json"
+            }
+          ],
+          "return": {
+            "description": "The GraphQL response or a `graphql:ClientError` if failed to execute the query",
+            "type": {
+              "name": "targetType|ClientError",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "targetType"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "ClientError"
+                }
+              ]
+            }
+          },
+          "isDeprecated": true
+        },
+        {
+          "name": "execute",
+          "type": "Remote Function",
+          "description": "Executes a GraphQL document and data binds the GraphQL response to a record with data, extensions and errors\nwhich is a subtype of GenericResponseWithErrors.\n",
+          "parameters": [
+            {
+              "name": "document",
+              "description": "The GraphQL document. It can include queries \u0026 mutations.\nFor example `query countryByCode($code:ID!) {country(code:$code) {name}}`.",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "variables",
+              "description": "The GraphQL variables. For example `{\"code\": \"\u003cvariable_value\u003e\"}`.",
+              "type": {
+                "name": "map\u003canydata\u003e|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "operationName",
+              "description": "The GraphQL operation name. If a request has two or more operations, then each operation must have a name.\nA request can only execute one operation, so you must also include the operation name to execute.",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "headers",
+              "description": "The GraphQL API headers to execute each query",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "targetType",
+              "description": "The payload (`GenericResponseWithErrors`), which is expected to be returned after data binding. For example\n`type CountryByCodeResponse record {| map\u003cjson?\u003e extensions?; record {| record{|string name;|}? country; |} data; ErrorDetail[] errors?; |};`",
+              "type": {
+                "name": "GenericResponseWithErrors|record {|anydata...;|}|json",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "GenericResponseWithErrors"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "graphql:GenericResponseWithErrors|record {|anydata...;|}|json"
+            }
+          ],
+          "return": {
+            "description": "The GraphQL response or a `graphql:ClientError` if failed to execute the query",
+            "type": {
+              "name": "targetType|ClientError",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "targetType"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "ClientError"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "name": "__addError",
+      "type": "Normal Function",
+      "description": "Adds an error to the GraphQL response. Using this to add an error is not recommended.\n",
+      "parameters": [
+        {
+          "name": "context",
+          "description": "The context of the GraphQL request.",
+          "type": {
+            "name": "Context",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Context"
+              }
+            ]
+          }
+        },
+        {
+          "name": "errorDetail",
+          "description": "The error to be added to the response.",
+          "type": {
+            "name": "ErrorDetail",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ErrorDetail"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "type": {
+          "name": "()"
+        }
+      }
+    },
+    {
+      "name": "getSdlString",
+      "type": "Normal Function",
+      "description": "Obtains the schema representation of a federated subgraph, expressed in the SDL format.",
+      "parameters": [
+        {
+          "name": "encodedSchemaString",
+          "description": "Compile time auto generated schema",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "Subgraph schema in SDL format as a string on success, or an error otherwise",
+        "type": {
+          "name": "string|error"
+        }
+      }
+    }
+  ],
+  "services": [
+    {
+      "type": "generic",
+      "name": "Service",
+      "instructions": "",
+      "listener": {
+        "name": "graphql:Listener",
+        "parameters": [
+          {
+            "name": "listenTo",
+            "description": "An `http:Listener` or a port number to listen to the GraphQL service endpoint",
+            "type": {
+              "name": "int|http:Listener"
+            }
+          },
+          {
+            "name": "configuration",
+            "description": "The additional configurations for the GraphQL listener",
+            "type": {
+              "name": "ListenerConfiguration",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "ListenerConfiguration"
+                }
+              ]
+            },
+            "optional": true,
+            "default": "{}"
+          }
+        ]
+      }
+    }
+  ],
+  "annotations": [
+    {
+      "name": "ServiceConfig",
+      "attachmentPoint": "SERVICE",
+      "displayName": "Service Configuration",
+      "description": "Define service configurations such as maximum query depth.",
+      "typeConstraint": {
+        "name": "GraphqlServiceConfig",
+        "links": [
+          {
+            "category": "internal",
+            "recordName": "GraphqlServiceConfig"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ResourceConfig",
+      "attachmentPoint": "OBJECT_METHOD",
+      "displayName": "Field Configuration",
+      "description": "Define configurations such as field level cache.",
+      "typeConstraint": {
+        "name": "GraphqlResourceConfig",
+        "links": [
+          {
+            "category": "internal",
+            "recordName": "GraphqlResourceConfig"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,148 @@
+// ============================================================
+// Library: ballerinax/ai.openrouter
+// This module offers APIs for connecting with 200+ Large Language Models (LLMs) through the
+// ============================================================
+import ballerinax/ai.openrouter;
+
+// --- README ---
+## Overview
+
+This module offers APIs for connecting with 200+ Large Language Models (LLMs) through the
+[OpenRouter](https://openrouter.ai) unified API, including models from OpenAI, Anthropic,
+Google, Meta, Mistral, and many more providers.
+
+## Prerequisites
+
+Before using this module in your Ballerina application, you must first obtain an OpenRouter API key.
+
+- Create an [OpenRouter account](https://openrouter.ai/signup).
+- Obtain an API key from [https://openrouter.ai/keys](https://openrouter.ai/keys).
+
+## Quickstart
+
+To use the `ai.openrouter` module in your Ballerina application, update the `.bal` file as follows:
+
+### Step 1: Import the module
+
+Import the `ai.openrouter` module.
+
+```ballerina
+import ballerinax/ai.openrouter;
+```
+
+### Step 2: Initialize the Model Provider
+
+Here's how to initialize the Model Provider:
+
+```ballerina
+import ballerina/ai;
+import ballerinax/ai.openrouter;
+
+final ai:ModelProvider openRouterModel = check new openrouter:ModelProvider(
+    "openRouterApiKey",
+    modelType = "anthropic/claude-3.5-sonnet"
+);
+```
+
+### Step 3: Invoke chat completion
+
+```ballerina
+ai:ChatMessage[] chatMessages = [{role: "user", content: "hi"}];
+ai:ChatAssistantMessage response = check openRouterModel->chat(chatMessages, tools = []);
+
+chatMessages.push(response);
+```
+
+### Step 4: Generate typed output
+
+```ballerina
+type Sentiment record {|
+    string label;
+    decimal score;
+|};
+
+@ai:JsonSchema {
+    "type": "object",
+    "required": ["label", "score"],
+    "properties": {
+        "label": {"type": "string", "enum": ["positive", "neutral", "negative"]},
+        "score": {"type": "number"}
+    }
+}
+type SentimentType Sentiment;
+
+Sentiment|error result = openRouterModel->generate(
+    `Analyze the sentiment of: "I love this product!"`
+);
+```
+
+// --- END README ---
+
+// --- Types ---
+
+# Configurations for controlling the behaviours when communicating with a remote HTTP endpoint.
+
+type ConnectionConfig record {
+    # The HTTP version understood by the client
+    http:HttpVersion httpVersion?; // Special Agent Note: HttpVersion FROM ballerina/http package
+    # Configurations related to HTTP/1.x protocol
+    http:ClientHttp1Settings http1Settings?; // Special Agent Note: ClientHttp1Settings FROM ballerina/http package
+    # Configurations related to HTTP/2 protocol
+    http:ClientHttp2Settings http2Settings?; // Special Agent Note: ClientHttp2Settings FROM ballerina/http package
+    # The maximum time to wait (in seconds) for a response before closing the connection
+    decimal timeout?;
+    # The choice of setting `forwarded`/`x-forwarded` header
+    string forwarded?;
+    # Configurations associated with request pooling
+    http:PoolConfiguration poolConfig?; // Special Agent Note: PoolConfiguration FROM ballerina/http package
+    # HTTP caching related configurations
+    http:CacheConfig cache?; // Special Agent Note: CacheConfig FROM ballerina/http package
+    # Specifies the way of handling compression (`accept-encoding`) header
+    http:Compression compression?; // Special Agent Note: Compression FROM ballerina/http package
+    # Configurations associated with the behaviour of the Circuit Breaker
+    http:CircuitBreakerConfig circuitBreaker?; // Special Agent Note: CircuitBreakerConfig FROM ballerina/http package
+    # Configurations associated with retrying
+    http:RetryConfig retryConfig?; // Special Agent Note: RetryConfig FROM ballerina/http package
+    # Configurations associated with inbound response size limits
+    http:ResponseLimitConfigs responseLimits?; // Special Agent Note: ResponseLimitConfigs FROM ballerina/http package
+    # SSL/TLS-related options
+    http:ClientSecureSocket secureSocket?; // Special Agent Note: ClientSecureSocket FROM ballerina/http package
+    # Proxy server related options
+    http:ProxyConfig proxy?; // Special Agent Note: ProxyConfig FROM ballerina/http package
+    # Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default
+    boolean validation?;
+};
+
+// --- Client ---
+
+# EmbeddingProvider is a client class that provides an interface for generating
+# vector embeddings via the OpenRouter unified API, which supports embedding models
+# from OpenAI, Google, Mistral, and other providers.
+client class EmbeddingProvider {
+    function init(string apiKey, string modelType, string serviceUrl = https://openrouter.ai/api/v1, string|() siteUrl = (), string|() siteName = (), http:HttpVersion httpVersion = http:HTTP_2_0, http:ClientHttp1Settings http1Settings = {}, http:ClientHttp2Settings http2Settings = {}, decimal timeout = 60, string forwarded = "disable", http:PoolConfiguration poolConfig = {}, http:CacheConfig cache = {}, http:Compression compression = AUTO, http:CircuitBreakerConfig circuitBreaker = {}, http:RetryConfig retryConfig = {}, http:ResponseLimitConfigs responseLimits = {}, http:ClientSecureSocket secureSocket = {}, http:ProxyConfig proxy = {}, boolean validation = true, ConnectionConfig connectionConfig) returns ballerina/ai:1.13.0:Error?; // Special Agent Note: HttpVersion, ClientHttp1Settings, ClientHttp2Settings, PoolConfiguration, CacheConfig, Compression, CircuitBreakerConfig, RetryConfig, ResponseLimitConfigs, ClientSecureSocket, ProxyConfig FROM ballerina/http package
+
+    # Converts the given chunk into a vector embedding.
+    # 
+    remote function embed(ai:Chunk chunk) returns ai:Vector|ai:SparseVector|ai:HybridVector|ai:Error; // Special Agent Note: Chunk, Vector, SparseVector, HybridVector, Error FROM ballerina/ai package
+
+    # Converts a batch of chunks into vector embeddings.
+    # 
+    remote function batchEmbed(ai:Chunk[] chunks) returns ai:Embedding[]|ai:Error; // Special Agent Note: Chunk, Embedding, Error FROM ballerina/ai package
+}
+
+# ModelProvider is a client class that provides an interface for interacting with
+# LLMs via the OpenRouter unified API, which supports models from OpenAI, Anthropic,
+# Google, Meta, Mistral, and many other providers.
+client class ModelProvider {
+    function init(string apiKey, string modelType, string serviceUrl = https://openrouter.ai/api/v1, string|() siteUrl = (), string|() siteName = (), int maxTokens = 512, decimal|() temperature = (), http:HttpVersion httpVersion = http:HTTP_2_0, http:ClientHttp1Settings http1Settings = {}, http:ClientHttp2Settings http2Settings = {}, decimal timeout = 60, string forwarded = "disable", http:PoolConfiguration poolConfig = {}, http:CacheConfig cache = {}, http:Compression compression = AUTO, http:CircuitBreakerConfig circuitBreaker = {}, http:RetryConfig retryConfig = {}, http:ResponseLimitConfigs responseLimits = {}, http:ClientSecureSocket secureSocket = {}, http:ProxyConfig proxy = {}, boolean validation = true, ConnectionConfig connectionConfig) returns ballerina/ai:1.13.0:Error?; // Special Agent Note: HttpVersion, ClientHttp1Settings, ClientHttp2Settings, PoolConfiguration, CacheConfig, Compression, CircuitBreakerConfig, RetryConfig, ResponseLimitConfigs, ClientSecureSocket, ProxyConfig FROM ballerina/http package
+
+    # Sends a chat request to the OpenRouter model with the given messages and tools.
+    # 
+    remote function chat(ai:ChatMessage[]|ai:ChatUserMessage messages, ai:ChatCompletionFunctions[] tools = [], string|() stop = ()) returns ai:ChatAssistantMessage|ai:Error; // Special Agent Note: ChatMessage, ChatUserMessage, ChatCompletionFunctions, ChatAssistantMessage, Error FROM ballerina/ai package
+
+    # Sends a chat request to the model and generates a value of the type specified by
+    # the `td` type descriptor. For complex record types, annotate the type with
+    # `@ai:JsonSchema` to enable compile-time schema generation.
+    # 
+    remote function generate(ai:Prompt prompt, anydata td = anydata) returns td|ai:Error; // Special Agent Note: Prompt, Error FROM ballerina/ai package
+}

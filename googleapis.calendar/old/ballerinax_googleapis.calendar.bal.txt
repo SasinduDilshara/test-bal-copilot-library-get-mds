@@ -1,0 +1,804 @@
+// ============================================================
+// Library: ballerinax/googleapis.calendar
+// Connects to Google Calendar from Ballerina
+// ============================================================
+import ballerinax/googleapis.calendar;
+
+// --- README ---
+Connects to Google Calendar from Ballerina
+
+## Package overview
+The `ballerinax/googleapis.calendar` is a [Ballerina](https://ballerina.io/) connector for Google Calendar. It is comprised of the following capabilities.
+
+* Perform Google Calendar related operations programmatically. The `ballerinax/googleapis.calendar` module provides this capability.
+
+### Compatibility
+|                     | Version            |
+|---------------------|--------------------|
+| Ballerina Language  | Swan Lake 2201.4.1 |
+| Google Calendar API | V3                 |
+
+## Report issues
+To report bugs, request new features, start new discussions, view project boards, etc., go to the [Ballerina Extended Library repository](https://github.com/ballerina-platform/ballerina-extended-library)
+
+## Useful links
+- Discuss code changes of the Ballerina project in [ballerina-dev@googlegroups.com](mailto:ballerina-dev@googlegroups.com).
+- Chat live with us via our [Discord server](https://discord.gg/ballerinalang).
+- Post all technical questions on Stack Overflow with the [#ballerina](https://stackoverflow.com/questions/tagged/ballerina) tag
+
+
+## Module: googleapis.calendar
+
+## Overview
+The Google Calendar Connector provides the capability to manage events and calendar operations. It also provides the capability to support service account authorization that can provide delegated domain-wide access to the GSuite domain and support admins to do operations on behalf of the domain users.
+
+This module supports [Google Calendar API V3](https://developers.google.com/calendar/api).
+ 
+## Prerequisites
+Before using this connector in your Ballerina application, complete the following:
+1. Create a [Google account](https://accounts.google.com/signup/v2/webcreateaccount?utm_source=ga-ob-search&utm_medium=google-account&flowName=GlifWebSignIn&flowEntry=SignUp).
+2. Obtain tokens - Follow the steps [here](https://developers.google.com/identity/protocols/oauth2) to obtain tokens.
+
+## Quickstart
+To use the Google Calendar connector in your Ballerina application, update the .bal file as follows:
+
+### Step 1: Import connector
+Import the `ballerinax/googleapis.calendar` module into the Ballerina project.
+```ballerina
+import ballerinax/googleapis.calendar;
+```
+
+### Step 2: Create a new connector instance
+Create a `calendar:ConnectionConfig` with the OAuth2.0 tokens obtained and initialize the connector with it.
+```ballerina
+calendar:ConnectionConfig config = {
+    auth: {
+        clientId: <CLIENT_ID>,
+        clientSecret: <CLIENT_SECRET>
+        refreshToken: <REFRESH_TOKEN>,
+        refreshUrl: <REFRESH_URL>,
+    }
+};
+
+calendar:Client calendarClient = check new(config);
+```
+
+### Step 3: Invoke connector operation
+1. Now you can use the operations available within the connector. Note that they are in the form of remote operations.  
+Following is an example on how to create quick event using the connector.
+
+    ```ballerina
+    string calendarId = "primary";
+    string title = "Sample Event";
+
+    public function main() returns error? {
+        calendar:Event response = check calendarClient->quickAddEvent(calendarId, title);
+    }
+    ``` 
+2. Use `bal run` command to compile and run the Ballerina program.
+
+**[You can find a list of samples here](https://github.com/ballerina-platform/module-ballerinax-googleapis.calendar/tree/master/samples)**
+
+// --- END README ---
+
+// --- Types ---
+
+const string START_TIME = "startTime";
+
+const string UPDATED = "updated";
+
+# Client configuration details.
+
+type ConnectionConfig record {
+    # Configurations related to client authentication
+    http:BearerTokenConfig|config:OAuth2RefreshTokenGrantConfig|http:JwtIssuerConfig auth; // Special Agent Note: BearerTokenConfig, JwtIssuerConfig FROM ballerina/http package, OAuth2RefreshTokenGrantConfig FROM ballerinax/client.config package
+    http:HttpVersion httpVersion?; // Special Agent Note: HttpVersion FROM ballerina/http package
+    config:ClientHttp1Settings http1Settings?; // Special Agent Note: ClientHttp1Settings FROM ballerinax/client.config package
+    http:ClientHttp2Settings http2Settings?; // Special Agent Note: ClientHttp2Settings FROM ballerina/http package
+    decimal timeout?;
+    string forwarded?;
+    http:PoolConfiguration poolConfig?; // Special Agent Note: PoolConfiguration FROM ballerina/http package
+    http:CacheConfig cache?; // Special Agent Note: CacheConfig FROM ballerina/http package
+    http:Compression compression?; // Special Agent Note: Compression FROM ballerina/http package
+    http:CircuitBreakerConfig circuitBreaker?; // Special Agent Note: CircuitBreakerConfig FROM ballerina/http package
+    http:RetryConfig retryConfig?; // Special Agent Note: RetryConfig FROM ballerina/http package
+    http:ResponseLimitConfigs responseLimits?; // Special Agent Note: ResponseLimitConfigs FROM ballerina/http package
+    http:ClientSecureSocket secureSocket?; // Special Agent Note: ClientSecureSocket FROM ballerina/http package
+    http:ProxyConfig proxy?; // Special Agent Note: ProxyConfig FROM ballerina/http package
+    boolean validation?;
+};
+
+# Represents the elements representing event input.
+# 
+
+type InputEvent record {
+    # Title of the event
+    string summary?;
+    # Description of the event
+    string description?;
+    # Location of the event
+    string location?;
+    # Color Id of the event
+    string colorId?;
+    # Opaque identifier of the event
+    string id?;
+    Time 'start;
+    # End time of the event
+    Time end;
+    # List of RRULE, EXRULE, RDATE and EXDATE lines for a recurring event, as specified in RFC5545
+    string[] recurrence?;
+    # The start time of the event in recurring events
+    Time originalStartTime?;
+    # Whether the event blocks time on the calendar
+    string transparency?;
+    # Visibility of the event
+    string visibility?;
+    # Sequence number as per iCalendar
+    int sequence?;
+    # The attendees of the event
+    Attendee[] attendees?;
+    # Properties of the event that appears on this calendar
+    ExtendedProperties extendedProperties?;
+    # The conference-related information
+    ConferenceInputData conferenceData?;
+    # Whether anyone can invite themselves to the event
+    boolean anyoneCanAddSelf?;
+    # Whether attendees other than the organizer can invite others to the event
+    boolean guestsCanInviteOthers?;
+    # Whether attendees other than the organizer can modify the event
+    boolean guestsCanModify?;
+    # Whether attendees other than the organizer can see who the event's attendees are
+    boolean guestsCanSeeOtherGuests?;
+    # Information about the event's reminders
+    Reminders reminders?;
+    Source 'source?;
+    # Attachments of the events
+    Attachment[] attachments?;
+};
+
+# Defines time.
+# 
+
+type Time record {
+    # The date, in the format "yyyy-mm-dd"
+    string date?;
+    # A combined date-time value formatted according to RFC3339
+    string dateTime?;
+    # The time zone in which the time is specified
+    string timeZone?;
+};
+
+# Defines attendee.
+# 
+
+type Attendee record {
+    # The attendee's Profile ID
+    string id?;
+    # The attendee's email address
+    string email;
+    # The attendee's name
+    string displayName?;
+    # Whether the attendee is the organizer of the event
+    boolean organizer?;
+    # Whether this entry represents the calendar on which this copy of the event appears
+    boolean self?;
+    boolean 'resource?;
+    # Whether this is an optional attendee
+    boolean optional?;
+    # The attendee's response status
+    string responseStatus?;
+    # The attendee's response comment
+    string comment?;
+    # Number of additional guests
+    int additionalGuests?;
+};
+
+# Defines private event properties.
+
+type Private record {
+    # Rest field
+    string ;
+};
+
+# Defines shared event properties.
+
+type Shared record {
+    # Rest field
+    string ;
+};
+
+# Extended properties of the event.
+
+type ExtendedProperties record {
+};
+
+# Defines conference-related information.
+# 
+
+type ConferenceInputData record {
+    # A request to generate a new conference and attach it to the event
+    CreateRequest createRequest?;
+};
+
+# Defines a request to generate a new conference and attach it to the event.
+# 
+
+type CreateRequest record {
+    # The client-generated unique ID for this request
+    string requestId;
+    # The conference solution
+    ConferenceSolutionKey conferenceSolutionKey;
+    # The status of the conference create request
+    Status status?;
+};
+
+# Defines conference solution key.
+# 
+
+type ConferenceSolutionKey record {
+    string 'type;
+};
+
+# Defines status.
+# 
+
+type Status record {
+    # The current status of the conference create request
+    string statusCode;
+};
+
+# Defines reminders.
+# 
+
+type Reminders record {
+    # Whether the default reminders of the calendar apply to the event
+    boolean useDefault;
+    # List the reminders specific to the event
+    Reminder[] overrides?;
+};
+
+# Represents default reminders on the calendar for the authenticated user.
+# 
+
+type Reminder record {
+    # The method used by the reminder
+    string method;
+    # Number of minutes before the start of the event when the reminder should trigger
+    int minutes;
+};
+
+# Defines source.
+# 
+
+type Source record {
+    # URL of the source pointing to a resource
+    string url;
+    # Title of the source
+    string title;
+};
+
+# Defines Attachment.
+# 
+
+type Attachment record {
+    # URL link to the attachment
+    string fileUrl;
+    # Attachment title
+    string title?;
+    # Internet media type (MIME type) of the attachment
+    string mimeType?;
+    # URL link to the attachment's icon
+    string iconLink?;
+    # ID of the attached file
+    string fileId?;
+};
+
+# Represents the optional query parameters of creating event.
+# 
+
+type EventsToAccess record {
+    # Version number of conference data supported by the API client
+    int? conferenceDataVersion?;
+    # The maximum number of attendees to include in the response
+    int? maxAttendees?;
+    # Whether to send notifications about the creation of the new event
+    string? sendUpdates?;
+    # Whether API client performing operation supports event attachment
+    boolean? supportsAttachments?;
+};
+
+# Defines Calendar.
+# 
+
+type CalendarResource record {
+    # Type of the resource
+    string kind;
+    # ETag of the resource
+    string etag;
+    # Identifier of the calendar
+    string id;
+    # Title of the calendar
+    string summary;
+    # Description of the calendar
+    string description?;
+    # Geographic location of the calendar as free-form text
+    string location?;
+    # The time zone of the calendar
+    string timeZone;
+    # Conferencing properties for this calendar
+    ConferenceProperties conferenceProperties;
+};
+
+# Defines conference properties.
+# 
+
+type ConferenceProperties record {
+    # Types of conference solutions that are supported for this calendar
+    string[] allowedConferenceSolutionTypes;
+};
+
+# Defines event response.
+# 
+
+type EventResponse record {
+    # Type of the collection
+    string kind;
+    # ETag of the collection
+    string etag;
+    # Title of the calendar
+    string summary;
+    # Last modification time of the calendar
+    string updated;
+    # The time zone of the calendar
+    string timeZone;
+    # The user's access role for this calendar
+    string accessRole;
+    # The default reminders on the calendar for the authenticated user
+    Reminder[] defaultReminders;
+    # Token used to retrieve only the entries that have changed since this result was returned
+    string nextSyncToken?;
+    # Token used to access the next page of this result
+    string nextPageToken?;
+    # List of events on the calendar
+    Event[] items;
+};
+
+# Defines Event.
+# 
+
+type Event record {
+    # Type of the resource
+    string kind;
+    # ETag of the resource
+    string etag;
+    # Opaque identifier of the event
+    string id;
+    # Status of the event
+    string status;
+    # An absolute link to this event in the Google Calendar Web UI
+    string htmlLink?;
+    # Creation time of the event
+    string created?;
+    # Last modification time of the event
+    string updated?;
+    # Title of the event
+    string summary?;
+    # Description of the event
+    string description?;
+    # Geographic location of the event as free-form text
+    string location?;
+    # The color id of the event
+    string colorId?;
+    # The creator of the event
+    User creator?;
+    # The organizer of the event
+    User organizer?;
+    Time 'start?;
+    # The end time of the event
+    Time end?;
+    # Whether the end time is actually unspecified
+    boolean endTimeUnspecified?;
+    # List of RRULE, EXRULE, RDATE and EXDATE lines for a recurring event, as specified in RFC5545
+    string[] recurrence?;
+    # The id of the recurring event
+    string recurringEventId?;
+    # The start time of the event in recurring events
+    Time originalStartTime?;
+    # Whether the event blocks time on the calendar
+    string transparency?;
+    # Visibility of the event
+    string visibility?;
+    # Event unique identifier as defined in RFC5545
+    string iCalUID?;
+    # Sequence number as per iCalendar
+    int sequence?;
+    # The attendees of the event
+    Attendee[] attendees?;
+    # Extended properties of the event
+    ExtendedProperties extendedProperties?;
+    # Whether attendees may have been omitted from the event's representation
+    boolean attendeesOmitted?;
+    # An absolute link to the Google+ hangout associated with this event
+    string hangoutLink?;
+    # The conference-related information
+    ConferenceData conferenceData?;
+    # A gadget that extends this event
+    Gadget gadget?;
+    # Whether anyone can invite themselves to the event
+    boolean anyoneCanAddSelf?;
+    # Whether attendees other than the organizer can invite others to the event
+    boolean guestsCanInviteOthers?;
+    # Whether attendees other than the organizer can modify the event
+    boolean guestsCanModify?;
+    # Whether attendees other than the organizer can see who the event's attendees are
+    boolean guestsCanSeeOtherGuests?;
+    # Whether enable event propagation
+    boolean privateCopy?;
+    # Whether this is a locked event copy
+    boolean locked?;
+    # Information about the event's reminders
+    Reminders reminders?;
+    Source 'source?;
+    # File attachments for the event
+    Attachment[] attachments?;
+    # Specific type of the event [Default/ OutOfOffice]
+    string eventType?;
+};
+
+# Defines user.
+# 
+
+type User record {
+    # Id of the user
+    string id?;
+    # Email of the user
+    string email;
+    # Name of the user
+    string displayName?;
+    # Whether the creator corresponds to the calendar on which this copy of the event appears
+    boolean self?;
+};
+
+# Represents information about conferences associated with calendar events.
+
+type ConferenceData record {
+    # The ID of the conference.
+Can be used by developers to keep track of conferences, should not be displayed to users.
+The ID value is formed differently for each conference solution type:  
+- eventHangout: ID is not set. (This conference type is deprecated.)
+- eventNamedHangout: ID is the name of the Hangout. (This conference type is deprecated.)
+- hangoutsMeet: ID is the 10-letter meeting code, for example aaa-bbbb-ccc.
+- addOn: ID is defined by the third-party provider.  Optional.
+    string conferenceId?;
+    # Information about the conference solution, including its name and user-visible icon. Optional.
+    ConferenceSolution conferenceSolution?;
+    # Specifies a request to create a conference. Optional.
+    CreateConferenceRequest createRequest?;
+    # Information about individual conference entry points, such as URLs or phone numbers.
+All of them must belong to the same conference.
+Either conferenceSolution and at least one entryPoint, or createRequest is required.
+    EntryPoint[] entryPoints?;
+    # Additional notes (such as instructions from the domain administrator, legal notices) to display to the user. Can contain HTML. The maximum length is 2048 characters. Optional.
+    string notes?;
+    # Includes parameters related to the conference
+    ConferenceParameters parameters?;
+    # The signature of the conference data.
+Generated on server side.
+Unset for a conference with a failed create request.
+Optional for a conference with a pending create request.
+    string signature?;
+};
+
+# Defines conference solution.
+# 
+
+type ConferenceSolution record {
+    # The key which can uniquely identify the conference solution for this event
+    Key key;
+    # The user-visible name of this solution
+    string name;
+    # The user-visible icon for this solution
+    string iconUri;
+};
+
+# Defines key.
+# 
+
+type Key record {
+    string 'type;
+};
+
+# Represents the request to create a conference within a calendar event.
+
+type CreateConferenceRequest record {
+    # Specifies the key identifying the conference solution for this request.
+    ConferenceSolutionKey conferenceSolutionKey?;
+    # The client-generated unique ID for this request.
+Clients should regenerate this ID for every new request. If an ID provided is the same as for the previous request, the request is ignored.
+    string requestId?;
+    # Represents the current status of the conference create request
+    ConferenceRequestStatus status?;
+};
+
+# Provides information about the current status of a conference create request.
+
+type ConferenceRequestStatus record {
+    # The current status of the conference create request. Read-only.
+The possible values are:  
+- "pending": the conference create request is still being processed.
+- "success": the conference create request succeeded, the entry points are populated.
+- "failure": the conference create request failed, there are no entry points.
+    string statusCode?;
+};
+
+# Defines conference entry points.
+# 
+
+type EntryPoint record {
+    # The type of the conference entry point
+    string entryPointType;
+    # The URI of the entry point
+    string uri;
+    # The label for the URI
+    string label?;
+    # The PIN to access the conference
+    string pin?;
+    # The access code to access the conference
+    string accessCode?;
+    # The meeting code to access the conference
+    string meetingCode?;
+    # The passcode to access the conference
+    string passcode?;
+    # The password to access the conference
+    string password?;
+    # The region code of the conference
+    string regionCode?;
+};
+
+# Represents parameters related to conference settings for events.
+
+type ConferenceParameters record {
+    # Specify additional parameters for third-party conferencing solutions
+    ConferenceParametersAddOnParameters addOnParameters?;
+};
+
+# This type is used for adding parameters that control the behavior of a conference.
+
+type ConferenceParametersAddOnParameters record {
+    # Additional parameters controlling the behavior of the conference add-on.
+    record {|string...;|} parameters?;
+};
+
+# Defines gadget.
+# 
+
+type Gadget record {
+    # Preferences
+    Preferences preferences;
+    string 'type?;
+    # Title of the gadget
+    string title?;
+    # URL of the gadget
+    string link?;
+    # Icon URL of the gadget
+    string iconLink?;
+    # Width of the gadget in pixel
+    string width?;
+    # Height of the gadget in pixel
+    string height?;
+    # Display mode of the gadget
+    string display?;
+};
+
+# Defines preferences.
+
+type Preferences record {
+    # Rest field
+    string ;
+};
+
+# Defines watch response.
+# 
+
+type WatchResponse record {
+    # Identifies this as a notification channel used to watch for changes to a resource
+    string kind;
+    # A UUID or similar unique string that identifies this channel
+    string id;
+    # An opaque ID that identifies the resource being watched on this channel
+    string resourceId;
+    # A version-specific identifier for the watched resource
+    string resourceUri;
+    # An arbitrary string delivered to the target address
+    string token?;
+    # Date and time of notification channel expiration
+    string expiration;
+};
+
+# Represents Calendar.
+# 
+
+type Calendar record {
+    # Type of the resource
+    string kind;
+    # ETag of the resource
+    string etag;
+    # Identifier of the calendar
+    string id;
+    # Title of the calendar
+    string summary;
+    # Description of the calendar
+    string description?;
+    # Geographic location of the calendar
+    string location?;
+    # The time zone of the calendar
+    string timeZone;
+    # The summary that the authenticated user has set for this calendar
+    string summaryOverride?;
+    # The color id of the calendar.
+    string colorId;
+    # Whether the calendar content shows up in the calendar UI
+    boolean selected?;
+    # The main color of the calendar in the hexadecimal format
+    string backgroundColor;
+    # The foreground color of the calendar in the hexadecimal format
+    string foregroundColor;
+    # Whether the calendar has been hidden from the list
+    boolean hidden?;
+    # The effective access role that the authenticated user has on the calendar
+    boolean deleted?;
+    # The effective access role that the authenticated user has on the calendar
+    string accessRole;
+    # The default reminders that the authenticated user has for this calendar
+    Reminder[] defaultReminders;
+    # Conferencing properties for this calendar
+    ConferenceProperties conferenceProperties;
+    # Whether the calendar is the primary calendar of the authenticated user
+    boolean primary?;
+    # The notifications that the authenticated user is receiving for the calendar
+    NotificationSettings notificationSettings?;
+};
+
+# Defines notification settings.
+# 
+
+type NotificationSettings record {
+    # The list of notifications set for this calendar
+    Notification[] notifications;
+};
+
+# Defines notification.
+# 
+
+type Notification record {
+    string 'type;
+    # The type of notification
+    string method;
+};
+
+# Defines optionals for calendar list request.
+# 
+
+type CalendarsToAccess record {
+    # The minimum access role for the user in the returned entries
+    string minAccessRole?;
+    # Whether to include deleted calendar list entries in the result
+    boolean showDeleted?;
+    # Whether to show hidden entries
+    boolean showHidden?;
+};
+
+# Defines calendar list response.
+# 
+
+type CalendarResponse record {
+    # Type of the collection
+    string kind;
+    # ETag of the collection
+    string etag;
+    # Token used to retrieve only the entries that have changed since this result was returned
+    string nextSyncToken?;
+    # Token used to access the next page of this result
+    string nextPageToken?;
+    # List of calendars
+    Calendar[] items;
+};
+
+# Defines get events optional parameters.
+# 
+
+type EventFilterCriteria record {
+    # Event unique identifier
+    string iCalUID?;
+    # The maximum number of attendees to include in the response
+    int maxAttendees?;
+    # The order of the events returned in the result
+    OrderBy orderBy?;
+    # Extended private properties constraint specified as propertyName=value
+    string privateExtendedProperty?;
+    # Free text search terms to find events that match these terms in any field, except for extended properties
+    string q?;
+    # Extended shared properties constraint specified as propertyName=value
+    string sharedExtendedProperty?;
+    # Whether to include deleted events (with status equals "cancelled") in the result
+    boolean showDeleted?;
+    # Whether to include hidden invitations in the result
+    boolean showHiddenInvitations?;
+    # Whether to expand recurring events into instances and only return single one-off events
+    boolean singleEvents?;
+    # Upper bound (exclusive) for an event's start time to filter by. Must be an RFC3339 timestamp
+    string timeMax?;
+    # Lower bound (exclusive) for an event's end time to filter by. Must be an RFC3339 timestamp
+    string timeMin?;
+    # Time zone used in the response
+    string timeZone?;
+    # Lower bound for an event's last modification time (as a RFC3339 timestamp) to filter by
+    string updatedMin?;
+};
+
+# Events order by.
+enum OrderBy {
+    UPDATED,
+    START_TIME
+}
+
+// --- Client ---
+
+# Ballerina Google Calendar connector provides the capability to access Google Calendar API.
+# The connector let you perform calendar and event management operations.
+# 
+client class Client {
+    function init(ConnectionConfig config) returns error?;
+
+    # Gets calendars.
+    # 
+    remote function getCalendars(CalendarsToAccess|() optional = (), string|() userAccount = ()) returns Calendar, error?>|error;
+
+    # Creates a calendar.
+    # 
+    remote function createCalendar(string title, string|() userAccount = ()) returns CalendarResource|error;
+
+    # Deletes a calendar.
+    # 
+    remote function deleteCalendar(string calendarId, string|() userAccount = ()) returns error?;
+
+    # Creates an event.
+    # 
+    remote function createEvent(string calendarId, InputEvent event, EventsToAccess|() optional = (), string|() userAccount = ()) returns Event|error;
+
+    # Creates an event at the moment with simple text.
+    # 
+    remote function quickAddEvent(string calendarId, string text, string|() sendUpdates = (), string|() userAccount = ()) returns Event|error;
+
+    # Updates an existing event.
+    # 
+    remote function updateEvent(string calendarId, string eventId, InputEvent event, EventsToAccess|() optional = (), string|() userAccount = ()) returns Event|error;
+
+    # Gets events.
+    # 
+    remote function getEvents(string calendarId, EventFilterCriteria|() filter = (), string|() userAccount = ()) returns Event, error?>|error;
+
+    # Gets an event.
+    # 
+    remote function getEvent(string calendarId, string eventId, string|() userAccount = ()) returns Event|error;
+
+    # Deletes an event.
+    # 
+    remote function deleteEvent(string calendarId, string eventId, string|() userAccount = ()) returns error?;
+
+    # Gets events response.
+    # 
+    remote function getEventsResponse(string calendarId, int|() count = (), string|() pageToken = (), string|() syncToken = (), EventFilterCriteria|() filter = (), string|() userAccount = ()) returns EventResponse|error;
+}
+
+// --- Functions ---
+
+# Prepare URL with optional parameters.
+# 
+# + calendarId - calendar Id
+# + count - Number of events required in one page
+# + pageToken - Token for retrieving next page
+# + syncToken - Token for getting incremental sync
+# + optional - Record that contains optional parameters
+# + return - The prepared URL with encoded query
+function prepareUrlWithEventsOptionalParams(string calendarId, int|() count = (), string|() pageToken = (), string|() syncToken = (), EventFilterCriteria|() optional = ()) returns string;

@@ -1,0 +1,2040 @@
+{
+  "name": "ballerinax/hubspot.crm.extensions.timelines",
+  "description": "[HubSpot](https://www.hubspot.com/) is an AI-powered customer relationship management (CRM) platform.",
+  "readme": "## Overview\n\n[HubSpot](https://www.hubspot.com/) is an AI-powered customer relationship management (CRM) platform.\n\nThe HubSpot connector offers APIs to connect and interact with the [ HubSpot CRM Timelines API](https://developers.hubspot.com/docs/reference/api/crm/extensions/timeline), specifically based on the [HubSpot REST API](https://developers.hubspot.com/docs/reference/api/overview).\n\n### Key Features\n\n- Create and manage custom timeline events for CRM objects\n- Define custom event templates with configurable properties\n- Batch operations for timeline event creation\n- Associate timeline events with contacts, deals, and other objects\n\n## Setup guide\n\nTo use the HubSpot CRM Timelines API, you must have access to the HubSpot API through a HubSpot developer account and a HubSpot app under it. Therefore, you need to register for a developer account at HubSpot if you don\u0027t have one already.\n\n### Step 1: Create/login to a HubSpot developer account\n\nIf you don\u0027t have a HubSpot developer account you can sign up to a free account [here](https://developers.hubspot.com/get-started).\n\nIf you have an account already, go to the [HubSpot developer portal](https://app.hubspot.com/)\n\n### Step 2: Create a developer test account (Optional)\n\nWithin app developer accounts, you can create [developer test accounts](https://developers.hubspot.com/beta-docs/getting-started/account-types#developer-test-accounts) to test apps and integrations without affecting any real HubSpot data.\n\n\u003e **Note:** These accounts are only for development and testing purposes. In production you should not use developer test accounts.\n\n1. Go to test account section from the left sidebar.\n   ![HubSpot developer portal](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.extensions.timelines/refs/heads/main/docs/resources/test_acc_1.png)\n\n2. Click create developer test account.\n   ![HubSpot developer testacc](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.extensions.timelines/refs/heads/main/docs/resources/test_acc_2.png)\n\n3. In the dialogue box, give a name to your test account and click create.\n   ![HubSpot developer testacc3](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.extensions.timelines/refs/heads/main/docs/resources/test_acc_3.png)\n\n### Step 3: Create a HubSpot app under your account\n\n1. In your developer account, navigate to the \"Apps\" section. Click on \"Create App\"\n   ![HubSpot app creation 1](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.extensions.timelines/refs/heads/main/docs/resources/create_app_1.png)\n\n2. Provide the necessary details, including the app name and description.\n ![HubSpot app creation 2](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.extensions.timelines/refs/heads/main/docs/resources/create_app_2.png)\n\n### Step 4: Configure the authentication flow\n\n1. Move to the \"Auth\" Tab.\n\n2. In the \"Scopes\" section, add necessary scopes for your app using the \"Add new scope\" button.\n   ![HubSpot set scope](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.extensions.timelines/refs/heads/main/docs/resources/set_scope.png)\n\n3. Add your redirect URI in the relevant section. You can also use localhost addresses for local development purposes. Click create app.\n   ![HubSpot create app final](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.extensions.timelines/refs/heads/main/docs/resources/create_app_final.png)\n\n### Step 5: Get your client ID and client Secret\n\nNavigate to the auth section of your app. Make sure to save the provided client ID and client Secret.\n  ![HubSpot get credentials](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.extensions.timelines/refs/heads/main/docs/resources/get_credentials.png)\n\n### Step 6: Setup authentication flow\n\nBefore proceeding with the quickstart, ensure you have obtained the necessary authentication credentials.\n\n#### Method 1: OAuth 2.0 authentication (access token)\n\nSome APIs require an access token for authentication. Follow these steps to obtain one:\n\n1. Create an authorization URL using the following format:\n\n   ```markdown\n   https://app.hubspot.com/oauth/authorize?client_id\u003d\u003cYOUR_CLIENT_ID\u003e\u0026scope\u003d\u003cYOUR_SCOPES\u003e\u0026redirect_uri\u003d\u003cYOUR_REDIRECT_URI\u003e\n   ```\n\n   Replace the `\u003cYOUR_CLIENT_ID\u003e`, `\u003cYOUR_REDIRECT_URI\u003e`, and `\u003cYOUR_SCOPES\u003e` with your specific value.\n\n2. Paste it in the browser and select your developer test account to install the app when prompted.\n3. A code will be displayed in the browser. Copy the code.\n4. Run the following curl command. Replace the `\u003cYOUR_CLIENT_ID\u003e`, `\u003cYOUR_REDIRECT_URI\u003e`, and `\u003cYOUR_CLIENT_SECRET\u003e` with your specific value. Use the code you received in the above step 3 as the `\u003cCODE\u003e`.\n\n   - Linux/macOS\n\n     ```bash\n     curl --request POST \\\n     --url https://api.hubapi.com/oauth/v1/token \\\n     --header \u0027content-type: application/x-www-form-urlencoded\u0027 \\\n     --data \u0027grant_type\u003dauthorization_code\u0026code\u003d\u003cCODE\u003e\u0026redirect_uri\u003d\u003cYOUR_REDIRECT_URI\u003e\u0026client_id\u003d\u003cYOUR_CLIENT_ID\u003e\u0026client_secret\u003d\u003cYOUR_CLIENT_SECRET\u003e\u0027\n     ```\n\n   - Windows\n\n     ```bash\n     curl --request POST ^\n     --url https://api.hubapi.com/oauth/v1/token ^\n     --header \u0027content-type: application/x-www-form-urlencoded\u0027 ^\n     --data \u0027grant_type\u003dauthorization_code\u0026code\u003d\u003cCODE\u003e\u0026redirect_uri\u003d\u003cYOUR_REDIRECT_URI\u003e\u0026client_id\u003d\u003cYOUR_CLIENT_ID\u003e\u0026client_secret\u003d\u003cYOUR_CLIENT_SECRET\u003e\u0027\n     ```\n\n   This command will return the access token necessary for API calls.\n\n   ```json\n   {\n     \"token_type\": \"bearer\",\n     \"refresh_token\": \"\u003cRefresh Token\u003e\",\n     \"access_token\": \"\u003cAccess Token\u003e\",\n     \"expires_in\": 1800\n   }\n   ```\n\n5. Store the access token securely for use in your application.\n\n#### Method 2: Developer API key authentication\n\nSome APIs use a developer API key as a query parameter for authentication.\n\n1. In your developer account, navigate to Keys -\u003e Developer API key. It will list down the active API key that you can copy.\n\n![HubSpot get credentials](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.extensions.timelines/refs/heads/main/docs/resources/developer_key.png)\n\n2. Use the key by appending it to API requests as a query parameter:\n\n```text\nhttps://api.hubapi.com/crm/v3/timeline/events?hapikey\u003d\u003cYOUR_DEVELOPER_API_KEY\u003e\n```\n\nNo OAuth flow is required for this authentication method.\n\n## Quickstart\n\nTo use the `HubSpot CRM Timelines` in your Ballerina application, update the `.bal` file as follows:\n\n### Step 1: Import the module\n\nImport the `hubspot.crm.extensions.timelines` module and `oauth2` module.\n\n```ballerina\nimport ballerina/oauth2;\nimport ballerinax/hubspot.crm.extensions.timelines as hstimeline;\n```\n\n### Step 2: Instantiate a new connector\n\n1. Instantiate a `hstimeline:OAuth2RefreshTokenGrantConfig` or `ApiKeysConfig` with the obtained credentials and initialize the connector with it.\nSince different APIs use varying authentication mechanisms, initialize two separate clients to handle both OAuth 2.0 and developer API key authentication.\n\n    ```ballerina\n    configurable string clientId \u003d ?;\n    configurable string clientSecret \u003d ?;\n    configurable string refreshToken \u003d ?;\n    configurable string hapikey \u003d ?;\n    configurable int appId \u003d ?;\n\n\n   hstimeline:OAuth2RefreshTokenGrantConfig accessToken \u003d {\n      clientId,\n      clientSecret,\n      refreshToken,\n      credentialBearer: oauth2:POST_BODY_BEARER\n   };\n\n   hstimeline:ApiKeysConfig apikeys \u003d {\n      hapikey,\n      private\\-app: \"\",\n      private\\-app\\-legacy: \"\" \n   };\n\n   final hstimeline:Client hubSpotTimelineOAuth2 \u003d check new({auth: accessToken});\n   final hstimeline:Client hubSpotTimelineApiKey \u003d check new ({auth: apikeys});\n\n    ```\n\n2. Create a `Config.toml` file and, configure the obtained credentials in the above steps as follows:\n\n   ```toml\n   clientId \u003d \u003cClient Id\u003e\n   clientSecret \u003d \u003cClient Secret\u003e\n   refreshToken \u003d \u003cRefresh Token\u003e\n   hapikey \u003d \u003cDeveloper API Key\u003e\n   appId \u003d \u003cApp Id\u003e\n\n   ```\n\n### Step 3: Invoke the connector operation\n\nNow, utilize the available connector operations. A sample use case is shown below.\n\n#### Get all event templates\n\n```ballerina\npublic function main() returns error? {\n    hstimeline:CollectionResponseTimelineEventTemplateNoPaging response \u003d check hubSpotTimelineApiKey-\u003e/[appIdSigned32]/event\\-templates.get();\n    io:println(\"Event Templates: \", response); \n}\n```\n\n#### Run the Ballerina application\n\n```bash\nbal run\n```\n\n## Examples\n\nThe `HubSpot CRM Timelines` connector provides practical examples illustrating usage in various scenarios. Explore these [examples](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.extensions.timelines/tree/main/examples/), covering the following use cases:\n\n1. [Event Creation](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.extensions.timelines/tree/main/examples/create-event): This example demonstrates how to create a timeline event template, retrieving existing events, and creating an event using the template with their details in a structured format.\n",
+  "typeDefs": [
+    {
+      "name": "TimelineEventIFrame",
+      "description": "Defines an iframe modal embedded in a timeline event, including its URL, dimensions, and display labels",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "linkLabel",
+          "description": "The text displaying the link that will display the iframe",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "headerLabel",
+          "description": "The label of the modal window that displays the iframe contents",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "width",
+          "description": "The width of the modal window in pixels",
+          "type": {
+            "name": "ballerina/lang.int:0.0.0:Signed32"
+          }
+        },
+        {
+          "name": "url",
+          "description": "The URI of the iframe contents",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "height",
+          "description": "The height of the modal window in pixels",
+          "type": {
+            "name": "ballerina/lang.int:0.0.0:Signed32"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TimelineEvent",
+      "description": "The state of the timeline event",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "eventTemplateId",
+          "description": "The event template ID",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "extraData",
+          "description": "Additional event-specific data that can be interpreted by the template\u0027s markdown",
+          "type": {
+            "name": "record {|anydata...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "timelineIFrame",
+          "description": "Defines an iframe modal embedded in a timeline event, including its URL, dimensions, and display labels",
+          "type": {
+            "name": "TimelineEventIFrame",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TimelineEventIFrame"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "domain",
+          "description": "The event domain (often paired with utk)",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "tokens",
+          "description": "A collection of token keys and values associated with the template tokens",
+          "type": {
+            "name": "record {|string...;|}"
+          }
+        },
+        {
+          "name": "id",
+          "description": "Identifier for the event. This is optional, and we recommend you do not pass this in. We will create one for you if you omit this. You can also use `{{uuid}}` anywhere in the ID to generate a unique string, guaranteeing uniqueness",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "utk",
+          "description": "Use the `utk` parameter to associate an event with a contact by `usertoken`. This is recommended if you don\u0027t know a user\u0027s email, but have an identifying user token in your cookie",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "email",
+          "description": "The email address used for contact-specific events. This can be used to identify existing contacts, create new ones, or change the email for an existing contact (if paired with the `objectId`)",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "objectId",
+          "description": "The CRM object identifier. This is required for every event other than contacts (where utk or email can be used)",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "timestamp",
+          "description": "The time the event occurred. If not passed in, the curren time will be assumed. This is used to determine where an event is shown on a CRM object\u0027s timeline",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "StandardError",
+      "description": "Standard error response structure returned when an API request fails",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "subCategory",
+          "description": "Additional subcategory detail for the error",
+          "type": {
+            "name": "record {|anydata...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "context",
+          "description": "Key-value map providing contextual details about the error condition",
+          "type": {
+            "name": "record {|string[]...;|}"
+          }
+        },
+        {
+          "name": "links",
+          "description": "Map of related link names to their associated URIs",
+          "type": {
+            "name": "record {|string...;|}"
+          }
+        },
+        {
+          "name": "id",
+          "description": "Unique identifier associated with the error",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "category",
+          "description": "The high-level category classifying the error type",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "message",
+          "description": "Human-readable message describing the error",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "errors",
+          "description": "List of detailed error information for the failed request",
+          "type": {
+            "name": "ErrorDetail[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ErrorDetail"
+              }
+            ]
+          }
+        },
+        {
+          "name": "status",
+          "description": "The HTTP status associated with the error response",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ErrorDetail",
+      "description": "Granular error detail describing a specific issue within a failed API request",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "subCategory",
+          "description": "A specific category that contains more specific detail about the error",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "code",
+          "description": "The status code associated with the error detail",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "\u0027in",
+          "description": "The name of the field or parameter in which the error was found",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "context",
+          "description": "Context about the error condition",
+          "type": {
+            "name": "record {|string[]...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "message",
+          "description": "A human readable message describing the error along with remediation steps where appropriate",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "EventDetail",
+      "description": "The details Markdown rendered as HTML",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "details",
+          "description": "The details Markdown rendered as HTML",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TimelineEventTemplateCreateRequest",
+      "description": "State of the template definition being created",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "detailTemplate",
+          "description": "This uses Markdown syntax with Handlebars and event-specific data to render HTML on a timeline when you expand the details",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "name",
+          "description": "The template name",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "tokens",
+          "description": "A collection of tokens that can be used as custom properties on the event and to create fully fledged CRM objects",
+          "type": {
+            "name": "TimelineEventTemplateToken[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TimelineEventTemplateToken"
+              }
+            ]
+          }
+        },
+        {
+          "name": "headerTemplate",
+          "description": "This uses Markdown syntax with Handlebars and event-specific data to render HTML on a timeline as a header",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "objectType",
+          "description": "The type of CRM object this template is for. [Contacts, companies, tickets, and deals] are supported",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TimelineEventTemplateToken",
+      "description": "State of the token definition",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "createdAt",
+          "description": "The date and time that the Event Template Token was created, as an ISO 8601 timestamp. Will be null if the template was created before Feb 18th, 2020",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "options",
+          "description": "If type is `enumeration`, we should have a list of options to choose from",
+          "type": {
+            "name": "TimelineEventTemplateTokenOption[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TimelineEventTemplateTokenOption"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "name",
+          "description": "The name of the token referenced in the templates. This must be unique for the specific template. It may only contain alphanumeric characters, periods, dashes, or underscores (. - _)",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "label",
+          "description": "Used for list segmentation and reporting",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "objectPropertyName",
+          "description": "The name of the CRM object property. This will populate the CRM object property associated with the event. With enough of these, you can fully build CRM objects via the Timeline API",
+          "type": {
+            "name": "string?"
+          },
+          "optional": true
+        },
+        {
+          "name": "\u0027type",
+          "description": "The data type of the token. You can currently choose from [string, number, date, enumeration]",
+          "type": {
+            "name": "\"date\"|\"enumeration\"|\"number\"|\"string\""
+          }
+        },
+        {
+          "name": "updatedAt",
+          "description": "The date and time that the Event Template Token was last updated, as an ISO 8601 timestamp. Will be null if the template was created before Feb 18th, 2020",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "TimelineEventTemplateTokenOption",
+      "description": "Defines a selectable option for an enumeration token in a timeline event template",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "label",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "value",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TimelineEventTemplateUpdateRequest",
+      "description": "State of the template definition being updated",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "detailTemplate",
+          "description": "This uses Markdown syntax with Handlebars and event-specific data to render HTML on a timeline when you expand the details",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "name",
+          "description": "The template name",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "tokens",
+          "description": "A collection of tokens that can be used as custom properties on the event and to create fully fledged CRM objects",
+          "type": {
+            "name": "TimelineEventTemplateToken[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TimelineEventTemplateToken"
+              }
+            ]
+          }
+        },
+        {
+          "name": "id",
+          "description": "The template ID",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "headerTemplate",
+          "description": "This uses Markdown syntax with Handlebars and event-specific data to render HTML on a timeline as a header",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "CollectionResponseTimelineEventTemplateNoPaging",
+      "description": "A collection of timeline event templates returned without pagination metadata",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "results",
+          "description": "Array of timeline event templates returned in the response",
+          "type": {
+            "name": "TimelineEventTemplate[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TimelineEventTemplate"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TimelineEventTemplate",
+      "description": "The current state of the template definition",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "createdAt",
+          "description": "The date and time that the Event Template was created, as an ISO 8601 timestamp. Will be null if the template was created before Feb 18th, 2020",
+          "type": {
+            "name": "string?"
+          },
+          "optional": true
+        },
+        {
+          "name": "detailTemplate",
+          "description": "This uses Markdown syntax with Handlebars and event-specific data to render HTML on a timeline when you expand the details",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "name",
+          "description": "The template name",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "tokens",
+          "description": "A collection of tokens that can be used as custom properties on the event and to create fully fledged CRM objects",
+          "type": {
+            "name": "TimelineEventTemplateToken[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TimelineEventTemplateToken"
+              }
+            ]
+          }
+        },
+        {
+          "name": "id",
+          "description": "The template ID",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "headerTemplate",
+          "description": "This uses Markdown syntax with Handlebars and event-specific data to render HTML on a timeline as a header",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "objectType",
+          "description": "The type of CRM object this template is for. [Contacts, companies, tickets, and deals] are supported",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "updatedAt",
+          "description": "The date and time that the Event Template was last updated, as an ISO 8601 timestamp. Will be null if the template was created before Feb 18th, 2020",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "GetEventsEventTemplateIdEventIdRenderGetRenderByIdQueries",
+      "description": "Represents the Queries record for the operation: get-/events/{eventTemplateId}/{eventId}/render_getRenderById",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "detail",
+          "description": "Set to \u0027true\u0027, we want to render the `detailTemplate` instead of the `headerTemplate`",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "BatchResponseTimelineEventResponse",
+      "description": "The state of the batch event request",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "completedAt",
+          "description": "The time the request was completed",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "requestedAt",
+          "description": "The time the request occurred",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "startedAt",
+          "description": "The time the request began processing",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "links",
+          "description": "Map of link names to associated URIs for the batch response",
+          "type": {
+            "name": "record {|string...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "results",
+          "description": "Successfully created events",
+          "type": {
+            "name": "TimelineEventResponse[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TimelineEventResponse"
+              }
+            ]
+          }
+        },
+        {
+          "name": "status",
+          "description": "The status of the batch response. Should always be COMPLETED if processed",
+          "type": {
+            "name": "\"PENDING\"|\"PROCESSING\"|\"CANCELED\"|\"COMPLETE\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "TimelineEventResponse",
+      "description": "The current state of the timeline event",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "eventTemplateId",
+          "description": "The event template ID",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "createdAt",
+          "description": "Timestamp indicating when the timeline event was created",
+          "type": {
+            "name": "string?"
+          },
+          "optional": true
+        },
+        {
+          "name": "extraData",
+          "description": "Additional event-specific data that can be interpreted by the template\u0027s markdown",
+          "type": {
+            "name": "record {|anydata...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "timelineIFrame",
+          "description": "Defines an iframe modal embedded in a timeline event, including its URL, dimensions, and display labels",
+          "type": {
+            "name": "TimelineEventIFrame",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TimelineEventIFrame"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "domain",
+          "description": "The event domain (often paired with utk)",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "tokens",
+          "description": "A collection of token keys and values associated with the template tokens",
+          "type": {
+            "name": "record {|string...;|}"
+          }
+        },
+        {
+          "name": "id",
+          "description": "Identifier for the event. This should be unique to the app and event template. If you use the same ID for different CRM objects, the last to be processed will win and the first will not have a record. You can also use `{{uuid}}` anywhere in the ID to generate a unique string, guaranteeing uniqueness",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "utk",
+          "description": "Use the `utk` parameter to associate an event with a contact by `usertoken`. This is recommended if you don\u0027t know a user\u0027s email, but have an identifying user token in your cookie",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "email",
+          "description": "The email address used for contact-specific events. This can be used to identify existing contacts, create new ones, or change the email for an existing contact (if paired with the `objectId`)",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "objectId",
+          "description": "The CRM object identifier. This is required for every event other than contacts (where utk or email can be used)",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "timestamp",
+          "description": "The time the event occurred. If not passed in, the curren time will be assumed. This is used to determine where an event is shown on a CRM object\u0027s timeline",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "objectType",
+          "description": "The ObjectType associated with the EventTemplate",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "BatchInputTimelineEvent",
+      "description": "Used to create timeline events in batches",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "inputs",
+          "description": "A collection of timeline events we want to create",
+          "type": {
+            "name": "TimelineEvent[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TimelineEvent"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "OAuth2RefreshTokenGrantConfig",
+      "description": "OAuth2 Refresh Token Grant Configs",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "refreshUrl",
+          "description": "Refresh URL",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "refreshToken",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "clientId",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "clientSecret",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "scopes",
+          "description": "",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "defaultTokenExpTime",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "clockSkew",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "optionalParams",
+          "description": "",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "credentialBearer",
+          "description": "",
+          "type": {
+            "name": "CredentialBearer",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CredentialBearer",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "clientConfig",
+          "description": "",
+          "type": {
+            "name": "ClientConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientConfiguration",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "TimelineEventTemplateTokenUpdateRequest",
+      "description": "State of the token definition for update requests",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "options",
+          "description": "If type is `enumeration`, we should have a list of options to choose from",
+          "type": {
+            "name": "TimelineEventTemplateTokenOption[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TimelineEventTemplateTokenOption"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "label",
+          "description": "Used for list segmentation and reporting",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "objectPropertyName",
+          "description": "The name of the CRM object property. This will populate the CRM object property associated with the event. With enough of these, you can fully build CRM objects via the Timeline API",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ApiKeysConfig",
+      "description": "Provides API key configurations needed when communicating with a remote HTTP endpoint",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "hapikey",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "privateAppLegacy",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "privateApp",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ConnectionConfig",
+      "description": "Provides a set of configurations for controlling the behaviours when communicating with a remote HTTP endpoint",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "auth",
+          "description": "Provides Auth configurations needed when communicating with a remote HTTP endpoint",
+          "type": {
+            "name": "BearerTokenConfig|OAuth2RefreshTokenGrantConfig|ApiKeysConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "BearerTokenConfig",
+                "libraryName": "ballerina/http"
+              },
+              {
+                "category": "internal",
+                "recordName": "OAuth2RefreshTokenGrantConfig"
+              },
+              {
+                "category": "internal",
+                "recordName": "ApiKeysConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "httpVersion",
+          "description": "The HTTP version understood by the client",
+          "type": {
+            "name": "HttpVersion",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "HttpVersion",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "http1Settings",
+          "description": "Configurations related to HTTP/1.x protocol",
+          "type": {
+            "name": "ClientHttp1Settings",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientHttp1Settings",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "http2Settings",
+          "description": "Configurations related to HTTP/2 protocol",
+          "type": {
+            "name": "ClientHttp2Settings",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientHttp2Settings",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "timeout",
+          "description": "The maximum time to wait (in seconds) for a response before closing the connection",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "forwarded",
+          "description": "The choice of setting `forwarded`/`x-forwarded` header",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "followRedirects",
+          "description": "Configurations associated with Redirection",
+          "type": {
+            "name": "FollowRedirects",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "FollowRedirects",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "poolConfig",
+          "description": "Configurations associated with request pooling",
+          "type": {
+            "name": "PoolConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "PoolConfiguration",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "cache",
+          "description": "HTTP caching related configurations",
+          "type": {
+            "name": "CacheConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CacheConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "compression",
+          "description": "Specifies the way of handling compression (`accept-encoding`) header",
+          "type": {
+            "name": "Compression",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Compression",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "circuitBreaker",
+          "description": "Configurations associated with the behaviour of the Circuit Breaker",
+          "type": {
+            "name": "CircuitBreakerConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CircuitBreakerConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "retryConfig",
+          "description": "Configurations associated with retrying",
+          "type": {
+            "name": "RetryConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "RetryConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "cookieConfig",
+          "description": "Configurations associated with cookies",
+          "type": {
+            "name": "CookieConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CookieConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "responseLimits",
+          "description": "Configurations associated with inbound response size limits",
+          "type": {
+            "name": "ResponseLimitConfigs",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ResponseLimitConfigs",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "SSL/TLS-related options",
+          "type": {
+            "name": "ClientSecureSocket",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientSecureSocket",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "proxy",
+          "description": "Proxy server related options",
+          "type": {
+            "name": "ProxyConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ProxyConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "socketConfig",
+          "description": "Provides settings related to client socket configuration",
+          "type": {
+            "name": "ClientSocketConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientSocketConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "validation",
+          "description": "Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "laxDataBinding",
+          "description": "Enables relaxed data binding on the client side. When enabled, `nil` values are treated as optional, \nand absent fields are handled as `nilable` types. Enabled by default",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "BatchResponseTimelineEventResponseWithErrors",
+      "description": "Batch response containing timeline event results, processing status, timestamps, and any errors encountered during the operation",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "completedAt",
+          "description": "Timestamp indicating when the batch operation completed",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "numErrors",
+          "description": "Total number of errors encountered during the batch operation",
+          "type": {
+            "name": "ballerina/lang.int:0.0.0:Signed32"
+          },
+          "optional": true
+        },
+        {
+          "name": "requestedAt",
+          "description": "Timestamp indicating when the batch operation was requested",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "startedAt",
+          "description": "Timestamp indicating when the batch operation started processing",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "links",
+          "description": "Map of relevant links associated with the batch response",
+          "type": {
+            "name": "record {|string...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "results",
+          "description": "Array of successfully processed timeline event responses",
+          "type": {
+            "name": "TimelineEventResponse[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TimelineEventResponse"
+              }
+            ]
+          }
+        },
+        {
+          "name": "errors",
+          "description": "Array of standard errors encountered during the batch operation",
+          "type": {
+            "name": "StandardError[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "StandardError"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "status",
+          "description": "Current processing status of the batch operation",
+          "type": {
+            "name": "\"PENDING\"|\"PROCESSING\"|\"CANCELED\"|\"COMPLETE\""
+          }
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "name": "Client",
+      "description": "This feature allows an app to create and configure custom events that can show up in the timelines of certain CRM objects like contacts, companies, tickets, or deals. You\u0027ll find multiple use cases for this API in the sections below",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Gets invoked to initialize the `connector`\n",
+          "parameters": [
+            {
+              "name": "config",
+              "description": "The configurations to be used when initializing the `connector` ",
+              "type": {
+                "name": "ConnectionConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ConnectionConfig"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "serviceUrl",
+              "description": "URL of the target service ",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"https://api.hubapi.com/integrators/timeline/v3\""
+            }
+          ],
+          "return": {
+            "description": "An error if connector initialization failed ",
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Gets the detailTemplate as rendered\n",
+          "accessor": "get",
+          "paths": [
+            "events",
+            {
+              "name": "eventTemplateId",
+              "type": "string"
+            },
+            {
+              "name": "eventId",
+              "type": "string"
+            },
+            "detail"
+          ],
+          "parameters": [
+            {
+              "name": "eventTemplateId",
+              "description": "The event template ID",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "eventId",
+              "description": "The event ID",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "EventDetail|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "EventDetail"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Create a single event\n",
+          "accessor": "post",
+          "paths": [
+            "events"
+          ],
+          "parameters": [
+            {
+              "name": "payload",
+              "description": "The timeline event definition ",
+              "type": {
+                "name": "TimelineEvent",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "TimelineEvent"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "TimelineEventResponse|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "TimelineEventResponse"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Update an event template token\n",
+          "accessor": "put",
+          "paths": [
+            {
+              "name": "appId",
+              "type": "int:Signed32"
+            },
+            "event\\-templates",
+            {
+              "name": "eventTemplateId",
+              "type": "string"
+            },
+            "tokens",
+            {
+              "name": "tokenName",
+              "type": "string"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "appId",
+              "description": "The ID of the target app",
+              "type": {
+                "name": "int:Signed32"
+              }
+            },
+            {
+              "name": "eventTemplateId",
+              "description": "The event template ID",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "tokenName",
+              "description": "The token name",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "payload",
+              "description": "The updated token definition ",
+              "type": {
+                "name": "TimelineEventTemplateTokenUpdateRequest",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "TimelineEventTemplateTokenUpdateRequest"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "TimelineEventTemplateToken|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "TimelineEventTemplateToken"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Remove a token from a template\n",
+          "accessor": "delete",
+          "paths": [
+            {
+              "name": "appId",
+              "type": "int:Signed32"
+            },
+            "event\\-templates",
+            {
+              "name": "eventTemplateId",
+              "type": "string"
+            },
+            "tokens",
+            {
+              "name": "tokenName",
+              "type": "string"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "appId",
+              "description": "The ID of the target app",
+              "type": {
+                "name": "int:Signed32"
+              }
+            },
+            {
+              "name": "eventTemplateId",
+              "description": "The event template ID",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "tokenName",
+              "description": "The token name",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Gets the event\n",
+          "accessor": "get",
+          "paths": [
+            "events",
+            {
+              "name": "eventTemplateId",
+              "type": "string"
+            },
+            {
+              "name": "eventId",
+              "type": "string"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "eventTemplateId",
+              "description": "The event template ID",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "eventId",
+              "description": "The event ID",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "TimelineEventResponse|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "TimelineEventResponse"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Creates multiple events\n",
+          "accessor": "post",
+          "paths": [
+            "events",
+            "batch",
+            "create"
+          ],
+          "parameters": [
+            {
+              "name": "payload",
+              "description": "The timeline event definition ",
+              "type": {
+                "name": "BatchInputTimelineEvent",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "BatchInputTimelineEvent"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "BatchResponseTimelineEventResponse|BatchResponseTimelineEventResponseWithErrors|json|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "BatchResponseTimelineEventResponse"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "BatchResponseTimelineEventResponseWithErrors"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Renders the header or detail as HTML\n",
+          "accessor": "get",
+          "paths": [
+            "events",
+            {
+              "name": "eventTemplateId",
+              "type": "string"
+            },
+            {
+              "name": "eventId",
+              "type": "string"
+            },
+            "render"
+          ],
+          "parameters": [
+            {
+              "name": "eventTemplateId",
+              "description": "The event template ID",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "eventId",
+              "description": "The event ID",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "detail",
+              "description": "Set to \u0027true\u0027, we want to render the `detailTemplate` instead of the `headerTemplate`",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "Additional Values",
+              "description": "Capture key value pairs",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true
+            },
+            {
+              "name": "queries",
+              "description": "Queries to be sent with the request ",
+              "type": {
+                "name": "GetEventsEventTemplateIdEventIdRenderGetRenderByIdQueries",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "GetEventsEventTemplateIdEventIdRenderGetRenderByIdQueries"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "string|error"
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "List all event templates for your app\n",
+          "accessor": "get",
+          "paths": [
+            {
+              "name": "appId",
+              "type": "int:Signed32"
+            },
+            "event\\-templates"
+          ],
+          "parameters": [
+            {
+              "name": "appId",
+              "description": "The ID of the target app",
+              "type": {
+                "name": "int:Signed32"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "CollectionResponseTimelineEventTemplateNoPaging|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "CollectionResponseTimelineEventTemplateNoPaging"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Create an event template for the app\n",
+          "accessor": "post",
+          "paths": [
+            {
+              "name": "appId",
+              "type": "int:Signed32"
+            },
+            "event\\-templates"
+          ],
+          "parameters": [
+            {
+              "name": "appId",
+              "description": "The ID of the target app",
+              "type": {
+                "name": "int:Signed32"
+              }
+            },
+            {
+              "name": "payload",
+              "description": "The new event template definition ",
+              "type": {
+                "name": "TimelineEventTemplateCreateRequest",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "TimelineEventTemplateCreateRequest"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "TimelineEventTemplate|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "TimelineEventTemplate"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Get an app event template\n",
+          "accessor": "get",
+          "paths": [
+            {
+              "name": "appId",
+              "type": "int:Signed32"
+            },
+            "event\\-templates",
+            {
+              "name": "eventTemplateId",
+              "type": "string"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "appId",
+              "description": "The ID of the target app",
+              "type": {
+                "name": "int:Signed32"
+              }
+            },
+            {
+              "name": "eventTemplateId",
+              "description": "The event template ID",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "TimelineEventTemplate|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "TimelineEventTemplate"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Update an existing event template\n",
+          "accessor": "put",
+          "paths": [
+            {
+              "name": "appId",
+              "type": "int:Signed32"
+            },
+            "event\\-templates",
+            {
+              "name": "eventTemplateId",
+              "type": "string"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "appId",
+              "description": "The ID of the target app",
+              "type": {
+                "name": "int:Signed32"
+              }
+            },
+            {
+              "name": "eventTemplateId",
+              "description": "The event template ID",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "payload",
+              "description": "The updated event template definition ",
+              "type": {
+                "name": "TimelineEventTemplateUpdateRequest",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "TimelineEventTemplateUpdateRequest"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "TimelineEventTemplate|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "TimelineEventTemplate"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Deletes an event template for the app\n",
+          "accessor": "delete",
+          "paths": [
+            {
+              "name": "appId",
+              "type": "int:Signed32"
+            },
+            "event\\-templates",
+            {
+              "name": "eventTemplateId",
+              "type": "string"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "appId",
+              "description": "The ID of the target app",
+              "type": {
+                "name": "int:Signed32"
+              }
+            },
+            {
+              "name": "eventTemplateId",
+              "description": "The event template ID",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Add a token to an event template\n",
+          "accessor": "post",
+          "paths": [
+            {
+              "name": "appId",
+              "type": "int:Signed32"
+            },
+            "event\\-templates",
+            {
+              "name": "eventTemplateId",
+              "type": "string"
+            },
+            "tokens"
+          ],
+          "parameters": [
+            {
+              "name": "appId",
+              "description": "The ID of the target app",
+              "type": {
+                "name": "int:Signed32"
+              }
+            },
+            {
+              "name": "eventTemplateId",
+              "description": "The event template ID",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "payload",
+              "description": "The new token definition ",
+              "type": {
+                "name": "TimelineEventTemplateToken",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "TimelineEventTemplateToken"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "TimelineEventTemplateToken|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "TimelineEventTemplateToken"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "functions": [],
+  "services": [],
+  "annotations": []
+}

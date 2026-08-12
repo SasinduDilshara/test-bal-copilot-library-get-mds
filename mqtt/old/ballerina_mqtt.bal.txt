@@ -1,0 +1,308 @@
+// ============================================================
+// Library: ballerina/mqtt
+// This module provides an implementation to interact with MQTT servers via MQTT client and listener.
+// ============================================================
+import ballerina/mqtt;
+
+// --- README ---
+## Overview
+This module provides an implementation to interact with MQTT servers via MQTT client and listener.
+
+MQTT is a lightweight, publish-subscribe, machine to machine network protocol for message queue/message queuing service.
+
+### Publisher and subscriber
+#### MQTT publisher
+A MQTT publisher is a MQTT client that publishes messages to the MQTT server. When working with a MQTT client, the first thing to do is to initialize the client.
+For the publisher to work successfully, an active MQTT server should be available.
+
+The code snippet given below initializes a publisher client with the basic configuration.
+```ballerina
+import ballerina/mqtt;
+import ballerina/uuid;
+ 
+mqtt:ClientConfiguration clientConfiguration = {
+    connectionConfig: {
+        username: "ballerina",
+        password: "ballerinamqtt"
+    }
+};
+
+mqtt:Client mqttClient = check new (mqtt:DEFAULT_URL, uuid:createType1AsString(), clientConfiguration); // A unique id needs to be provided as the client id
+```
+Using the `publish` api of this client, messages can be sent to the MQTT server.
+```ballerina
+check mqttClient->publish("mqtt/test", {payload: "This is Ballerina MQTT client!!!".toBytes()});
+```
+#### MQTT subscriber
+A MQTT subscriber is a client responsible for reading messages from one or more topics in the server. When working with a MQTT subscriber, the first thing to do is initialize the subscriber.
+For the subscriber to work successfully, an active MQTT server should be available.
+
+The code snippet given below initializes a subscriber with the basic configuration.
+```ballerina
+mqtt:ListenerConfiguration listenerConfiguration = {
+    connectionConfig: {
+        username: "ballerina",
+        password: "ballerinamqtt"
+    },
+    manualAcks: false   // When set to false, the MQTT acknowledgements are not sent automatically by the subscriber
+};
+
+mqtt:Listener mqttSubscriber = check new (mqtt:DEFAULT_URL, uuid:createType1AsString(), "mqtt/test", listenerConfiguration);
+```
+This subscriber can be used in the `mqtt:Service` to listen to messages in `mqtt/test` topic.
+```ballerina
+service on mqttSubscriber {
+    remote function onMessage(mqtt:Message message, mqtt:Caller caller) returns error? {
+        log:printInfo(check string:fromBytes(message.payload));
+        check caller->complete();
+    }
+
+    remote function onError(mqtt:Error err) returns error? {
+        log:printError("Error occured ", err);
+    }
+}
+```
+The `mqtt:Caller` can be used to indicate that the application has completed processing the message by using `complete()` api.
+
+// --- END README ---
+
+// --- Types ---
+
+# Default url of the MQTT server.
+const string DEFAULT_URL = "tcp://localhost:1883";
+
+const string SSL = "SSL";
+
+const string TLS = "TLS";
+
+# The error details type for the module.
+# 
+
+type ErrorDetails record {
+    # The reason code for the error
+    int reasonCode?;
+};
+
+// Unknown type: Error
+
+# An MQTT message holds the application payload and other metadata.
+# 
+
+type Message record {
+    # The payload of the message as a byte array
+    byte[] payload;
+    # Quality of service. 0 - at most once, 1 - at least once, 2 - exactly once
+    int qos?;
+    # Indicates whether this message should/is retained by the server
+    boolean retained?;
+    # Indicates whether or not this message might be a duplicate
+    boolean duplicate?;
+    # The message ID of the message. This is only set on messages received from the server
+    int messageId?;
+    # The topic this message was received on. This is only set on messages received from the server  
+    string topic?;
+    # The properties of the message
+    MessageProperties properties?;
+};
+
+# Properties of an MQTT message.
+# 
+
+type MessageProperties record {
+    # The topic to send the response to in reqeust response scenario
+    string responseTopic?;
+    # The correlation data to uniquely identify the message
+    byte[] correlationData?;
+};
+
+# The configurations related to the client initialization.
+# 
+
+type ClientConfiguration record {
+    # The related connection configuration  
+    ConnectionConfiguration connectionConfig?;
+    # The configurations related to the last will message of the client
+    WillDetails willDetails?;
+};
+
+# The configurations related to the connection initialization of `mqtt:Client` and `mqtt:Listener`.
+# 
+
+type ConnectionConfiguration record {
+    # The username to use for the connection  
+    string username?;
+    # The password to use for the connection  
+    string password?;
+    # The configurations related to secure communication with the MQTT server
+    SecureSocket secureSocket?;
+    # The maximum delay between reconnects in milliseconds  
+    int maxReconnectDelay?;
+    # The maximum time interval between messages sent or received in seconds  
+    int keepAliveInterval?;
+    # Maximum time interval in seconds the client will wait for the network connection to the MQTT server to be established
+    int connectionTimeout?;
+    # Whether the client and server should remember state for the client across reconnects
+    boolean cleanStart?;
+    # List of serverURIs the client may connect to  
+    string[] serverUris?;
+    # Whether the client will automatically attempt to reconnect to the server if the connection is lost
+    boolean automaticReconnect?;
+};
+
+# Configurations for secure communication with the MQTT server.
+# 
+
+type SecureSocket record {
+    # Certificate file that the client trusts or a `crypto:TrustStore`
+    crypto:TrustStore|string cert?; // Special Agent Note: TrustStore FROM ballerina/crypto package
+    # Combination of certificate and private key of the client or a `crypto:KeyStore`
+    crypto:KeyStore|CertKey key?; // Special Agent Note: KeyStore FROM ballerina/crypto package
+    # Related protocol
+    record {|ballerina/mqtt:1.4.1:Protocol name; string version;|} protocol?;
+};
+
+# Represents a combination of certificate, private key, and private key password if encrypted.
+# 
+
+type CertKey record {
+    # A file containing the certificate
+    string certFile;
+    # A file containing the private key
+    string keyFile;
+    # Password of the private key if it is encrypted
+    string keyPassword?;
+};
+
+# Represents protocol options.
+enum Protocol {
+    TLS,
+    SSL
+}
+
+# The configurations related to the last will message of the client.
+# 
+
+type WillDetails record {
+    # The last will message to be sent to the subscribers
+    Message willMessage;
+    # The topic to publish the last will message
+    string destinationTopic;
+};
+
+# The configurations related to the listener initialization.
+# 
+
+type ListenerConfiguration record {
+    # The related connection configuration
+    ConnectionConfiguration connectionConfig?;
+    # Indicates whether or not the client should automatically ack messages
+    boolean manualAcks?;
+};
+
+# An MQTTSubscription which contains the topic and the QoS level.
+# 
+
+type Subscription record {
+    # The topic to subscribe to
+    string topic;
+    # The QoS level to subscribe at
+    int qos?;
+};
+
+# The mechanism for tracking the delivery of a message
+# 
+
+type DeliveryToken record {
+    # Message ID of the message that was delivered
+    int messageId;
+    # Topic for the message that was delivered
+    string topic;
+};
+
+# The MQTT service type.
+class Service {
+}
+
+// Unknown type: Listener
+
+// --- Client ---
+
+# Represents the client that is used to complete received messages.
+client class Caller {
+    function init() returns ballerina/mqtt:mqtt:Caller;
+
+    # Completes the received message.
+    # ```ballerina
+    # check caller->complete();
+    # ```
+    # 
+    remote function complete() returns Error|();
+
+    # Send the response for the request message.
+    # ```ballerina
+    # check caller->respond({payload: "Hello Response".toBytes()});
+    # ```
+    # 
+    remote function respond(Message response) returns Error|();
+}
+
+# Represents the client that is used to publish messages to the server.
+client class Client {
+    function init(string serverUri, string clientId, ConnectionConfiguration connectionConfig = {}, WillDetails willDetails = {willMessage: {payload: []}, destinationTopic: ""}, ClientConfiguration config) returns ballerina/mqtt:1.4.1:Error?;
+
+    # Publishes a message to a topic.
+    # ```ballerina
+    # mqtt:DeliveryToken token = check 'client->publish("mqtt/topic", message);
+    # ```
+    # 
+    remote function publish(string topic, Message message) returns DeliveryToken|Error;
+
+    # Subscribes to a given topic in the request response scenario.
+    # ```ballerina
+    # check 'client->subscribe([{topic: "mqtt/topic1", qos: 0}, {topic: "mqtt/topic2", qos: 1}]);
+    # ```
+    # 
+    remote function subscribe(string|string[]|Subscription|Subscription[] subscriptions) returns Error|();
+
+    # Receives messages from the server.
+    # ```ballerina
+    # stream<mqtt:Message, error?> responseStream = check 'client->receive();
+    # ```
+    # 
+    remote function receive(stream<mqtt:Message, error?> T = stream<mqtt:Message, error?>) returns T|Error;
+
+    # Closes the connection to the server.
+    # ```ballerina
+    # check 'client->close();
+    # ```
+    # 
+    remote function close() returns Error|();
+
+    # Checks if the client is connected to the server.
+    # ```ballerina
+    # boolean isConnected = check 'client->isConnected;
+    # ```
+    # 
+    remote function isConnected() returns boolean|Error;
+
+    # Disconnects the client from the server.
+    # ```ballerina
+    # check 'client->disconnect();
+    # ```
+    # 
+    remote function disconnect() returns Error|();
+
+    # Reconnects the client to the server.
+    # ```ballerina
+    # check 'client->reconnect();
+    # ```
+    # 
+    remote function reconnect() returns Error|();
+}
+
+// --- Service ---
+
+service mqtt:Service on new mqtt:Listener(string serverUri = "", string clientId = "", string|string[]|Subscription|Subscription[] subscriptions = "", ListenerConfiguration config = {}) {
+    # The `onMessage` remote method will be triggered when a message is received from a subscribed topic.
+    remote function onMessage(Message message) returns error?;
+}

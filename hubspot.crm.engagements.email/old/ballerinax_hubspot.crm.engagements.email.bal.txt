@@ -1,0 +1,777 @@
+// ============================================================
+// Library: ballerinax/hubspot.crm.engagements.email
+// [HubSpot](https://www.hubspot.com) is an AI-powered customer relationship management (CRM) platform. 
+// ============================================================
+import ballerinax/hubspot.crm.engagements.email;
+
+// --- README ---
+## Overview
+
+[HubSpot](https://www.hubspot.com) is an AI-powered customer relationship management (CRM) platform. 
+
+The HubSpot connector offers APIs to connect and interact with the [HubSpot CRM Engagements Email API](https://developers.hubspot.com/docs/reference/api/crm/engagements/email) endpoints, specifically based on the [HubSpot REST API](https://developers.hubspot.com/docs/reference/api/overview).
+
+### Key Features
+
+- Create, read, update, and delete email engagement records
+- Batch operations for bulk email management
+- Search emails with filtering support
+- Track email interactions with CRM contacts
+
+## Setup guide
+
+To use the HubSpot CRM Engagements Email connector, you must have access to the HubSpot API through a HubSpot developer account and a HubSpot App under it. Therefore you need to register for a developer account at HubSpot if you don't have one already.
+
+### Step 1: Create/Login to a HubSpot developer account
+
+If you have an account already, go to the [HubSpot developer portal](https://app.hubspot.com/)
+
+If you don't have a HubSpot Developer Account you can sign up to a free account [here](https://developers.hubspot.com/get-started)
+
+### Step 2: Create a developer test account (Optional)
+
+Within app developer accounts, you can create a [developer test account](https://developers.hubspot.com/beta-docs/getting-started/account-types#developer-test-accounts) under your account to test apps and integrations without affecting any real HubSpot data.
+
+> **Note:** These accounts are only for development and testing purposes. In production you should not use developer test accounts.
+
+1. Go to `Test Account` section from the left sidebar.
+
+   ![Hubspot Developer Portal](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.engagements.email/main/docs/resources/test_acc_1.png) 
+
+2. Click Create developer test account.
+
+   ![Hubspot Developer Test Account](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.engagements.email/main/docs/resources/test_acc_2.png)
+
+3. In the dialogue box, give a name to your test account and click create.
+
+   ![Hubspot Developer Test Account](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.engagements.email/main/docs/resources/test_acc_3.png)
+
+### Step 3: Create a HubSpot app
+
+1. In your developer account, navigate to the "Apps" section. Click on "Create App"
+
+   ![Hubspot Create App](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.engagements.email/main/docs/resources/create_app_1.png)
+
+2. Provide the necessary details, including the app name and description.
+
+### Step 4: Configure the authentication flow.
+
+1. Move to the `Auth` Tab. (Second tab next to App Info)
+
+   ![Hubspot Developer Config Auth](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.engagements.email/main/docs/resources/create_app_2.png )
+
+2. In the `Scopes` section, add the following scope for your app using the "Add new scope" button.
+
+   * `crm.objects.contacts.read`
+   * `crm.objects.contacts.write`
+   * `sales-email-read`
+
+   ![Hubspot Developer App Add Scopes](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.engagements.email/main/docs/resources/scopes.png )
+
+4. Add your Redirect URI in the relevant section. You can also use `localhost` addresses for local development purposes. Click Create App.
+
+   ![Hubspot Create Developer App](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.engagements.email/main/docs/resources/create_app_final.png )
+
+### Step 5: Get your client id and client secret
+
+- Navigate to the Auth section of your app. Make sure to save the provided Client ID and Client Secret.
+
+   ![Hubspot Get Credentials](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.engagements.email/main/docs/resources/get_credentials.png )
+
+### Step 6: Setup authentication flow
+
+Before proceeding with the Quickstart, ensure you have obtained the Access Token using the following steps:
+
+1. Create an authorization URL using the following format:
+
+   ```
+   https://app.hubspot.com/oauth/authorize?client_id=<YOUR_CLIENT_ID>&scope=<YOUR_SCOPES>&redirect_uri=<YOUR_REDIRECT_URI>
+   ```
+
+   Replace the `<YOUR_CLIENT_ID>`, `<YOUR_REDIRECT_URI>` and `<YOUR_SCOPES>` with your specific value.
+
+> **Note:** If you are using a `localhost` redirect url, make sure to have a listener running at the relevant port before executing the next step.
+
+2. Paste it in the browser and select your developer test account to install the app when prompted.
+
+   ![Hubspot Get Auth Code](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.engagements.email/main/docs/resources/install_app.png)
+
+3. A code will be displayed in the browser. Copy the code.
+
+4. Run the following curl command. Replace the `<YOUR_CLIENT_ID>`, `<YOUR_REDIRECT_URI>` and `<YOUR_CLIENT_SECRET>` with your specific value. Use the code you received in the above step 3 as the `<CODE>`.
+
+   - Linux/macOS
+
+     ```bash
+     curl --request POST \
+     --url https://api.hubapi.com/oauth/v1/token \
+     --header 'content-type: application/x-www-form-urlencoded' \
+     --data 'grant_type=authorization_code&code=<CODE>&redirect_uri=<YOUR_REDIRECT_URI>&client_id=<YOUR_CLIENT_ID>&client_secret=<YOUR_CLIENT_SECRET>'
+     ```
+
+   - Windows
+
+     ```bash
+     curl --request POST ^
+     --url https://api.hubapi.com/oauth/v1/token ^
+     --header 'content-type: application/x-www-form-urlencoded' ^
+     --data 'grant_type=authorization_code&code=<CODE>&redirect_uri=<YOUR_REDIRECT_URI>&client_id=<YOUR_CLIENT_ID>&client_secret=<YOUR_CLIENT_SECRET>'
+     ```
+
+   This command will return the access token necessary for API calls.
+
+   ```json
+   {
+     "token_type": "bearer",
+     "refresh_token": "<Refresh Token>",
+     "access_token": "<Access Token>",
+     "expires_in": 1800
+   }
+   ```
+
+5. Store the access token securely for use in your application.
+
+## Quickstart
+
+To use the `HubSpot CRM Engagements Email` connector in your Ballerina application, update the `.bal` file as follows:
+
+### Step 1: Import the module
+
+Import the `hubspot.crm.engagements.email` module and `oauth2` module.
+
+```ballerina
+import ballerina/oauth2;
+import ballerinax/hubspot.crm.engagements.email as hsceemail;
+```
+
+### Step 2: Instantiate a new connector
+
+1. Create a `Config.toml` file and, configure the obtained credentials in the above steps as follows:
+
+   ```toml
+    clientId = <Client Id>
+    clientSecret = <Client Secret>
+    refreshToken = <Refresh Token>
+   ```
+
+2. Instantiate a `hsceemail:ConnectionConfig` with the obtained credentials and initialize the connector with it.
+
+    ```ballerina 
+    configurable string clientId = ?;
+    configurable string clientSecret = ?;
+    configurable string refreshToken = ?;
+
+    OAuth2RefreshTokenGrantConfig auth = {
+         clientId,
+         clientSecret,
+         refreshToken,
+         credentialBearer: oauth2:POST_BODY_BEARER
+    };
+
+    final hsceemail:Client hubspot = check new ({auth});
+    ```
+
+### Step 3: Invoke the connector operation
+
+Now, utilize the available connector operations. A sample usecase is shown below.
+
+#### Read a batch of emails by internal ID, or unique property values
+    
+```ballerina
+public function main() returns error? {
+    hsceemail:BatchResponseSimplePublicObject|BatchResponseSimplePublicObjectWithErrors response = check hubspotClient->/batch/read.post({
+        propertiesWithHistory: [
+            "string"
+        ],
+        idProperty: "string",
+        inputs: [
+            {
+            id: testBatchId
+            }
+        ],
+        properties: [
+            "string"
+        ]
+    });
+}
+```
+
+## Examples
+
+The `HubSpot CRM Engagements Email` connector provides practical examples illustrating usage in various scenarios. Explore these [examples](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.engagements.email/tree/main/examples/), covering the following use cases:
+
+1. [Bulk update sender information in scheduled emails](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.engagements.email/tree/main/examples/bulk_update_sender_info/) - Automate the process of updating sender information for all scheduled emails, ensuring accuracy and consistency in email communication.
+
+2. [Detect and resend failed emails](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.engagements.email/tree/main/examples/detect_resend_failed_emails/) - Identify emails with a status of "FAILED" or "BOUNCED" and attempt to resend them, ensuring important messages reach their intended recipients.
+
+3. [Email analytics and reporting](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.engagements.email/tree/main/examples/email_analytics_reporting/) - Retrieve and analyze key email performance metrics such as sent, bounced, failed, and scheduled emails to monitor delivery status and optimize communication strategies.
+
+// --- END README ---
+
+// --- Types ---
+
+# Standard error response object returned when an API request fails
+
+type StandardError record {
+    # Optional sub-category providing additional error classification
+    record {|anydata...;|} subCategory?;
+    # Contextual metadata map with string array values for the error
+    record {|string[]...;|} context;
+    # Map of relevant links associated with the error response
+    record {|string...;|} links;
+    # Unique identifier for the error instance
+    string id?;
+    # High-level category classifying the type of error
+    string category;
+    # Human-readable description of the error
+    string message;
+    # List of detailed error objects describing individual failures
+    ErrorDetail[] errors;
+    # HTTP status string associated with the error response
+    string status;
+};
+
+# Detailed information about a specific error encountered in a request
+
+type ErrorDetail record {
+    # A specific category that contains more specific detail about the error
+    string subCategory?;
+    # The status code associated with the error detail
+    string code?;
+    # The name of the field or parameter in which the error was found
+    string 'in?;
+    # Context about the error condition
+    record {|string[]...;|} context?;
+    # A human readable message describing the error along with remediation steps where appropriate
+    string message;
+};
+
+# Paginated collection of associated object IDs returned in a response
+
+type CollectionResponseAssociatedId record {
+    # Pagination metadata containing cursors for navigating to the next or previous page
+    Paging paging?;
+    # Array of associated ID objects returned in the response
+    AssociatedId[] results;
+};
+
+# Pagination metadata containing cursors for navigating to the next or previous page
+
+type Paging record {
+    NextPage next?;
+    # Pagination cursor details for navigating to the previous page of results
+    PreviousPage prev?;
+};
+
+
+type NextPage record {
+    string link?;
+    string after;
+};
+
+# Pagination cursor details for navigating to the previous page of results
+
+type PreviousPage record {
+    # The cursor token representing the start of the previous page
+    string before;
+    # A direct URL link to the previous page of results
+    string link?;
+};
+
+
+type AssociatedId record {
+    string id;
+    string 'type;
+};
+
+# Represents the Queries record for the operation: post-/crm/v3/objects/emails/batch/read_read
+
+type PostCrmV3ObjectsEmailsBatchReadReadQueries record {
+    # Whether to return only results that have been archived
+    boolean archived?;
+};
+
+# Defines association targets and relationship types for an object
+
+type PublicAssociationsForObject record {
+    # List of association type specifications for the relationship
+    AssociationSpec[] types;
+    # Represents a public object identifier containing a unique ID string
+    PublicObjectId to;
+};
+
+# Defines the category and type of an association between two CRM objects
+
+type AssociationSpec record {
+    # Category of the association: HUBSPOT_DEFINED, USER_DEFINED, or INTEGRATOR_DEFINED
+    "HUBSPOT_DEFINED"|"USER_DEFINED"|"INTEGRATOR_DEFINED" associationCategory;
+    # Numeric identifier specifying the type of association
+    ballerina/lang.int:0.0.0:Signed32 associationTypeId;
+};
+
+# Represents a public object identifier containing a unique ID string
+
+type PublicObjectId record {
+    # Unique identifier of the public object
+    string id;
+};
+
+# Batch operation response containing results and processing status
+
+type BatchResponseSimplePublicObject record {
+    # Datetime when the batch operation completed
+    string completedAt;
+    # Datetime when the batch operation was requested
+    string requestedAt?;
+    # Datetime when the batch operation began processing
+    string startedAt;
+    # Map of relevant links related to the batch response
+    record {|string...;|} links?;
+    # Array of email objects returned by the batch operation
+    SimplePublicObject[] results;
+    # Current status of the batch operation
+    "PENDING"|"PROCESSING"|"CANCELED"|"COMPLETE" status;
+};
+
+# Represents a single email object with its properties, timestamps, and archival status
+
+type SimplePublicObject record {
+    # Timestamp when the email record was created
+    string createdAt;
+    # Indicates whether the email record is archived
+    boolean archived?;
+    # Timestamp when the email record was archived
+    string archivedAt?;
+    # Map of email properties to their historical values with timestamps
+    record {|ballerinax/hubspot.crm.engagements.email:2.0.2:ValueWithTimestamp[]...;|} propertiesWithHistory?;
+    # Unique identifier of the email record
+    string id;
+    # Key-value map of email properties and their current values
+    record {|string?...;|} properties;
+    # Timestamp when the email record was last updated
+    string updatedAt;
+};
+
+# A property value paired with its source metadata and recorded timestamp
+
+type ValueWithTimestamp record {
+    # Identifier of the source that provided the value
+    string sourceId?;
+    # The type of source that set or updated the value
+    string sourceType;
+    # Human-readable label describing the value's source
+    string sourceLabel?;
+    # ID of the user who last updated the value
+    ballerina/lang.int:0.0.0:Signed32 updatedByUserId?;
+    # The actual property value recorded at the given timestamp
+    string value;
+    # Datetime when the value was recorded or last updated
+    string timestamp;
+};
+
+# A group of filters combined to refine search query results
+
+type FilterGroup record {
+    # Array of filter conditions applied within the group
+    Filter[] filters;
+};
+
+# Defines a filter condition used to query CRM objects by property and operator
+
+type Filter record {
+    # Upper bound value used with the BETWEEN operator for range filtering
+    string highValue?;
+    # The name of the email property to filter on
+    string propertyName;
+    # A list of values to match against for the filter
+    string[] values?;
+    # A single value to match against for the filter
+    string value?;
+    # The comparison operator used to evaluate the filter condition
+    "EQ"|"NEQ"|"LT"|"LTE"|"GT"|"GTE"|"BETWEEN"|"IN"|"NOT_IN"|"HAS_PROPERTY"|"NOT_HAS_PROPERTY"|"CONTAINS_TOKEN"|"NOT_CONTAINS_TOKEN" operator;
+};
+
+# Pagination metadata for forward-only cursor-based navigation
+
+type ForwardPaging record {
+    NextPage next?;
+};
+
+# A minimal object representation containing only a unique identifier
+
+type SimplePublicObjectId record {
+    # The unique identifier of the object
+    string id;
+};
+
+# Batch upsert response containing results, errors, and operation status details
+
+type BatchResponseSimplePublicUpsertObjectWithErrors record {
+    # Timestamp when the batch operation completed
+    string completedAt;
+    # Total number of errors encountered during the batch operation
+    ballerina/lang.int:0.0.0:Signed32 numErrors?;
+    # Timestamp when the batch operation was requested
+    string requestedAt?;
+    # Timestamp when the batch operation began processing
+    string startedAt;
+    # Map of relevant links associated with the batch response
+    record {|string...;|} links?;
+    # Array of successfully upserted email objects from the batch
+    SimplePublicUpsertObject[] results;
+    # Array of errors encountered for individual records in the batch
+    StandardError[] errors?;
+    # Current status of the batch upsert operation
+    "PENDING"|"PROCESSING"|"CANCELED"|"COMPLETE" status;
+};
+
+# Represents an email object returned after an upsert operation, indicating whether it was newly created
+
+type SimplePublicUpsertObject record {
+    # The timestamp when the email object was created
+    string createdAt;
+    # Indicates whether the email object is archived
+    boolean archived?;
+    # The timestamp when the email object was archived
+    string archivedAt?;
+    # Indicates whether the object was newly created by the upsert
+    boolean 'new;
+    # A map of property values including their historical change records
+    record {|ballerinax/hubspot.crm.engagements.email:2.0.2:ValueWithTimestamp[]...;|} propertiesWithHistory?;
+    # The unique identifier of the email object
+    string id;
+    # A map of the email object's property names to their current values
+    record {|string...;|} properties;
+    # The timestamp when the email object was last updated
+    string updatedAt;
+};
+
+# Input schema for batch reading email objects by their IDs
+
+type BatchReadInputSimplePublicObjectId record {
+    # List of properties to return along with their historical values
+    string[] propertiesWithHistory;
+    # The property name used as the unique identifier for batch lookup
+    string idProperty?;
+    # Array of object IDs to retrieve in the batch read operation
+    SimplePublicObjectId[] inputs;
+    # List of property names to include in the response for each object
+    string[] properties;
+};
+
+# Response object containing batch upsert results, status, and execution timestamps
+
+type BatchResponseSimplePublicUpsertObject record {
+    # Datetime when the batch upsert operation completed
+    string completedAt;
+    # Datetime when the batch upsert operation was requested
+    string requestedAt?;
+    # Datetime when the batch upsert operation started processing
+    string startedAt;
+    # Map of related resource links associated with the batch response
+    record {|string...;|} links?;
+    # Array of upserted email objects returned from the batch operation
+    SimplePublicUpsertObject[] results;
+    # Current processing status of the batch operation
+    "PENDING"|"PROCESSING"|"CANCELED"|"COMPLETE" status;
+};
+
+# Input schema containing a list of object IDs for a batch operation
+
+type BatchInputSimplePublicObjectId record {
+    # Array of object IDs to process in the batch request
+    SimplePublicObjectId[] inputs;
+};
+
+# Represents the Queries record for the operation: patch-/crm/v3/objects/emails/{emailId}_update
+
+type PatchCrmV3ObjectsEmailsEmailIdUpdateQueries record {
+    # The name of a property whose values are unique for this object type
+    string idProperty?;
+};
+
+# OAuth2 Refresh Token Grant Configs
+
+type OAuth2RefreshTokenGrantConfig record {
+    # Refresh URL
+    string refreshUrl?;
+    string refreshToken;
+    string clientId;
+    string clientSecret;
+    string|string[] scopes?;
+    decimal defaultTokenExpTime?;
+    decimal clockSkew?;
+    map<string> optionalParams?;
+    oauth2:CredentialBearer credentialBearer?; // Special Agent Note: CredentialBearer FROM ballerina/oauth2 package
+    oauth2:ClientConfiguration clientConfig?; // Special Agent Note: ClientConfiguration FROM ballerina/oauth2 package
+};
+
+# Input schema containing a list of objects to create or update in batch
+
+type BatchInputSimplePublicObjectBatchInputUpsert record {
+    # Array of email objects to upsert in the batch operation
+    SimplePublicObjectBatchInputUpsert[] inputs;
+};
+
+# Input payload for upserting a single email object in a batch operation, including its ID and properties
+
+type SimplePublicObjectBatchInputUpsert record {
+    # The property name used as the unique identifier for the upsert
+    string idProperty?;
+    # Trace ID for tracking the object write operation
+    string objectWriteTraceId?;
+    # The unique identifier of the email object to upsert
+    string id;
+    # Key-value map of email properties to create or update
+    record {|string...;|} properties;
+};
+
+# A paginated collection of email objects with a total count and forward paging cursor
+
+type CollectionResponseWithTotalSimplePublicObjectForwardPaging record {
+    # Total number of email records matching the request
+    ballerina/lang.int:0.0.0:Signed32 total;
+    # Pagination metadata for forward-only cursor-based navigation
+    ForwardPaging paging?;
+    # Array of email objects returned in the current page
+    SimplePublicObject[] results;
+};
+
+# Provides a set of configurations for controlling the behaviours when communicating with a remote HTTP endpoint
+
+type ConnectionConfig record {
+    # Provides Auth configurations needed when communicating with a remote HTTP endpoint
+    http:BearerTokenConfig|OAuth2RefreshTokenGrantConfig|ApiKeysConfig auth; // Special Agent Note: BearerTokenConfig FROM ballerina/http package
+    # The HTTP version understood by the client
+    http:HttpVersion httpVersion?; // Special Agent Note: HttpVersion FROM ballerina/http package
+    # Configurations related to HTTP/1.x protocol
+    http:ClientHttp1Settings http1Settings?; // Special Agent Note: ClientHttp1Settings FROM ballerina/http package
+    # Configurations related to HTTP/2 protocol
+    http:ClientHttp2Settings http2Settings?; // Special Agent Note: ClientHttp2Settings FROM ballerina/http package
+    # The maximum time to wait (in seconds) for a response before closing the connection
+    decimal timeout?;
+    # The choice of setting `forwarded`/`x-forwarded` header
+    string forwarded?;
+    # Configurations associated with Redirection
+    http:FollowRedirects followRedirects?; // Special Agent Note: FollowRedirects FROM ballerina/http package
+    # Configurations associated with request pooling
+    http:PoolConfiguration poolConfig?; // Special Agent Note: PoolConfiguration FROM ballerina/http package
+    # HTTP caching related configurations
+    http:CacheConfig cache?; // Special Agent Note: CacheConfig FROM ballerina/http package
+    # Specifies the way of handling compression (`accept-encoding`) header
+    http:Compression compression?; // Special Agent Note: Compression FROM ballerina/http package
+    # Configurations associated with the behaviour of the Circuit Breaker
+    http:CircuitBreakerConfig circuitBreaker?; // Special Agent Note: CircuitBreakerConfig FROM ballerina/http package
+    # Configurations associated with retrying
+    http:RetryConfig retryConfig?; // Special Agent Note: RetryConfig FROM ballerina/http package
+    # Configurations associated with cookies
+    http:CookieConfig cookieConfig?; // Special Agent Note: CookieConfig FROM ballerina/http package
+    # Configurations associated with inbound response size limits
+    http:ResponseLimitConfigs responseLimits?; // Special Agent Note: ResponseLimitConfigs FROM ballerina/http package
+    # SSL/TLS-related options
+    http:ClientSecureSocket secureSocket?; // Special Agent Note: ClientSecureSocket FROM ballerina/http package
+    # Proxy server related options
+    http:ProxyConfig proxy?; // Special Agent Note: ProxyConfig FROM ballerina/http package
+    # Provides settings related to client socket configuration
+    http:ClientSocketConfig socketConfig?; // Special Agent Note: ClientSocketConfig FROM ballerina/http package
+    # Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default
+    boolean validation?;
+    # Enables relaxed data binding on the client side. When enabled, `nil` values are treated as optional, 
+and absent fields are handled as `nilable` types. Enabled by default
+    boolean laxDataBinding?;
+};
+
+# Provides API key configurations needed when communicating with a remote HTTP endpoint
+
+type ApiKeysConfig record {
+    string privateAppLegacy;
+    string privateApp;
+};
+
+# Request payload for searching email objects with filters, sorting, and pagination
+
+type PublicObjectSearchRequest record {
+    # Full-text search query string to filter email results
+    string query?;
+    # Maximum number of results to return per page
+    ballerina/lang.int:0.0.0:Signed32 'limit?;
+    # Cursor token for retrieving the next page of results
+    string after?;
+    # List of property names to sort results by
+    string[] sorts?;
+    # List of property names to include in the response
+    string[] properties?;
+    # Groups of filters used to narrow search results
+    FilterGroup[] filterGroups?;
+};
+
+# Batch operation response containing email results, processing status, timestamps, and any errors encountered
+
+type BatchResponseSimplePublicObjectWithErrors record {
+    # Timestamp indicating when the batch operation completed
+    string completedAt;
+    # Total number of errors encountered during the batch operation
+    ballerina/lang.int:0.0.0:Signed32 numErrors?;
+    # Timestamp indicating when the batch operation was requested
+    string requestedAt?;
+    # Timestamp indicating when the batch operation started processing
+    string startedAt;
+    # Map of related link names to their associated URLs
+    record {|string...;|} links?;
+    # List of successfully processed email objects from the batch
+    SimplePublicObject[] results;
+    # List of errors encountered for individual records in the batch
+    StandardError[] errors?;
+    # Current processing status of the batch operation
+    "PENDING"|"PROCESSING"|"CANCELED"|"COMPLETE" status;
+};
+
+# Request body schema for creating or updating an email object with its properties
+
+type SimplePublicObjectInput record {
+    # Trace identifier for auditing the write operation on this object
+    string objectWriteTraceId?;
+    # Key-value map of email property names and their corresponding values
+    record {|string...;|} properties;
+};
+
+# Represents the Queries record for the operation: get-/crm/v3/objects/emails/{emailId}_getById
+
+type GetCrmV3ObjectsEmailsEmailIdGetByIdQueries record {
+    # A comma separated list of object types to retrieve associated IDs for. If any of the specified associations do not exist, they will be ignored
+    string[] associations?;
+    # Whether to return only results that have been archived
+    boolean archived?;
+    # A comma separated list of the properties to be returned along with their history of previous values. If any of the specified properties are not present on the requested object(s), they will be ignored
+    string[] propertiesWithHistory?;
+    # The name of a property whose values are unique for this object type
+    string idProperty?;
+    # A comma separated list of the properties to be returned in the response. If any of the specified properties are not present on the requested object(s), they will be ignored
+    string[] properties?;
+};
+
+# Paginated collection of email objects, each including their associated records
+
+type CollectionResponseSimplePublicObjectWithAssociationsForwardPaging record {
+    # Pagination metadata for forward-only cursor-based navigation
+    ForwardPaging paging?;
+    # Array of email objects returned in the current page of results
+    SimplePublicObjectWithAssociations[] results;
+};
+
+# Represents an email object with its properties, metadata, and associated CRM records
+
+type SimplePublicObjectWithAssociations record {
+    # Map of associated CRM objects grouped by association type
+    record {|ballerinax/hubspot.crm.engagements.email:2.0.2:CollectionResponseAssociatedId...;|} associations?;
+    # Timestamp indicating when the email record was created
+    string createdAt;
+    # Indicates whether the email record has been archived
+    boolean archived?;
+    # Timestamp indicating when the email record was archived
+    string archivedAt?;
+    # Map of property names to their historical values with timestamps
+    record {|ballerinax/hubspot.crm.engagements.email:2.0.2:ValueWithTimestamp[]...;|} propertiesWithHistory?;
+    # Unique identifier of the email record
+    string id;
+    # Key-value map of the email record's current property values
+    record {|string?...;|} properties;
+    # Timestamp indicating when the email record was last modified
+    string updatedAt;
+};
+
+# Request body containing a batch of email objects to create
+
+type BatchInputSimplePublicObjectInputForCreate record {
+    # An array of email objects to be created in batch
+    SimplePublicObjectInputForCreate[] inputs;
+};
+
+
+type SimplePublicObjectInputForCreate record {
+    PublicAssociationsForObject[] associations;
+    string objectWriteTraceId?;
+    record {|string...;|} properties;
+};
+
+# Request body containing a batch of email objects to update
+
+type BatchInputSimplePublicObjectBatchInput record {
+    # An array of email objects to be updated in batch
+    SimplePublicObjectBatchInput[] inputs;
+};
+
+
+type SimplePublicObjectBatchInput record {
+    string idProperty?;
+    string objectWriteTraceId?;
+    string id;
+    record {|string...;|} properties;
+};
+
+# Represents the Queries record for the operation: get-/crm/v3/objects/emails_getPage
+
+type GetCrmV3ObjectsEmailsGetPageQueries record {
+    # A comma separated list of object types to retrieve associated IDs for. If any of the specified associations do not exist, they will be ignored
+    string[] associations?;
+    # Whether to return only results that have been archived
+    boolean archived?;
+    # A comma separated list of the properties to be returned along with their history of previous values. If any of the specified properties are not present on the requested object(s), they will be ignored. Usage of this parameter will reduce the maximum number of objects that can be read by a single request
+    string[] propertiesWithHistory?;
+    # The maximum number of results to display per page
+    ballerina/lang.int:0.0.0:Signed32 'limit?;
+    # The paging cursor token of the last successfully read resource will be returned as the `paging.next.after` JSON property of a paged response containing more results
+    string after?;
+    # A comma separated list of the properties to be returned in the response. If any of the specified properties are not present on the requested object(s), they will be ignored
+    string[] properties?;
+};
+
+// --- Client ---
+
+client class Client {
+    function init(ConnectionConfig config, string serviceUrl = "https://api.hubapi.com/crm/v3/objects/emails") returns error?;
+
+    # Read a batch of emails by internal ID, or unique property values
+    # 
+    resource function post batch/read(BatchReadInputSimplePublicObjectId payload, map<string|string[]> headers = {}, boolean archived = false, anydata Additional Values, PostCrmV3ObjectsEmailsBatchReadReadQueries queries) returns BatchResponseSimplePublicObject|BatchResponseSimplePublicObjectWithErrors|error;
+
+    # Read an Object identified by `{emailId}`. `{emailId}` refers to the internal object ID by default, or optionally any unique property value as specified by the `idProperty` query param.  Control what is returned via the `properties` query param
+    # 
+    resource function get [string emailId](map<string|string[]> headers = {}, string[] associations = [], boolean archived = false, string[] propertiesWithHistory = [], string idProperty = "", string[] properties = [], anydata Additional Values, GetCrmV3ObjectsEmailsEmailIdGetByIdQueries queries) returns SimplePublicObjectWithAssociations|error;
+
+    # Move an email to the recycling bin
+    # 
+    resource function delete [string emailId](map<string|string[]> headers = {}) returns error?;
+
+    # Partially update an email by ID
+    # 
+    resource function patch [string emailId](SimplePublicObjectInput payload, map<string|string[]> headers = {}, string idProperty = "", anydata Additional Values, PatchCrmV3ObjectsEmailsEmailIdUpdateQueries queries) returns SimplePublicObject|error;
+
+    # Archive a batch of emails by ID
+    # 
+    resource function post batch/archive(BatchInputSimplePublicObjectId payload, map<string|string[]> headers = {}) returns error?;
+
+    # Create a batch of emails
+    # 
+    resource function post batch/create(BatchInputSimplePublicObjectInputForCreate payload, map<string|string[]> headers = {}) returns BatchResponseSimplePublicObject|BatchResponseSimplePublicObjectWithErrors|error;
+
+    # Update a batch of emails by ID
+    # 
+    resource function post batch/update(BatchInputSimplePublicObjectBatchInput payload, map<string|string[]> headers = {}) returns BatchResponseSimplePublicObject|BatchResponseSimplePublicObjectWithErrors|error;
+
+    # Retrieve a page of emails
+    # 
+    resource function get (map<string|string[]> headers = {}, string[] associations = [], boolean archived = false, string[] propertiesWithHistory = [], int:Signed32 limit = 0, string after = "", string[] properties = [], anydata Additional Values, GetCrmV3ObjectsEmailsGetPageQueries queries) returns CollectionResponseSimplePublicObjectWithAssociationsForwardPaging|error;
+
+    # Create a new email object
+    # 
+    resource function post (SimplePublicObjectInputForCreate payload, map<string|string[]> headers = {}) returns SimplePublicObject|error;
+
+    # Upsert a batch of emails
+    # 
+    resource function post batch/upsert(BatchInputSimplePublicObjectBatchInputUpsert payload, map<string|string[]> headers = {}) returns BatchResponseSimplePublicUpsertObject|BatchResponseSimplePublicUpsertObjectWithErrors|error;
+
+    # Search for emails by filter
+    # 
+    resource function post search(PublicObjectSearchRequest payload, map<string|string[]> headers = {}) returns CollectionResponseWithTotalSimplePublicObjectForwardPaging|error;
+}

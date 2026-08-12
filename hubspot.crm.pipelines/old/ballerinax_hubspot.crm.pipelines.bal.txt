@@ -1,0 +1,469 @@
+// ============================================================
+// Library: ballerinax/hubspot.crm.pipelines
+// [HubSpot](https://www.hubspot.com/our-story) is an AI-powered customer relationship management (CRM) platform.
+// ============================================================
+import ballerinax/hubspot.crm.pipelines;
+
+// --- README ---
+## Overview
+
+[HubSpot](https://www.hubspot.com/our-story) is an AI-powered customer relationship management (CRM) platform.
+
+The HubSpot connector offers APIs to connect and interact with the [HubSpot Pipelines API](https://developers.hubspot.com/docs/guides/api/crm/pipelines) endpoints, specifically based on the [HubSpot Pipelines REST API](https://developers.hubspot.com/docs/reference/api/overview).
+
+### Key Features
+
+- Create, read, update, and delete deal and ticket pipelines
+- Manage pipeline stages and their order
+- Configure pipeline stage properties and behavior
+- Support for multiple pipeline types
+
+## Setup guide
+
+To use the `HubSpot CRM Pipelines` connector, you must have access to the HubSpot API through a HubSpot developer account and a HubSpot App under it. Therefore you need to register for a developer account at HubSpot if you don't have one already.
+
+### Step 1: Create/Login to a HubSpot Developer Account
+
+If you have an account already, go to the [HubSpot developer portal](https://app.hubspot.com/)
+
+If you don't have a HubSpot Developer Account you can sign up to a free account [here](https://developers.hubspot.com/get-started)
+
+### Step 2 (Optional): Create a Developer Test Account
+
+Within app developer accounts, you can create a [developer test account](https://developers.hubspot.com/beta-docs/getting-started/account-types#developer-test-accounts) under your account to test apps and integrations without affecting any real HubSpot data.
+
+> **Note:** These accounts are only for development and testing purposes. In production, you should not use Developer Test Accounts.
+
+1. Go to the Test Account section from the left sidebar.
+
+   ![HubSpot developer portal](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.pipelines/main/docs/resources/test_acc_1.png)
+
+2. Click Create developer test account.
+
+   ![HubSpot developer testacc](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.pipelines/main/docs/resources/test_acc_2.png)
+
+3. In the dialogue box, give a name to your test account and click create.
+
+   ![HubSpot developer testacc3](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.pipelines/main/docs/resources/test_acc_3.png)
+
+### Step 3: Create a HubSpot App under your account
+
+1. In your developer account, navigate to the "Apps" section. Click on "Create App"
+
+   ![HubSpot app creation 1](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.pipelines/main/docs/resources/create_app_1.png)
+
+2. Provide the necessary details, including the app name and description.
+
+### Step 4: Configure the Authentication Flow
+
+1. Move to the Auth Tab.
+
+   ![HubSpot app creation 2](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.pipelines/main/docs/resources/create_app_2.png)
+
+2. In the Scopes section, click the "Add new scope" button to add the necessary scopes for your app.
+
+   - `crm.objects.orders.read`
+   - `crm.schemas.orders.write`
+
+   ![scope](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.pipelines/main/docs/resources/scope.png)
+
+3. Add your Redirect URI in the relevant section. You can also use localhost addresses for local development purposes. Click Create App.
+
+   ![HubSpot app creation final](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.pipelines/main/docs/resources/create_app_final.png)
+
+### Step 5: Get your Client ID and Client Secret
+
+- Navigate to the Auth section of your app. Make sure to save the provided Client ID and Client Secret.
+
+   ![HubSpot get credentials](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.pipelines/main/docs/resources/get_credentials.png)
+
+### Step 6: Setup Authentication Flow
+
+Before proceeding with the Quickstart, ensure you have obtained the Access Token using the following steps:
+
+1. Create an authorization URL using the following format:
+
+   ```
+   https://app.hubspot.com/oauth/authorize?client_id=<YOUR_CLIENT_ID>&scope=<YOUR_SCOPES>&redirect_uri=<YOUR_REDIRECT_URI>
+   ```
+
+   Replace the `<YOUR_CLIENT_ID>`, `<YOUR_REDIRECT_URI>`, and `<YOUR_SCOPES>` with your specific value.
+
+2. Paste it in the browser and select your developer test account to intall the app when prompted.
+
+3. A code will be displayed in the browser. Copy the code.
+
+4. Run the following curl command. Replace the `<YOUR_CLIENT_ID>`, `<YOUR_REDIRECT_URI>`, and `<YOUR_CLIENT_SECRET>` with your specific value. Use the code you received in the above step 3 as the `<CODE>`.
+
+   - Linux/macOS
+
+     ```bash
+     curl --request POST \
+     --url https://api.hubapi.com/oauth/v1/token \
+     --header 'content-type: application/x-www-form-urlencoded' \
+     --data 'grant_type=authorization_code&code=<CODE>&redirect_uri=<YOUR_REDIRECT_URI>&client_id=<YOUR_CLIENT_ID>&client_secret=<YOUR_CLIENT_SECRET>'
+     ```
+
+   - Windows
+
+     ```bash
+     curl --request POST ^
+     --url https://api.hubapi.com/oauth/v1/token ^
+     --header 'content-type: application/x-www-form-urlencoded' ^
+     --data 'grant_type=authorization_code&code=<CODE>&redirect_uri=<YOUR_REDIRECT_URI>&client_id=<YOUR_CLIENT_ID>&client_secret=<YOUR_CLIENT_SECRET>'
+     ```
+
+   This command will return the access token necessary for API calls.
+
+   ```json
+   {
+     "token_type": "bearer",
+     "refresh_token": "<Refresh Token>",
+     "access_token": "<Access Token>",
+     "expires_in": 1800
+   }
+   ```
+
+5. Store the access token securely for use in your application.
+
+## Quickstart
+
+
+To use the HubSpot CRM Pipelines connector in your Ballerina application, follow these steps:
+
+### Step 1: Import the module
+
+```ballerina
+import ballerinax/hubspot.crm.pipelines as hspipelines;
+```
+
+### Step 2: Instantiate a new connector
+
+1. Create a `Config.toml` file and configure the obtained credentials:
+
+   ```toml
+      clientId = "<Client Id>"
+      clientSecret = "<Client Secret>"
+      refreshToken = "<Refresh Token>"
+   ```
+
+2. Create a `hspipelines:ConnectionConfig` with the obtained access token and initialize the connector with it.
+
+### Step 3: Use Connector Operations
+
+Now, utilize the available connector operations.
+
+## Examples
+
+The `HubSpot CRM Pipelines` connector provides practical examples illustrating usage in various scenarios. Explore these [examples](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.pipelines/tree/main/examples), covering the following use cases:
+
+1. [Pipeline management](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.pipelines/tree/main/examples/pipeline-management/main.bal)
+2. [Support pipeline](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.pipelines/tree/main/examples/support-pipeline/main.bal)
+3. [Pipeline stage management](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.pipelines/tree/main/examples/pipeline-stage-management/main.bal)
+
+// --- END README ---
+
+// --- Types ---
+
+# An input used to update some properties on a pipeline definition
+
+type PipelineStagePatchInput record {
+    # Whether the pipeline is archived
+    boolean archived?;
+    # A JSON object containing properties that are not present on all object pipelines
+
+For `deals` pipelines, the `probability` field is required (`{ "probability": 0.5 }`), and represents the likelihood a deal will close. Possible values are between 0.0 and 1.0 in increments of 0.1
+
+For `tickets` pipelines, the `ticketState` field is optional (`{ "ticketState": "OPEN" }`), and represents whether the ticket remains open or has been closed by a member of your Support team. Possible values are `OPEN` or `CLOSED`
+    record {|string...;|} metadata?;
+    # The order for displaying this pipeline stage. If two pipeline stages have a matching `displayOrder`, they will be sorted alphabetically by label
+    ballerina/lang.int:0.0.0:Signed32 displayOrder?;
+    # A label used to organize pipeline stages in HubSpot's UI. Each pipeline stage's label must be unique within that pipeline
+    string label?;
+};
+
+# An input used to update some properties on a pipeline definition
+
+type PipelinePatchInput record {
+    # Whether the pipeline is archived. This property should only be provided when restoring an archived pipeline. If it's provided in any other call, the request will fail and a `400 Bad Request` will be returned
+    boolean archived?;
+    # The order for displaying this pipeline. If two pipelines have a matching `displayOrder`, they will be sorted alphabetically by label
+    ballerina/lang.int:0.0.0:Signed32 displayOrder?;
+    # A unique label used to organize pipelines in HubSpot's UI
+    string label?;
+};
+
+# A pipeline stage definition
+
+type PipelineStage record {
+    # The date the pipeline stage was created. The stages on default pipelines will have createdAt = 0
+    string createdAt;
+    # The date the pipeline was archived. `archivedAt` will only be present if the pipeline is archived
+    string archivedAt?;
+    # Whether the pipeline is archived
+    boolean archived;
+    # A JSON object containing properties that are not present on all object pipelines
+
+For `deals` pipelines, the `probability` field is required (`{ "probability": 0.5 }`), and represents the likelihood a deal will close. Possible values are between 0.0 and 1.0 in increments of 0.1
+
+For `tickets` pipelines, the `ticketState` field is optional (`{ "ticketState": "OPEN" }`), and represents whether the ticket remains open or has been closed by a member of your Support team. Possible values are `OPEN` or `CLOSED`
+    record {|string...;|} metadata?;
+    # The order for displaying this pipeline stage. If two pipeline stages have a matching `displayOrder`, they will be sorted alphabetically by label
+    ballerina/lang.int:0.0.0:Signed32 displayOrder;
+    # Controls who can write to this pipeline stage
+    "CRM_PERMISSIONS_ENFORCEMENT"|"READ_ONLY"|"INTERNAL_ONLY" writePermissions?;
+    # A label used to organize pipeline stages in HubSpot's UI. Each pipeline stage's label must be unique within that pipeline
+    string label;
+    # A unique identifier generated by HubSpot that can be used to retrieve and update the pipeline stage
+    string id;
+    # The date the pipeline stage was last updated
+    string updatedAt;
+};
+
+# Represents the Queries record for the operation: patch-/crm/v3/pipelines/{objectType}/{pipelineId}_update
+
+type PatchCrmV3PipelinesObjectTypePipelineIdUpdateQueries record {
+    # If true, checks for active deal stage usages before removing stages during the update
+    boolean validateDealStageUsagesBeforeDelete?;
+    # If true, validates that no records reference removed stages before completing the update
+    boolean validateReferencesBeforeDelete?;
+};
+
+# A collection of pipeline stages returned without paging metadata
+
+type CollectionResponsePipelineStageNoPaging record {
+    # The list of pipeline stages returned in the response
+    PipelineStage[] results;
+};
+
+# Represents the Queries record for the operation: delete-/crm/v3/pipelines/{objectType}/{pipelineId}_archive
+
+type DeleteCrmV3PipelinesObjectTypePipelineIdArchiveQueries record {
+    # If true, checks for active deal stage usages before archiving the pipeline
+    boolean validateDealStageUsagesBeforeDelete?;
+    # If true, validates that no records reference the pipeline's stages before archiving
+    boolean validateReferencesBeforeDelete?;
+};
+
+# Audit record capturing a change event on a pipeline or stage
+
+type PublicAuditInfo record {
+    # Unique identifier of the audited pipeline or stage object
+    string identifier;
+    # Serialized snapshot of the object at the time of the audit event
+    string rawObject?;
+    # ID of the user who performed the audited action
+    ballerina/lang.int:0.0.0:Signed32 fromUserId?;
+    # ID of the HubSpot portal where the action occurred
+    ballerina/lang.int:0.0.0:Signed32 portalId;
+    # The type of action recorded in the audit entry
+    string action;
+    # Human-readable description of the audited action
+    string message?;
+    # Date and time when the audited action occurred
+    string timestamp?;
+};
+
+# A collection of audit records returned without paging metadata
+
+type CollectionResponsePublicAuditInfoNoPaging record {
+    # The list of audit records returned in the response
+    PublicAuditInfo[] results;
+};
+
+# Represents the Queries record for the operation: put-/crm/v3/pipelines/{objectType}/{pipelineId}_replace
+
+type PutCrmV3PipelinesObjectTypePipelineIdReplaceQueries record {
+    # If true, checks for active deal stage usages before removing stages during the replacement
+    boolean validateDealStageUsagesBeforeDelete?;
+    # If true, validates that no records reference removed stages before completing the replacement
+    boolean validateReferencesBeforeDelete?;
+};
+
+# A pipeline definition
+
+type Pipeline record {
+    # The date the pipeline was created. The default pipelines will have createdAt = 0
+    string createdAt;
+    # The date the pipeline was archived. `archivedAt` will only be present if the pipeline is archived
+    string archivedAt?;
+    # Whether the pipeline is archived
+    boolean archived;
+    # The order for displaying this pipeline. If two pipelines have a matching `displayOrder`, they will be sorted alphabetically by label
+    ballerina/lang.int:0.0.0:Signed32 displayOrder;
+    # The stages associated with the pipeline. They can be retrieved and updated via the pipeline stages endpoints
+    PipelineStage[] stages;
+    # A unique label used to organize pipelines in HubSpot's UI
+    string label;
+    # A unique identifier generated by HubSpot that can be used to retrieve and update the pipeline
+    string id;
+    # The date the pipeline was last updated
+    string updatedAt;
+};
+
+# An input used to create or replace a pipeline stage's definition
+
+type PipelineStageInput record {
+    # A JSON object containing properties that are not present on all object pipelines
+
+For `deals` pipelines, the `probability` field is required (`{ "probability": 0.5 }`), and represents the likelihood a deal will close. Possible values are between 0.0 and 1.0 in increments of 0.1
+
+For `tickets` pipelines, the `ticketState` field is optional (`{ "ticketState": "OPEN" }`), and represents whether the ticket remains open or has been closed by a member of your Support team. Possible values are `OPEN` or `CLOSED`
+    record {|string...;|} metadata?;
+    # The order for displaying this pipeline stage. If two pipeline stages have a matching `displayOrder`, they will be sorted alphabetically by label
+    ballerina/lang.int:0.0.0:Signed32 displayOrder;
+    # A label used to organize pipeline stages in HubSpot's UI. Each pipeline stage's label must be unique within that pipeline
+    string label;
+};
+
+# An input used to create or replace a pipeline's definition
+
+type PipelineInput record {
+    # The order for displaying this pipeline. If two pipelines have a matching `displayOrder`, they will be sorted alphabetically by label
+    ballerina/lang.int:0.0.0:Signed32 displayOrder;
+    # Pipeline stage inputs used to create the new or replacement pipeline
+    PipelineStageInput[] stages;
+    # A unique label used to organize pipelines in HubSpot's UI
+    string label;
+};
+
+# A collection of pipelines returned without paging metadata
+
+type CollectionResponsePipelineNoPaging record {
+    # The list of pipelines returned in the response
+    Pipeline[] results;
+};
+
+# OAuth2 Refresh Token Grant Configs
+
+type OAuth2RefreshTokenGrantConfig record {
+    # Refresh URL
+    string refreshUrl?;
+    string refreshToken;
+    string clientId;
+    string clientSecret;
+    string|string[] scopes?;
+    decimal defaultTokenExpTime?;
+    decimal clockSkew?;
+    map<string> optionalParams?;
+    oauth2:CredentialBearer credentialBearer?; // Special Agent Note: CredentialBearer FROM ballerina/oauth2 package
+    oauth2:ClientConfiguration clientConfig?; // Special Agent Note: ClientConfiguration FROM ballerina/oauth2 package
+};
+
+# Provides API key configurations needed when communicating with a remote HTTP endpoint
+
+type ApiKeysConfig record {
+    string privateAppLegacy;
+    string privateApp;
+};
+
+# Provides a set of configurations for controlling the behaviours when communicating with a remote HTTP endpoint
+
+type ConnectionConfig record {
+    # Provides Auth configurations needed when communicating with a remote HTTP endpoint
+    http:BearerTokenConfig|OAuth2RefreshTokenGrantConfig|ApiKeysConfig auth; // Special Agent Note: BearerTokenConfig FROM ballerina/http package
+    # The HTTP version understood by the client
+    http:HttpVersion httpVersion?; // Special Agent Note: HttpVersion FROM ballerina/http package
+    # Configurations related to HTTP/1.x protocol
+    http:ClientHttp1Settings http1Settings?; // Special Agent Note: ClientHttp1Settings FROM ballerina/http package
+    # Configurations related to HTTP/2 protocol
+    http:ClientHttp2Settings http2Settings?; // Special Agent Note: ClientHttp2Settings FROM ballerina/http package
+    # The maximum time to wait (in seconds) for a response before closing the connection
+    decimal timeout?;
+    # The choice of setting `forwarded`/`x-forwarded` header
+    string forwarded?;
+    # Configurations associated with Redirection
+    http:FollowRedirects followRedirects?; // Special Agent Note: FollowRedirects FROM ballerina/http package
+    # Configurations associated with request pooling
+    http:PoolConfiguration poolConfig?; // Special Agent Note: PoolConfiguration FROM ballerina/http package
+    # HTTP caching related configurations
+    http:CacheConfig cache?; // Special Agent Note: CacheConfig FROM ballerina/http package
+    # Specifies the way of handling compression (`accept-encoding`) header
+    http:Compression compression?; // Special Agent Note: Compression FROM ballerina/http package
+    # Configurations associated with the behaviour of the Circuit Breaker
+    http:CircuitBreakerConfig circuitBreaker?; // Special Agent Note: CircuitBreakerConfig FROM ballerina/http package
+    # Configurations associated with retrying
+    http:RetryConfig retryConfig?; // Special Agent Note: RetryConfig FROM ballerina/http package
+    # Configurations associated with cookies
+    http:CookieConfig cookieConfig?; // Special Agent Note: CookieConfig FROM ballerina/http package
+    # Configurations associated with inbound response size limits
+    http:ResponseLimitConfigs responseLimits?; // Special Agent Note: ResponseLimitConfigs FROM ballerina/http package
+    # SSL/TLS-related options
+    http:ClientSecureSocket secureSocket?; // Special Agent Note: ClientSecureSocket FROM ballerina/http package
+    # Proxy server related options
+    http:ProxyConfig proxy?; // Special Agent Note: ProxyConfig FROM ballerina/http package
+    # Provides settings related to client socket configuration
+    http:ClientSocketConfig socketConfig?; // Special Agent Note: ClientSocketConfig FROM ballerina/http package
+    # Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default
+    boolean validation?;
+    # Enables relaxed data binding on the client side. When enabled, `nil` values are treated as optional, 
+and absent fields are handled as `nilable` types. Enabled by default
+    boolean laxDataBinding?;
+};
+
+// --- Client ---
+
+# Pipelines represent distinct stages in a workflow, like closing a deal or servicing a support ticket. These endpoints provide access to read and modify pipelines in HubSpot. Pipelines support `deals` and `tickets` object types
+# 
+# ## Pipeline ID validation
+# 
+# When calling endpoints that take pipelineId as a parameter, that ID must correspond to an existing, un-archived pipeline. Otherwise the request will fail with a `404 Not Found` response
+client class Client {
+    function init(ConnectionConfig config, string serviceUrl = "https://api.hubapi.com/crm/v3/pipelines") returns error?;
+
+    # Audit all pipeline stage changes
+    # 
+    resource function get [string objectType]/[string pipelineId]/stages/[string stageId]/audit(map<string|string[]> headers = {}) returns CollectionResponsePublicAuditInfoNoPaging|error;
+
+    # Return a pipeline by ID
+    # 
+    resource function get [string objectType]/[string pipelineId](map<string|string[]> headers = {}) returns Pipeline|error;
+
+    # Replace a pipeline
+    # 
+    resource function put [string objectType]/[string pipelineId](PipelineInput payload, map<string|string[]> headers = {}, boolean validateDealStageUsagesBeforeDelete = false, boolean validateReferencesBeforeDelete = false, anydata Additional Values, PutCrmV3PipelinesObjectTypePipelineIdReplaceQueries queries) returns Pipeline|error;
+
+    # Delete a pipeline
+    # 
+    resource function delete [string objectType]/[string pipelineId](map<string|string[]> headers = {}, boolean validateDealStageUsagesBeforeDelete = false, boolean validateReferencesBeforeDelete = false, anydata Additional Values, DeleteCrmV3PipelinesObjectTypePipelineIdArchiveQueries queries) returns error?;
+
+    # Update a pipeline
+    # 
+    resource function patch [string objectType]/[string pipelineId](PipelinePatchInput payload, map<string|string[]> headers = {}, boolean validateDealStageUsagesBeforeDelete = false, boolean validateReferencesBeforeDelete = false, anydata Additional Values, PatchCrmV3PipelinesObjectTypePipelineIdUpdateQueries queries) returns Pipeline|error;
+
+    # Audit all pipeline changes
+    # 
+    resource function get [string objectType]/[string pipelineId]/audit(map<string|string[]> headers = {}) returns CollectionResponsePublicAuditInfoNoPaging|error;
+
+    # Return all stages of a pipeline
+    # 
+    resource function get [string objectType]/[string pipelineId]/stages(map<string|string[]> headers = {}) returns CollectionResponsePipelineStageNoPaging|error;
+
+    # Create a pipeline stage
+    # 
+    resource function post [string objectType]/[string pipelineId]/stages(PipelineStageInput payload, map<string|string[]> headers = {}) returns PipelineStage|error;
+
+    # Retrieve all pipelines
+    # 
+    resource function get [string objectType](map<string|string[]> headers = {}) returns CollectionResponsePipelineNoPaging|error;
+
+    # Create a pipeline
+    # 
+    resource function post [string objectType](PipelineInput payload, map<string|string[]> headers = {}) returns Pipeline|error;
+
+    # Return a pipeline stage by ID
+    # 
+    resource function get [string objectType]/[string pipelineId]/stages/[string stageId](map<string|string[]> headers = {}) returns PipelineStage|error;
+
+    # Replace a pipeline stage
+    # 
+    resource function put [string objectType]/[string pipelineId]/stages/[string stageId](PipelineStageInput payload, map<string|string[]> headers = {}) returns PipelineStage|error;
+
+    # Delete a pipeline stage
+    # 
+    resource function delete [string objectType]/[string pipelineId]/stages/[string stageId](map<string|string[]> headers = {}) returns error?;
+
+    # Update a pipeline stage
+    # 
+    resource function patch [string objectType]/[string pipelineId]/stages/[string stageId](PipelineStagePatchInput payload, map<string|string[]> headers = {}) returns PipelineStage|error;
+}

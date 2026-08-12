@@ -1,0 +1,1923 @@
+{
+  "name": "ballerinax/java.jms",
+  "description": "Java Message Service (JMS) is a standard API for sending messages between two or more clients. It provides a common way for programs to create, send, receive, and read distributed enterprise messages. The JMS connector enables seamless integration with JMS providers, supporting various messaging patterns such as publish-subscribe and point-to-point.",
+  "readme": "## Overview\n\nJava Message Service (JMS) is a standard API for sending messages between two or more clients. It provides a common way for programs to create, send, receive, and read distributed enterprise messages. The JMS connector enables seamless integration with JMS providers, supporting various messaging patterns such as publish-subscribe and point-to-point.\n\n### Key Features\n\n- Support for both queue and topic-based messaging\n- Comprehensive support for JMS 1.1 and 2.0\n- Reliable message delivery with persistent and non-persistent modes\n- Support for various message types including Text, Map, and Bytes\n- Secure communication with connection-level authentication\n- GraalVM compatible for native image builds\n\n## Samples\n\n### JMS message Producer\n\nThe following Ballerina program sends messages to a queue named *MyQueue*.\n\n```ballerina\nimport ballerinax/activemq.driver as _;\nimport ballerinax/java.jms;\n\npublic function main() returns error? {\n    jms:Connection connection \u003d check new (\n        initialContextFactory \u003d \"org.apache.activemq.jndi.ActiveMQInitialContextFactory\",\n        providerUrl \u003d \"tcp://localhost:61616\"\n    );\n    jms:Session session \u003d check connection-\u003ecreateSession();\n    jms:MessageProducer producer \u003d check session.createProducer({\n        \u0027type: jms:QUEUE,\n        name: \"MyQueue\"\n    });\n    jms:TextMessage msg \u003d {\n        content: \"Hello Ballerina!\"\n    };\n    check producer-\u003esend(msg);\n}\n```\n\n## JMS message consumer\nThe following Ballerina program receives messages from a queue named *MyQueue*.\n```ballerina\nimport ballerinax/activemq.driver as _;\nimport ballerinax/java.jms;\nimport ballerina/log;\n\npublic function main() returns error? {\n    jms:Connection connection \u003d check new (\n        initialContextFactory \u003d \"org.apache.activemq.jndi.ActiveMQInitialContextFactory\",\n        providerUrl \u003d \"tcp://localhost:61616\"\n    );\n    jms:Session session \u003d check connection-\u003ecreateSession();\n    jms:MessageConsumer consumer \u003d check session.createConsumer(\n        destination \u003d {\n            \u0027type: jms:QUEUE,\n            name: \"MyQueue\"\n    });\n    while true {\n        jms:Message? response \u003d check consumer-\u003ereceive(3000);\n        if response is jms:TextMessage {\n            log:printInfo(\"Message received: \", content \u003d response.toString());\n        }\n    }\n}\n```\n\n### Asynchronous message consumer\n\nOne of the key deviations from the JMS API was the asynchronous message consumption using message listeners. In \nBallerina transport listener concept is covered with **service** type, hence we have used the Ballerina service to \nimplement the message listener. Following is a message listener example listening on a queue named *MyQueue*.\n\n```ballerina\nimport ballerinax/activemq.driver as _;\nimport ballerina/log;\nimport ballerinax/java.jms;\n\nservice \"consumer-service\" on new jms:Listener(\n    connectionConfig \u003d {\n        initialContextFactory: \"org.apache.activemq.jndi.ActiveMQInitialContextFactory\",\n        providerUrl: \"tcp://localhost:61616\"\n    },\n    consumerOptions \u003d {\n        destination: {\n            \u0027type: jms:QUEUE,\n            name: \"MyQueue\"\n        }\n    }\n) {\n    remote function onMessage(jms:Message message) returns error? {\n        if message is jms:TextMessage {\n            log:printInfo(\"Text message received\", content \u003d message.content);\n        }\n    }\n}\n```\n",
+  "typeDefs": [
+    {
+      "name": "QUEUE",
+      "description": "Represents JMS Queue",
+      "type": "Constant",
+      "value": "QUEUE",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "TEMPORARY_QUEUE",
+      "description": "Represents JMS Temporary Queue",
+      "type": "Constant",
+      "value": "TEMPORARY_QUEUE",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "TOPIC",
+      "description": "Represents JMS Topic",
+      "type": "Constant",
+      "value": "TOPIC",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "TEMPORARY_TOPIC",
+      "description": "Represents JMS Temporary Topic",
+      "type": "Constant",
+      "value": "TEMPORARY_TOPIC",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "DURABLE",
+      "description": "Represents JMS durable subscriber",
+      "type": "Constant",
+      "value": "DURABLE",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "SHARED",
+      "description": "Represents JMS shared consumer",
+      "type": "Constant",
+      "value": "SHARED",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "SHARED_DURABLE",
+      "description": "Represents JMS shared durable subscriber",
+      "type": "Constant",
+      "value": "SHARED_DURABLE",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "DEFAULT",
+      "description": "Represents JMS default consumer",
+      "type": "Constant",
+      "value": "DEFAULT",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "SESSION_TRANSACTED",
+      "description": "Indicates that the session will use a local transaction which may subsequently \nbe committed or rolled back by calling the session\u0027s `commit` or `rollback` methods. ",
+      "type": "Constant",
+      "value": "SESSION_TRANSACTED",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "AUTO_ACKNOWLEDGE",
+      "description": "Indicates that the session automatically acknowledges a client\u0027s receipt of a message \neither when the session has successfully returned from a call to `receive` or when \nthe message listener the session has called to process the message successfully returns.",
+      "type": "Constant",
+      "value": "AUTO_ACKNOWLEDGE",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "CLIENT_ACKNOWLEDGE",
+      "description": "Indicates that the client acknowledges a consumed message by calling the \nMessageConsumer\u0027s or Caller\u0027s `acknowledge` method. Acknowledging a consumed message \nacknowledges all messages that the session has consumed.",
+      "type": "Constant",
+      "value": "CLIENT_ACKNOWLEDGE",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "DUPS_OK_ACKNOWLEDGE",
+      "description": "Indicates that the session to lazily acknowledge the delivery of messages. \nThis is likely to result in the delivery of some duplicate messages if the JMS provider fails, \nso it should only be used by consumers that can tolerate duplicate messages. \nUse of this mode can reduce session overhead by minimizing the work the session does to prevent duplicates.",
+      "type": "Constant",
+      "value": "DUPS_OK_ACKNOWLEDGE",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "ConnectionConfiguration",
+      "description": "Configurations related to a JMS connection.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "initialContextFactory",
+          "description": "JMS provider specific inital context factory",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "providerUrl",
+          "description": "JMS provider specific provider URL used to configure a connection",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "connectionFactoryName",
+          "description": "JMS connection factory to be used in creating JMS connections",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "username",
+          "description": "Username for the JMS connection",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "password",
+          "description": "Password for the JMS connection",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "properties",
+          "description": "Additional properties use in initializing the initial context",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "DestinationType",
+      "description": "Defines the supported JMS destination types.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "TEMPORARY_TOPIC",
+          "description": "Represents JMS Temporary Topic"
+        },
+        {
+          "name": "TOPIC",
+          "description": "Represents JMS Topic"
+        },
+        {
+          "name": "TEMPORARY_QUEUE",
+          "description": "Represents JMS Temporary Queue"
+        },
+        {
+          "name": "QUEUE",
+          "description": "Represents JMS Queue"
+        }
+      ]
+    },
+    {
+      "name": "Destination",
+      "description": "Represent the JMS destination.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "\u0027type",
+          "description": "JMS destination types  ",
+          "type": {
+            "name": "DestinationType",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DestinationType"
+              }
+            ]
+          }
+        },
+        {
+          "name": "name",
+          "description": "Name of the destination",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Error",
+      "description": "Represents a JMS distinct error.",
+      "type": "Error"
+    },
+    {
+      "name": "Message",
+      "description": "Represent the JMS Message used to send and receive content from the a JMS provider.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "messageId",
+          "description": "Unique identifier for a JMS message  ",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "timestamp",
+          "description": "Time a message was handed off to a provider to be sent ",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "correlationId",
+          "description": "Id which can be use to correlate multiple messages ",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "replyTo",
+          "description": "JMS destination to which a reply to this message should be sent",
+          "type": {
+            "name": "Destination",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Destination"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "destination",
+          "description": "JMS destination of this message ",
+          "type": {
+            "name": "Destination",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Destination"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "deliveryMode",
+          "description": "Delivery mode of this message  ",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "redelivered",
+          "description": "Indication of whether this message is being redelivered",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "jmsType",
+          "description": "Message type identifier supplied by the client when the message was sent  ",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "expiration",
+          "description": "Message expiration time  ",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "deliveredTime",
+          "description": "The earliest time when a JMS provider may deliver the message to a consumer  ",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "priority",
+          "description": "Message priority level  ",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "properties",
+          "description": "Additional message properties",
+          "type": {
+            "name": "map\u003canydata\u003e"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "TextMessage",
+      "description": "Represent the JMS Text Message.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "content",
+          "description": "Message content  ",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "messageId",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "timestamp",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "correlationId",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "replyTo",
+          "description": "",
+          "type": {
+            "name": "Destination",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Destination"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "destination",
+          "description": "",
+          "type": {
+            "name": "Destination",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Destination"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "deliveryMode",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "redelivered",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "jmsType",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "expiration",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "deliveredTime",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "priority",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "properties",
+          "description": "",
+          "type": {
+            "name": "map\u003canydata\u003e"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "MapMessage",
+      "description": "Represent the JMS Map Message.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "content",
+          "description": "Message content ",
+          "type": {
+            "name": "map\u003canydata\u003e"
+          }
+        },
+        {
+          "name": "messageId",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "timestamp",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "correlationId",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "replyTo",
+          "description": "",
+          "type": {
+            "name": "Destination",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Destination"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "destination",
+          "description": "",
+          "type": {
+            "name": "Destination",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Destination"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "deliveryMode",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "redelivered",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "jmsType",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "expiration",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "deliveredTime",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "priority",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "properties",
+          "description": "",
+          "type": {
+            "name": "map\u003canydata\u003e"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "BytesMessage",
+      "description": "Represent the JMS Bytes Message.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "content",
+          "description": "Message content ",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "messageId",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "timestamp",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "correlationId",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "replyTo",
+          "description": "",
+          "type": {
+            "name": "Destination",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Destination"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "destination",
+          "description": "",
+          "type": {
+            "name": "Destination",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Destination"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "deliveryMode",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "redelivered",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "jmsType",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "expiration",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "deliveredTime",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "priority",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "properties",
+          "description": "",
+          "type": {
+            "name": "map\u003canydata\u003e"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ConsumerType",
+      "description": "Defines the supported JMS message consumer types.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "DEFAULT",
+          "description": "Represents JMS default consumer"
+        },
+        {
+          "name": "SHARED_DURABLE",
+          "description": "Represents JMS shared durable subscriber"
+        },
+        {
+          "name": "SHARED",
+          "description": "Represents JMS shared consumer"
+        },
+        {
+          "name": "DURABLE",
+          "description": "Represents JMS durable subscriber"
+        }
+      ]
+    },
+    {
+      "name": "ConsumerOptions",
+      "description": "Message consumer listener configurations.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "\u0027type",
+          "description": "",
+          "type": {
+            "name": "ConsumerType",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ConsumerType"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "destination",
+          "description": "Name of the JMS destination",
+          "type": {
+            "name": "Destination",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Destination"
+              }
+            ]
+          }
+        },
+        {
+          "name": "messageSelector",
+          "description": "only messages with properties matching the message selector expression are added to the durable subscription. \nAn empty string indicates that there is no message selector for the durable subscription.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "noLocal",
+          "description": "if true then any messages published to the topic using this session\u0027s connection, or any other connection \nwith the same client identifier, will not be added to the durable subscription.",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "subscriberName",
+          "description": "the name used to identify the subscription ",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Service",
+      "description": "The JMS service type.",
+      "type": "Class"
+    },
+    {
+      "name": "MessageListenerConfigurations",
+      "description": "Message listener configurations.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "connectionConfig",
+          "description": "Configurations related to the broker connection  ",
+          "type": {
+            "name": "ConnectionConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ConnectionConfiguration"
+              }
+            ]
+          }
+        },
+        {
+          "name": "acknowledgementMode",
+          "description": "Configuration indicating how messages received by the session will be acknowledged",
+          "type": {
+            "name": "AcknowledgementMode",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AcknowledgementMode"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "consumerOptions",
+          "description": "Underlying JMS message consumer configurations",
+          "type": {
+            "name": "ConsumerOptions",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ConsumerOptions"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "AcknowledgementMode",
+      "description": "Defines the JMS session acknowledgement modes.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "DUPS_OK_ACKNOWLEDGE",
+          "description": "Indicates that the session to lazily acknowledge the delivery of messages. \nThis is likely to result in the delivery of some duplicate messages if the JMS provider fails, \nso it should only be used by consumers that can tolerate duplicate messages. \nUse of this mode can reduce session overhead by minimizing the work the session does to prevent duplicates."
+        },
+        {
+          "name": "CLIENT_ACKNOWLEDGE",
+          "description": "Indicates that the client acknowledges a consumed message by calling the \nMessageConsumer\u0027s or Caller\u0027s `acknowledge` method. Acknowledging a consumed message \nacknowledges all messages that the session has consumed."
+        },
+        {
+          "name": "AUTO_ACKNOWLEDGE",
+          "description": "Indicates that the session automatically acknowledges a client\u0027s receipt of a message \neither when the session has successfully returned from a call to `receive` or when \nthe message listener the session has called to process the message successfully returns."
+        },
+        {
+          "name": "SESSION_TRANSACTED",
+          "description": "Indicates that the session will use a local transaction which may subsequently \nbe committed or rolled back by calling the session\u0027s `commit` or `rollback` methods. "
+        }
+      ]
+    },
+    {
+      "name": "Listener",
+      "description": "Creates a new `jms:Listener`.\n```ballerina\nlistener jms:Listener messageListener \u003d check new(\n  connectionConfig \u003d {\n      initialContextFactory: \"org.apache.activemq.jndi.ActiveMQInitialContextFactory\",\n      providerUrl: \"tcp://localhost:61616\"\n  },\n  consumerOptions \u003d {\n      destination: {\n          \u0027type: jms:QUEUE,\n          name: \"test-queue\"\n      }\n  }\n);\n```\n",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Creates a new `jms:Listener`.\n```ballerina\nlistener jms:Listener messageListener \u003d check new(\n  connectionConfig \u003d {\n      initialContextFactory: \"org.apache.activemq.jndi.ActiveMQInitialContextFactory\",\n      providerUrl: \"tcp://localhost:61616\"\n  },\n  consumerOptions \u003d {\n      destination: {\n          \u0027type: jms:QUEUE,\n          name: \"test-queue\"\n      }\n  }\n);\n```\n",
+          "parameters": [
+            {
+              "name": "connectionConfig",
+              "description": "Configurations related to the broker connection  ",
+              "type": {
+                "name": "ConnectionConfiguration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ConnectionConfiguration"
+                  }
+                ]
+              },
+              "default": "{initialContextFactory: \"\", providerUrl: \"\"}"
+            },
+            {
+              "name": "acknowledgementMode",
+              "description": "Configuration indicating how messages received by the session will be acknowledged",
+              "type": {
+                "name": "AcknowledgementMode",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "AcknowledgementMode"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "AUTO_ACKNOWLEDGE"
+            },
+            {
+              "name": "consumerOptions",
+              "description": "Underlying JMS message consumer configurations",
+              "type": {
+                "name": "ConsumerOptions",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ConsumerOptions"
+                  }
+                ]
+              },
+              "default": "{destination: {\u0027type: \"TEMPORARY_TOPIC\"}}"
+            },
+            {
+              "name": "listenerConfig",
+              "description": "Message listener configurations",
+              "type": {
+                "name": "MessageListenerConfigurations",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "MessageListenerConfigurations"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "The relevant JMS consumer or a `jms:Error` if there is any error",
+            "type": {
+              "name": "ballerinax/java.jms:1.2.1:Error?"
+            }
+          }
+        },
+        {
+          "name": "attach",
+          "type": "Normal Function",
+          "description": "Attaches a message consumer service to a listener.\n```ballerina\ncheck messageListener.attach(jmsService);\n```\n",
+          "parameters": [
+            {
+              "name": "\u0027service",
+              "description": "The service instance",
+              "type": {
+                "name": "Service",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Service"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "name",
+              "description": "Name of the service",
+              "type": {
+                "name": "string[]|string|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "A `jms:Error` if there is an error or else `()`",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "detach",
+          "type": "Normal Function",
+          "description": "Detaches a message consumer service from the the listener.\n```ballerina\ncheck messageListener.detach(jmsService);\n```\n",
+          "parameters": [
+            {
+              "name": "\u0027service",
+              "description": "The service to be detached",
+              "type": {
+                "name": "Service",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Service"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "A `jms:Error` if there is an error or else `()`",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "\u0027start",
+          "type": "Normal Function",
+          "description": "Starts the endpoint.\n```ballerina\ncheck messageListener.\u0027start();\n```\n",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "gracefulStop",
+          "type": "Normal Function",
+          "description": "Stops the JMS listener gracefully.\n```ballerina\ncheck messageListener.gracefulStop();\n```\n",
+          "parameters": [],
+          "return": {
+            "description": "A `jms:Error` if there is an error or else `()`",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "immediateStop",
+          "type": "Normal Function",
+          "description": "Stops the JMS listener immediately.\n```ballerina\ncheck messageListener.immediateStop();\n```\n",
+          "parameters": [],
+          "return": {
+            "description": "A `jms:Error` if there is an error or else `()`",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "name": "Caller",
+      "description": "Represents a JMS caller, which can be used to mark JMS message as received.",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Represents a JMS caller, which can be used to mark JMS message as received.",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "jms:jms:Caller"
+            }
+          }
+        },
+        {
+          "name": "acknowledge",
+          "type": "Remote Function",
+          "description": "Mark a JMS message as received.\n",
+          "parameters": [
+            {
+              "name": "message",
+              "description": "JMS message record",
+              "type": {
+                "name": "Message",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Message"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "`jms:Error` if there is an error in the execution or else nil",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "\u0027commit",
+          "type": "Remote Function",
+          "description": "Commits all messages received in this transaction and releases any locks currently held.\n```ballerina\ncheck caller-\u003e\u0027commit();\n```\n",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "\u0027rollback",
+          "type": "Remote Function",
+          "description": "Rolls back any messages received in this transaction and releases any locks currently held.\n```ballerina\ncheck caller-\u003e\u0027rollback();\n```\n",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Connection",
+      "description": "Represents JMS Connection.",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initialize and starts a JMS connection.\n```ballerina\njms:Connection connection \u003d check new (\n  initialContextFactory \u003d \"org.apache.activemq.jndi.ActiveMQInitialContextFactory\",\n  providerUrl \u003d \"tcp://localhost:61616\"\n);\n```\n",
+          "parameters": [
+            {
+              "name": "initialContextFactory",
+              "description": "JMS provider specific inital context factory",
+              "type": {
+                "name": "string"
+              },
+              "default": "\"\""
+            },
+            {
+              "name": "providerUrl",
+              "description": "JMS provider specific provider URL used to configure a connection",
+              "type": {
+                "name": "string"
+              },
+              "default": "\"\""
+            },
+            {
+              "name": "connectionFactoryName",
+              "description": "JMS connection factory to be used in creating JMS connections",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"ConnectionFactory\""
+            },
+            {
+              "name": "username",
+              "description": "Username for the JMS connection",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "password",
+              "description": "Password for the JMS connection",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "properties",
+              "description": "Additional properties use in initializing the initial context",
+              "type": {
+                "name": "map\u003cstring\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "connectionConfig",
+              "description": "The configurations to be used when initializing the JMS connection",
+              "type": {
+                "name": "ConnectionConfiguration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ConnectionConfiguration"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "The `jms:Connection` or an `jms:Error` if the initialization failed",
+            "type": {
+              "name": "ballerinax/java.jms:1.2.1:Error?"
+            }
+          }
+        },
+        {
+          "name": "createSession",
+          "type": "Remote Function",
+          "description": "Create a Session object, specifying transacted and acknowledgeMode.\n```ballerina\njms:Session session \u003d check connection-\u003ecreateSession();\n```\n",
+          "parameters": [
+            {
+              "name": "ackMode",
+              "description": "Configuration indicating how messages received by the session will be acknowledged",
+              "type": {
+                "name": "AcknowledgementMode",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "AcknowledgementMode"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "\"DUPS_OK_ACKNOWLEDGE\""
+            }
+          ],
+          "return": {
+            "description": "Returns the Session or an error if it fails.",
+            "type": {
+              "name": "Session|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Session"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "\u0027start",
+          "type": "Remote Function",
+          "description": "Starts (or restarts) a connection\u0027s delivery of incoming messages.\nA call to start on a connection that has already been started is ignored.\n```ballerina\ncheck connection-\u003e\u0027start();\n```\n",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "stop",
+          "type": "Remote Function",
+          "description": "Temporarily stops a connection\u0027s delivery of incoming messages.\nDelivery can be restarted using the connection\u0027s start method.\n```ballerina\ncheck connection-\u003estop();\n```\n",
+          "parameters": [],
+          "return": {
+            "description": "A `jms:Error` if threre is an error while stopping the connection",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "close",
+          "type": "Remote Function",
+          "description": "Closes the connection.\n```ballerina\ncheck connection-\u003eclose();\n```\n",
+          "parameters": [],
+          "return": {
+            "description": "A `jms:Error` if threre is an error while closing the connection",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "MessageConsumer",
+      "description": "JMS Message Consumer client object to receive messages from both queues and topics.",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "session",
+              "type": {
+                "name": "Session",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Session"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "type",
+              "description": "Message consumer type",
+              "type": {
+                "name": "ConsumerType",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ConsumerType"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "\"DEFAULT\""
+            },
+            {
+              "name": "destination",
+              "description": "Name of the JMS destination",
+              "type": {
+                "name": "Destination",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Destination"
+                  }
+                ]
+              },
+              "default": "{\u0027type: \"TEMPORARY_TOPIC\"}"
+            },
+            {
+              "name": "messageSelector",
+              "description": "only messages with properties matching the message selector expression are added to the durable subscription. \nAn empty string indicates that there is no message selector for the durable subscription.",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "noLocal",
+              "description": "if true then any messages published to the topic using this session\u0027s connection, or any other connection \nwith the same client identifier, will not be added to the durable subscription.",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "subscriberName",
+              "description": "the name used to identify the subscription ",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "consumerOptions",
+              "type": {
+                "name": "ConsumerOptions",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ConsumerOptions"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "ballerinax/java.jms:1.2.1:Error?"
+            }
+          }
+        },
+        {
+          "name": "receive",
+          "type": "Remote Function",
+          "description": "Receives the next message that arrives within the specified timeout interval.\n```ballerina\njms:Message? message \u003d check consumer-\u003ereceive(10000);\n```\n",
+          "parameters": [
+            {
+              "name": "timeoutMillis",
+              "description": "Message receive timeout",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "0"
+            }
+          ],
+          "return": {
+            "description": "A `jms:JmsMessage` if there is a new message, `()` if there is no any new message, \nor else a `jsm:Error` if there is an error in the execution",
+            "type": {
+              "name": "Message|Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Message"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "receiveNoWait",
+          "type": "Remote Function",
+          "description": "Receives the next message if one is immediately available.\n```ballerina\njms:Message? message \u003d check consumer-\u003ereceiveNoWait();\n```\n",
+          "parameters": [],
+          "return": {
+            "description": "A `jms:JmsMessage` if there is a new message, `()` if there is no any new message, \nor else a `jsm:Error` if there is an error in the execution",
+            "type": {
+              "name": "Message|Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Message"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "acknowledge",
+          "type": "Remote Function",
+          "description": "Mark a JMS message as received.\n```ballerina\ncheck consumer-\u003eacknowledge(message);\n```\n",
+          "parameters": [
+            {
+              "name": "message",
+              "description": "JMS message record",
+              "type": {
+                "name": "Message",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Message"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "A `jms:Error` if there is an error in the execution or else `()`",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "close",
+          "type": "Remote Function",
+          "description": "Closes the message consumer.\n```ballerina\ncheck consumer-\u003eclose();\n```\n",
+          "parameters": [],
+          "return": {
+            "description": "A `jms:Error` if there is an error or else `()`",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "MessageProducer",
+      "description": "JMS Message Producer client object to send messages to both queues and topics.",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "session",
+              "type": {
+                "name": "Session",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Session"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "destination",
+              "type": {
+                "name": "Destination|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Destination"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "ballerinax/java.jms:1.2.1:Error?"
+            }
+          }
+        },
+        {
+          "name": "send",
+          "type": "Remote Function",
+          "description": "Sends a message to the JMS provider.\n```ballerina\ncheck producer-\u003esend(message);\n```\n",
+          "parameters": [
+            {
+              "name": "message",
+              "description": "Message to be sent to the JMS provider",
+              "type": {
+                "name": "Message",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Message"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "A `jms:Error` if there is an error or else `()`",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "sendTo",
+          "type": "Remote Function",
+          "description": "Sends a message to a given destination of the JMS provider.\n```ballerina\ncheck producer-\u003esendTo({ \u0027type: QUEUE, name: \"test-queue\" }, message);\n```\n",
+          "parameters": [
+            {
+              "name": "destination",
+              "description": "Destination used for the message sender",
+              "type": {
+                "name": "Destination",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Destination"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "message",
+              "description": "Message to be sent to the JMS provider",
+              "type": {
+                "name": "Message",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Message"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "A `jms:Error` if there is an error or else `()`",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "close",
+          "type": "Remote Function",
+          "description": "Closes the message producer.\n```ballerina\ncheck producer-\u003eclose();\n```",
+          "parameters": [],
+          "return": {
+            "description": "A `jms:Error` if there is an error or else `()`",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Session",
+      "description": "Represents the JMS session.",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "connection",
+              "type": {
+                "name": "Connection",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Connection"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "ackMode",
+              "type": {
+                "name": "AcknowledgementMode",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "AcknowledgementMode"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "ballerinax/java.jms:1.2.1:Error?"
+            }
+          }
+        },
+        {
+          "name": "unsubscribe",
+          "type": "Remote Function",
+          "description": "Unsubscribe a durable subscription that has been created by this session.\nIt is erroneous for a client to delete a durable subscription while there is an active (not closed) consumer\nfor the subscription, or while a consumed message being part of a pending transaction or has not been\nacknowledged in the session.\n```ballerina\ncheck session-\u003eunsubscribe(\"subscription-1\");\n```\n",
+          "parameters": [
+            {
+              "name": "subscriptionId",
+              "description": "The name, which is used to identify the subscription",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "A `jms:Error` if there is an error or else `()`",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "createProducer",
+          "type": "Normal Function",
+          "description": "Creates a MessageProducer to send messages to the specified destination.\n```ballerina\njms:MessageProducer producer \u003d check session.createProducer({\n  \u0027type: jms:QUEUE,\n  name: \"test-queue\"\n});\n```\n",
+          "parameters": [
+            {
+              "name": "destination",
+              "description": "The Destination to send to, or nil if this is a producer which does not have a specified destination",
+              "type": {
+                "name": "Destination|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Destination"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "Returns `jms:MessageProducer` or `jms:Error` if there is an error",
+            "type": {
+              "name": "MessageProducer|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "MessageProducer"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "createConsumer",
+          "type": "Normal Function",
+          "description": "Creates a MessageConsumer for the specified destination.\n```ballerina\njms:MessageConsumer consumer \u003d check session.createConsumer(destination \u003d {\n  \u0027type: jms:QUEUE,\n  name: \"test-queue\"\n});\n```\n",
+          "parameters": [
+            {
+              "name": "type",
+              "description": "Message consumer type",
+              "type": {
+                "name": "ConsumerType",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ConsumerType"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "\"DEFAULT\""
+            },
+            {
+              "name": "destination",
+              "description": "Name of the JMS destination",
+              "type": {
+                "name": "Destination",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Destination"
+                  }
+                ]
+              },
+              "default": "{\u0027type: \"TEMPORARY_TOPIC\"}"
+            },
+            {
+              "name": "messageSelector",
+              "description": "only messages with properties matching the message selector expression are added to the durable subscription. \nAn empty string indicates that there is no message selector for the durable subscription.",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "noLocal",
+              "description": "if true then any messages published to the topic using this session\u0027s connection, or any other connection \nwith the same client identifier, will not be added to the durable subscription.",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "subscriberName",
+              "description": "the name used to identify the subscription ",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "consumerOptions",
+              "description": "The relevant consumer configurations",
+              "type": {
+                "name": "ConsumerOptions",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ConsumerOptions"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "Returns a `jms:MessageConsumer` or else `jms:Error` if there is an error",
+            "type": {
+              "name": "MessageConsumer|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "MessageConsumer"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "\u0027commit",
+          "type": "Remote Function",
+          "description": "Commits all messages sent/received in this transaction and releases any locks currently held.\n```ballerina\ncheck session-\u003e\u0027commit();\n```\n",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "\u0027rollback",
+          "type": "Remote Function",
+          "description": "Rolls back any messages sent/received in this transaction and releases any locks currently held.\n```ballerina\ncheck session-\u003e\u0027rollback();\n```\n",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "close",
+          "type": "Remote Function",
+          "description": "Closes the current JMS session.\n```ballerina\ncheck session-\u003eclose();\n```\n",
+          "parameters": [],
+          "return": {
+            "description": "A `jms:Error` if there is an error or else `()`",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "functions": [],
+  "services": [],
+  "annotations": []
+}

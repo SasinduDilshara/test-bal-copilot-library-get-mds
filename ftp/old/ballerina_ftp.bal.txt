@@ -1,0 +1,1564 @@
+// ============================================================
+// Library: ballerina/ftp
+// This module provides an FTP/SFTP client and an FTP/SFTP server listener implementation to facilitate an FTP/SFTP connection connected to a remote location. Additionally, it supports FTPS (FTP over SSL/TLS) to facilitate secure file transfers.
+// ============================================================
+import ballerina/ftp;
+
+// --- README ---
+## Overview
+
+This module provides an FTP/SFTP client and an FTP/SFTP server listener implementation to facilitate an FTP/SFTP connection connected to a remote location. Additionally, it supports FTPS (FTP over SSL/TLS) to facilitate secure file transfers.
+
+### FTP client
+
+The `ftp:Client` connects to an FTP server and performs various operations on the files. Currently, it supports the
+generic FTP operations; `get`, `delete`, `put`, `append`, `mkdir`, `rmdir`, `isDirectory`, `rename`, `size`, and
+ `list`. The client also provides typed data operations for reading and writing files as text, JSON, XML, CSV, and binary data, with streaming support for handling large files efficiently.
+
+An FTP client is defined using the `protocol` and `host` parameters and optionally, the `port` and
+`auth`. Authentication configuration can be configured using the `auth` parameter for Basic Auth and
+private key.
+
+An authentication-related configuration can be given to the FTP client with the `auth` configuration.
+
+##### Create a client
+
+The following code creates an FTP client and performs the I/O operations, which connect to the FTP server with Basic Auth.
+```ballerina
+// Define the FTP client configuration.
+ftp:ClientConfiguration ftpConfig = {
+    protocol: ftp:FTP,
+    host: "<The FTP host>",
+    port: <The FTP port>,
+    auth: {
+        credentials: {
+            username: "<The FTP username>",
+            password: "<The FTP passowrd>"
+        }
+    }
+};
+
+// Create the FTP client.
+ftp:Client|ftp:Error ftpClient = new(ftpConfig);
+```
+
+##### Create a directory
+
+The following code creates a directory in the remote FTP server.
+
+```ballerina
+ftp:Error? mkdirResponse = ftpClient->mkdir("<The directory path>");
+```
+
+##### Upload a file to a remote server
+
+The following code uploads a file to a remote FTP server.
+
+```ballerina
+stream<io:Block, io:Error?> fileByteStream
+    = check io:fileReadBlocksAsStream(putFilePath, <Block size>);
+ftp:Error? putResponse = ftpClient->put("<The resource path>", fileByteStream);
+```
+
+You can also upload files as specific types:
+
+Upload as text:
+```ballerina
+ftp:Error? result = ftpClient->putText("<The file path>", "Hello, World!");
+```
+
+Upload as JSON or record:
+```ballerina
+// Upload JSON
+json jsonData = {name: "John", age: 30};
+ftp:Error? result = ftpClient->putJson("<The file path>", jsonData);
+
+// Upload a record
+type User record {
+    string name;
+    int age;
+};
+
+User user = {name: "Jane", age: 25};
+ftp:Error? result = ftpClient->putJson("<The file path>", user);
+```
+
+Upload as XML:
+```ballerina
+xml xmlData = xml `<config><database>mydb</database></config>`;
+ftp:Error? result = ftpClient->putXml("<The file path>", xmlData);
+```
+
+Upload as CSV (string arrays or typed records):
+```ballerina
+// Upload as string array of arrays
+string[][] csvData = [["Name", "Age"], ["John", "30"], ["Jane", "25"]];
+ftp:Error? result = ftpClient->putCsv("<The file path>", csvData);
+
+// Upload records as CSV
+type Person record {
+    string name;
+    int age;
+};
+
+Person[] people = [{name: "John", age: 30}, {name: "Jane", age: 25}];
+ftp:Error? result = ftpClient->putCsv("<The file path>", people);
+```
+
+Upload as bytes:
+```ballerina
+byte[] binaryData = [0x48, 0x65, 0x6C, 0x6C, 0x6F]; // "Hello"
+ftp:Error? result = ftpClient->putBytes("<The file path>", binaryData);
+```
+
+##### Compress and upload a file to a remote server
+
+The following code compresses and uploads a file to a remote FTP server.
+
+```ballerina
+// Set the optional boolean flag as 'true' to compress before uploading
+stream<io:Block, io:Error?> fileByteStream
+    = check io:fileReadBlocksAsStream(putFilePath, <Block size>);
+ftp:Error? compressedPutResponse = ftpClient->put("<Resource path>",
+    fileByteStream, compressionType=ZIP);
+```
+
+##### Get the size of a remote file
+
+The following code gets the size of a file in a remote FTP server.
+
+```ballerina
+int|ftp:Error sizeResponse = ftpClient->size("<The resource path>");
+```
+
+##### Read the content of a remote file
+
+The following code reads the content of a file in a remote FTP server. The FTP client supports various data types including text, JSON, XML, CSV, and binary data through typed get operations.
+
+Read as text:
+```ballerina
+string fileContent = check ftpClient->getText("<The file path>");
+```
+
+Read as JSON or typed record:
+```ballerina
+// Read as JSON
+json jsonData = check ftpClient->getJson("<The file path>");
+
+// Read as a specific record type
+type User record {
+    string name;
+    int age;
+};
+
+User userData = check ftpClient->getJson("<The file path>");
+```
+
+Read as XML or typed record:
+```ballerina
+// Read as XML
+xml xmlData = check ftpClient->getXml("<The file path>");
+
+// Read as a specific record type
+type Config record {
+    string database;
+    int timeout;
+};
+
+Config config = check ftpClient->getXml("<The file path>");
+```
+
+Read as CSV (string arrays or typed records):
+```ballerina
+// Read as string array of arrays
+string[][] csvData = check ftpClient->getCsv("<The file path>");
+
+// Read as an array of typed records
+type CsvRecord record {
+    string id;
+    string name;
+    string email;
+};
+
+CsvRecord[] records = check ftpClient->getCsv("<The file path>");
+```
+
+Read as bytes:
+```ballerina
+// Read entire file as byte array
+byte[] fileBytes = check ftpClient->getBytes("<The file path>");
+
+// Read as streaming bytes
+stream<byte[], io:Error?> byteStream = check ftpClient->getBytesAsStream("<The file path>");
+record {|byte[] value;|} nextBytes = check byteStream.next();
+check byteStream.close();
+```
+
+##### Rename/move a remote file
+
+The following code renames or moves a file to another location in the same remote FTP server.
+
+```ballerina
+ftp:Error? renameResponse = ftpClient->rename("<The source file path>",
+    "<The destination file path>");
+```
+
+##### Delete a remote file
+
+The following code deletes a remote file in a remote FTP server.
+
+```ballerina
+ftp:Error? deleteResponse = ftpClient->delete("<The resource path>");
+```
+
+##### Remove a directory from a remote server
+
+The following code removes a directory in a remote FTP server.
+
+```ballerina
+ftp:Error? rmdirResponse = ftpClient->rmdir("<The directory path>");
+```
+
+### FTP listener
+
+The `ftp:Listener` is used to listen to a remote FTP location and trigger events when new files are added to or deleted from the directory. The listener supports both a generic `onFileChange` handler for file system events and format-specific content handlers (`onFileText`, `onFileJson`, `onFileXml`, `onFileCsv`, `onFile`) that automatically deserialize file content based on the file type.
+
+An FTP listener is defined using the mandatory `protocol`, `host`, and  `path` parameters. The authentication
+configuration can be done using the `auth` parameter and the polling interval can be configured using the `pollingInterval` parameter.
+The default polling interval is 60 seconds.
+
+The `fileNamePattern` parameter can be used to define the type of files the FTP listener will listen to.
+For instance, if the listener gets invoked for text files, the value `(.*).txt` can be given for the config.
+
+An authentication-related configuration can be given to the FTP listener with the `auth` configuration.
+
+##### Create a listener
+
+The FTP Listener can be used to listen to a remote directory. It will keep listening to the specified directory and
+notify on file addition and deletion periodically.
+
+The FTP listener supports content handler methods that automatically deserialize file content based on the file type. The listener supports text, JSON, XML, CSV, and binary data types with automatic extension-based routing.
+
+Handle text files:
+```ballerina
+service on remoteServer {
+    remote function onFileText(string content, ftp:FileInfo fileInfo) returns error? {
+        log:print("Text file: " + fileInfo.path);
+        log:print("Content: " + content);
+    }
+}
+```
+
+Handle JSON files (as generic JSON or typed record):
+```ballerina
+type User record {
+    string name;
+    int age;
+    string email;
+};
+
+service on remoteServer {
+    // Handle as typed record
+    remote function onFileJson(User content, ftp:FileInfo fileInfo) returns error? {
+        log:print("User file: " + fileInfo.path);
+        log:print("User name: " + content.name);
+    }
+}
+```
+
+Handle XML files (as generic XML or typed record):
+```ballerina
+type Config record {
+    string database;
+    int timeout;
+    boolean debug;
+};
+
+service on remoteServer {
+    // Handle as typed record
+    remote function onFileXml(Config content, ftp:FileInfo fileInfo) returns error? {
+        log:print("Config file: " + fileInfo.path);
+        log:print("Database: " + content.database);
+    }
+}
+```
+
+Handle CSV files (as string arrays or typed record arrays):
+```ballerina
+type CsvRecord record {
+    string id;
+    string name;
+    string email;
+};
+
+service on remoteServer {
+    // Handle as array of typed records
+    remote function onFileCsv(CsvRecord[] content, ftp:FileInfo fileInfo) returns error? {
+        log:print("CSV file: " + fileInfo.path);
+        foreach CsvRecord record in content {
+            log:print("Record: " + record.id + ", " + record.name);
+        }
+    }
+}
+```
+
+Handle binary files:
+```ballerina
+service on remoteServer {
+    // Handle as byte array
+    remote function onFile(byte[] content, ftp:FileInfo fileInfo) returns error? {
+        log:print("Binary file: " + fileInfo.path);
+        log:print("File size: " + content.length().toString());
+    }
+}
+```
+
+Stream large files:
+```ballerina
+service on remoteServer {
+    // Stream binary content
+    remote function onFile(stream<byte[], error?> content, ftp:FileInfo fileInfo) returns error? {
+        log:print("Streaming file: " + fileInfo.path);
+        record {|byte[] value;|} nextBytes = check content.next();
+        while nextBytes is record {|byte[] value;|} {
+            log:print("Received chunk: " + nextBytes.value.length().toString() + " bytes");
+            nextBytes = content.next();
+        }
+        check content.close();
+    }
+}
+```
+
+Stream CSV data as typed records:
+```ballerina
+type DataRow record {
+    string timestamp;
+    string value;
+};
+
+service on remoteServer {
+    // Stream CSV as records
+    remote function onFileCsv(stream<DataRow, error?> content, ftp:FileInfo fileInfo) returns error? {
+        log:print("Streaming CSV file: " + fileInfo.path);
+        record {|DataRow value;|}|error? nextRow = content.next();
+        while nextRow is record {|DataRow value;|} {
+            log:print("Row: " + nextRow.value.timestamp + " = " + nextRow.value.value);
+            nextRow = content.next();
+        }
+        check content.close();
+    }
+}
+```
+
+The FTP listener automatically routes files to the appropriate content handler based on file extension: `.txt` → `onFileText()`, `.json` → `onFileJson()`, `.xml` → `onFileXml()`, `.csv` → `onFileCsv()`, and other extensions → `onFile()` (fallback handler). You can override the default routing using the `@ftp:FunctionConfig` annotation to specify a custom file name pattern for each handler method.
+
+### Secure access with FTPS
+
+FTPS provides security by encrypting the control and data channels using SSL/TLS. This module supports both Explicit (starts as regular FTP and upgrades via AUTH TLS) and Implicit (SSL/TLS established immediately) modes.
+
+##### FTPS client configuration
+
+To use FTPS, set the protocol to FTPS and provide the secureSocket configuration including your keystore and truststore.
+
+```ballerina
+ftp:ClientConfiguration ftpsConfig = {
+    protocol: ftp:FTPS,
+    host: "ftps.example.com",
+    port: 21, // 21 for EXPLICIT, 990 for IMPLICIT
+    auth: {
+        credentials: { username: "user", password: "password" },
+        secureSocket: {
+            key: {
+                path: "/path/to/keystore.p12",
+                password: "keystore-password"
+            },
+            cert: {
+                path: "/path/to/truststore.p12",
+                password: "truststore-password"
+            },
+            mode: ftp:EXPLICIT, // or ftp:IMPLICIT
+            dataChannelProtection: ftp:PRIVATE // PROT P (Encrypted data channel)
+        }
+    }
+};
+
+ftp:Client ftpsClient = check new(ftpsConfig);
+```
+
+##### FTPS listener configuration
+
+The listener can monitor an FTPS-enabled directory and trigger service remote functions.
+
+```ballerina
+listener ftp:Listener ftpsListener = check new({
+    protocol: ftp:FTPS,
+    host: "ftps.example.com",
+    port: 990,
+    path: "/upload",
+    pollingInterval: 5,
+    auth: {
+        credentials: { username: "user", password: "password" },
+        secureSocket: {
+            cert: { path: "/path/to/truststore.jks", password: "password" },
+            mode: ftp:IMPLICIT
+        }
+    }
+});
+```
+
+##### CSV fail-safe mode
+
+The FTP listener supports a fail-safe mode for CSV file processing When enabled, malformed CSV records are automatically skipped and written to a separate error log file in the current directory (`<filename>_error.log`), allowing the processing to continue without interruption.
+
+This is only supported in `onFileCsv` trigger methods in ftp listener.
+
+**Listener Configuration**:
+
+```ballerina
+listener ftp:Listener remoteServer = check new({
+    protocol: ftp:FTP,
+    host: "<The FTP host>",
+    port: <The FTP port>,
+    path: "<The remote FTP directory location>",
+    pollingInterval: <Polling interval>,
+    auth: {
+        credentials: {username: "<The FTP username>", password: "<The FTP password>"}
+    },
+    csvFailSafe: {
+        contentType: ftp:RAW_AND_METADATA
+    }
+});
+```
+
+The `contentType` field in `csvFailSafe` specifies what information to log when a malformed CSV record is encountered.
+
+- `METADATA` (default) - Logs only metadata about the error (location, error message)
+- `RAW` - Logs the raw content of the malformed record (offending row)
+- `RAW_AND_METADATA` - Logs both the raw content and metadata for comprehensive debugging
+
+### Secure access with SFTP
+
+SFTP is a secure protocol alternative to the FTP, which runs on top of the SSH protocol.
+There are several ways to authenticate an SFTP server. One is using the username and the password.
+Another way is using the client's private key. The Ballerina SFTP client and the listener support only those authentication standards.
+An authentication-related configuration can be given to the SFTP client/listener with the `auth` configuration.
+Password-based authentication is defined with the `credentials` configuration while the private key based authentication is defined with the `privateKey` configuration.
+
+#### SFTP client configuration
+
+```ballerina
+ftp:ClientConfiguration sftpConfig = {
+    protocol: ftp:SFTP,
+    host: "<The SFTP host>",
+    port: <The SFTP port>,
+    auth: {
+        credentials: {username: "<The SFTP username>", password: "<The SFTP password>"},
+        privateKey: {
+            path: "<The private key file path>",
+            password: "<The private key file password>"
+        }
+    }
+};
+```
+
+#### SFTP listener configuration
+
+```ballerina
+listener ftp:Listener remoteServer = check new({
+    protocol: ftp:SFTP,
+    host: "<The SFTP host>",
+    port: <The SFTP port>,
+    path: "<The remote SFTP directory location>",
+    pollingInterval: <Polling interval>,
+    fileNamePattern: "<File name pattern>",
+    auth: {
+        credentials: {username: "<The SFTP username>", password: "<The SFTP password>"},
+        privateKey: {
+            path: "<The private key file path>",
+            password: "<The private key file password>"
+        }
+    }
+});
+```
+
+// --- END README ---
+
+// --- Types ---
+
+# Delete action for file processing.
+# When specified, the file will be deleted after processing.
+const string DELETE = "DELETE";
+
+# Overwrite the existing file content
+const string OVERWRITE = "OVERWRITE";
+
+# Append to the existing file content
+const string APPEND = "APPEND";
+
+# Zip compression
+const string ZIP = "ZIP";
+
+# No compression
+const string NONE = "NONE";
+
+# Unsecure File Transfer Protocol
+const string FTP = "ftp";
+
+# Secure File Transfer Protocol (FTP over SSL/TLS)
+const string FTPS = "ftps";
+
+# File Transfer Protocol over SSH
+const string SFTP = "sftp";
+
+# SSL/TLS connection is established immediately upon connection.
+const string IMPLICIT = "IMPLICIT";
+
+# Starts as regular FTP, then upgrades to SSL/TLS using AUTH TLS command.
+const string EXPLICIT = "EXPLICIT";
+
+# Data channel is not encrypted (PROT C). Not recommended for security
+const string CLEAR = "CLEAR";
+
+# Data channel is encrypted (PROT P). Recommended for secure transfers
+const string PRIVATE = "PRIVATE";
+
+# Data channel has integrity protection only (PROT S). Rarely used
+const string SAFE = "SAFE";
+
+# Data channel is encrypted (PROT E). Similar to PRIVATE
+const string CONFIDENTIAL = "CONFIDENTIAL";
+
+# Keyboard interactive authentication (user prompted for credentials)
+const string KEYBOARD_INTERACTIVE = "KEYBOARD_INTERACTIVE";
+
+# GSSAPI with MIC (Generic Security Service Application Program Interface)
+const string GSSAPI_WITH_MIC = "GSSAPI_WITH_MIC";
+
+# Password-based authentication using username and password
+const string PASSWORD = "PASSWORD";
+
+# Public key-based authentication using SSH key pairs
+const string PUBLICKEY = "PUBLICKEY";
+
+# Binary mode (no conversion, suitable for all file types)
+const string BINARY = "BINARY";
+
+# ASCII mode (CRLF conversion for text files)
+const string ASCII = "ASCII";
+
+# Standard ZLIB compression
+const string ZLIB = "zlib";
+
+# OpenSSH variant of ZLIB compression
+const string ZLIBOPENSSH = "zlib@openssh.com";
+
+# No compression
+const string NO = "none";
+
+# HTTP CONNECT proxy
+const string HTTP = "HTTP";
+
+# SOCKS version 5 proxy
+const string SOCKS5 = "SOCKS5";
+
+# Stream proxy (advanced usage)
+const string STREAM = "STREAM";
+
+# Use file's last modified timestamp
+const string LAST_MODIFIED = "LAST_MODIFIED";
+
+# Use file's creation timestamp (where supported by file system)
+const string CREATION_TIME = "CREATION_TIME";
+
+# All required file patterns must have at least one matching file
+const string ALL = "ALL";
+
+# At least one required file pattern must have a matching file
+const string ANY = "ANY";
+
+# Exact number of required files must match (count specified in `requiredFileCount`)
+const string EXACT_COUNT = "EXACT_COUNT";
+
+# Connection-level failures (timeout, refused, reset, DNS resolution)
+const string CONNECTION_ERROR = "CONNECTION_ERROR";
+
+# Authentication failures (invalid credentials, key rejected)
+const string AUTHENTICATION_ERROR = "AUTHENTICATION_ERROR";
+
+# Transient server errors that may succeed on retry (FTP codes 421, 425, 426, 450, 451, 452)
+const string TRANSIENT_ERROR = "TRANSIENT_ERROR";
+
+# All errors regardless of type
+const string ALL_ERRORS = "ALL_ERRORS";
+
+# Log only file metadata (path, size, etc.)
+const string METADATA = "METADATA";
+
+# Log only the raw file content that caused the error
+const string RAW = "RAW";
+
+# Log both raw content and file metadata
+const string RAW_AND_METADATA = "RAW_AND_METADATA";
+
+# Configuration for moving a file after processing.
+
+type Move record {
+    # Destination directory path where the file will be moved
+    string moveTo;
+    # If `true`, preserves the subdirectory structure relative to the listener's root path
+    boolean preserveSubDirs?;
+};
+
+# Type alias for Move record, used in union types for post-processing actions.
+
+type MOVE record {
+    # Destination directory path where the file will be moved
+    string moveTo;
+    # If `true`, preserves the subdirectory structure relative to the listener's root path
+    boolean preserveSubDirs?;
+};
+
+# Configuration for FTP service remote functions.
+# Use this to override default file extension routing for content methods and
+# specify automatic file actions after processing.
+
+type FtpFunctionConfig record {
+    # File name pattern (regex) that routes files to this method. Must be a subset of the listener's `fileNamePattern`
+    string fileNamePattern?;
+    # Action to perform after successful processing. Can be `DELETE` or `MOVE`.
+If not specified, no action is taken (file remains in place)
+    MOVE|"DELETE" afterProcess?;
+    # Action to perform after a processing error. Can be `DELETE` or `MOVE`.
+Also applied when content binding fails (e.g. malformed CSV/JSON/XML) and
+no `onError` method is declared.
+If not specified, no action is taken (file remains in place)
+    MOVE|"DELETE" afterError?;
+};
+
+# Configuration for FTP service monitoring.
+# Use this to specify the directory path and file patterns this service should monitor.
+
+type ServiceConfiguration record {
+    # Directory path on the FTP server to monitor for file changes
+    string path;
+    # File name pattern (regex) to filter which files trigger events
+    string fileNamePattern?;
+    # Configuration for filtering files based on age
+    FileAgeFilter fileAgeFilter?;
+    # Dependency conditions for conditional file processing
+    FileDependencyCondition[] fileDependencyConditions?;
+};
+
+# Filters files based on their age to control which files trigger listener events.
+# Useful for processing only files within a specific age range (e.g., skip very new files or very old files).
+
+type FileAgeFilter record {
+    # Minimum age of the file in seconds (inclusive). Files younger than this are skipped.
+If not specified, no minimum age requirement is applied
+    decimal minAge?;
+    # Maximum age of the file in seconds (inclusive). Files older than this are skipped.
+If not specified, no maximum age requirement is applied
+    decimal maxAge?;
+    # Whether to calculate age based on last modified time or creation time
+    AgeCalculationMode ageCalculationMode?;
+};
+
+# Determines the timestamp used when calculating file age for filtering.
+enum AgeCalculationMode {
+    CREATION_TIME,
+    LAST_MODIFIED
+}
+
+# Defines a dependency condition where processing of target files depends on the existence of other files.
+# This allows conditional file processing based on the presence of related files (e.g., processing a data file only
+# when a corresponding marker file exists). Supports capture group substitution to dynamically match related files.
+
+type FileDependencyCondition record {
+    # Regex pattern for files that should be processed conditionally
+    string targetPattern;
+    # File patterns that must exist before processing. Supports capture group substitution (e.g., `$1`)
+    string[] requiredFiles;
+    # How to match required files
+    DependencyMatchingMode matchingMode?;
+    # For EXACT_COUNT mode, specifies the exact number of required files that must match
+    int requiredFileCount?;
+};
+
+# Determines how to match required files when evaluating file dependencies.
+# Controls whether all dependencies must be present, at least one, or a specific count.
+enum DependencyMatchingMode {
+    EXACT_COUNT,
+    ANY,
+    ALL
+}
+
+# File write options for write operations.
+enum FileWriteOption {
+    APPEND,
+    OVERWRITE
+}
+
+# Compression type for file uploads.
+enum Compression {
+    NONE,
+    ZIP
+}
+
+# Configuration for FTP client.
+
+type ClientConfiguration record {
+    # Protocol to use for the connection: FTP (unsecure), FTPS (FTP over SSL/TLS), or SFTP (over SSH)
+    Protocol protocol?;
+    # Target server hostname or IP address
+    string host?;
+    # Port number of the remote service.
+For FTPS IMPLICIT, this is typically 990. For FTPS EXPLICIT and FTP, this is typically 21
+    int port?;
+    # Authentication options for connecting to the server
+    AuthConfiguration auth?;
+    # If `true`, treats the login home directory as the root (`/`) and prevents the underlying VFS from
+attempting to change to the actual server root. Set to `true` for chrooted/jailed environments
+    boolean userDirIsRoot?;
+    # If `true`, enables relaxed data binding: null values in JSON/XML map to optional fields,
+and missing fields map to null values
+    boolean laxDataBinding?;
+    # Connection timeout in seconds
+    decimal connectTimeout?;
+    # Socket timeout configurations
+    SocketConfig socketConfig?;
+    # Proxy configuration for SFTP connections (SFTP only)
+    ProxyConfiguration proxy?;
+    # File transfer mode: BINARY or ASCII (FTP only)
+    FileTransferMode fileTransferMode?;
+    # Compression algorithms to use (SFTP only)
+    TransferCompression[] sftpCompression?;
+    # Path to SSH known_hosts file (SFTP only)
+    string sftpSshKnownHosts?;
+    # Configuration for fail-safe CSV content processing. In fail-safe mode,
+malformed CSV records are skipped and written to a separate file in the current directory
+    FailSafeOptions csvFailSafe?;
+    # Retry configuration for transient failures on non-streaming read operations
+(getBytes, getText, getJson, getXml, getCsv). If not specified, no retry is attempted
+    RetryConfig retryConfig?;
+    # Circuit breaker configuration for handling server failures gracefully.
+When enabled, the client fails fast if the server is experiencing persistent issues
+    CircuitBreakerConfig circuitBreaker?;
+};
+
+# Protocol to use for FTP server connections.
+# Determines whether to use basic FTP, FTPS, or SFTP.
+enum Protocol {
+    SFTP,
+    FTPS,
+    FTP
+}
+
+# Authentication options for FTP server connections.
+
+type AuthConfiguration record {
+    # Username and password for basic authentication
+    Credentials credentials?;
+    # Private key for SSH-based authentication (used with SFTP protocol)
+    PrivateKey privateKey?;
+    # Secure socket configuration for SSL/TLS (used with FTPS protocol)
+    SecureSocket secureSocket?;
+    # Preferred authentication methods in priority order (used with SFTP protocol)
+    PreferredMethod[] preferredMethods?;
+};
+
+# Basic authentication credentials for connecting to FTP/FTPS servers using username and password.
+
+type Credentials record {
+    # Username for authentication
+    string username;
+    # Password for authentication
+    string password?;
+};
+
+# Private key configuration for SSH-based authentication (used with SFTP).
+
+type PrivateKey record {
+    # Path to the private key file
+    string path;
+    # Password to decrypt the private key, if it is encrypted
+    string password?;
+};
+
+# Secure socket configuration for FTPS (FTP over SSL/TLS).
+# Used for configuring SSL/TLS certificates and keystores for FTPS connections.
+
+type SecureSocket record {
+    # Client keystore for mutual TLS
+    crypto:KeyStore key?; // Special Agent Note: KeyStore FROM ballerina/crypto package
+    # Server certificate to trust. PEM file path or `crypto:TrustStore` for JKS/PKCS12
+    string|crypto:TrustStore cert?; // Special Agent Note: TrustStore FROM ballerina/crypto package
+    # When TLS is negotiated. Valid values: `IMPLICIT`, `EXPLICIT`
+    FtpsMode mode?;
+    # Data channel encryption. Valid values: `CLEAR`, `PRIVATE`, `SAFE`, `CONFIDENTIAL`
+    FtpsDataChannelProtection dataChannelProtection?;
+    # Verify the server certificate's hostname. Disable only for testing with self-signed certs
+    boolean verifyHostName?;
+};
+
+# FTPS connection mode.
+enum FtpsMode {
+    EXPLICIT,
+    IMPLICIT
+}
+
+# FTPS data channel protection level.
+# Controls whether the data channel (file transfers) is encrypted.
+enum FtpsDataChannelProtection {
+    CONFIDENTIAL,
+    SAFE,
+    PRIVATE,
+    CLEAR
+}
+
+# Authentication methods to use when connecting to FTP/SFTP servers.
+enum PreferredMethod {
+    PUBLICKEY,
+    PASSWORD,
+    GSSAPI_WITH_MIC,
+    KEYBOARD_INTERACTIVE
+}
+
+# Socket timeout configurations.
+
+type SocketConfig record {
+    # Data transfer timeout in seconds (FTP only)
+    decimal ftpDataTimeout?;
+    # Socket operation timeout in seconds (FTP only)
+    decimal ftpSocketTimeout?;
+    # SSH session timeout in seconds (SFTP only)
+    decimal sftpSessionTimeout?;
+};
+
+# Proxy configuration for SFTP connections.
+
+type ProxyConfiguration record {
+    # Proxy server hostname or IP address
+    string host;
+    # Proxy server port number
+    int port;
+    # Type of proxy (HTTP, SOCKS5, or STREAM)
+    ProxyType 'type?;
+    # Proxy authentication credentials
+    ProxyCredentials auth?;
+    # Proxy command for STREAM type (SFTP jump-host), e.g., `ssh -W %h:%p jumphost`
+    string command?;
+};
+
+# Proxy type for SFTP connections.
+enum ProxyType {
+    STREAM,
+    SOCKS5,
+    HTTP
+}
+
+# Proxy authentication credentials.
+
+type ProxyCredentials record {
+    # Proxy username
+    string username;
+    # Proxy password
+    string password;
+};
+
+# File transfer mode for FTP connections.
+enum FileTransferMode {
+    ASCII,
+    BINARY
+}
+
+# Compression algorithms for SFTP file transfers.
+enum TransferCompression {
+    NO,
+    ZLIBOPENSSH,
+    ZLIB
+}
+
+# Fail-safe options for CSV content processing.
+
+type FailSafeOptions record {
+    # Specifies the type of content to log in case of errors
+    ErrorLogContentType contentType?;
+};
+
+# Specifies the type of content to log in case of errors during fail-safe CSV processing.
+enum ErrorLogContentType {
+    RAW_AND_METADATA,
+    RAW,
+    METADATA
+}
+
+# Configuration for retry behavior on transient failures.
+# Enables automatic retry with exponential backoff for read operations.
+
+type RetryConfig record {
+    # Maximum number of retry attempts
+    int count?;
+    # Initial wait time in seconds between retries
+    decimal interval?;
+    # Multiplier applied to the wait interval after each retry (exponential backoff)
+    decimal backOffFactor?;
+    # Maximum wait time cap in seconds between retries
+    decimal maxWaitInterval?;
+};
+
+# Configuration for circuit breaker behavior.
+# The circuit breaker prevents cascade failures by temporarily blocking requests when the server is experiencing issues.
+
+type CircuitBreakerConfig record {
+    # Time window configuration for failure tracking
+    RollingWindow rollingWindow?;
+    # Failure ratio threshold (0.0 to 1.0) that trips the circuit open.
+For example, 0.5 means the circuit opens when 50% of requests fail
+    float failureThreshold?;
+    # Seconds to wait in OPEN state before transitioning to HALF_OPEN to test recovery
+    decimal resetTime?;
+    # Error categories that count as failures. Only errors matching these categories contribute to the failure ratio
+    FailureCategory[] failureCategories?;
+};
+
+# Configuration for the sliding time window used in failure calculation.
+# The rolling window divides time into discrete buckets for efficient tracking of request success/failure rates.
+
+type RollingWindow record {
+    # Minimum number of requests in the window before the circuit breaker evaluates the failure threshold.
+The circuit breaker will not trip until this many requests have been made
+    int requestVolumeThreshold?;
+    # Time period in seconds for the sliding window
+    decimal timeWindow?;
+    # Granularity of time buckets in seconds. Must be less than `timeWindow`
+    decimal bucketSize?;
+};
+
+# Categories of errors that can trip the circuit breaker.
+# Used to configure which types of failures should count towards the circuit breaker threshold.
+enum FailureCategory {
+    ALL_ERRORS,
+    TRANSIENT_ERROR,
+    AUTHENTICATION_ERROR,
+    CONNECTION_ERROR
+}
+
+# Internal configuration for content to be written in put and append operations.
+
+type InputContent record {
+    # Path of the file to be created or appended
+    string filePath;
+    # `true` if the input type is a file stream
+    boolean isFile?;
+    # Content read from the input file stream
+    stream<byte[] & readonly, ballerina/io:1.8.1:Error?> fileContent?;
+    # Input content as text
+    string textContent?;
+    # If `true`, input will be compressed before uploading
+    boolean compressInput?;
+};
+
+// Unknown type: Error
+
+// Unknown type: ConnectionError
+
+// Unknown type: FileNotFoundError
+
+// Unknown type: FileAlreadyExistsError
+
+// Unknown type: InvalidConfigError
+
+// Unknown type: ServiceUnavailableError
+
+# Detail record for ContentBindingError providing additional context about the binding failure.
+
+type ContentBindingErrorDetail record {
+    # The file path that caused the error
+    string filePath?;
+    # The raw file content as bytes that failed to bind
+    byte[] content?;
+};
+
+// Unknown type: ContentBindingError
+
+// Unknown type: AllRetryAttemptsFailedError
+
+// Unknown type: CircuitBreakerOpenError
+
+# Metadata about a file or directory on the FTP server.
+
+type FileInfo record {
+    # Relative file path
+    string path;
+    # Size of the file in bytes
+    int size;
+    # Last-modified timestamp in UNIX Epoch time
+    int lastModifiedTimestamp;
+    # File name (without path)
+    string name;
+    # `true` if the resource is a directory
+    boolean isFolder;
+    # `true` if the resource is a regular file
+    boolean isFile;
+    # Normalized absolute path within the file system
+    string pathDecoded;
+    # File name extension (e.g., `txt`, `pdf`)
+    string extension;
+    # File URI formatted for public display
+    string publicURIString;
+    # MIME type or file classification
+    string fileType;
+    # `true` if the file object is currently attached
+    boolean isAttached;
+    # `true` if the file is currently being read or written
+    boolean isContentOpen;
+    # `true` if the file has execute permissions
+    boolean isExecutable;
+    # `true` if the file is marked as hidden
+    boolean isHidden;
+    # `true` if the file has read permissions
+    boolean isReadable;
+    # `true` if the file has write permissions
+    boolean isWritable;
+    # Directory nesting level within the file system
+    int depth;
+    # URI scheme (e.g., `ftp`, `sftp`)
+    string scheme;
+    # Absolute URI of the file
+    string uri;
+    # Root URI of the file system
+    string rootURI;
+    # Access path that does not require authentication
+    string friendlyURI;
+};
+
+# File system changes detected by the FTP listener in a polling cycle.
+
+type WatchEvent record {
+    # Array of newly added files
+    FileInfo[] addedFiles;
+    # Array of deleted file names
+    string[] deletedFiles;
+};
+
+# Configuration for the FTP listener.
+
+type ListenerConfiguration record {
+    # Protocol to use for the connection: FTP (unsecure), SFTP (over SSH), or FTPS (FTP over SSL/TLS)
+    Protocol protocol?;
+    # Target server hostname or IP address
+    string host?;
+    # Port number of the remote service
+    int port?;
+    # Authentication options for connecting to the server
+    AuthConfiguration auth?;
+    # Directory path on the FTP server to monitor for file changes.
+Deprecated: Use `@ftp:ServiceConfig` annotation on the service instead
+    @deprecated
+    string path?;
+    # File name pattern (regex) to filter which files trigger events.
+Deprecated: Use `@ftp:ServiceConfig` annotation on the service instead
+    @deprecated
+    string fileNamePattern?;
+    # Polling interval in seconds for checking file changes
+    decimal pollingInterval?;
+    # If `true`, treats the login home directory as the root (`/`) and prevents the underlying VFS from
+attempting to change to the actual server root. Set to `true` for chrooted/jailed environments
+    boolean userDirIsRoot?;
+    # Configuration for filtering files based on age.
+Deprecated: Use `@ftp:ServiceConfig` annotation on the service instead
+    @deprecated
+    FileAgeFilter fileAgeFilter?;
+    # Dependency conditions for conditional file processing.
+Deprecated: Use `@ftp:ServiceConfig` annotation on the service instead
+    @deprecated
+    FileDependencyCondition[] fileDependencyConditions?;
+    # If `true`, enables relaxed data binding: null values in JSON/XML map to optional fields,
+and missing fields map to null values
+    boolean laxDataBinding?;
+    # Connection timeout in seconds
+    decimal connectTimeout?;
+    # Socket timeout configurations
+    SocketConfig socketConfig?;
+    # Proxy configuration for SFTP connections (SFTP only)
+    ProxyConfiguration proxy?;
+    # File transfer mode: BINARY or ASCII (FTP only)
+    FileTransferMode fileTransferMode?;
+    # Compression algorithms to use (SFTP only)
+    TransferCompression[] sftpCompression?;
+    # Path to SSH known_hosts file (SFTP only)
+    string sftpSshKnownHosts?;
+    # Configuration for fail-safe CSV content processing. In fail-safe mode,
+malformed CSV records are skipped and written to a separate file in the current directory
+    FailSafeOptions csvFailSafe?;
+    # Configuration for distributed task coordination. When configured, only one member
+in the group actively polls while others act as warm standby
+    CoordinationConfig coordination?;
+    # Configuration for retry behavior when retrieving file content from the server.
+When configured, transient failures during file retrieval are automatically retried
+with exponential backoff before the error is logged or otherwise handled
+    RetryConfig retryConfig?;
+};
+
+# Configuration for distributed task coordination.
+# When configured, multiple FTP listener members coordinate so that only one actively polls
+# while others act as warm standby members.
+
+type CoordinationConfig record {
+    # Database configuration used for task coordination state
+    task:DatabaseConfig databaseConfig?; // Special Agent Note: DatabaseConfig FROM ballerina/task package
+    # Interval in seconds to check the liveness of the active node
+    int livenessCheckInterval?;
+    # Unique identifier for this member. Must be distinct for each node in the distributed system
+    string memberId;
+    # Name of the coordination group. Use a unique name per group of listeners that coordinate together
+    string coordinationGroup;
+    # Interval in seconds for the node to update its heartbeat status
+    int heartbeatFrequency?;
+};
+
+# FTP service for handling file system change events.
+class Service {
+}
+
+// Unknown type: Listener
+
+// --- Client ---
+
+# FTP client for connecting to and managing FTP/SFTP servers.
+# Supports reading files in various formats (text, JSON, XML, CSV, bytes) and writing files with overwrite or append options.
+client class Client {
+    function init(ClientConfiguration clientConfig) returns ballerina/ftp:2.20.1:Error?;
+
+    # Retrieves the file content from a remote resource.
+    # ```ballerina
+    # stream<byte[] & readonly, io:Error?>|ftp:Error channel = client->get(path);
+    # ```
+    # 
+    @deprecated
+    remote function get(string path) returns stream<byte[] & readonly, ballerina/io:1.8.1:Error?>|Error;
+
+    # Retrieves the file content as bytes from a remote resource.
+    # ```ballerina
+    # byte[] content = check client->getBytes(path);
+    # ```
+    # 
+    remote function getBytes(string path) returns byte[]|Error;
+
+    # Retrieves the file content as text from a remote resource.
+    # ```ballerina
+    # string content = check client->getText(path);
+    # ```
+    # 
+    remote function getText(string path) returns string|Error;
+
+    # Retrieves the file content as JSON from a remote resource.
+    # ```ballerina
+    # json content = check client->getJson(path);
+    # ```
+    # 
+    remote function getJson(string path, json|record {|anydata...;|} targetType = json|record {|anydata...;|}) returns targetType|Error;
+
+    # Retrieves the file content as XML from a remote resource.
+    # ```ballerina
+    # xml content = check client->getXml(path);
+    # ```
+    # 
+    remote function getXml(string path, xml|record {|anydata...;|} targetType = xml|record {|anydata...;|}) returns targetType|Error;
+
+    # Retrieves the file content as CSV from a remote resource.
+    # When the expected data type is a custom type, the first entry of the CSV file should contain matching headers.
+    # ```ballerina
+    # string[][] content = check client->getCsv(path);
+    # ```
+    # 
+    remote function getCsv(string path, string[][]|record {|anydata...;|}[] targetType = string[][]|record {|anydata...;|}[]) returns targetType|Error;
+
+    # Retrieves the file content as a byte stream from a remote resource.
+    # ```ballerina
+    # stream<byte[], error?> response = check client->getBytesAsStream(path);
+    # ```
+    # 
+    remote function getBytesAsStream(string path) returns stream<byte[], error?>|Error;
+
+    # Retrieves the file content as a CSV stream from a remote resource.
+    # ```ballerina
+    # stream<string[], error?> response = check client->getCsvAsStream(path);
+    # ```
+    # 
+    remote function getCsvAsStream(string path, string[]|record {|anydata...;|} targetType = string[]|record {|anydata...;|}) returns stream<targetType, error?>|Error;
+
+    # Appends the content to an existing file in an FTP server.
+    # ```ballerina
+    # ftp:Error? response = client->append(path, channel);
+    # ```
+    # 
+    @deprecated
+    remote function append(string path, stream<byte[] & readonly, io:Error?>|string|xml|json content) returns Error|();
+
+    # Adds a file to an FTP server.
+    # ```ballerina
+    # ftp:Error? response = client->put(path, channel);
+    # ```
+    # 
+    @deprecated
+    remote function put(string path, stream<byte[] & readonly, io:Error?>|string|xml|json content, Compression compressionType = "NONE") returns Error|();
+
+    # Adds a byte array as a file to an FTP server with the specified write option.
+    # ```ballerina
+    # ftp:Error? response = client->putBytes(path, content, option);
+    # ```
+    # 
+    remote function putBytes(string path, byte[] content, FileWriteOption option = "APPEND") returns Error|();
+
+    # Adds text content to a file on an FTP server with the specified write option.
+    # ```ballerina
+    # ftp:Error? response = client->putText(path, content, option);
+    # ```
+    # 
+    remote function putText(string path, string content, FileWriteOption option = "APPEND") returns Error|();
+
+    # Adds JSON content to a file on an FTP server with the specified write option.
+    # ```ballerina
+    # ftp:Error? response = client->putJson(path, content, option);
+    # ```
+    # 
+    remote function putJson(string path, json|record {|anydata...;|} content, FileWriteOption option = "APPEND") returns Error|();
+
+    # Adds XML content to a file on an FTP server with the specified write option.
+    # ```ballerina
+    # ftp:Error? response = client->putXml(path, content, option);
+    # ```
+    # 
+    remote function putXml(string path, xml|record {|anydata...;|} content, FileWriteOption option = "APPEND") returns Error|();
+
+    # Adds CSV content to a file on an FTP server with the specified write option.
+    # ```ballerina
+    # ftp:Error? response = client->putCsv(path, content, option);
+    # ```
+    # 
+    remote function putCsv(string path, string[][]|record {|anydata...;|}[] content, FileWriteOption option = "APPEND") returns Error|();
+
+    # Adds a byte stream as a file to an FTP server with the specified write option.
+    # ```ballerina
+    # ftp:Error? response = client->putBytesAsStream(path, content, option);
+    # ```
+    # 
+    remote function putBytesAsStream(string path, stream<byte[], error?> content, FileWriteOption option = "APPEND") returns Error|();
+
+    # Adds CSV content from a stream of elements to a file on an FTP server with the specified write option.
+    # ```ballerina
+    # ftp:Error? response = client->putCsvAsStream(path, content, option);
+    # ```
+    # 
+    remote function putCsvAsStream(string path, stream<string[]|record {|anydata...;|}, error?> content, FileWriteOption option = "APPEND") returns Error|();
+
+    # Creates a new directory in an FTP server.
+    # ```ballerina
+    # ftp:Error? response = client->mkdir(path);
+    # ```
+    # 
+    remote function mkdir(string path) returns Error|();
+
+    # Deletes an empty directory in an FTP server.
+    # ```ballerina
+    # ftp:Error? response = client->rmdir(path);
+    # ```
+    # 
+    remote function rmdir(string path) returns Error|();
+
+    # Renames a file or directory on an FTP server or moves it to a new location.
+    # ```ballerina
+    # ftp:Error? response = client->rename(origin, destination);
+    # ```
+    # 
+    remote function rename(string origin, string destination) returns Error|();
+
+    # Moves a file from one location to another on an FTP server.
+    # ```ballerina
+    # ftp:Error? response = client->move(sourcePath, destinationPath);
+    # ```
+    # 
+    remote function move(string sourcePath, string destinationPath) returns Error|();
+
+    # Copies a file from one location to another on an FTP server.
+    # ```ballerina
+    # ftp:Error? response = client->copy(sourcePath, destinationPath);
+    # ```
+    # 
+    remote function copy(string sourcePath, string destinationPath) returns Error|();
+
+    # Checks if a file or directory exists on an FTP server.
+    # ```ballerina
+    # boolean|ftp:Error response = client->exists(path);
+    # ```
+    # 
+    remote function exists(string path) returns boolean|Error;
+
+    # Gets the size of a file on an FTP server.
+    # ```ballerina
+    # int|ftp:Error response = client->size(path);
+    # ```
+    # 
+    remote function size(string path) returns int|Error;
+
+    # Lists files and directories in a folder on an FTP server.
+    # ```ballerina
+    # ftp:FileInfo[]|ftp:Error response = client->list(path);
+    # ```
+    # 
+    remote function list(string path) returns FileInfo[]|Error;
+
+    # Checks if a given resource is a directory on an FTP server.
+    # ```ballerina
+    # boolean|ftp:Error response = client->isDirectory(path);
+    # ```
+    # 
+    remote function isDirectory(string path) returns boolean|Error;
+
+    # Deletes a file from an FTP server.
+    # ```ballerina
+    # ftp:Error? response = client->delete(path);
+    # ```
+    # 
+    remote function delete(string path) returns Error|();
+
+    # Closes the FTP client connection.
+    # ```ballerina
+    # ftp:Error? response = client->close();
+    # ```
+    # 
+    remote function close() returns Error|();
+}
+
+# FTP caller for interacting with FTP/SFTP servers from within file handlers.
+# Provides the same file operations as the Client class.
+client class Caller {
+    function init(Client 'client) returns ();
+
+    # Retrieves the file content from a remote resource.
+    # ```ballerina
+    # stream<byte[] & readonly, io:Error?>|ftp:Error channel = caller->get(path);
+    # ```
+    # 
+    @deprecated
+    remote function get(string path) returns stream<byte[] & readonly, ballerina/io:1.8.1:Error?>|Error;
+
+    # Retrieves the file content as bytes from a remote resource.
+    # ```ballerina
+    # byte[] content = check caller->getBytes(path);
+    # ```
+    # 
+    remote function getBytes(string path) returns byte[]|Error;
+
+    # Retrieves the file content as text from a remote resource.
+    # ```ballerina
+    # string content = check caller->getText(path);
+    # ```
+    # 
+    remote function getText(string path) returns string|Error;
+
+    # Retrieves the file content as JSON from a remote resource.
+    # ```ballerina
+    # json content = check caller->getJson(path);
+    # ```
+    # 
+    remote function getJson(string path, json|record {|anydata...;|} targetType = json|record {|anydata...;|}) returns targetType|Error;
+
+    # Retrieves the file content as XML from a remote resource.
+    # ```ballerina
+    # xml content = check caller->getXml(path);
+    # ```
+    # 
+    remote function getXml(string path, xml|record {|anydata...;|} targetType = xml|record {|anydata...;|}) returns targetType|Error;
+
+    # Retrieves the file content as CSV from a remote resource.
+    # When the expected data type is a custom type, the first entry of the CSV file should contain matching headers.
+    # ```ballerina
+    # string[][] content = check caller->getCsv(path);
+    # ```
+    # 
+    remote function getCsv(string path, string[][]|record {|anydata...;|}[] targetType = string[][]|record {|anydata...;|}[]) returns targetType|Error;
+
+    # Retrieves the file content as a byte stream from a remote resource.
+    # ```ballerina
+    # stream<byte[], error?> response = check caller->getBytesAsStream(path);
+    # ```
+    # 
+    remote function getBytesAsStream(string path) returns stream<byte[], error?>|Error;
+
+    # Retrieves the file content as a CSV stream from a remote resource.
+    # ```ballerina
+    # stream<string[], error?> response = check caller->getCsvAsStream(path);
+    # ```
+    # 
+    remote function getCsvAsStream(string path, string[]|record {|anydata...;|} targetType = string[]|record {|anydata...;|}) returns stream<targetType, error?>|Error;
+
+    # Appends the content to an existing file in an FTP server.
+    # ```ballerina
+    # ftp:Error? response = caller->append(path, channel);
+    # ```
+    # 
+    @deprecated
+    remote function append(string path, stream<byte[] & readonly, io:Error?>|string|xml|json content) returns Error|();
+
+    # Adds a file to an FTP server.
+    # ```ballerina
+    # ftp:Error? response = caller->put(path, channel);
+    # ```
+    # 
+    @deprecated
+    remote function put(string path, stream<byte[] & readonly, io:Error?>|string|xml|json content, Compression compressionType = "NONE") returns Error|();
+
+    # Adds a byte array as a file to an FTP server with the specified write option.
+    # ```ballerina
+    # ftp:Error? response = caller->putBytes(path, content, option);
+    # ```
+    # 
+    remote function putBytes(string path, byte[] content, FileWriteOption option = "APPEND") returns Error|();
+
+    # Adds text content to a file on an FTP server with the specified write option.
+    # ```ballerina
+    # ftp:Error? response = caller->putText(path, content, option);
+    # ```
+    # 
+    remote function putText(string path, string content, FileWriteOption option = "APPEND") returns Error|();
+
+    # Adds JSON content to a file on an FTP server with the specified write option.
+    # ```ballerina
+    # ftp:Error? response = caller->putJson(path, content, option);
+    # ```
+    # 
+    remote function putJson(string path, json|record {|anydata...;|} content, FileWriteOption option = "APPEND") returns Error|();
+
+    # Adds XML content to a file on an FTP server with the specified write option.
+    # ```ballerina
+    # ftp:Error? response = caller->putXml(path, content, option);
+    # ```
+    # 
+    remote function putXml(string path, xml|record {|anydata...;|} content, FileWriteOption option = "APPEND") returns Error|();
+
+    # Adds CSV content to a file on an FTP server with the specified write option.
+    # ```ballerina
+    # ftp:Error? response = caller->putCsv(path, content, option);
+    # ```
+    # 
+    remote function putCsv(string path, string[][]|record {|anydata...;|}[] content, FileWriteOption option = "APPEND") returns Error|();
+
+    # Adds a byte stream as a file to an FTP server with the specified write option.
+    # ```ballerina
+    # ftp:Error? response = caller->putBytesAsStream(path, content, option);
+    # ```
+    # 
+    remote function putBytesAsStream(string path, stream<byte[], error?> content, FileWriteOption option = "APPEND") returns Error|();
+
+    # Adds CSV content from a stream of elements to a file on an FTP server with the specified write option.
+    # ```ballerina
+    # ftp:Error? response = caller->putCsvAsStream(path, content, option);
+    # ```
+    # 
+    remote function putCsvAsStream(string path, stream<string[]|record {|anydata...;|}, error?> content, FileWriteOption option = "APPEND") returns Error|();
+
+    # Creates a new directory in an FTP server.
+    # ```ballerina
+    # ftp:Error? response = caller->mkdir(path);
+    # ```
+    # 
+    remote function mkdir(string path) returns Error|();
+
+    # Deletes an empty directory in an FTP server.
+    # ```ballerina
+    # ftp:Error? response = caller->rmdir(path);
+    # ```
+    # 
+    remote function rmdir(string path) returns Error|();
+
+    # Renames a file or directory on an FTP server or moves it to a new location.
+    # ```ballerina
+    # ftp:Error? response = caller->rename(origin, destination);
+    # ```
+    # 
+    remote function rename(string origin, string destination) returns Error|();
+
+    # Moves a file from one location to another on an FTP server.
+    # ```ballerina
+    # ftp:Error? response = caller->move(sourcePath, destinationPath);
+    # ```
+    # 
+    remote function move(string sourcePath, string destinationPath) returns Error|();
+
+    # Copies a file from one location to another on an FTP server.
+    # ```ballerina
+    # ftp:Error? response = caller->copy(sourcePath, destinationPath);
+    # ```
+    # 
+    remote function copy(string sourcePath, string destinationPath) returns Error|();
+
+    # Checks if a file or directory exists on an FTP server.
+    # ```ballerina
+    # boolean|ftp:Error response = caller->exists(path);
+    # ```
+    # 
+    remote function exists(string path) returns boolean|Error;
+
+    # Gets the size of a file on an FTP server.
+    # ```ballerina
+    # int|ftp:Error response = caller->size(path);
+    # ```
+    # 
+    remote function size(string path) returns int|Error;
+
+    # Lists files and directories in a folder on an FTP server.
+    # ```ballerina
+    # ftp:FileInfo[]|ftp:Error response = caller->list(path);
+    # ```
+    # 
+    remote function list(string path) returns FileInfo[]|Error;
+
+    # Checks if a given resource is a directory on an FTP server.
+    # ```ballerina
+    # boolean|ftp:Error response = caller->isDirectory(path);
+    # ```
+    # 
+    remote function isDirectory(string path) returns boolean|Error;
+
+    # Deletes a file from an FTP server.
+    # ```ballerina
+    # ftp:Error? response = caller->delete(path);
+    # ```
+    # 
+    remote function delete(string path) returns Error|();
+}
+
+// --- Service ---
+
+service ftp:Service on new ftp:Listener(ListenerConfiguration listenerConfig = {}) {
+    # Triggered when a CSV file is added to the monitored FTP location. Supports raw 2D string arrays, data binding to custom record types, and streaming for large files
+    remote function onFileCsv(string[][] content, FileInfo fileInfo, Caller caller) returns error?;
+
+    # Triggered when a JSON file is added to the monitored FTP location. Supports raw json or data binding to custom record types
+    remote function onFileJson(json content, FileInfo fileInfo, Caller caller) returns error?;
+
+    # Triggered when an XML file is added to the monitored FTP location
+    remote function onFileXml(xml content, FileInfo fileInfo, Caller caller) returns error?;
+
+    # Triggered when a text file is added to the monitored FTP location
+    remote function onFileText(string content, FileInfo fileInfo, Caller caller) returns error?;
+
+    # Triggered when any file is added to the monitored FTP location. Supports raw byte arrays and streaming for large binary files
+    remote function onFile(byte[] content, FileInfo fileInfo, Caller caller) returns error?;
+
+    # Triggered when a file is deleted from the monitored FTP location
+    remote function onFileDelete(string deletedFile, Caller caller) returns error?;
+
+    # Triggered when an error occurs during file processing. Implement this to handle failures gracefully
+    remote function onError(Error ftpError, Caller caller) returns error?;
+}
+
+// --- Annotations ---
+
+# Define service-level configuration such as the FTP directory path to monitor
+public annotation FtpServiceConfig ServiceConfig on service;
+
+# Configure pre/post processing actions on the file (e.g., move or delete the file after processing)
+public annotation FtpFunctionConfig FunctionConfig on service_function;

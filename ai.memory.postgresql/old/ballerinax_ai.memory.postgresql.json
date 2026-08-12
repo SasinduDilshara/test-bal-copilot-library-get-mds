@@ -1,0 +1,555 @@
+{
+  "name": "ballerinax/ai.memory.postgresql",
+  "description": "",
+  "readme": "## Overview\n\nThis module provides a PostgreSQL-backed short-term memory store to use with AI messages (e.g., with AI agents, model providers, etc.).\n\n### Key Features\n\n- PostgreSQL-backed persistent storage for short-term AI message memory\n- Configurable per-key capacity, surfaced via `getCapacity()` and `isFull()` for the `ai:ShortTermMemory` overflow handler to manage trimming\n- Support for both direct database configuration and existing PostgreSQL client reuse\n\n## Prerequisites\n\n- Configuration for a PostgreSQL database\n\n## Quickstart\n\nFollow the steps below to use this store in your Ballerina application:\n\n1. Import the `ballerinax/ai.memory.postgresql` module.\n\n```ballerina\nimport ballerinax/ai.memory.postgresql;\n```\n\nOptionally, import the `ballerina/ai` and/or `ballerinax/postgresql` module(s).\n\n```ballerina\nimport ballerina/ai;\nimport ballerinax/postgresql;\n```\n\n2. Create the short-term memory store, by passing either the configuration for the database or a `postgresql:Client` client.\n\n    i. Using the configuration\n\n    ```ballerina\n    import ballerina/ai;\n    import ballerinax/ai.memory.postgresql;\n\n    configurable string host \u003d ?;\n    configurable string username \u003d ?;\n    configurable string password \u003d ?;\n    configurable string database \u003d ?;\n\n    ai:ShortTermMemoryStore store \u003d check new postgresql:ShortTermMemoryStore({\n        host, username, password, database\n    });\n    ```\n\n    ii. Using a `postgresql:Client` client\n\n    ```ballerina\n    import ballerina/ai;\n    import ballerinax/postgresql;\n    import ballerinax/ai.memory.postgresql as postgresqlStore;\n\n    configurable string host \u003d ?;\n    configurable string username \u003d ?;\n    configurable string password \u003d ?;\n    configurable string database \u003d ?;\n\n    postgresql:Client postgresqlClient \u003d check new (host \u003d host, username \u003d username, password \u003d password, database \u003d database);\n    ai:ShortTermMemoryStore store \u003d check new postgresqlStore:ShortTermMemoryStore(postgresqlClient);\n    ```\n\n    Optionally, specify the per-key message capacity (`maxMessagesPerKey` - defaults to `20`) and/or the table name (`tableName` - defaults to `\"chat_messages\"`).\n\n    \u003e **Note**: `maxMessagesPerKey` is an advisory capacity reported via `getCapacity()`/`isFull()`. The store does not reject messages that exceed it; trimming is performed by the `ai:ShortTermMemory` overflow handler.\n\n    ```ballerina\n    ai:ShortTermMemoryStore store \u003d check new postgresql:ShortTermMemoryStore({\n        host, username, password, database\n    }, 10);\n    ```\n\n\u003e **Note on table naming**: PostgreSQL folds unquoted identifiers to lower case. The default table name `chat_messages` and the validation regex (`^[A-Za-z_][A-Za-z0-9_]*$`) keep things simple — any value supplied via the `tableName` argument is inlined unquoted into SQL and will therefore be lowercased by PostgreSQL.\n\n## Schema\n\nOn initialization, the store creates the following objects in the connected database (using `CREATE … IF NOT EXISTS`, so it is safe to re-run):\n\n```sql\nCREATE TABLE chat_messages (\n    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n    message_key TEXT NOT NULL,\n    message_role TEXT NOT NULL CHECK (message_role IN (\u0027user\u0027, \u0027system\u0027, \u0027assistant\u0027, \u0027function\u0027)),\n    message_json TEXT NOT NULL,\n    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()\n);\n\nCREATE INDEX chat_messages_key_id_idx\n    ON chat_messages (message_key, id);\n\nCREATE UNIQUE INDEX chat_messages_system_uidx\n    ON chat_messages (message_key) WHERE message_role \u003d \u0027system\u0027;\n```\n\nMessages are ordered by the monotonically-increasing `id` column. The `created_at` column is identical for all rows inserted within a single transaction (such as a batch insert from `put` with multiple messages), so it cannot be relied on for ordering; `id` is used instead.\n\nThe partial unique index enforces the \"at most one system message per key\" invariant and powers the upsert via `INSERT … ON CONFLICT … DO UPDATE`.\n",
+  "typeDefs": [
+    {
+      "name": "Error",
+      "description": "Represents a distinct error type for memory store errors.",
+      "type": "Error"
+    },
+    {
+      "name": "DatabaseConfiguration",
+      "description": "Database configuration for the PostgreSQL client.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "host",
+          "description": "Database host",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "username",
+          "description": "Database username",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "password",
+          "description": "Database password",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "database",
+          "description": "Database name",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "port",
+          "description": "Database port",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "options",
+          "description": "Additional options for the PostgreSQL client",
+          "type": {
+            "name": "Options",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Options",
+                "libraryName": "ballerinax/postgresql"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "connectionPool",
+          "description": "Connection pool configuration",
+          "type": {
+            "name": "ConnectionPool",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ConnectionPool",
+                "libraryName": "ballerina/sql"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ShortTermMemoryStore",
+      "description": "Initializes the PostgreSQL-backed short-term memory store.\n",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes the PostgreSQL-backed short-term memory store.\n",
+          "parameters": [
+            {
+              "name": "dbConnection",
+              "description": "The PostgreSQL client or database configuration to connect to the database",
+              "type": {
+                "name": "DatabaseConfiguration|Client",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "DatabaseConfiguration"
+                  },
+                  {
+                    "category": "external",
+                    "recordName": "Client",
+                    "libraryName": "ballerinax/postgresql"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "maxMessagesPerKey",
+              "description": "The maximum number of interactive messages to store per key",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "20"
+            },
+            {
+              "name": "tableName",
+              "description": "The name of the database table to store chat messages (default: \"chat_messages\").\nMust start with a letter or underscore and contain only letters, digits, and underscores.\nNote that PostgreSQL folds unquoted identifiers to lower case.",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"chat_messages\""
+            },
+            {
+              "name": "checkpointTableName",
+              "description": "The name of the database table to store human-in-the-loop pause\ncheckpoints (default: \"checkpoints\"), created lazily on first use rather than\nat initialization. Must start with a letter or underscore and contain only letters, digits,\nand underscores. Note that PostgreSQL folds unquoted identifiers to lower case.",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"checkpoints\""
+            }
+          ],
+          "return": {
+            "description": "An error if the initialization fails",
+            "type": {
+              "name": "ballerinax/ai.memory.postgresql:1.0.0:Error?"
+            }
+          }
+        },
+        {
+          "name": "getChatSystemMessage",
+          "type": "Normal Function",
+          "description": "Retrieves the system message, if it was provided, for a given key.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "The key associated with the memory",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "A copy of the message if it was specified, nil if it was not, or an\n`Error` error if the operation fails",
+            "type": {
+              "name": "ChatSystemMessage|Error|()",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "ChatSystemMessage",
+                  "libraryName": "ballerina/ai"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "getChatInteractiveMessages",
+          "type": "Normal Function",
+          "description": "Retrieves all stored interactive chat messages (i.e., all chat messages except the system\nmessage) for a given key.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "The key associated with the memory",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "A copy of the messages, or an `Error` error if the operation fails",
+            "type": {
+              "name": "ChatInteractiveMessage[]|Error",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "ChatInteractiveMessage",
+                  "libraryName": "ballerina/ai"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "getAll",
+          "type": "Normal Function",
+          "description": "Retrieves all stored chat messages for a given key.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "The key associated with the memory",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "A copy of the messages, or an `Error` error if the operation fails",
+            "type": {
+              "name": "[ballerina/ai:1.13.0:ChatSystemMessage, ballerina/ai:1.13.0:ChatInteractiveMessage...]|ChatInteractiveMessage[]|Error",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "ChatInteractiveMessage",
+                  "libraryName": "ballerina/ai"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "put",
+          "type": "Normal Function",
+          "description": "Adds one or more chat messages to the memory store for a given key.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "The key associated with the memory",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "message",
+              "description": "The `ChatMessage` message or messages to store",
+              "type": {
+                "name": "ChatUserMessage|ChatSystemMessage|ChatAssistantMessage|ChatFunctionMessage|ChatMessage[]",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ChatUserMessage",
+                    "libraryName": "ballerina/ai"
+                  },
+                  {
+                    "category": "external",
+                    "recordName": "ChatSystemMessage",
+                    "libraryName": "ballerina/ai"
+                  },
+                  {
+                    "category": "external",
+                    "recordName": "ChatAssistantMessage",
+                    "libraryName": "ballerina/ai"
+                  },
+                  {
+                    "category": "external",
+                    "recordName": "ChatFunctionMessage",
+                    "libraryName": "ballerina/ai"
+                  },
+                  {
+                    "category": "external",
+                    "recordName": "ChatMessage",
+                    "libraryName": "ballerina/ai"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "nil on success, or an `Error` if the operation fails",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "removeChatSystemMessage",
+          "type": "Normal Function",
+          "description": "Removes the system chat message, if specified, for a given key.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "The key associated with the memory",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "nil on success or if there is no system chat message against the key,\nor an `Error` error if the operation fails",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "removeChatInteractiveMessages",
+          "type": "Normal Function",
+          "description": "Removes all stored interactive chat messages (i.e., all chat messages except the system\nmessage) for a given key.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "The key associated with the memory",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "count",
+              "description": "Optional number of messages to remove, starting from the first interactive message in;\nif not provided, removes all messages",
+              "type": {
+                "name": "int|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "nil on success, or an `Error` error if the operation fails",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "removeAll",
+          "type": "Normal Function",
+          "description": "Removes all stored chat messages for a given key, including any pending human-in-the-loop\napproval checkpoint for that key, so clearing a session is atomic and an abandoned pause\ndoes not retain its whole history snapshot indefinitely.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "The key associated with the memory",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "nil on success, or an `Error` error if the operation fails",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "isFull",
+          "type": "Normal Function",
+          "description": "Checks if the memory store is full for a given key.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "The key associated with the memory",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "true if the memory store is full, false otherwise, or an `Error` error if the operation fails",
+            "type": {
+              "name": "boolean|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "getCapacity",
+          "type": "Normal Function",
+          "description": "Retrieves the maximum number of interactive messages that can be stored for each key.\n",
+          "parameters": [],
+          "return": {
+            "description": "The configured capacity of the message store per key",
+            "type": {
+              "name": "int"
+            }
+          }
+        },
+        {
+          "name": "putCheckpoint",
+          "type": "Normal Function",
+          "description": "Stores (or replaces) the pending human-in-the-loop approval for its session.\n",
+          "parameters": [
+            {
+              "name": "approval",
+              "description": "The pending approval to persist",
+              "type": {
+                "name": "PendingApproval",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "PendingApproval",
+                    "libraryName": "ballerina/ai"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "nil on success, or an `Error` if the operation fails",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "getCheckpoint",
+          "type": "Normal Function",
+          "description": "Returns the pending human-in-the-loop approval for a session, if any.\n",
+          "parameters": [
+            {
+              "name": "sessionId",
+              "description": "The session to look up",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "The pending approval, nil if none is pending, or an `Error` if the operation fails",
+            "type": {
+              "name": "PendingApproval|()|Error",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "PendingApproval",
+                  "libraryName": "ballerina/ai"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "removeCheckpoint",
+          "type": "Normal Function",
+          "description": "Removes the pending human-in-the-loop approval for a session, if any.\n",
+          "parameters": [
+            {
+              "name": "sessionId",
+              "description": "The session to clear",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "nil on success, or an `Error` if the operation fails",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "takeCheckpoint",
+          "type": "Normal Function",
+          "description": "Fetches and removes the pending human-in-the-loop approval for a session.\n",
+          "parameters": [
+            {
+              "name": "sessionId",
+              "description": "The session to claim",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "The claimed pending approval, nil if none was pending, or an `Error` if the operation fails",
+            "type": {
+              "name": "PendingApproval|()|Error",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "PendingApproval",
+                  "libraryName": "ballerina/ai"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "clients": [],
+  "functions": [],
+  "services": [],
+  "annotations": []
+}

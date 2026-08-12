@@ -1,0 +1,212 @@
+{
+  "name": "ballerinax/ai.milvus",
+  "description": "The Ballerina Milvus vector store module provides a comprehensive API for integrating with Milvus vector database, enabling efficient storage, retrieval, and management of high-dimensional vectors. This module implements the Ballerina AI `VectorStore` interface and supports multiple vector search algorithms including dense, sparse, and hybrid vector search modes.",
+  "readme": "## Overview\r\n\r\nThe Ballerina Milvus vector store module provides a comprehensive API for integrating with Milvus vector database, enabling efficient storage, retrieval, and management of high-dimensional vectors. This module implements the Ballerina AI `VectorStore` interface and supports multiple vector search algorithms including dense, sparse, and hybrid vector search modes.\r\n\r\n## Setup guide\r\n\r\nTo utilize the Milvus connector, you must have access to a running Milvus instance. You can use one of the following methods for that.\r\n\r\n### Option 1: Using Docker\r\n\r\n1. Make sure Docker is installed on your system.\r\n\r\n2. Use the following command to start a Milvus standalone instance in docker\r\n\r\n```bash\r\n# Download the installation script\r\n$ curl -sfL https://raw.githubusercontent.com/milvus-io/milvus/master/scripts/standalone_embed.sh -o standalone_embed.sh\r\n\r\n#Start the Docker container\r\n$ bash standalone_embed.sh start\r\n```\r\n\r\nFor detailed installation instructions, refer to the official Milvus documentation.\r\n\r\n- **Linux/macOS**: [Run Milvus in Docker](https://milvus.io/docs/install_standalone-docker.md)\r\n- **Windows**: [Run Milvus in Docker on Windows](https://milvus.io/docs/install_standalone-windows.md)\r\n\r\n### Option 2: Using Milvus Cloud by Zilliz\r\n\r\n[Zilliz Cloud](https://cloud.zilliz.com/) provides a fully managed Milvus service. Follow these steps to set up your cloud instance:\r\n\r\n1. **Sign up to Zilliz Cloud**: Visit [Zilliz Cloud](https://cloud.zilliz.com/) and create an account.\r\n\r\n   \u003cimg src\u003d\"https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-milvus/main/ballerina/resources/sign_up.png\" alt\u003d\"Zilliz Cloud Sign Up\" width\u003d\"60%\"\u003e\r\n\r\n2. **Set up your account**: Complete the account setup process with your details.\r\n\r\n   \u003cimg src\u003d\"https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-milvus/main/ballerina/resources/setup_account.png\" alt\u003d\"Account Setup\" width\u003d\"60%\"\u003e\r\n\r\n3. **Create a new cluster**: From the welcome page, select \"Create Cluster\" to start setting up your Milvus instance.\r\n\r\n   \u003cimg src\u003d\"https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-milvus/main/ballerina/resources/welcome_page.png\" alt\u003d\"Welcome Page\" width\u003d\"60%\"\u003e\r\n\r\n4. **Configure cluster details**: Provide the necessary configuration details for your cluster, including cluster name, cloud provider, and region.\r\n\r\n   \u003cimg src\u003d\"https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-milvus/main/ballerina/resources/create_cluster.png\" alt\u003d\"Create Cluster\" width\u003d\"60%\"\u003e\r\n\r\n5. **Download credentials**: Once your cluster is created, download the authentication credentials and connection details.\r\n\r\n   \u003cimg src\u003d\"https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-milvus/main/ballerina/resources/cluster_creation.png\" alt\u003d\"Cluster Creation Complete\" width\u003d\"60%\"\u003e\r\n\r\n6. **Generate API Key**: Navigate to the API Keys section in your cluster dashboard and generate an API key for authentication.\r\n\r\n## Quick Start\r\n\r\n### Step 1: Import the module\r\n\r\n```ballerina\r\nimport ballerina/ai;\r\nimport ballerinax/ai.milvus;\r\n```\r\n\r\n### Step 2: Initialize the Milvus vector store\r\n\r\n```ballerina\r\nai:VectorStore vectorStore \u003d check new milvus:VectorStore(\r\n    serviceUrl \u003d \"add-milvus-service-url\",\r\n    apiKey \u003d \"add-api-key\",\r\n    config \u003d {\r\n        collectionName: \"add-collection-name\"\r\n    }\r\n);\r\n```\r\n\r\n### Step 3: Invoke the operations\r\n\r\n```ballerina\r\nai:Error? result \u003d vectorStore.add(\r\n    [\r\n        {\r\n            id: \"1\",\r\n            embedding: [1.0, 2.0, 3.0],\r\n            chunk: {\r\n                \u0027type: \"text\", \r\n                content: \"This is a chunk\"\r\n            }\r\n        }\r\n    ]\r\n);\r\n\r\nai:VectorMatch[]|ai:Error matches \u003d vectorStore.query({\r\n    embedding: [1.1, 2.1, 3.1],\r\n    filters: {\r\n        // optional metadata filters\r\n    }\r\n});\r\n```\r\n\r\n## Examples\r\n\r\nThe Ballerina Milvus vector store module provides practical examples illustrating usage in various scenarios. Explore these [examples](https://github.com/ballerina-platform/module-ballerinax-ai.milvus/tree/main/examples).\r\n\r\n1. [Movie recommendation system](https://github.com/ballerina-platform/module-ballerinax-ai.milvus/tree/main/examples/movie-recommendation-system)\r\n   This example shows how to use Milvus vector store APIs to implement a movie recommendation system that stores movie embeddings and queries them to find similar movies based on vector similarity and metadata filtering.\r\n",
+  "typeDefs": [
+    {
+      "name": "Configuration",
+      "description": "Defines the configuration options for the Milvus vector store.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "collectionName",
+          "description": "The name of the collection to use for the vector store",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "chunkFieldName",
+          "description": "The name of the field to contain the chunk details",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "primaryKeyField",
+          "description": "The name of the field to contain the primary key",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "additionalFields",
+          "description": "Specifies the names of additional fields to include in the search results",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "VectorStore",
+      "description": "Initializes the Milvus vector store with the given configuration.\n",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes the Milvus vector store with the given configuration.\n",
+          "parameters": [
+            {
+              "name": "serviceUrl",
+              "description": "The URL of the Milvus service",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "apiKey",
+              "description": "The API key for the Milvus service",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "config",
+              "description": "The configuration for the Milvus vector store",
+              "type": {
+                "name": "Configuration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Configuration"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "httpConfig",
+              "description": "The HTTP configuration for the Milvus service",
+              "type": {
+                "name": "ConnectionConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ConnectionConfig",
+                    "libraryName": "ballerinax/milvus"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "description": "An error if the Milvus client initialization fails.",
+            "type": {
+              "name": "ballerina/ai:1.13.0:Error?"
+            }
+          }
+        },
+        {
+          "name": "add",
+          "type": "Normal Function",
+          "description": "Adds the given vector entries to the Milvus vector store.\n",
+          "parameters": [
+            {
+              "name": "entries",
+              "description": "An array of ai:VectorEntry values to be added",
+              "type": {
+                "name": "VectorEntry[]",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "VectorEntry",
+                    "libraryName": "ballerina/ai"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "An ai:Error if vector addition fails, else ()",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/ai"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "delete",
+          "type": "Normal Function",
+          "description": "Deletes vector entries from the store by their reference document ID.\n",
+          "parameters": [
+            {
+              "name": "ids",
+              "description": "One or more identifiers of the vector entries to delete",
+              "type": {
+                "name": "string|string[]"
+              }
+            }
+          ],
+          "return": {
+            "description": "An `ai:Error` if the deletion fails, otherwise `()` indicating success",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/ai"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "query",
+          "type": "Normal Function",
+          "description": "Queries Milvus using the provided embedding vector and returns the top matches.\n",
+          "parameters": [
+            {
+              "name": "query",
+              "description": "The query to search for. Should match the configured query mode",
+              "type": {
+                "name": "VectorStoreQuery",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "VectorStoreQuery",
+                    "libraryName": "ballerina/ai"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "A list of matching ai:VectorMatch values, or an ai:Error on failure",
+            "type": {
+              "name": "VectorMatch[]|Error",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "VectorMatch",
+                  "libraryName": "ballerina/ai"
+                },
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/ai"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "clients": [],
+  "functions": [],
+  "services": [],
+  "annotations": []
+}

@@ -1,0 +1,124 @@
+{
+  "name": "ballerinax/confluent.cavroserdes",
+  "description": "[Avro Serializer/Deserializer for Confluent Schema Registry](https://docs.confluent.io/platform/current/schema-registry/fundamentals/serdes-develop/serdes-avro.html) is an Avro serializer/deserializer designed to work with the Confluent Schema Registry. It is designed to not include the message schema in the message payload but instead includes the schema ID.",
+  "readme": "## Overview\n\n[Avro Serializer/Deserializer for Confluent Schema Registry](https://docs.confluent.io/platform/current/schema-registry/fundamentals/serdes-develop/serdes-avro.html) is an Avro serializer/deserializer designed to work with the Confluent Schema Registry. It is designed to not include the message schema in the message payload but instead includes the schema ID.\n\nThe Confluent Avro SerDes connector integrates with the Confluent Schema Registry for Avro serialization and deserialization.\n\n### Key Features\n\n- Serialize data to Avro format using Confluent Schema Registry\n- Deserialize Avro-encoded data back to structured types\n- Automatic schema ID management via Confluent Schema Registry\n- Seamless integration with Kafka producers and consumers\n\n## Quickstart\n\nTo use the Confluent schema registry connector in your Ballerina project, modify the `.bal` file as follows.\n\n### Step 1: Import the module\n\nImport the `ballerinax/confluent.cavroserdes` module into your Ballerina project.\n\n```ballerina\nimport ballerinax/confluent.cavroserdes;\n```\n\n### Step 2: Invoke the connector operation\n\nYou can now utilize the operations available within the connector. To instantiate a `cregistry:Client` instance refer to the guidelines [here](https://central.ballerina.io/ballerinax/confluent.cregistry/latest).\n\n```ballerina\npublic function main() returns error? {\n   cregistry:Client registry \u003d ; // instantiate a schema registry client\n\n   string schema \u003d string `\n      {\n         \"type\": \"int\",\n         \"name\" : \"value\", \n         \"namespace\": \"data\"\n      }`;\n\n   int value \u003d 1;\n   byte[] bytes \u003d check cavroserdes:serialize(registry, schema, value, \"subject\");\n   int number \u003d check cavroserdes:deserialize(registry, bytes);\n}\n```\n\n### Step 3: Run the Ballerina application\n\nUse the following command to compile and run the Ballerina program.\n\n```bash\nbal run\n```\n\n## Examples\n\nThe Ballerina Avro Serializer/Deserializer connector for Confluent Schema Registry provides practical examples illustrating usage in various scenarios. Explore these [examples](https://github.com/ballerina-platform/module-ballerinax-confluent.cavroserdes/tree/main/examples).\n\n1. [Kafka Avro producer](https://github.com/ballerina-platform/module-ballerinax-confluent.cavroserdes/tree/main/examples/kafka-avro-producer) - This example demonstrates how to publish Avro serialized data to a Kafka topic.\n\n2. [Kafka Avro consumer](https://github.com/ballerina-platform/module-ballerinax-confluent.cavroserdes/tree/main/examples/kafka-avro-consumer) - This guide demonstrates how to consume data in the correct format according to the Avro schema from a Kafka topic.\n",
+  "typeDefs": [
+    {
+      "name": "Error",
+      "description": "Represents any error related to the module.",
+      "type": "Error"
+    }
+  ],
+  "clients": [],
+  "functions": [
+    {
+      "name": "serialize",
+      "type": "Normal Function",
+      "description": "Serializes the given data according to the Avro format and registers the schema into the schema registry.\n",
+      "parameters": [
+        {
+          "name": "registry",
+          "description": "The schema registry client",
+          "type": {
+            "name": "Client",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Client",
+                "libraryName": "ballerinax/confluent.cregistry"
+              }
+            ]
+          }
+        },
+        {
+          "name": "schema",
+          "description": "The Avro schema",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "data",
+          "description": "The data to be serialized according to the schema",
+          "type": {
+            "name": "anydata"
+          }
+        },
+        {
+          "name": "subject",
+          "description": "The subject under which the schema should be registered",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "A `byte` array of the serialized data or else an `cavroserdes:Error`",
+        "type": {
+          "name": "byte[]|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "deserialize",
+      "type": "Normal Function",
+      "description": "Deserializes the given Avro serialized message to the given data type by retrieving the schema \nfrom the schema registry.\n",
+      "parameters": [
+        {
+          "name": "registry",
+          "description": "The schema registry client",
+          "type": {
+            "name": "Client",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Client",
+                "libraryName": "ballerinax/confluent.cregistry"
+              }
+            ]
+          }
+        },
+        {
+          "name": "data",
+          "description": "Avro serialized data which includes the schema id",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "targetType",
+          "description": "Default parameter use to infer the user specified type",
+          "type": {
+            "name": "anydata"
+          },
+          "optional": true,
+          "default": "anydata"
+        }
+      ],
+      "return": {
+        "description": "A deserialized data with the given type or else an `cavroserdes:Error`",
+        "type": {
+          "name": "targetType|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "targetType"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "services": [],
+  "annotations": []
+}

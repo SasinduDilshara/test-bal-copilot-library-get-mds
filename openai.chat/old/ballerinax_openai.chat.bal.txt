@@ -1,0 +1,970 @@
+// ============================================================
+// Library: ballerinax/openai.chat
+// [OpenAI](https://openai.com/), an AI research organization focused on creating friendly AI for humanity, offers the [OpenAI API](https://platform.openai.com/docs/api-reference/introduction) to access its powerful AI models for tasks like natural language processing and image generation.
+// ============================================================
+import ballerinax/openai.chat;
+
+// --- README ---
+## Overview
+
+[OpenAI](https://openai.com/) offers powerful AI models for tasks like natural language processing, audio transcription, and image generation.
+
+The OpenAI Chat connector offers APIs to connect and interact with the chat completion related endpoints of the OpenAI REST API, enabling seamless interaction with advanced GPT models for diverse conversational and text generation tasks.
+
+### Key Features
+- Integration with advanced GPT models including GPT-4o, GPT-4, and GPT-3.5
+- Support for structured chat completions and interactive dialogues
+- Efficient handling of conversational history and message roles
+- Secure communication with API key-based authentication
+- Simplified management of complex model parameters and response streams
+
+## Setup guide
+
+To use the OpenAI Connector, you must have access to the OpenAI API through an [OpenAI Platform account](https://platform.openai.com) and a project under it. If you do not have a OpenAI Platform account, you can sign up for one [here](https://platform.openai.com/signup).
+
+#### Create a OpenAI API Key
+
+1. Open the [OpenAI Platform Dashboard](https://platform.openai.com).
+
+2. Navigate to Dashboard -> API keys.
+<img src=https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-openai.chat/main/docs/setup/resources/navigate-api-key-dashboard.png alt="OpenAI Platform" style="width: 70%;">
+
+3. Click on the "Create new secret key" button.
+<img src=https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-openai.chat/main/docs/setup/resources/api-key-dashboard.png alt="OpenAI Platform" style="width: 70%;">
+
+4. Fill the details and click on Create secret key.
+<img src=https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-openai.chat/main/docs/setup/resources/create-new-secret-key.png alt="OpenAI Platform" style="width: 70%;">
+
+5. Store the API key securely to use in your application.
+<img src=https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-openai.chat/main/docs/setup/resources/saved-key.png alt="OpenAI Platform" style="width: 70%;">
+
+## Quickstart
+
+To use the `OpenAI Chat` connector in your Ballerina application, update the `.bal` file as follows:
+
+### Step 1: Import the module
+
+Import the `ballerinax/openai.chat` module.
+
+```ballerina
+import ballerinax/openai.chat;
+```
+
+### Step 2: Create a new connector instance
+
+Create a `chat:Client` with the obtained API Key and initialize the connector.
+
+```ballerina
+configurable string token = ?;
+
+final chat:Client openAIChat = check new ({
+    auth: {
+        token
+    }
+});
+```
+
+### Step 3: Invoke the connector operation
+
+Now, you can utilize the available connector operation.
+
+#### Create a chat completion
+
+```ballerina
+public function main() returns error? {
+    chat:CreateChatCompletionRequest request = {
+        model: "gpt-4o-mini",
+        messages: [
+            {
+                "role": "user",
+                "content": "What is Ballerina programming language?"
+            }
+        ]
+    };
+
+    chat:CreateChatCompletionResponse response =
+        check openAIChat->/chat/completions.post(request);
+}
+```
+
+#### Create a chat completion with a GPT-5 or other reasoning model
+
+GPT-5 and the o-series models do not accept the deprecated `max_tokens` field. Use `max_completion_tokens` instead, which bounds the reasoning tokens and the visible completion tokens together. These models additionally accept `reasoning_effort` and `verbosity`, and they take instructions through a `developer` message rather than a `system` message.
+
+```ballerina
+public function main() returns error? {
+    chat:CreateChatCompletionRequest request = {
+        model: "gpt-5-mini",
+        messages: [
+            {
+                "role": "developer",
+                "content": "You are a helpful assistant."
+            },
+            {
+                "role": "user",
+                "content": "What is Ballerina programming language?"
+            }
+        ],
+        max_completion_tokens: 2048,
+        reasoning_effort: "low",
+        verbosity: "low"
+    };
+
+    chat:CreateChatCompletionResponse response =
+        check openAIChat->/chat/completions.post(request);
+}
+```
+
+> **Note:** Reasoning tokens are billed as completion tokens and are reported separately in `response.usage.completion_tokens_details.reasoning_tokens`. Setting `max_completion_tokens` too low can exhaust the budget on reasoning alone, returning an empty message with `finish_reason` set to `"length"`.
+
+### Step 4: Run the Ballerina application
+
+```bash
+bal run
+```
+
+## Examples
+
+The `OpenAI Chat` connector provides practical examples illustrating usage in various scenarios. Explore these [examples](https://github.com/module-ballerinax-openai.chat/tree/main/examples/), covering the following use cases:
+
+1. [CLI assistant](https://github.com/ballerina-platform/module-ballerinax-openai.chat/tree/main/examples/cli-assistant) - Execute the user's task description by generating and running the appropriate command in the command line interface of their selected operating system.
+2. [Image to markdown document converter](https://github.com/ballerina-platform/module-ballerinax-openai.chat/tree/main/examples/image-to-markdown-converter) - Generate detailed markdown documentation based on the image content.
+
+// --- END README ---
+
+// --- Types ---
+
+# Output types that you would like the model to generate.
+# Most models are capable of generating text, which is the default:
+# 
+# `["text"]`
+# 
+# The `gpt-4o-audio-preview` model can also be used to
+# [generate audio](/docs/guides/audio). To request that this model generate
+# both text and audio responses, you can use:
+# 
+# `["text", "audio"]`
+type ResponseModalities ("text"|"audio")[]|();
+
+# High level guidance for the amount of context window space to use for the 
+# search. One of `low`, `medium`, or `high`. `medium` is the default.
+type WebSearchContextSize "low"|"medium"|"high";
+
+# Static predicted output content, such as the content of a text file that is
+# being regenerated.
+
+type PredictionContent record {
+    # The type of the predicted content you want to provide. This type is
+currently always `content`.
+    "content" 'type;
+    # The content that should be matched when generating a model response.
+If generated tokens would match this content, the entire model response
+can be returned much more quickly.
+    string|ChatCompletionRequestMessageContentPartText[] content;
+};
+
+# Learn about [text inputs](/docs/guides/text-generation).
+
+type ChatCompletionRequestMessageContentPartText record {
+    # The type of the content part.
+    "text" 'type;
+    # The text content.
+    string text;
+};
+
+# Options for streaming response. Only set this when you set `stream: true`.
+
+type ChatCompletionStreamOptions record {
+    # If set, an additional chunk will be streamed before the `data: [DONE]`
+message. The `usage` field on this chunk shows the token usage statistics
+for the entire request, and the `choices` field will always be an empty
+array.
+
+All other chunks will also include a `usage` field, but with a null
+value. **NOTE:** If the stream is interrupted, you may not receive the
+final usage chunk which contains the total token usage for the request.
+    boolean include_usage?;
+    # When true, stream obfuscation will be enabled. Stream obfuscation adds
+random characters to an `obfuscation` field on streaming delta events to
+normalize payload sizes as a mitigation to certain side-channel attacks.
+These obfuscation fields are included by default, but add a small amount
+of overhead to the data stream. You can set `include_obfuscation` to
+false to optimize for bandwidth if you trust the network links between
+your application and the OpenAI API.
+    boolean include_obfuscation?;
+};
+
+
+type ChatCompletionTokenLogprob record {
+    # The token.
+    string token;
+    # The log probability of this token, if it is within the top 20 most likely tokens. Otherwise, the value `-9999.0` is used to signify that the token is very unlikely.
+    decimal logprob;
+    # A list of integers representing the UTF-8 bytes representation of the token. Useful in instances where characters are represented by multiple tokens and their byte representations must be combined to generate the correct text representation. Can be `null` if there is no bytes representation for the token.
+    int[]? bytes;
+    # List of the most likely tokens and their log probability, at this token position. The number of entries may be fewer than the requested `top_logprobs`.
+    record {|string token; decimal logprob; int[]? bytes; anydata...;|}[] top_logprobs;
+};
+
+# Constrains the tools available to the model to a pre-defined set.
+
+type ChatCompletionAllowedTools record {
+    # Constrains the tools available to the model to a pre-defined set.
+
+`auto` allows the model to pick from among the allowed tools and generate a
+message.
+
+`required` requires the model to call one or more of the allowed tools.
+    "auto"|"required" mode;
+    # A list of tool definitions that the model should be allowed to call.
+
+For the Chat Completions API, the list of tool definitions might look like:
+```json
+[
+  { "type": "function", "function": { "name": "get_weather" } },
+  { "type": "function", "function": { "name": "get_time" } }
+]
+```
+    record {|anydata...;|}[] tools;
+};
+
+# Developer-provided instructions that the model should follow, regardless of
+# messages sent by the user. With o1 models and newer, `developer` messages
+# replace the previous `system` messages.
+
+type ChatCompletionRequestDeveloperMessage record {
+    # The contents of the developer message.
+    string|ChatCompletionRequestMessageContentPartText[] content;
+    # The role of the messages author, in this case `developer`.
+    "developer" role;
+    # An optional name for the participant. Provides the model information to differentiate between participants of the same role.
+    string name?;
+};
+
+# Developer-provided instructions that the model should follow, regardless of
+# messages sent by the user. With o1 models and newer, use `developer` messages
+# for this purpose instead.
+
+type ChatCompletionRequestSystemMessage record {
+    # The contents of the system message.
+    string|ChatCompletionRequestSystemMessageContentPart[] content;
+    # The role of the messages author, in this case `system`.
+    "system" role;
+    # An optional name for the participant. Provides the model information to differentiate between participants of the same role.
+    string name?;
+};
+
+
+type ChatCompletionRequestSystemMessageContentPart record {
+    # The type of the content part.
+    "text" 'type;
+    # The text content.
+    string text;
+};
+
+# Messages sent by an end user, containing prompts or additional context
+# information.
+
+type ChatCompletionRequestUserMessage record {
+    # The contents of the user message.
+    string|ChatCompletionRequestUserMessageContentPart[] content;
+    # The role of the messages author, in this case `user`.
+    "user" role;
+    # An optional name for the participant. Provides the model information to differentiate between participants of the same role.
+    string name?;
+};
+
+# Learn about [image inputs](/docs/guides/vision).
+
+type ChatCompletionRequestMessageContentPartImage record {
+    # The type of the content part.
+    "image_url" 'type;
+    ChatCompletionRequestMessageContentPartImageImageUrl image_url;
+};
+
+
+type ChatCompletionRequestMessageContentPartImageImageUrl record {
+    # Either a URL of the image or the base64 encoded image data.
+    string url;
+    # Specifies the detail level of the image. Learn more in the [Vision guide](/docs/guides/vision#low-or-high-fidelity-image-understanding).
+    "auto"|"low"|"high" detail?;
+};
+
+# Learn about [audio inputs](/docs/guides/audio).
+
+type ChatCompletionRequestMessageContentPartAudio record {
+    # The type of the content part. Always `input_audio`.
+    "input_audio" 'type;
+    ChatCompletionRequestMessageContentPartAudioInputAudio input_audio;
+};
+
+
+type ChatCompletionRequestMessageContentPartAudioInputAudio record {
+    # Base64 encoded audio data.
+    string data;
+    # The format of the encoded audio data. Currently supports "wav" and "mp3".
+    "wav"|"mp3" format;
+};
+
+# Learn about [file inputs](/docs/guides/text) for text generation.
+
+type ChatCompletionRequestMessageContentPartFile record {
+    # The type of the content part. Always `file`.
+    "file" 'type;
+    ChatCompletionRequestMessageContentPartFileFile file;
+};
+
+
+type ChatCompletionRequestMessageContentPartFileFile record {
+    # The name of the file, used when passing the file to the model as a 
+string.
+    string filename?;
+    # The base64 encoded file data, used when passing the file to the model 
+as a string.
+    string file_data?;
+    # The ID of an uploaded file to use as input.
+    string file_id?;
+};
+
+type ChatCompletionRequestUserMessageContentPart ballerinax/openai.chat:5.0.0:ChatCompletionRequestMessageContentPartText|ballerinax/openai.chat:5.0.0:ChatCompletionRequestMessageContentPartImage|ballerinax/openai.chat:5.0.0:ChatCompletionRequestMessageContentPartAudio|ballerinax/openai.chat:5.0.0:ChatCompletionRequestMessageContentPartFile;
+
+# Messages sent by the model in response to user messages.
+
+type ChatCompletionRequestAssistantMessage record {
+    # The contents of the assistant message. Required unless `tool_calls` or `function_call` is specified.
+    string|ChatCompletionRequestAssistantMessageContentPart[]|() content?;
+    # The refusal message by the assistant.
+    string? refusal?;
+    # The role of the messages author, in this case `assistant`.
+    "assistant" role;
+    # An optional name for the participant. Provides the model information to differentiate between participants of the same role.
+    string name?;
+    # Data about a previous audio response from the model.
+[Learn more](/docs/guides/audio).
+    ChatCompletionRequestAssistantMessageAudio|() audio?;
+    # The tool calls generated by the model, such as function calls.
+    ChatCompletionMessageToolCalls tool_calls?;
+    # Deprecated and replaced by `tool_calls`. The name and arguments of a function that should be called, as generated by the model.
+    ChatCompletionResponseMessageFunctionCall function_call?;
+};
+
+
+type ChatCompletionRequestMessageContentPartRefusal record {
+    # The type of the content part.
+    "refusal" 'type;
+    # The refusal message generated by the model.
+    string refusal;
+};
+
+type ChatCompletionRequestAssistantMessageContentPart ballerinax/openai.chat:5.0.0:ChatCompletionRequestMessageContentPartText|ballerinax/openai.chat:5.0.0:ChatCompletionRequestMessageContentPartRefusal;
+
+# Data about a previous audio response from the model.
+# [Learn more](/docs/guides/audio).
+
+type ChatCompletionRequestAssistantMessageAudio record {
+    # Unique identifier for a previous audio response from the model.
+    string id;
+};
+
+# A call to a function tool created by the model.
+
+type ChatCompletionMessageToolCall record {
+    # The ID of the tool call.
+    string id;
+    # The type of the tool. Currently, only `function` is supported.
+    "function" 'type;
+    # The function that the model called.
+    ChatCompletionMessageToolCallFunction 'function;
+};
+
+# The function that the model called.
+
+type ChatCompletionMessageToolCallFunction record {
+    # The name of the function to call.
+    string name;
+    # The arguments to call the function with, as generated by the model in JSON format. Note that the model does not always generate valid JSON, and may hallucinate parameters not defined by your function schema. Validate the arguments in your code before calling your function.
+    string arguments;
+};
+
+# A call to a custom tool created by the model.
+
+type ChatCompletionMessageCustomToolCall record {
+    # The ID of the tool call.
+    string id;
+    # The type of the tool. Always `custom`.
+    "custom" 'type;
+    # The custom tool that the model called.
+    ChatCompletionMessageCustomToolCallCustom custom;
+};
+
+# The custom tool that the model called.
+
+type ChatCompletionMessageCustomToolCallCustom record {
+    # The name of the custom tool to call.
+    string name;
+    # The input for the custom tool call generated by the model.
+    string input;
+};
+
+// Unknown type: ChatCompletionMessageToolCalls
+
+# Deprecated and replaced by `tool_calls`. The name and arguments of a function that should be called, as generated by the model.
+# 
+
+@deprecated
+type ChatCompletionResponseMessageFunctionCall record {
+    # The arguments to call the function with, as generated by the model in JSON format. Note that the model does not always generate valid JSON, and may hallucinate parameters not defined by your function schema. Validate the arguments in your code before calling your function.
+    string arguments;
+    # The name of the function to call.
+    string name;
+};
+
+
+type ChatCompletionRequestToolMessage record {
+    # The role of the messages author, in this case `tool`.
+    "tool" role;
+    # The contents of the tool message.
+    string|ChatCompletionRequestToolMessageContentPart[] content;
+    # Tool call that this message is responding to.
+    string tool_call_id;
+};
+
+
+type ChatCompletionRequestToolMessageContentPart record {
+    # The type of the content part.
+    "text" 'type;
+    # The text content.
+    string text;
+};
+
+
+@deprecated
+type ChatCompletionRequestFunctionMessage record {
+    # The role of the messages author, in this case `function`.
+    "function" role;
+    # The contents of the function message.
+    string? content;
+    # The name of the function to call.
+    string name;
+};
+
+type ChatCompletionRequestMessage ballerinax/openai.chat:5.0.0:ChatCompletionRequestDeveloperMessage|ballerinax/openai.chat:5.0.0:ChatCompletionRequestSystemMessage|ballerinax/openai.chat:5.0.0:ChatCompletionRequestUserMessage|ballerinax/openai.chat:5.0.0:ChatCompletionRequestAssistantMessage|ballerinax/openai.chat:5.0.0:ChatCompletionRequestToolMessage|ballerinax/openai.chat:5.0.0:ChatCompletionRequestFunctionMessage;
+
+# Constrains the verbosity of the model's response. Lower values will result in
+# more concise responses, while higher values will result in more verbose responses.
+# Currently supported values are `low`, `medium`, and `high`.
+type Verbosity "high"|()|"low"|"medium";
+
+# Specifies a tool the model should use. Use to force the model to call a specific custom tool.
+
+type ChatCompletionNamedToolChoiceCustom record {
+    # For custom tool calling, the type is always `custom`.
+    "custom" 'type;
+    ChatCompletionNamedToolChoiceCustomCustom custom;
+};
+
+
+type ChatCompletionNamedToolChoiceCustomCustom record {
+    # The name of the custom tool to call.
+    string name;
+};
+
+# Constrains the tools available to the model to a pre-defined set.
+
+type ChatCompletionAllowedToolsChoice record {
+    # Allowed tool configuration type. Always `allowed_tools`.
+    "allowed_tools" 'type;
+    # Constrains the tools available to the model to a pre-defined set.
+    ChatCompletionAllowedTools allowed_tools;
+};
+
+# Specifies a tool the model should use. Use to force the model to call a specific function.
+
+type ChatCompletionNamedToolChoice record {
+    # For function calling, the type is always `function`.
+    "function" 'type;
+    ChatCompletionNamedToolChoiceFunction 'function;
+};
+
+
+type ChatCompletionNamedToolChoiceFunction record {
+    # The name of the function to call.
+    string name;
+};
+
+# Controls which (if any) tool is called by the model.
+# `none` means the model will not call any tool and instead generates a message.
+# `auto` means the model can pick between generating a message or calling one or more tools.
+# `required` means the model must call one or more tools.
+# Specifying a particular tool via `{"type": "function", "function": {"name": "my_function"}}` forces the model to call that tool.
+# 
+# `none` is the default when no tools are present. `auto` is the default if tools are present.
+type ChatCompletionToolChoiceOption ballerinax/openai.chat:5.0.0:ChatCompletionAllowedToolsChoice|ballerinax/openai.chat:5.0.0:ChatCompletionNamedToolChoice|ballerinax/openai.chat:5.0.0:ChatCompletionNamedToolChoiceCustom|"none"|"auto"|"required";
+
+# Provides a set of configurations for controlling the behaviours when communicating with a remote HTTP endpoint.
+
+type ConnectionConfig record {
+    # Configurations related to client authentication
+    http:BearerTokenConfig auth; // Special Agent Note: BearerTokenConfig FROM ballerina/http package
+    # The HTTP version understood by the client
+    http:HttpVersion httpVersion?; // Special Agent Note: HttpVersion FROM ballerina/http package
+    # Configurations related to HTTP/1.x protocol
+    http:ClientHttp1Settings http1Settings?; // Special Agent Note: ClientHttp1Settings FROM ballerina/http package
+    # Configurations related to HTTP/2 protocol
+    http:ClientHttp2Settings http2Settings?; // Special Agent Note: ClientHttp2Settings FROM ballerina/http package
+    # The maximum time to wait (in seconds) for a response before closing the connection
+    decimal timeout?;
+    # The choice of setting `forwarded`/`x-forwarded` header
+    string forwarded?;
+    # Configurations associated with Redirection
+    http:FollowRedirects followRedirects?; // Special Agent Note: FollowRedirects FROM ballerina/http package
+    # Configurations associated with request pooling
+    http:PoolConfiguration poolConfig?; // Special Agent Note: PoolConfiguration FROM ballerina/http package
+    # HTTP caching related configurations
+    http:CacheConfig cache?; // Special Agent Note: CacheConfig FROM ballerina/http package
+    # Specifies the way of handling compression (`accept-encoding`) header
+    http:Compression compression?; // Special Agent Note: Compression FROM ballerina/http package
+    # Configurations associated with the behaviour of the Circuit Breaker
+    http:CircuitBreakerConfig circuitBreaker?; // Special Agent Note: CircuitBreakerConfig FROM ballerina/http package
+    # Configurations associated with retrying
+    http:RetryConfig retryConfig?; // Special Agent Note: RetryConfig FROM ballerina/http package
+    # Configurations associated with cookies
+    http:CookieConfig cookieConfig?; // Special Agent Note: CookieConfig FROM ballerina/http package
+    # Configurations associated with inbound response size limits
+    http:ResponseLimitConfigs responseLimits?; // Special Agent Note: ResponseLimitConfigs FROM ballerina/http package
+    # SSL/TLS-related options
+    http:ClientSecureSocket secureSocket?; // Special Agent Note: ClientSecureSocket FROM ballerina/http package
+    # Proxy server related options
+    http:ProxyConfig proxy?; // Special Agent Note: ProxyConfig FROM ballerina/http package
+    # Provides settings related to client socket configuration
+    http:ClientSocketConfig socketConfig?; // Special Agent Note: ClientSocketConfig FROM ballerina/http package
+    # Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default
+    boolean validation?;
+    # Enables relaxed data binding on the client side. When enabled, `nil` values are treated as optional, 
+and absent fields are handled as `nilable` types. Enabled by default.
+    boolean laxDataBinding?;
+};
+
+# The schema for the response format, described as a JSON Schema object.
+# Learn how to build JSON schemas [here](https://json-schema.org/).
+
+type ResponseFormatJsonSchemaSchema record {
+};
+
+# Specifying a particular function via `{"name": "my_function"}` forces the model to call that function.
+
+type ChatCompletionFunctionCallOption record {
+    # The name of the function to call.
+    string name;
+};
+
+# Breakdown of tokens used in a completion.
+
+type CompletionUsageCompletionTokensDetails record {
+    # When using Predicted Outputs, the number of tokens in the
+prediction that appeared in the completion.
+    int accepted_prediction_tokens?;
+    # Audio input tokens generated by the model.
+    int audio_tokens?;
+    # Tokens generated by the model for reasoning.
+    int reasoning_tokens?;
+    # When using Predicted Outputs, the number of tokens in the
+prediction that did not appear in the completion. However, like
+reasoning tokens, these tokens are still counted in the total
+completion tokens for purposes of billing, output, and context window
+limits.
+    int rejected_prediction_tokens?;
+};
+
+
+@deprecated
+type ChatCompletionFunctions record {
+    # A description of what the function does, used by the model to choose when and how to call the function.
+    string description?;
+    # The name of the function to be called. Must be a-z, A-Z, 0-9, or contain underscores and dashes, with a maximum length of 64.
+    string name;
+    # The parameters the functions accepts, described as a JSON Schema object. See the [guide](/docs/guides/function-calling) for examples, and the [JSON Schema reference](https://json-schema.org/understanding-json-schema/) for documentation about the format. 
+
+Omitting `parameters` defines a function with an empty parameter list.
+    FunctionParameters parameters?;
+};
+
+# The parameters the functions accepts, described as a JSON Schema object. See the [guide](/docs/guides/function-calling) for examples, and the [JSON Schema reference](https://json-schema.org/understanding-json-schema/) for documentation about the format. 
+# 
+# Omitting `parameters` defines a function with an empty parameter list.
+
+type FunctionParameters record {
+};
+
+# A function tool that can be used to generate a response.
+
+type ChatCompletionTool record {
+    # The type of the tool. Currently, only `function` is supported.
+    "function" 'type;
+    FunctionObject 'function;
+};
+
+
+type FunctionObject record {
+    # A description of what the function does, used by the model to choose when and how to call the function.
+    string description?;
+    # The name of the function to be called. Must be a-z, A-Z, 0-9, or contain underscores and dashes, with a maximum length of 64.
+    string name;
+    # The parameters the functions accepts, described as a JSON Schema object. See the [guide](/docs/guides/function-calling) for examples, and the [JSON Schema reference](https://json-schema.org/understanding-json-schema/) for documentation about the format. 
+
+Omitting `parameters` defines a function with an empty parameter list.
+    FunctionParameters parameters?;
+    # Whether to enable strict schema adherence when generating the function call. If set to true, the model will follow the exact schema defined in the `parameters` field. Only a subset of JSON Schema is supported when `strict` is `true`. Learn more about Structured Outputs in the [function calling guide](/docs/guides/function-calling).
+    boolean? strict?;
+};
+
+// Unknown type: ParallelToolCalls
+
+# Approximate location parameters for the search.
+
+type WebSearchLocation record {
+    # The two-letter 
+[ISO country code](https://en.wikipedia.org/wiki/ISO_3166-1) of the user,
+e.g. `US`.
+    string country?;
+    # Free text input for the region of the user, e.g. `California`.
+    string region?;
+    # Free text input for the city of the user, e.g. `San Francisco`.
+    string city?;
+    # The [IANA timezone](https://timeapi.io/documentation/iana-timezones) 
+of the user, e.g. `America/Los_Angeles`.
+    string timezone?;
+};
+
+
+type ModelResponseProperties record {
+    # Set of 16 key-value pairs that can be attached to an object. This can be
+useful for storing additional information about the object in a structured
+format, and querying for objects via API or the dashboard.
+
+Keys are strings with a maximum length of 64 characters. Values are strings
+with a maximum length of 512 characters.
+    Metadata|() metadata?;
+    # An integer between 0 and 20 specifying the maximum number of most likely
+tokens to return at each token position, each with an associated log
+probability. In some cases, the number of returned tokens may be fewer than
+requested.
+    int top_logprobs?;
+    # What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic.
+We generally recommend altering this or `top_p` but not both.
+    decimal temperature?;
+    # An alternative to sampling with temperature, called nucleus sampling,
+where the model considers the results of the tokens with top_p probability
+mass. So 0.1 means only the tokens comprising the top 10% probability mass
+are considered.
+
+We generally recommend altering this or `temperature` but not both.
+    decimal top_p?;
+    # This field is being replaced by `safety_identifier` and `prompt_cache_key`. Use `prompt_cache_key` instead to maintain caching optimizations.
+A stable identifier for your end-users.
+Used to boost cache hit rates by better bucketing similar requests and  to help OpenAI detect and prevent abuse. [Learn more](/docs/guides/safety-best-practices#safety-identifiers).
+
+    @deprecated
+    string user?;
+    # A stable identifier used to help detect users of your application that may be violating OpenAI's usage policies.
+The IDs should be a string that uniquely identifies each user, with a maximum length of 64 characters. We recommend hashing their username or email address, in order to avoid sending us any identifying information. [Learn more](/docs/guides/safety-best-practices#safety-identifiers).
+    string safety_identifier?;
+    # Used by OpenAI to cache responses for similar requests to optimize your cache hit rates. Replaces the `user` field. [Learn more](/docs/guides/prompt-caching).
+    string prompt_cache_key?;
+    # Specifies the processing type used for serving the request.
+- If set to 'auto', then the request will be processed with the service tier configured in the Project settings. Unless otherwise configured, the Project will use 'default'.
+- If set to 'default', then the request will be processed with the standard pricing and performance for the selected model.
+- If set to '[flex](/docs/guides/flex-processing)' or '[priority](https://openai.com/api-priority-processing/)', then the request will be processed with the corresponding service tier.
+- When not set, the default behavior is 'auto'.
+
+When the `service_tier` parameter is set, the response body will include the `service_tier` value based on the processing mode actually used to serve the request. This response value may be different from the value set in the parameter.
+    ServiceTier service_tier?;
+    # The retention policy for the prompt cache. Set to `24h` to enable extended prompt caching, which keeps cached prefixes active for longer, up to a maximum of 24 hours. [Learn more](/docs/guides/prompt-caching#prompt-cache-retention).
+    "24h"?|"in_memory" prompt_cache_retention?;
+};
+
+# Set of 16 key-value pairs that can be attached to an object. This can be
+# useful for storing additional information about the object in a structured
+# format, and querying for objects via API or the dashboard.
+# 
+# Keys are strings with a maximum length of 64 characters. Values are strings
+# with a maximum length of 512 characters.
+
+type Metadata record {
+    # Rest field
+    string ;
+};
+
+# Specifies the processing type used for serving the request.
+# - If set to 'auto', then the request will be processed with the service tier configured in the Project settings. Unless otherwise configured, the Project will use 'default'.
+# - If set to 'default', then the request will be processed with the standard pricing and performance for the selected model.
+# - If set to '[flex](/docs/guides/flex-processing)' or '[priority](https://openai.com/api-priority-processing/)', then the request will be processed with the corresponding service tier.
+# - When not set, the default behavior is 'auto'.
+# 
+# When the `service_tier` parameter is set, the response body will include the `service_tier` value based on the processing mode actually used to serve the request. This response value may be different from the value set in the parameter.
+type ServiceTier "priority"|()|"auto"|"default"|"flex"|"scale";
+
+
+type CreateModelResponseProperties record {
+    int top_logprobs?;
+    Metadata|() metadata?;
+    decimal temperature?;
+    decimal top_p?;
+    string user?;
+    string safety_identifier?;
+    string prompt_cache_key?;
+    ServiceTier service_tier?;
+    "24h"?|"in_memory" prompt_cache_retention?;
+};
+
+type ModelIdsShared string|"gpt-5.4"|"gpt-5.4-mini"|"gpt-5.4-nano"|"gpt-5.4-mini-2026-03-17"|"gpt-5.4-nano-2026-03-17"|"gpt-5.3-chat-latest"|"gpt-5.2"|"gpt-5.2-2025-12-11"|"gpt-5.2-chat-latest"|"gpt-5.2-pro"|"gpt-5.2-pro-2025-12-11"|"gpt-5.1"|"gpt-5.1-2025-11-13"|"gpt-5.1-codex"|"gpt-5.1-mini"|"gpt-5.1-chat-latest"|"gpt-5"|"gpt-5-mini"|"gpt-5-nano"|"gpt-5-2025-08-07"|"gpt-5-mini-2025-08-07"|"gpt-5-nano-2025-08-07"|"gpt-5-chat-latest"|"gpt-4.1"|"gpt-4.1-mini"|"gpt-4.1-nano"|"gpt-4.1-2025-04-14"|"gpt-4.1-mini-2025-04-14"|"gpt-4.1-nano-2025-04-14"|"o4-mini"|"o4-mini-2025-04-16"|"o3"|"o3-2025-04-16"|"o3-mini"|"o3-mini-2025-01-31"|"o1"|"o1-2024-12-17"|"o1-preview"|"o1-preview-2024-09-12"|"o1-mini"|"o1-mini-2024-09-12"|"gpt-4o"|"gpt-4o-2024-11-20"|"gpt-4o-2024-08-06"|"gpt-4o-2024-05-13"|"gpt-4o-audio-preview"|"gpt-4o-audio-preview-2024-10-01"|"gpt-4o-audio-preview-2024-12-17"|"gpt-4o-audio-preview-2025-06-03"|"gpt-4o-mini-audio-preview"|"gpt-4o-mini-audio-preview-2024-12-17"|"gpt-4o-search-preview"|"gpt-4o-mini-search-preview"|"gpt-4o-search-preview-2025-03-11"|"gpt-4o-mini-search-preview-2025-03-11"|"chatgpt-4o-latest"|"codex-mini-latest"|"gpt-4o-mini"|"gpt-4o-mini-2024-07-18"|"gpt-4-turbo"|"gpt-4-turbo-2024-04-09"|"gpt-4-0125-preview"|"gpt-4-turbo-preview"|"gpt-4-1106-preview"|"gpt-4-vision-preview"|"gpt-4"|"gpt-4-0314"|"gpt-4-0613"|"gpt-4-32k"|"gpt-4-32k-0314"|"gpt-4-32k-0613"|"gpt-3.5-turbo"|"gpt-3.5-turbo-16k"|"gpt-3.5-turbo-0301"|"gpt-3.5-turbo-0613"|"gpt-3.5-turbo-1106"|"gpt-3.5-turbo-0125"|"gpt-3.5-turbo-16k-0613";
+
+# Properties of the custom tool.
+
+type CustomToolProperties record {
+    # The name of the custom tool, used to identify it in tool calls.
+    string name;
+    # Optional description of the custom tool, used to provide more context.
+    string description?;
+    # The input format for the custom tool. Default is unconstrained text.
+    record {|"text" 'type; anydata...;|}|record {|"grammar" 'type; record {|string definition; "lark"|"regex" syntax; anydata...;|} grammar; anydata...;|} format?;
+};
+
+type VoiceIdsShared string|"alloy"|"ash"|"ballad"|"coral"|"echo"|"sage"|"shimmer"|"verse"|"marin"|"cedar";
+
+# If the audio output modality is requested, this object contains data
+# about the audio response from the model. [Learn more](/docs/guides/audio).
+
+type ChatCompletionResponseMessageAudio record {
+    # Unique identifier for this audio response.
+    string id;
+    # The Unix timestamp (in seconds) for when this audio response will
+no longer be accessible on the server for use in multi-turn
+conversations.
+    int expires_at;
+    # Base64 encoded audio bytes generated by the model, in the format
+specified in the request.
+    string data;
+    # Transcript of the audio generated by the model.
+    string transcript;
+};
+
+# JSON Schema response format. Used to generate structured JSON responses.
+# Learn more about [Structured Outputs](/docs/guides/structured-outputs).
+
+type ResponseFormatJsonSchema record {
+    # The type of response format being defined. Always `json_schema`.
+    "json_schema" 'type;
+    # Structured Outputs configuration options, including a JSON Schema.
+    JSONSchema json_schema;
+};
+
+# Structured Outputs configuration options, including a JSON Schema.
+
+type JSONSchema record {
+    # A description of what the response format is for, used by the model to
+determine how to respond in the format.
+    string description?;
+    # The name of the response format. Must be a-z, A-Z, 0-9, or contain
+underscores and dashes, with a maximum length of 64.
+    string name;
+    # The schema for the response format, described as a JSON Schema object.
+Learn how to build JSON schemas [here](https://json-schema.org/).
+    ResponseFormatJsonSchemaSchema schema?;
+    # Whether to enable strict schema adherence when generating the output.
+If set to true, the model will always follow the exact schema defined
+in the `schema` field. Only a subset of JSON Schema is supported when
+`strict` is `true`. To learn more, read the [Structured Outputs
+guide](/docs/guides/structured-outputs).
+    boolean? strict?;
+};
+
+# A built-in voice name or a custom voice reference.
+type VoiceIdsOrCustomVoice string|"alloy"|"ash"|"ballad"|"coral"|"echo"|"sage"|"shimmer"|"verse"|"marin"|"cedar"|record {|string id; anydata...;|};
+
+
+type CreateChatCompletionRequest record {
+    ChatCompletionRequestMessage[] messages;
+    ModelIdsShared model;
+    ballerinax/openai.chat:5.0.0:ResponseModalities? modalities?;
+    Verbosity verbosity?;
+    ReasoningEffort reasoning_effort?;
+    int? max_completion_tokens?;
+    decimal? frequency_penalty?;
+    decimal? presence_penalty?;
+    record {|record {|"approximate" 'type; ballerinax/openai.chat:5.0.0:WebSearchLocation approximate; anydata...;|}? user_location?; ballerinax/openai.chat:5.0.0:WebSearchContextSize search_context_size?; anydata...;|} web_search_options?;
+    int top_logprobs?;
+    ResponseFormatText|ResponseFormatJsonSchema|ResponseFormatJsonObject response_format?;
+    record {|ballerinax/openai.chat:5.0.0:VoiceIdsOrCustomVoice voice; "wav"|"aac"|"mp3"|"flac"|"opus"|"pcm16" format; anydata...;|}? audio?;
+    boolean? store?;
+    boolean? 'stream?;
+    StopConfiguration stop?;
+    record {|int...;|}? logit_bias?;
+    boolean? logprobs?;
+    int? max_tokens?;
+    int? n?;
+    PredictionContent prediction?;
+    int? seed?;
+    ChatCompletionStreamOptions|() stream_options?;
+    ChatCompletionTool|CustomToolChatCompletions[] tools?;
+    ChatCompletionToolChoiceOption tool_choice?;
+    ParallelToolCalls parallel_tool_calls?;
+    ChatCompletionFunctionCallOption|"none"|"auto" function_call?;
+    ChatCompletionFunctions[] functions?;
+    Metadata|() metadata?;
+    decimal temperature?;
+    decimal top_p?;
+    string user?;
+    string safety_identifier?;
+    string prompt_cache_key?;
+    ServiceTier service_tier?;
+    "24h"?|"in_memory" prompt_cache_retention?;
+};
+
+# Constrains effort on reasoning for
+# [reasoning models](https://platform.openai.com/docs/guides/reasoning).
+# Currently supported values are `none`, `minimal`, `low`, `medium`, `high`, and `xhigh`. Reducing
+# reasoning effort can result in faster responses and fewer tokens used
+# on reasoning in a response.
+# 
+# - `gpt-5.1` defaults to `none`, which does not perform reasoning. The supported reasoning values for `gpt-5.1` are `none`, `low`, `medium`, and `high`. Tool calls are supported for all reasoning values in gpt-5.1.
+# - All models before `gpt-5.1` default to `medium` reasoning effort, and do not support `none`.
+# - The `gpt-5-pro` model defaults to (and only supports) `high` reasoning effort.
+# - `xhigh` is supported for all models after `gpt-5.1-codex-max`.
+type ReasoningEffort "xhigh"|()|"none"|"minimal"|"low"|"medium"|"high";
+
+# Default response format. Used to generate text responses.
+
+type ResponseFormatText record {
+    # The type of response format being defined. Always `text`.
+    "text" 'type;
+};
+
+# JSON object response format. An older method of generating JSON responses.
+# Using `json_schema` is recommended for models that support it. Note that the
+# model will not generate JSON without a system or user message instructing it
+# to do so.
+
+type ResponseFormatJsonObject record {
+    # The type of response format being defined. Always `json_object`.
+    "json_object" 'type;
+};
+
+# Not supported with latest reasoning models `o3` and `o4-mini`.
+# 
+# Up to 4 sequences where the API will stop generating further tokens. The
+# returned text will not contain the stop sequence.
+type StopConfiguration string|string[]|();
+
+# A custom tool that processes input using a specified format.
+
+type CustomToolChatCompletions record {
+    # The type of the custom tool. Always `custom`.
+    "custom" 'type;
+    # Properties of the custom tool.
+    CustomToolProperties custom;
+};
+
+# Usage statistics for the completion request.
+
+type CompletionUsage record {
+    # Number of tokens in the generated completion.
+    int completion_tokens?;
+    # Number of tokens in the prompt.
+    int prompt_tokens?;
+    # Total number of tokens used in the request (prompt + completion).
+    int total_tokens?;
+    # Breakdown of tokens used in a completion.
+    CompletionUsageCompletionTokensDetails completion_tokens_details?;
+    # Breakdown of tokens used in the prompt.
+    CompletionUsagePromptTokensDetails prompt_tokens_details?;
+};
+
+# Breakdown of tokens used in the prompt.
+
+type CompletionUsagePromptTokensDetails record {
+    # Audio input tokens present in the prompt.
+    int audio_tokens?;
+    # Cached tokens present in the prompt.
+    int cached_tokens?;
+};
+
+# A chat completion message generated by the model.
+
+type ChatCompletionResponseMessage record {
+    # The contents of the message.
+    string? content?;
+    # The refusal message generated by the model.
+    string? refusal?;
+    # The tool calls generated by the model, such as function calls.
+    ChatCompletionMessageToolCalls tool_calls?;
+    # Annotations for the message, when applicable, as when using the
+[web search tool](/docs/guides/tools-web-search?api-mode=chat).
+    record {|"url_citation" 'type; record {|int end_index; int start_index; string url; string title; anydata...;|} url_citation; anydata...;|}[] annotations?;
+    # The role of the author of this message.
+    "assistant" role;
+    # Deprecated and replaced by `tool_calls`. The name and arguments of a function that should be called, as generated by the model.
+    ChatCompletionResponseMessageFunctionCall function_call?;
+    # If the audio output modality is requested, this object contains data
+about the audio response from the model. [Learn more](/docs/guides/audio).
+    ChatCompletionResponseMessageAudio|() audio?;
+};
+
+# Represents a chat completion response returned by model, based on the provided input.
+
+type CreateChatCompletionResponse record {
+    # A unique identifier for the chat completion.
+    string id;
+    # A list of chat completion choices. Can be more than one if `n` is greater than 1.
+    record {|"stop"|"length"|"tool_calls"|"content_filter"|"function_call" finish_reason; int index; ballerinax/openai.chat:5.0.0:ChatCompletionResponseMessage message; record {|ballerinax/openai.chat:5.0.0:ChatCompletionTokenLogprob[]? content; ballerinax/openai.chat:5.0.0:ChatCompletionTokenLogprob[]? refusal; anydata...;|} logprobs?; anydata...;|}[] choices;
+    # The Unix timestamp (in seconds) of when the chat completion was created.
+    int created;
+    # The model used for the chat completion.
+    string model;
+    # Specifies the processing type used for serving the request.
+- If set to 'auto', then the request will be processed with the service tier configured in the Project settings. Unless otherwise configured, the Project will use 'default'.
+- If set to 'default', then the request will be processed with the standard pricing and performance for the selected model.
+- If set to '[flex](/docs/guides/flex-processing)' or '[priority](https://openai.com/api-priority-processing/)', then the request will be processed with the corresponding service tier.
+- When not set, the default behavior is 'auto'.
+
+When the `service_tier` parameter is set, the response body will include the `service_tier` value based on the processing mode actually used to serve the request. This response value may be different from the value set in the parameter.
+    ServiceTier service_tier?;
+    # This fingerprint represents the backend configuration that the model runs with.
+
+Can be used in conjunction with the `seed` request parameter to understand when backend changes have been made that might impact determinism.
+
+    @deprecated
+    string system_fingerprint?;
+    # The object type, which is always `chat.completion`.
+    "chat.completion" 'object;
+    # Usage statistics for the completion request.
+    CompletionUsage usage?;
+};
+
+// --- Client ---
+
+# The OpenAI REST API. Please see https://platform.openai.com/docs/api-reference for more details.
+client class Client {
+    function init(ConnectionConfig config, string serviceUrl = "https://api.openai.com/v1") returns error?;
+
+    # **Starting a new project?** We recommend trying [Responses](/docs/api-reference/responses)
+    # to take advantage of the latest OpenAI platform features. Compare
+    # [Chat Completions with Responses](/docs/guides/responses-vs-chat-completions?api-mode=responses).
+    # 
+    # ---
+    # 
+    # Creates a model response for the given chat conversation. Learn more in the
+    # [text generation](/docs/guides/text-generation), [vision](/docs/guides/vision),
+    # and [audio](/docs/guides/audio) guides.
+    # 
+    # Parameter support can differ depending on the model used to generate the
+    # response, particularly for newer reasoning models. Parameters that are only
+    # supported for reasoning models are noted below. For the current state of
+    # unsupported parameters in reasoning models,
+    # [refer to the reasoning guide](/docs/guides/reasoning).
+    # 
+    # Returns a chat completion object, or a streamed sequence of chat completion
+    # chunk objects if the request is streamed.
+    # 
+    resource function post chat/completions(CreateChatCompletionRequest payload, map<string|string[]> headers = {}) returns CreateChatCompletionResponse|error;
+}

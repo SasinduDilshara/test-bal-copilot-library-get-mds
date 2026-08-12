@@ -1,0 +1,155 @@
+// ============================================================
+// Library: ballerinax/ai.ollama
+// Ollama allows you to run open-source large language models (LLMs), such as Llama 3, Mistral, and Gemma, locally.
+// ============================================================
+import ballerinax/ai.ollama;
+
+// --- README ---
+## Overview
+
+Ollama allows you to run open-source large language models (LLMs), such as Llama 3, Mistral, and Gemma, locally.
+
+The Ollama connector offers APIs for connecting with locally running Ollama models, enabling the integration of advanced conversational AI and language processing capabilities into applications.
+
+### Key Features
+
+- Connect and interact with local Ollama Large Language Models (LLMs)
+- Support for Llama 3, Mistral, Gemma, and other open-source models
+- Efficient handling of local model prompts and completions
+- Streamlined integration with local AI infrastructure
+
+## Prerequisites
+
+Ensure that your Ollama server is running locally before using this module in your Ballerina application.
+
+## Quickstart
+
+To use the `ai.ollama` module in your Ballerina application, update the `.bal` file as follows:
+
+### Step 1: Import the module
+
+Import the `ai.ollama` module.
+
+```ballerina
+import ballerinax/ai.ollama;
+```
+
+### Step 2: Intialize the Model Provider
+
+Here's how to initialize the Model Provider:
+
+```ballerina
+import ballerina/ai;
+import ballerinax/ai.ollama;
+
+final ai:ModelProvider ollamaModel = check new ollama:ModelProvider("ollamaModelName");
+```
+
+### Step 4: Invoke chat completion
+
+```ballerina
+ai:ChatMessage[] chatMessages = [{role: "user", content: "hi"}];
+ai:ChatAssistantMessage response = check ollamaModel->chat(chatMessages, tools = []);
+
+chatMessages.push(response);
+```
+
+// --- END README ---
+
+// --- Types ---
+
+# Configurations for controlling the behaviours when communicating with a remote HTTP endpoint.
+
+type ConnectionConfig record {
+    # The HTTP version understood by the client
+    http:HttpVersion httpVersion?; // Special Agent Note: HttpVersion FROM ballerina/http package
+    # Configurations related to HTTP/1.x protocol
+    http:ClientHttp1Settings http1Settings?; // Special Agent Note: ClientHttp1Settings FROM ballerina/http package
+    # Configurations related to HTTP/2 protocol
+    http:ClientHttp2Settings http2Settings?; // Special Agent Note: ClientHttp2Settings FROM ballerina/http package
+    # The maximum time to wait (in seconds) for a response before closing the connection
+    decimal timeout?;
+    # The choice of setting `forwarded`/`x-forwarded` header
+    string forwarded?;
+    # Configurations associated with request pooling
+    http:PoolConfiguration poolConfig?; // Special Agent Note: PoolConfiguration FROM ballerina/http package
+    # HTTP caching related configurations
+    http:CacheConfig cache?; // Special Agent Note: CacheConfig FROM ballerina/http package
+    # Specifies the way of handling compression (`accept-encoding`) header
+    http:Compression compression?; // Special Agent Note: Compression FROM ballerina/http package
+    # Configurations associated with the behaviour of the Circuit Breaker
+    http:CircuitBreakerConfig circuitBreaker?; // Special Agent Note: CircuitBreakerConfig FROM ballerina/http package
+    # Configurations associated with retrying
+    http:RetryConfig retryConfig?; // Special Agent Note: RetryConfig FROM ballerina/http package
+    # Configurations associated with inbound response size limits
+    http:ResponseLimitConfigs responseLimits?; // Special Agent Note: ResponseLimitConfigs FROM ballerina/http package
+    # SSL/TLS-related options
+    http:ClientSecureSocket secureSocket?; // Special Agent Note: ClientSecureSocket FROM ballerina/http package
+    # Proxy server related options
+    http:ProxyConfig proxy?; // Special Agent Note: ProxyConfig FROM ballerina/http package
+    # Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default
+    boolean validation?;
+};
+
+# Represents the model parameters for Ollama text generation.
+# These parameters control the behavior and output of the model.
+
+type OllamaModelParameters record {
+    # Enable Mirostat sampling for controlling perplexity.  
+- `0` = disabled  
+- `1` = Mirostat  
+- `2` = Mirostat 2.0  
+    0|1|2 mirostat?;
+    # Influences how quickly the algorithm responds to feedback from the generated text.  
+A lower value results in slower adjustments, while a higher value makes the model more responsive.  
+    float mirostatEta?;
+    # Controls the balance between coherence and diversity of the output.  
+A lower value results in more focused and coherent text.  
+    float mirostatTau?;
+    # Sets the size of the context window used to generate the next token.  
+    int numCtx?;
+    # Sets how far back the model should look to prevent repetition.  
+- `0` = disabled  
+- `-1` = num_ctx  
+    int repeatLastN?;
+    # Sets how strongly to penalize repetitions.  
+A higher value (e.g., `1.5`) will penalize repetitions more strongly,  
+while a lower value (e.g., `0.9`) will be more lenient.  
+    float repeatPenalty?;
+    # Controls the creativity of the model's responses.  
+A higher value makes the output more diverse, while a lower value makes it more focused.  
+    float temperature?;
+    # Sets the random number seed for deterministic text generation.  
+A specific value ensures the same output for identical prompts.  
+    int seed?;
+    # Maximum number of tokens to generate.  
+`-1` allows infinite generation.  
+    int numPredict?;
+    # Controls randomness by selecting the top-k most likely next words.  
+A higher value (e.g., `100`) increases diversity,  
+while a lower value (e.g., `10`) makes responses more conservative.  
+    int topK?;
+    # Controls randomness by considering the cumulative probability of choices.  
+A higher value (e.g., `0.95`) increases diversity,  
+while a lower value (e.g., `0.5`) makes responses more conservative.  
+    float topP?;
+    # Ensures a balance between quality and variety.  
+Filters out low-probability tokens relative to the highest probability token.  
+    float minP?;
+};
+
+// --- Client ---
+
+# Provider represents a client for interacting with an Ollama language models.
+client class ModelProvider {
+    function init(string modelType, string serviceUrl = http://localhost:11434, 0|1|2 mirostat = 0, float mirostatEta = 0.1, float mirostatTau = 5.0, int numCtx = 2048, int repeatLastN = 64, float repeatPenalty = 1.1, float temperature = 0.8, int seed = 0, int numPredict = -1, int topK = 40, float topP = 0.9, float minP = 0.0, OllamaModelParameters modleParameters, http:HttpVersion httpVersion = http:HTTP_2_0, http:ClientHttp1Settings http1Settings = {}, http:ClientHttp2Settings http2Settings = {}, decimal timeout = 60, string forwarded = "disable", http:PoolConfiguration poolConfig = {}, http:CacheConfig cache = {}, http:Compression compression = AUTO, http:CircuitBreakerConfig circuitBreaker = {}, http:RetryConfig retryConfig = {}, http:ResponseLimitConfigs responseLimits = {}, http:ClientSecureSocket secureSocket = {}, http:ProxyConfig proxy = {}, boolean validation = true, ConnectionConfig connectionConfig) returns ballerina/ai:1.13.0:Error?; // Special Agent Note: HttpVersion, ClientHttp1Settings, ClientHttp2Settings, PoolConfiguration, CacheConfig, Compression, CircuitBreakerConfig, RetryConfig, ResponseLimitConfigs, ClientSecureSocket, ProxyConfig FROM ballerina/http package
+
+    # Sends a chat request to the Ollama model with the given messages and tools.
+    # 
+    remote function chat(ai:ChatMessage[]|ai:ChatUserMessage messages, ai:ChatCompletionFunctions[] tools = [], string|() stop = ()) returns ai:ChatAssistantMessage|ai:Error; // Special Agent Note: ChatMessage, ChatUserMessage, ChatCompletionFunctions, ChatAssistantMessage, Error FROM ballerina/ai package
+
+    # Sends a chat request to the model and generates a value that belongs to the type
+    # corresponding to the type descriptor argument.
+    # 
+    remote function generate(ai:Prompt prompt, anydata td = anydata) returns td|ai:Error; // Special Agent Note: Prompt, Error FROM ballerina/ai package
+}

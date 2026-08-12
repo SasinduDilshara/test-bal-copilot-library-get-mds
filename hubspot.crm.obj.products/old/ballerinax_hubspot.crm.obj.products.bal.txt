@@ -1,0 +1,781 @@
+// ============================================================
+// Library: ballerinax/hubspot.crm.obj.products
+// [HubSpot](https://www.hubspot.com) is an AI-powered customer relationship management (CRM) platform.
+// ============================================================
+import ballerinax/hubspot.crm.obj.products;
+
+// --- README ---
+## Overview
+
+[HubSpot](https://www.hubspot.com) is an AI-powered customer relationship management (CRM) platform.
+
+The HubSpot CRM Products connector provides APIs to connect and interact with the [HubSpot CRM Products API](https://developers.hubspot.com/docs/reference/api/crm/objects/products) endpoints, specifically based on the [HubSpot REST API v3](https://developers.hubspot.com/docs/reference/api).
+
+### Key Features
+
+- Create, read, update, and delete product records in HubSpot CRM
+- List and search products with filtering support
+- Batch operations for bulk product updates and archiving
+- Manage product properties such as name, SKU, price, and description
+
+## Setup guide
+
+To use the HubSpot CRM Object Products connector, you must have access to the HubSpot API through a HubSpot developer account and an associated HubSpot app. Therefore, if you don't have one already, you need to register for a developer account on HubSpot.
+
+### Step 1: Create/Login to a HubSpot Developer Account
+
+If you already have an account, go to the [HubSpot developer portal](https://app.hubspot.com/).
+
+If you don't have a HubSpot Developer Account, you can sign up to a free account [here](https://developers.hubspot.com/get-started).
+
+### Step 2 (Optional): Create a Developer Test Account under your account
+
+Within app developer accounts, you can create [Developer Test Account](https://developers.hubspot.com/beta-docs/getting-started/account-types#developer-test-accounts) to test apps and integrations without affecting any real HubSpot data.
+
+> **Note:** These accounts are intended only for development and testing purposes and should not be used production environments.
+
+1. Go to 'Test Account' section from the left sidebar.
+
+   ![Hubspot developer portal](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.products/main/docs/setup/resources/test_acc_1.png)
+
+2. Click 'Create developer test account'. In the dialog box, give a name to your test account and click 'Create'.
+
+   ![Hubspot developer portal](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.products/main/docs/setup/resources/test_acc_2.png)
+
+### Step 3: Create a HubSpot App under your account.
+
+1. In your developer account, navigate to the 'Apps' section. Click on 'Create App'.
+
+   ![Hubspot app creation 1](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.products/main/docs/setup/resources/create_app_1.png)
+
+2. Provide the necessary details, including the app name and description.
+
+### Step 4: Configure the Authentication Flow.
+
+1. Move to the Auth Tab.
+
+   ![Hubspot app auth setup 1](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.products/main/docs/setup/resources/create_app_2.png)
+
+2. In the Scopes section, add the following scope for your app using the 'Add new scope' button.
+
+   - `e-commerce`
+
+   ![Hubspot app auth setup 2](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.products/main/docs/setup/resources/scope_set.png)
+
+3. Add your Redirect URI in the relevant section. You can also use `localhost` addresses for local development purposes. Click 'Create App'.
+
+   ![Hubspot app auth setup 3](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.products/main/docs/setup/resources/create_app_final.png)
+
+### Step 5: Get your Client ID and Client Secret
+
+- Navigate to the 'Auth' section of your app. Make sure to save the provided Client ID and Client Secret.
+
+   ![Hubspot app auth setup 5](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.products/main/docs/setup/resources/get_credentials.png)
+
+### Step 6: Setup Authentication Flow
+
+Before proceeding with the Quickstart, ensure you have obtained the Access Token using the following steps:
+
+1. Create an authorization URL using the following format:
+
+   ```
+   https://app.hubspot.com/oauth/authorize?client_id=<YOUR_CLIENT_ID>&scope=<YOUR_SCOPES>&redirect_uri=<YOUR_REDIRECT_URI>
+   ```
+
+   Replace the **YOUR_CLIENT_ID**, **YOUR_REDIRECT_URI** and **YOUR_SCOPES** with your specific value.
+
+   > **Note:** If you are using a `localhost` redirect url, make sure to have a listener running at the relevant port before executing the next step.
+
+2. Paste it in the browser and select your developer test account to install the app when prompted.
+
+   ![Hubspot app install](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.products/main/docs/setup/resources/install_app.png)
+
+3. A code will be displayed in the browser. Copy the code.
+
+4. Run the following curl command. Replace the **YOUR_CLIENT_ID**, **YOUR_REDIRECT_URI** and **YOUR_CLIENT_SECRET** with your specific values. Use the code you received in the above step 3 as the **CODE**.
+
+   - Linux/macOS
+
+     ```bash
+     curl --request POST \
+     --url https://api.hubapi.com/oauth/v1/token \
+     --header 'content-type: application/x-www-form-urlencoded' \
+     --data 'grant_type=authorization_code&code=<CODE>&redirect_uri=<YOUR_REDIRECT_URI>&client_id=<YOUR_CLIENT_ID>&client_secret=<YOUR_CLIENT_SECRET>'
+     ```
+
+   - Windows
+
+     ```bash
+     curl --request POST ^
+     --url https://api.hubapi.com/oauth/v1/token ^
+     --header 'content-type: application/x-www-form-urlencoded' ^
+     --data 'grant_type=authorization_code&code=<CODE>&redirect_uri=<YOUR_REDIRECT_URI>&client_id=<YOUR_CLIENT_ID>&client_secret=<YOUR_CLIENT_SECRET>'
+     ```
+
+   This command will return the access token necessary for API calls.
+
+   ```json
+   {
+     "token_type": "bearer",
+     "refresh_token": "<Refresh Token>",
+     "access_token": "<Access Token>",
+     "expires_in": 1800
+   }
+   ```
+
+5. Store the access token securely for use in your application.
+
+## Quickstart
+
+To use the **HubSpot CRM Object Products** connector in your Ballerina application, update the `.bal` file as follows:
+
+### Step 1: Import the module
+
+Import the `ballerinax/hubspot.crm.obj.products` module and `oauth2` module.
+
+```ballerina
+import ballerina/oauth2;
+import ballerinax/hubspot.crm.obj.products as hsproducts;
+```
+
+### Step 2: Instantiate a new connector
+
+1. Create a `Config.toml` file and, configure the obtained credentials in the above steps as follows:
+
+   ```toml
+    clientId = <Client Id>
+    clientSecret = <Client Secret>
+    refreshToken = <Refresh Token>
+   ```
+
+2. Instantiate a `hsproducts:OAuth2RefreshTokenGrantConfig` with the obtained credentials and initialize the connector with it.
+
+   ```ballerina
+   configurable string clientId = ?;
+   configurable string clientSecret = ?;
+   configurable string refreshToken = ?;
+
+   hsproducts:OAuth2RefreshTokenGrantConfig auth = {
+       clientId,
+       clientSecret,
+       refreshToken,
+       credentialBearer: oauth2:POST_BODY_BEARER
+   };
+
+   hsproducts:Client hubSpotProducts = check new ({ auth });
+   ```
+
+### Step 3: Invoke the connector operation
+
+Now, utilize the available connector operations. A sample use case is shown below.
+
+#### Create a product
+
+```ballerina
+public function main() returns error? {
+    hsproducts:SimplePublicObjectInputForCreate payload = {
+        "properties": {
+            "name": "Coffee Grinder",
+            "hs_sku": "CMK12346",
+            "price": "540.00",
+            "description": "A high-quality coffee grinder that powders excellent coffee."
+        }
+    };
+    hsproducts:SimplePublicObject response = check hubSpotProducts->/.post(payload);
+}
+```
+
+## Examples
+
+The `Ballerina HubSpot CRM Products Connector` connector provides practical examples illustrating usage in various scenarios. Explore these [examples](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.products/tree/main/examples/), covering the following use cases:
+
+1. [Update Batch of Products](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.products/tree/main/examples/update-products) - Integrate Ballerina HubSpot CRM Products Connector to update the properties of a batch of products.
+
+2. [Filter and Archive Batch](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.products/tree/main/examples/search-and-archive) - Integrate Ballerina HubSpot CRM Products Connector to filter products based on the price and then archive the batch.
+
+// --- END README ---
+
+// --- Types ---
+
+# Standard error response structure returned by the API
+
+type StandardError record {
+    # Optional sub-category providing additional error classification
+    record {|anydata...;|} subCategory?;
+    # Contextual metadata map with string array values for the error
+    record {|string[]...;|} context;
+    # Map of relevant links associated with the error response
+    record {|string...;|} links;
+    # Unique identifier for the error instance
+    string id?;
+    # High-level category classifying the type of error
+    string category;
+    # Human-readable message describing the error
+    string message;
+    # List of detailed error entries associated with this error
+    ErrorDetail[] errors;
+    # HTTP status code or status label for the error response
+    string status;
+};
+
+# Detailed information about a specific error encountered during a request
+
+type ErrorDetail record {
+    # A specific category that contains more specific detail about the error
+    string subCategory?;
+    # The status code associated with the error detail
+    string code?;
+    # The name of the field or parameter in which the error was found
+    string 'in?;
+    # Context about the error condition
+    record {|string[]...;|} context?;
+    # A human readable message describing the error along with remediation steps where appropriate
+    string message;
+};
+
+# Paginated collection of associated object IDs
+
+type CollectionResponseAssociatedId record {
+    # Pagination metadata containing cursors for navigating to next and previous pages
+    Paging paging?;
+    # Array of associated IDs returned in the response
+    AssociatedId[] results;
+};
+
+# Pagination metadata containing cursors for navigating to next and previous pages
+
+type Paging record {
+    # Pagination cursor details for retrieving the next page of results
+    NextPage next?;
+    # Pagination cursor details for navigating to the previous page of results
+    PreviousPage prev?;
+};
+
+# Pagination cursor details for retrieving the next page of results
+
+type NextPage record {
+    # The relative URL link to the next page of results
+    string link?;
+    # The cursor token used to fetch the next page of results
+    string after;
+};
+
+# Pagination cursor details for navigating to the previous page of results
+
+type PreviousPage record {
+    # Cursor token representing the start of the previous page
+    string before;
+    # Direct URL link to the previous page of results
+    string link?;
+};
+
+# Represents an associated object identified by its ID and association type
+
+type AssociatedId record {
+    # The unique identifier of the associated object
+    string id;
+    # The type defining the nature of the association
+    string 'type;
+};
+
+# Represents the Queries record for the operation: patch-/{productId}_update
+
+type PatchProductIdUpdateQueries record {
+    # The name of a property whose values are unique for this object
+    string idProperty?;
+};
+
+# Defines the target object and association types for a relationship
+
+type PublicAssociationsForObject record {
+    # List of association type specifications for the relationship
+    AssociationSpec[] types;
+    # Represents a public object identifier containing a unique ID string
+    PublicObjectId to;
+};
+
+# Defines the category and type identifier for an object association
+
+type AssociationSpec record {
+    # The category that defines the origin of the association type
+    "HUBSPOT_DEFINED"|"USER_DEFINED"|"INTEGRATOR_DEFINED" associationCategory;
+    # The numeric identifier for the specific association type
+    ballerina/lang.int:0.0.0:Signed32 associationTypeId;
+};
+
+# Represents a public object identifier containing a unique ID string
+
+type PublicObjectId record {
+    # Unique identifier of the public object
+    string id;
+};
+
+# Batch operation response containing product objects and status
+
+type BatchResponseSimplePublicObject record {
+    # Timestamp when the batch operation completed
+    string completedAt;
+    # Timestamp when the batch operation was requested
+    string requestedAt?;
+    # Timestamp when the batch operation started processing
+    string startedAt;
+    # Map of relevant links related to the batch response
+    record {|string...;|} links?;
+    # List of product objects returned in the batch response
+    SimplePublicObject[] results;
+    # Current processing status of the batch operation
+    "PENDING"|"PROCESSING"|"CANCELED"|"COMPLETE" status;
+};
+
+# Represents a product record with its properties, timestamps, and archival status
+
+type SimplePublicObject record {
+    # Timestamp when the product record was created
+    string createdAt;
+    # Indicates whether the product record is archived
+    boolean archived?;
+    # Timestamp when the product record was archived
+    string archivedAt?;
+    # Map of property names to their historical values with timestamps
+    record {|ballerinax/hubspot.crm.obj.products:2.0.2:ValueWithTimestamp[]...;|} propertiesWithHistory?;
+    # Unique identifier of the product record
+    string id;
+    # Map of property names to their current values for the product
+    record {|string?...;|} properties;
+    # Timestamp when the product record was last updated
+    string updatedAt;
+};
+
+# A property value paired with its source information and the timestamp of the last update
+
+type ValueWithTimestamp record {
+    # Identifier of the source that set this property value
+    string sourceId?;
+    # Type of source that last updated this property value
+    string sourceType;
+    # Human-readable label describing the source of the value
+    string sourceLabel?;
+    # ID of the user who last updated this property value
+    ballerina/lang.int:0.0.0:Signed32 updatedByUserId?;
+    # The property value associated with the given timestamp
+    string value;
+    # Timestamp when this property value was last updated
+    string timestamp;
+};
+
+# A logical grouping of filters applied together when searching products
+
+type FilterGroup record {
+    # List of filter conditions within this filter group
+    Filter[] filters;
+};
+
+# Defines a filter condition using a property, operator, and comparison value
+
+type Filter record {
+    # The upper bound value used with the BETWEEN operator
+    string highValue?;
+    # The name of the product property to filter on
+    string propertyName;
+    # List of values used with IN or NOT_IN operators
+    string[] values?;
+    # The value to compare against the filter property
+    string value?;
+    # The comparison operator used to evaluate the filter condition
+    "EQ"|"NEQ"|"LT"|"LTE"|"GT"|"GTE"|"BETWEEN"|"IN"|"NOT_IN"|"HAS_PROPERTY"|"NOT_HAS_PROPERTY"|"CONTAINS_TOKEN"|"NOT_CONTAINS_TOKEN" operator;
+};
+
+# Represents the Queries record for the operation: get-_getPage
+
+type GetGetPageQueries record {
+    # A comma separated list of object types to retrieve associated IDs for. If any of the specified associations do not exist, they will be ignored
+    string[] associations?;
+    # Whether to return only results that have been archived
+    boolean archived?;
+    # A comma separated list of the properties to be returned along with their history of previous values. If any of the specified properties are not present on the requested object(s), they will be ignored. Usage of this parameter will reduce the maximum number of objects that can be read by a single request
+    string[] propertiesWithHistory?;
+    # The maximum number of results to display per page
+    ballerina/lang.int:0.0.0:Signed32 'limit?;
+    # The paging cursor token of the last successfully read resource will be returned as the `paging.next.after` JSON property of a paged response containing more results
+    string after?;
+    # A comma separated list of the properties to be returned in the response. If any of the specified properties are not present on the requested object(s), they will be ignored
+    string[] properties?;
+};
+
+# Pagination object providing a cursor for retrieving the next page of results
+
+type ForwardPaging record {
+    # Pagination cursor details for retrieving the next page of results
+    NextPage next?;
+};
+
+# A minimal object representation containing only a unique identifier
+
+type SimplePublicObjectId record {
+    # The unique identifier of the product object
+    string id;
+};
+
+# Batch upsert response containing results, status, timing metadata, and any errors encountered
+
+type BatchResponseSimplePublicUpsertObjectWithErrors record {
+    # Timestamp when the batch operation completed
+    string completedAt;
+    # Total number of errors encountered during the batch operation
+    ballerina/lang.int:0.0.0:Signed32 numErrors?;
+    # Timestamp when the batch operation was requested
+    string requestedAt?;
+    # Timestamp when the batch operation began processing
+    string startedAt;
+    # Map of relevant hyperlinks associated with the batch response
+    record {|string...;|} links?;
+    # List of upserted product objects returned in the batch response
+    SimplePublicUpsertObject[] results;
+    # List of errors encountered for individual records in the batch
+    StandardError[] errors?;
+    # Current processing status of the batch upsert operation
+    "PENDING"|"PROCESSING"|"CANCELED"|"COMPLETE" status;
+};
+
+# Represents a product record returned after an upsert operation, indicating whether it was newly created
+
+type SimplePublicUpsertObject record {
+    # Timestamp when the product record was created
+    string createdAt;
+    # Indicates whether the product record is archived
+    boolean archived?;
+    # Timestamp when the product record was archived
+    string archivedAt?;
+    # Indicates whether the record was newly created by the upsert
+    boolean 'new;
+    # Map of property names to their historical values with timestamps
+    record {|ballerinax/hubspot.crm.obj.products:2.0.2:ValueWithTimestamp[]...;|} propertiesWithHistory?;
+    # The unique identifier of the product record
+    string id;
+    # Map of property names to their current values for the product
+    record {|string...;|} properties;
+    # Timestamp when the product record was last updated
+    string updatedAt;
+};
+
+# Input payload for batch reading products by ID, specifying properties to retrieve
+
+type BatchReadInputSimplePublicObjectId record {
+    # List of properties for which to return historical values
+    string[] propertiesWithHistory;
+    # The name of a property whose values are unique for this object
+    string idProperty?;
+    # List of object IDs to retrieve in the batch request
+    SimplePublicObjectId[] inputs;
+    # List of property names to include in the response
+    string[] properties;
+};
+
+# Response object containing the status, timing, and results of a batch upsert operation on products
+
+type BatchResponseSimplePublicUpsertObject record {
+    # Timestamp when the batch operation completed
+    string completedAt;
+    # Timestamp when the batch operation was requested
+    string requestedAt?;
+    # Timestamp when the batch operation began processing
+    string startedAt;
+    # Map of related resource links associated with the batch response
+    record {|string...;|} links?;
+    # Collection of upserted product objects returned by the batch operation
+    SimplePublicUpsertObject[] results;
+    # Current processing status of the batch operation
+    "PENDING"|"PROCESSING"|"CANCELED"|"COMPLETE" status;
+};
+
+# Input schema for a batch operation containing a list of product object IDs
+
+type BatchInputSimplePublicObjectId record {
+    # List of product object IDs to process in the batch operation
+    SimplePublicObjectId[] inputs;
+};
+
+# OAuth2 Refresh Token Grant Configs
+
+type OAuth2RefreshTokenGrantConfig record {
+    # Refresh URL
+    string refreshUrl?;
+    string refreshToken;
+    string clientId;
+    string clientSecret;
+    string|string[] scopes?;
+    decimal defaultTokenExpTime?;
+    decimal clockSkew?;
+    map<string> optionalParams?;
+    oauth2:CredentialBearer credentialBearer?; // Special Agent Note: CredentialBearer FROM ballerina/oauth2 package
+    oauth2:ClientConfiguration clientConfig?; // Special Agent Note: ClientConfiguration FROM ballerina/oauth2 package
+};
+
+# Input schema for a batch upsert operation containing a list of product objects to create or update
+
+type BatchInputSimplePublicObjectBatchInputUpsert record {
+    # List of product objects to create or update in the batch upsert
+    SimplePublicObjectBatchInputUpsert[] inputs;
+};
+
+# Input object for a batch upsert operation, containing the record identifier and a map of property values to create or update
+
+type SimplePublicObjectBatchInputUpsert record {
+    # The name of a property whose values are unique for this object
+    string idProperty?;
+    # Trace identifier for tracking the object write operation
+    string objectWriteTraceId?;
+    # The unique identifier of the record to upsert
+    string id;
+    # Map of property names to values to set on the record
+    record {|string...;|} properties;
+};
+
+# Paginated collection of product objects with a total count and forward paging cursor
+
+type CollectionResponseWithTotalSimplePublicObjectForwardPaging record {
+    # Total number of results matching the request
+    ballerina/lang.int:0.0.0:Signed32 total;
+    # Pagination object providing a cursor for retrieving the next page of results
+    ForwardPaging paging?;
+    # Array of product objects returned in the current page
+    SimplePublicObject[] results;
+};
+
+# Provides a set of configurations for controlling the behaviours when communicating with a remote HTTP endpoint
+
+type ConnectionConfig record {
+    # Provides Auth configurations needed when communicating with a remote HTTP endpoint
+    http:BearerTokenConfig|OAuth2RefreshTokenGrantConfig|ApiKeysConfig auth; // Special Agent Note: BearerTokenConfig FROM ballerina/http package
+    # The HTTP version understood by the client
+    http:HttpVersion httpVersion?; // Special Agent Note: HttpVersion FROM ballerina/http package
+    # Configurations related to HTTP/1.x protocol
+    http:ClientHttp1Settings http1Settings?; // Special Agent Note: ClientHttp1Settings FROM ballerina/http package
+    # Configurations related to HTTP/2 protocol
+    http:ClientHttp2Settings http2Settings?; // Special Agent Note: ClientHttp2Settings FROM ballerina/http package
+    # The maximum time to wait (in seconds) for a response before closing the connection
+    decimal timeout?;
+    # The choice of setting `forwarded`/`x-forwarded` header
+    string forwarded?;
+    # Configurations associated with Redirection
+    http:FollowRedirects followRedirects?; // Special Agent Note: FollowRedirects FROM ballerina/http package
+    # Configurations associated with request pooling
+    http:PoolConfiguration poolConfig?; // Special Agent Note: PoolConfiguration FROM ballerina/http package
+    # HTTP caching related configurations
+    http:CacheConfig cache?; // Special Agent Note: CacheConfig FROM ballerina/http package
+    # Specifies the way of handling compression (`accept-encoding`) header
+    http:Compression compression?; // Special Agent Note: Compression FROM ballerina/http package
+    # Configurations associated with the behaviour of the Circuit Breaker
+    http:CircuitBreakerConfig circuitBreaker?; // Special Agent Note: CircuitBreakerConfig FROM ballerina/http package
+    # Configurations associated with retrying
+    http:RetryConfig retryConfig?; // Special Agent Note: RetryConfig FROM ballerina/http package
+    # Configurations associated with cookies
+    http:CookieConfig cookieConfig?; // Special Agent Note: CookieConfig FROM ballerina/http package
+    # Configurations associated with inbound response size limits
+    http:ResponseLimitConfigs responseLimits?; // Special Agent Note: ResponseLimitConfigs FROM ballerina/http package
+    # SSL/TLS-related options
+    http:ClientSecureSocket secureSocket?; // Special Agent Note: ClientSecureSocket FROM ballerina/http package
+    # Proxy server related options
+    http:ProxyConfig proxy?; // Special Agent Note: ProxyConfig FROM ballerina/http package
+    # Provides settings related to client socket configuration
+    http:ClientSocketConfig socketConfig?; // Special Agent Note: ClientSocketConfig FROM ballerina/http package
+    # Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default
+    boolean validation?;
+    # Enables relaxed data binding on the client side. When enabled, `nil` values are treated as optional, 
+and absent fields are handled as `nilable` types. Enabled by default
+    boolean laxDataBinding?;
+};
+
+# Provides API key configurations needed when communicating with a remote HTTP endpoint
+
+type ApiKeysConfig record {
+    string privateAppLegacy;
+    string privateApp;
+};
+
+# Request payload for searching products using filters, sorting, and pagination
+
+type PublicObjectSearchRequest record {
+    # Full-text search query string to match against product records
+    string query?;
+    # Maximum number of results to return per page
+    ballerina/lang.int:0.0.0:Signed32 'limit?;
+    # Cursor token for retrieving the next page of results
+    string after?;
+    # List of sort criteria to order search results
+    string[] sorts?;
+    # List of property names to include in the response
+    string[] properties?;
+    # Groups of filters used to narrow search results
+    FilterGroup[] filterGroups?;
+};
+
+# Represents the Queries record for the operation: post-/batch/read_read
+
+type PostBatchReadReadQueries record {
+    # Whether to return only results that have been archived
+    boolean archived?;
+};
+
+# Batch operation response containing processed product records, status, timing metadata, and any errors encountered during processing
+
+type BatchResponseSimplePublicObjectWithErrors record {
+    # Timestamp indicating when the batch operation completed
+    string completedAt;
+    # Total number of errors encountered during the batch operation
+    ballerina/lang.int:0.0.0:Signed32 numErrors?;
+    # Timestamp indicating when the batch operation was requested
+    string requestedAt?;
+    # Timestamp indicating when the batch operation started processing
+    string startedAt;
+    # Map of related resource names to their associated URLs
+    record {|string...;|} links?;
+    # List of successfully processed product objects from the batch
+    SimplePublicObject[] results;
+    # List of errors encountered for individual records in the batch
+    StandardError[] errors?;
+    # Current processing status of the batch operation
+    "PENDING"|"PROCESSING"|"CANCELED"|"COMPLETE" status;
+};
+
+# Input object for creating or updating a product, containing a map of property values and optional association definitions
+
+type SimplePublicObjectInput record {
+    # Trace identifier for tracking the object write operation
+    string objectWriteTraceId?;
+    # Key-value pairs of product property names and their string values
+    record {|string...;|} properties;
+};
+
+# A paginated collection of product objects including their associated records
+
+type CollectionResponseSimplePublicObjectWithAssociationsForwardPaging record {
+    # Pagination object providing a cursor for retrieving the next page of results
+    ForwardPaging paging?;
+    # Array of product objects returned in the current page
+    SimplePublicObjectWithAssociations[] results;
+};
+
+# A product object including its properties, timestamps, and related associations
+
+type SimplePublicObjectWithAssociations record {
+    # Map of associated object collections keyed by association type
+    record {|ballerinax/hubspot.crm.obj.products:2.0.2:CollectionResponseAssociatedId...;|} associations?;
+    # Timestamp indicating when the product record was created
+    string createdAt;
+    # Indicates whether the product record is archived
+    boolean archived?;
+    # Timestamp indicating when the product record was archived
+    string archivedAt?;
+    # Map of property names to their historical values with timestamps
+    record {|ballerinax/hubspot.crm.obj.products:2.0.2:ValueWithTimestamp[]...;|} propertiesWithHistory?;
+    # The unique identifier of the product record
+    string id;
+    # Key-value map of product property names to their current string values
+    record {|string?...;|} properties;
+    # Timestamp indicating when the product record was last updated
+    string updatedAt;
+};
+
+# A batch wrapper containing an array of product creation inputs to process together
+
+type BatchInputSimplePublicObjectInputForCreate record {
+    # Array of product creation input objects to process in batch
+    SimplePublicObjectInputForCreate[] inputs;
+};
+
+# Input schema for creating a new product, including properties and associations
+
+type SimplePublicObjectInputForCreate record {
+    # List of associations linking this product to other CRM objects
+    PublicAssociationsForObject[] associations?;
+    # Optional trace identifier for tracking the write operation
+    string objectWriteTraceId?;
+    # Key-value pairs of product property names and their string values
+    record {|string...;|} properties?;
+};
+
+# A batch wrapper containing an array of product update inputs to process together
+
+type BatchInputSimplePublicObjectBatchInput record {
+    # Array of product update input objects to process in batch
+    SimplePublicObjectBatchInput[] inputs;
+};
+
+# Defines a single product update payload, including the target record ID and properties to update
+
+type SimplePublicObjectBatchInput record {
+    # The name of a property whose values are unique for this object
+    string idProperty?;
+    # Trace identifier for tracking the write operation
+    string objectWriteTraceId?;
+    # The id to be updated. This can be the object id, or the unique property value of the idProperty property
+    string id;
+    # Key-value pairs of product property names and their string values
+    record {|string...;|} properties;
+};
+
+# Represents the Queries record for the operation: get-/{productId}_getById
+
+type GetProductIdGetByIdQueries record {
+    # A comma separated list of object types to retrieve associated IDs for. If any of the specified associations do not exist, they will be ignored
+    string[] associations?;
+    # Whether to return only results that have been archived
+    boolean archived?;
+    # A comma separated list of the properties to be returned along with their history of previous values. If any of the specified properties are not present on the requested object(s), they will be ignored
+    string[] propertiesWithHistory?;
+    # The name of a property whose values are unique for this object
+    string idProperty?;
+    # A comma separated list of the properties to be returned in the response. If any of the specified properties are not present on the requested object(s), they will be ignored
+    string[] properties?;
+};
+
+// --- Client ---
+
+client class Client {
+    function init(ConnectionConfig config, string serviceUrl = "https://api.hubapi.com/crm/v3/objects/products") returns error?;
+
+    # Read products by ID or property
+    # 
+    resource function post batch/read(BatchReadInputSimplePublicObjectId payload, map<string|string[]> headers = {}, boolean archived = false, anydata Additional Values, PostBatchReadReadQueries queries) returns BatchResponseSimplePublicObject|BatchResponseSimplePublicObjectWithErrors|error;
+
+    # Retrieve a product by ID
+    # 
+    resource function get [string productId](map<string|string[]> headers = {}, string[] associations = [], boolean archived = false, string[] propertiesWithHistory = [], string idProperty = "", string[] properties = [], anydata Additional Values, GetProductIdGetByIdQueries queries) returns SimplePublicObjectWithAssociations|error;
+
+    # Archive a product by ID
+    # 
+    resource function delete [string productId](map<string|string[]> headers = {}) returns error?;
+
+    # Partially update a product
+    # 
+    resource function patch [string productId](SimplePublicObjectInput payload, map<string|string[]> headers = {}, string idProperty = "", anydata Additional Values, PatchProductIdUpdateQueries queries) returns SimplePublicObject|error;
+
+    # Archive a batch of products by ID
+    # 
+    resource function post batch/archive(BatchInputSimplePublicObjectId payload, map<string|string[]> headers = {}) returns error?;
+
+    # Create a batch of products
+    # 
+    resource function post batch/create(BatchInputSimplePublicObjectInputForCreate payload, map<string|string[]> headers = {}) returns BatchResponseSimplePublicObject|BatchResponseSimplePublicObjectWithErrors|error;
+
+    # Update a batch of products
+    # 
+    resource function post batch/update(BatchInputSimplePublicObjectBatchInput payload, map<string|string[]> headers = {}) returns BatchResponseSimplePublicObject|BatchResponseSimplePublicObjectWithErrors|error;
+
+    # Retrieve a page of products
+    # 
+    resource function get (map<string|string[]> headers = {}, string[] associations = [], boolean archived = false, string[] propertiesWithHistory = [], int:Signed32 limit = 0, string after = "", string[] properties = [], anydata Additional Values, GetGetPageQueries queries) returns CollectionResponseSimplePublicObjectWithAssociationsForwardPaging|error;
+
+    # Create a new product
+    # 
+    resource function post (SimplePublicObjectInputForCreate payload, map<string|string[]> headers = {}) returns SimplePublicObject|error;
+
+    # Upsert a batch of products
+    # 
+    resource function post batch/upsert(BatchInputSimplePublicObjectBatchInputUpsert payload, map<string|string[]> headers = {}) returns BatchResponseSimplePublicUpsertObject|BatchResponseSimplePublicUpsertObjectWithErrors|error;
+
+    # Search for products
+    # 
+    resource function post search(PublicObjectSearchRequest payload, map<string|string[]> headers = {}) returns CollectionResponseWithTotalSimplePublicObjectForwardPaging|error;
+}

@@ -1,0 +1,3187 @@
+{
+  "name": "ballerinax/solace",
+  "description": "Solace PubSub+ is a powerful event broker that supports multiple protocols and messaging patterns. It provides high-performance, reliable, and scalable messaging for modern event-driven architectures. The Solace connector allows you to integrate with Solace event brokers, enabling efficient event distribution across various environments.",
+  "readme": "## Overview\n\n[Solace PubSub+](https://docs.solace.com/) is an advanced event-broker platform that enables event-driven communication across distributed applications using multiple messaging patterns such as publish/subscribe, request/reply, and queue-based messaging. It supports standard messaging protocols, including JMS, MQTT, AMQP, and REST, enabling seamless integration across diverse systems and environments.\n\nThe `ballerinax/solace` package provides APIs to interact with Solace PubSub+ brokers through the JCSMP API. It allows developers to programmatically produce and consume messages, manage topics and queues, and implement robust, event-driven solutions that leverage Solace’s high-performance messaging capabilities within Ballerina applications.\n\n### Key Features\n\n- Support for various messaging patterns (Pub/Sub, Point-to-Point queuing)\n- Direct (at-most-once) and guaranteed (persistent) delivery modes\n- Both synchronous (pull-based `MessageConsumer`) and asynchronous (push-based `Listener`) consumption\n- Transacted sessions with `commit`/`rollback`\n- Support for secure communication with TLS, Kerberos, and OAuth2/OIDC authentication\n\n## Setup guide\n\nTo try out the `ballerinax/solace` connector, you need a running Solace PubSub+ broker. The quickest way to get one locally is with Docker.\n\n### Step 1: Start a Solace PubSub+ broker with Docker\n\nRun the following command to start a Solace PubSub+ standard broker container:\n\n```bash\ndocker run -d --name solace \\\n    -p 55554:55555 -p 55003:55003 -p 8080:8080 \\\n    --shm-size\u003d1g \\\n    -e username_admin_globalaccesslevel\u003dadmin \\\n    -e username_admin_password\u003dadmin \\\n    solace/solace-pubsub-standard:latest\n```\n\nOnce the container is up and running, the broker is reachable at `tcp://localhost:55554` on the default message VPN `default`, with the credentials `admin`/`admin`. These are the same defaults used throughout the samples in this guide.\n\n### Step 2: Create a queue\n\nUnlike some other Solace client APIs, this connector does not create durable queues on demand - the samples below produce and consume messages on a queue, so create one before running them:\n\n1. Open the Solace PubSub+ Manager at [http://localhost:8080](http://localhost:8080) and log in with `admin`/`admin`.\n2. Navigate to the `default` message VPN \u003e **Queues** and click **+ Queue**.\n3. Give the queue a name (for example, `sample-queue`) and save it.\n\n## Quickstart\n\n### Step 1: Import the module\n\nImport the `ballerinax/solace` module into the Ballerina project.\n\n```ballerina\nimport ballerinax/solace;\n```\n\n### Step 2: Instantiate a new connector\n\n#### Initialize a `solace:MessageProducer`\n\n```ballerina\nconfigurable string brokerUrl \u003d ?;\nconfigurable string vpnName \u003d ?;\nconfigurable string queueName \u003d ?;\nconfigurable string username \u003d ?;\nconfigurable string password \u003d ?;\n\nsolace:MessageProducer producer \u003d check new (brokerUrl,\n    vpnName \u003d vpnName,\n    auth \u003d {\n        username,\n        password\n    }\n);\n```\n\n#### Initialize a `solace:MessageConsumer`\n\n```ballerina\nconfigurable string brokerUrl \u003d ?;\nconfigurable string vpnName \u003d ?;\nconfigurable string queueName \u003d ?;\nconfigurable string username \u003d ?;\nconfigurable string password \u003d ?;\n\nsolace:MessageConsumer consumer \u003d check new (brokerUrl,\n    vpnName \u003d vpnName,\n    auth \u003d {\n        username,\n        password\n    },\n    subscriptionConfig \u003d {\n        queueName\n    }\n);\n```\n\n#### Initialize a `solace:Listener`\n\n```ballerina\nconfigurable string brokerUrl \u003d ?;\nconfigurable string vpnName \u003d ?;\nconfigurable string queueName \u003d ?;\nconfigurable string username \u003d ?;\nconfigurable string password \u003d ?;\n\nlistener solace:Listener solaceListener \u003d check new (brokerUrl,\n    vpnName \u003d vpnName,\n    auth \u003d {\n        username,\n        password\n    }\n);\n\n@solace:ServiceConfig {\n    queueName\n}\nservice on solaceListener {\n    remote function onMessage(solace:Message message) returns error? {\n        // Process the received message\n    }\n}\n```\n\n### Step 3: Invoke the connector operation\n\nNow, you can use the available connector operations to interact with the Solace broker.\n\n#### Produce a message to a queue\n\n```ballerina\ncheck producer-\u003esend({\n    payload: \"This is a sample message\"\n}, {queueName});\n```\n\n#### Retrieve a message from a queue\n\n```ballerina\nsolace:Message? receivedMessage \u003d check consumer-\u003ereceive(5.0);\n```\n\nA `solace:Listener` does not need to be explicitly invoked - once attached, the `onMessage` remote method is called automatically for every message on the queue as soon as the listener starts.\n\n### Step 4: Run the Ballerina application\n\nSave the changes and run the Ballerina application using the following command.\n\n```bash\nbal run\n```\n\n## Examples\n\nThe `ballerinax/solace` connector provides practical examples illustrating usage in various scenarios. Explore these [examples](https://github.com/ballerina-platform/module-ballerinax-solace/tree/main/examples), covering the following use cases:\n\n1. [Order Fulfillment](https://github.com/ballerina-platform/module-ballerinax-solace/tree/main/examples/order-fulfillment) - Send orders to a queue and process them with `CLIENT_ACK` mode. Shows point-to-point (queue) messaging where a message is only acknowledged once it has been fulfilled successfully, so a worker that crashes beforehand picks it back up on restart.\n\n2. [Live Price Alerts](https://github.com/ballerina-platform/module-ballerinax-solace/tree/main/examples/live-price-alerts) - Publish stock price updates to hierarchical topics and raise alerts only for significant moves. Shows publish/subscribe (topic) messaging with a topic wildcard and direct (at-most-once) delivery.\n\n3. [Transactional Inventory Sync](https://github.com/ballerina-platform/module-ballerinax-solace/tree/main/examples/transactional-inventory-sync) - Apply inventory deltas from a queue within a transacted session, rolling back and safely discarding a bad update instead of corrupting inventory state. Shows transacted consumption with `commit`/`rollback`.\n\n4. [Payment Processing](https://github.com/ballerina-platform/module-ballerinax-solace/tree/main/examples/payment-processing) - Reject an invalid payment outright while retrying one that hits a simulated transient failure. Shows negative acknowledgement (`nack`) and the difference between rejecting a message to the dead message queue and requeuing it for redelivery.\n",
+  "typeDefs": [
+    {
+      "name": "AUTO_ACK",
+      "description": "",
+      "type": "Constant",
+      "value": "AUTO_ACK",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "CLIENT_ACK",
+      "description": "",
+      "type": "Constant",
+      "value": "CLIENT_ACK",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "JKS",
+      "description": "Java KeyStore format",
+      "type": "Constant",
+      "value": "jks",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "PKCS12",
+      "description": "PKCS12 format",
+      "type": "Constant",
+      "value": "pkcs12",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "TLSV1_1",
+      "description": "",
+      "type": "Constant",
+      "value": "TLSV1_1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "TLSV1_2",
+      "description": "",
+      "type": "Constant",
+      "value": "TLSV1_2",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "TLSV1_3",
+      "description": "",
+      "type": "Constant",
+      "value": "TLSV1_3",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "ECDHE_RSA_AES256_CBC_SHA384",
+      "description": "Cipher suite: TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384",
+      "type": "Constant",
+      "value": "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "ECDHE_RSA_AES256_CBC_SHA",
+      "description": "Cipher suite: TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
+      "type": "Constant",
+      "value": "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "RSA_AES256_CBC_SHA256",
+      "description": "Cipher suite: TLS_RSA_WITH_AES_256_CBC_SHA256",
+      "type": "Constant",
+      "value": "TLS_RSA_WITH_AES_256_CBC_SHA256",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "RSA_AES256_CBC_SHA",
+      "description": "Cipher suite: TLS_RSA_WITH_AES_256_CBC_SHA",
+      "type": "Constant",
+      "value": "TLS_RSA_WITH_AES_256_CBC_SHA",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "ECDHE_RSA_3DES_EDE_CBC_SHA",
+      "description": "Cipher suite: TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA",
+      "type": "Constant",
+      "value": "TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "RSA_3DES_EDE_CBC_SHA",
+      "description": "Cipher suite: SSL_RSA_WITH_3DES_EDE_CBC_SHA",
+      "type": "Constant",
+      "value": "SSL_RSA_WITH_3DES_EDE_CBC_SHA",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "ECDHE_RSA_AES128_CBC_SHA",
+      "description": "Cipher suite: TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
+      "type": "Constant",
+      "value": "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "ECDHE_RSA_AES128_CBC_SHA256",
+      "description": "Cipher suite: TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
+      "type": "Constant",
+      "value": "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "RSA_AES128_CBC_SHA256",
+      "description": "Cipher suite: TLS_RSA_WITH_AES_128_CBC_SHA256",
+      "type": "Constant",
+      "value": "TLS_RSA_WITH_AES_128_CBC_SHA256",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "RSA_AES128_CBC_SHA",
+      "description": "Cipher suite: TLS_RSA_WITH_AES_128_CBC_SHA",
+      "type": "Constant",
+      "value": "TLS_RSA_WITH_AES_128_CBC_SHA",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "DIRECT",
+      "description": "At-most-once delivery mode. Direct messages are not retained for disconnected clients and can be discarded\nduring congestion or failures. They can be reordered during network topology changes.\nMost appropriate for high-rate, low-latency messaging applications.",
+      "type": "Constant",
+      "value": "DIRECT",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "PERSISTENT",
+      "description": "Once-and-only-once delivery mode for Guaranteed Messaging. Persistent messages cannot be lost once acknowledged,\ncannot be reordered during topology changes, and cannot be delivered more than once (unless redelivered flag is set).\nRetained on durable endpoints for disconnected clients. Recommended for applications requiring persistent storage\nand reliable message delivery.",
+      "type": "Constant",
+      "value": "PERSISTENT",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "DURABLE",
+      "description": "Subscription is persisted on the broker and survives client disconnects.",
+      "type": "Constant",
+      "value": "DURABLE",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "TEMPORARY",
+      "description": "Subscription is ephemeral and auto-deleted when the client disconnects.",
+      "type": "Constant",
+      "value": "TEMPORARY",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "SOLACE_ISXML_PROP",
+      "description": "A property key used internally to mark that a message\u0027s text payload is XML.",
+      "type": "Constant",
+      "value": "solace_isXML",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "Error",
+      "description": "Represents a Solace distinct error.",
+      "type": "Error"
+    },
+    {
+      "name": "Service",
+      "description": "The Solace service type attached to a `solace:Listener` for asynchronous (push-based) consumption.\n\nAn attached service must declare a remote `onMessage` method and may optionally declare an\n`onError` method. The accepted signatures are:\n```ballerina\nremote function onMessage(record {|*solace:Message; T payload;|} message) returns solace:Error?;\nremote function onMessage(record {|*solace:Message; T payload;|} message, solace:Caller caller) returns solace:Error?;\nremote function onMessage(solace:Message message) returns solace:Error?;\nremote function onError(solace:Error err) returns solace:Error?;\n```\nDeclaring a narrowed `payload` type (`T`) causes the message payload to be data-bound into that\ntype; declaring the base `solace:Message` type yields the raw payload as `anydata`.\nThe subscription (queue or topic) and flow options are supplied via the\n`@solace:ServiceConfig` annotation on the service.",
+      "type": "Class"
+    },
+    {
+      "name": "Topic",
+      "description": "Destination types - Topic and Queue",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "topicName",
+          "description": "The topic name",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Queue",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "queueName",
+          "description": "The queue name",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Destination",
+      "description": "",
+      "type": "Union",
+      "members": [
+        {
+          "name": "ballerinax/solace:0.4.0:Topic",
+          "type": {
+            "name": "Topic",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Topic"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerinax/solace:0.4.0:Queue",
+          "type": {
+            "name": "Queue",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Queue"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "AcknowledgementMode",
+      "description": "Acknowledgement modes for message consumption",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "CLIENT_ACK",
+          "description": ""
+        },
+        {
+          "name": "AUTO_ACK",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "BasicAuthConfiguration",
+      "description": "Authentication configuration types",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "username",
+          "description": "The username for authentication",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "password",
+          "description": "The password for authentication (optional for some auth schemes)",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "KerberosConfiguration",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "serviceName",
+          "description": "The Kerberos service name used during authentication",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "jaasLoginContext",
+          "description": "The JAAS login context name to use for authentication",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "mutualAuthentication",
+          "description": "Specifies whether to enable Kerberos mutual authentication",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "jaasConfigFileReloadEnabled",
+          "description": "Specifies whether to enable automatic reload of the JAAS configuration file",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "OAuth2AccessTokenAuth",
+      "description": "OAuth2 Access Token authentication configuration",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "issuer",
+          "description": "Issuer identifier URI for token validation",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "accessToken",
+          "description": "The OAuth 2.0 access token for authentication",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "OidcIdTokenAuth",
+      "description": "OpenID Connect (OIDC) ID Token authentication configuration",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "issuer",
+          "description": "Issuer identifier URI for token validation",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "oidcToken",
+          "description": "The OpenID Connect (OIDC) ID token for authentication",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "OAuth2Configuration",
+      "description": "OAuth2 authentication configuration (mutually exclusive - use either access token or ID token)\nWhen using OAuth2 authentication scheme, exactly one of OAuth2AccessTokenAuth or OidcIdTokenAuth must be provided",
+      "type": "Union",
+      "members": [
+        {
+          "name": "ballerinax/solace:0.4.0:OAuth2AccessTokenAuth",
+          "type": {
+            "name": "OAuth2AccessTokenAuth",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OAuth2AccessTokenAuth"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerinax/solace:0.4.0:OidcIdTokenAuth",
+          "type": {
+            "name": "OidcIdTokenAuth",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OidcIdTokenAuth"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "AuthConfiguration",
+      "description": "Authentication configuration (basic, Kerberos, or OAuth2)",
+      "type": "Union",
+      "members": [
+        {
+          "name": "ballerinax/solace:0.4.0:BasicAuthConfiguration",
+          "type": {
+            "name": "BasicAuthConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "BasicAuthConfiguration"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerinax/solace:0.4.0:KerberosConfiguration",
+          "type": {
+            "name": "KerberosConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "KerberosConfiguration"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerinax/solace:0.4.0:OAuth2AccessTokenAuth",
+          "type": {
+            "name": "OAuth2AccessTokenAuth",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OAuth2AccessTokenAuth"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerinax/solace:0.4.0:OidcIdTokenAuth",
+          "type": {
+            "name": "OidcIdTokenAuth",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OidcIdTokenAuth"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "CertificateValidation",
+      "description": "SSL/TLS certificate validation configuration",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "enabled",
+          "description": "Enable certificate validation",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "validateDate",
+          "description": "Validate the certificate\u0027s expiration date",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "validateHostname",
+          "description": "Validate that the certificate\u0027s common name matches the broker hostname/IP",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "SslStoreFormat",
+      "description": "Represents the supported SSL store formats.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "\"jks\"",
+          "type": {
+            "name": "\"jks\""
+          }
+        },
+        {
+          "name": "\"pkcs12\"",
+          "type": {
+            "name": "\"pkcs12\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "TrustStore",
+      "description": "Trust store configuration for server certificate validation",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "location",
+          "description": "The URL or file path of the trust store",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "password",
+          "description": "The password for the trust store",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "format",
+          "description": "The format of the trust store file (JKS, PKCS12, etc.)",
+          "type": {
+            "name": "SslStoreFormat",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SslStoreFormat"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "KeyStore",
+      "description": "Key store configuration for client certificate authentication",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "location",
+          "description": "The URL or file path of the key store",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "password",
+          "description": "The password for the key store",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "keyPassword",
+          "description": "The password for the private key (if different from key store password)",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "keyAlias",
+          "description": "The alias of the private key to use from the key store",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "format",
+          "description": "The format of the key store file (JKS, PKCS12, etc.)",
+          "type": {
+            "name": "SslStoreFormat",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SslStoreFormat"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Protocol",
+      "description": "Represents the supported SSL/TLS protocol versions.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "TLSV1_3",
+          "description": ""
+        },
+        {
+          "name": "TLSV1_2",
+          "description": ""
+        },
+        {
+          "name": "TLSV1_1",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "SslCipherSuite",
+      "description": "The SSL Cipher Suite to be used for secure communication with the Solace broker.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "\"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384\"",
+          "type": {
+            "name": "\"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384\""
+          }
+        },
+        {
+          "name": "\"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA\"",
+          "type": {
+            "name": "\"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA\""
+          }
+        },
+        {
+          "name": "\"TLS_RSA_WITH_AES_256_CBC_SHA256\"",
+          "type": {
+            "name": "\"TLS_RSA_WITH_AES_256_CBC_SHA256\""
+          }
+        },
+        {
+          "name": "\"TLS_RSA_WITH_AES_256_CBC_SHA\"",
+          "type": {
+            "name": "\"TLS_RSA_WITH_AES_256_CBC_SHA\""
+          }
+        },
+        {
+          "name": "\"TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA\"",
+          "type": {
+            "name": "\"TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA\""
+          }
+        },
+        {
+          "name": "\"SSL_RSA_WITH_3DES_EDE_CBC_SHA\"",
+          "type": {
+            "name": "\"SSL_RSA_WITH_3DES_EDE_CBC_SHA\""
+          }
+        },
+        {
+          "name": "\"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA\"",
+          "type": {
+            "name": "\"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA\""
+          }
+        },
+        {
+          "name": "\"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256\"",
+          "type": {
+            "name": "\"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256\""
+          }
+        },
+        {
+          "name": "\"TLS_RSA_WITH_AES_128_CBC_SHA256\"",
+          "type": {
+            "name": "\"TLS_RSA_WITH_AES_128_CBC_SHA256\""
+          }
+        },
+        {
+          "name": "\"TLS_RSA_WITH_AES_128_CBC_SHA\"",
+          "type": {
+            "name": "\"TLS_RSA_WITH_AES_128_CBC_SHA\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "SecureSocket",
+      "description": "SSL/TLS configuration for secure connections",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "trustStore",
+          "description": "The trust store configuration for server certificate validation",
+          "type": {
+            "name": "TrustStore",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TrustStore"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "keyStore",
+          "description": "The key store configuration for client certificate authentication",
+          "type": {
+            "name": "KeyStore",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "KeyStore"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "trustedCommonNames",
+          "description": "The list of trusted common names for certificate validation",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "excludedProtocols",
+          "description": "The SSL/TLS protocols NOT to use. None are excluded by default",
+          "type": {
+            "name": "Protocol[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Protocol"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "cipherSuites",
+          "description": "The list of cipher suites to enable for the connection.\nIf not specified, the default cipher suites for the JVM are used",
+          "type": {
+            "name": "SslCipherSuite[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SslCipherSuite"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "validation",
+          "description": "Certificate validation settings",
+          "type": {
+            "name": "CertificateValidation",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CertificateValidation"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "RetryConfiguration",
+      "description": "Retry configuration for connection attempts",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "connectRetries",
+          "description": "Number of times to retry connecting during initial connection (0 \u003d no retries, -1 \u003d infinite)",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "connectRetriesPerHost",
+          "description": "Number of connection retries per host when multiple hosts are specified",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "reconnectRetries",
+          "description": "Number of times to retry reconnecting after connection loss (-1 \u003d infinite)",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "reconnectRetryWait",
+          "description": "Time to wait between reconnection attempts in seconds",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ProducerConfiguration",
+      "description": "Producer-specific configuration\nNote: Destination is passed at send-time, not specified in configuration",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "generateSendTimestamps",
+          "description": "Whether to generate a send timestamp in outgoing messages\nWhen enabled, outgoing messages will have senderTimestamp automatically set if not already provided",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "generateSequenceNumbers",
+          "description": "Whether to generate a sequence number in outgoing messages\nWhen enabled, outgoing messages will have sequenceNumber automatically generated if not already set",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "messageVpn",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "auth",
+          "description": "",
+          "type": {
+            "name": "AuthConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AuthConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "",
+          "type": {
+            "name": "SecureSocket",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SecureSocket"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "clientName",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "clientDescription",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "transacted",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "compressionLevel",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "localhost",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "connectTimeout",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "readTimeout",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "retryConfig",
+          "description": "",
+          "type": {
+            "name": "RetryConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RetryConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ListenerConfiguration",
+      "description": "Listener configuration for asynchronous (push-based) message consumption\nNote: Subscription (queue or topic) is specified per-service via the ServiceConfig annotation",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "generateReceiveTimestamps",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "calculateMessageExpiration",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "messageVpn",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "auth",
+          "description": "",
+          "type": {
+            "name": "AuthConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AuthConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "",
+          "type": {
+            "name": "SecureSocket",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SecureSocket"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "clientName",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "clientDescription",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "transacted",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "compressionLevel",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "localhost",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "connectTimeout",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "readTimeout",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "retryConfig",
+          "description": "",
+          "type": {
+            "name": "RetryConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RetryConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "QueueConfiguration",
+      "description": "Queue consumer configuration for synchronous (pull-based) consumption",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "queueName",
+          "description": "The queue name to consume messages from - REQUIRED unless durability is TEMPORARY (optional broker-generated\nname hint when TEMPORARY)",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "durability",
+          "description": "Whether this is a durable (pre-provisioned, named) queue or a temporary (auto-deleted when session\ndisconnects) one. Temporary queues are useful for short-lived, session-specific messaging patterns like\nrequest-reply.",
+          "type": {
+            "name": "Durability",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Durability"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "ackMode",
+          "description": "",
+          "type": {
+            "name": "AcknowledgementMode",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AcknowledgementMode"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "messageSelector",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "transportWindowSize",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "ackThreshold",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "ackTimer",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "reconnectTries",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "reconnectRetryInterval",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Durability",
+      "description": "Durability of a queue or topic subscription: DURABLE (persisted on broker) or TEMPORARY (ephemeral, auto-deleted)",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "TEMPORARY",
+          "description": "Subscription is ephemeral and auto-deleted when the client disconnects."
+        },
+        {
+          "name": "DURABLE",
+          "description": "Subscription is persisted on the broker and survives client disconnects."
+        }
+      ]
+    },
+    {
+      "name": "TopicConfiguration",
+      "description": "Topic consumer configuration for synchronous (pull-based) consumption",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "topicName",
+          "description": "The topic name to subscribe to",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "durability",
+          "description": "Durability: TEMPORARY (ephemeral/direct) or DURABLE (persisted on broker)",
+          "type": {
+            "name": "Durability",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Durability"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "endpointName",
+          "description": "Endpoint name - REQUIRED when durability is DURABLE (optional for TEMPORARY)\nUsed to identify the durable topic endpoint on the broker. Must be unique for durable endpoints.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "ackMode",
+          "description": "",
+          "type": {
+            "name": "AcknowledgementMode",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AcknowledgementMode"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "messageSelector",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "transportWindowSize",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "ackThreshold",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "ackTimer",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "reconnectTries",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "reconnectRetryInterval",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "SubscriptionConfiguration",
+      "description": "Consumer subscription configuration: QueueConfiguration or TopicConfiguration",
+      "type": "Union",
+      "members": [
+        {
+          "name": "ballerinax/solace:0.4.0:QueueConfiguration",
+          "type": {
+            "name": "QueueConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "QueueConfiguration"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerinax/solace:0.4.0:TopicConfiguration",
+          "type": {
+            "name": "TopicConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TopicConfiguration"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "ConsumerConfiguration",
+      "description": "Consumer configuration for synchronous (pull-based) message consumption via MessageConsumer",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "subscriptionConfig",
+          "description": "The subscription configuration (queue or topic)",
+          "type": {
+            "name": "SubscriptionConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SubscriptionConfiguration"
+              }
+            ]
+          }
+        },
+        {
+          "name": "generateReceiveTimestamps",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "calculateMessageExpiration",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "messageVpn",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "auth",
+          "description": "",
+          "type": {
+            "name": "AuthConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AuthConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "",
+          "type": {
+            "name": "SecureSocket",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SecureSocket"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "clientName",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "clientDescription",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "transacted",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "compressionLevel",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "localhost",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "connectTimeout",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "readTimeout",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "retryConfig",
+          "description": "",
+          "type": {
+            "name": "RetryConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RetryConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "DeliveryMode",
+      "description": "Delivery modes for messages",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "PERSISTENT",
+          "description": "Once-and-only-once delivery mode for Guaranteed Messaging. Persistent messages cannot be lost once acknowledged,\ncannot be reordered during topology changes, and cannot be delivered more than once (unless redelivered flag is set).\nRetained on durable endpoints for disconnected clients. Recommended for applications requiring persistent storage\nand reliable message delivery."
+        },
+        {
+          "name": "DIRECT",
+          "description": "At-most-once delivery mode. Direct messages are not retained for disconnected clients and can be discarded\nduring congestion or failures. They can be reordered during network topology changes.\nMost appropriate for high-rate, low-latency messaging applications."
+        }
+      ]
+    },
+    {
+      "name": "QueueServiceConfiguration",
+      "description": "Queue service configuration for asynchronous (push-based) consumption via Listener",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "queueName",
+          "description": "The queue name to consume messages from",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "ackMode",
+          "description": "",
+          "type": {
+            "name": "AcknowledgementMode",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AcknowledgementMode"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "messageSelector",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "transportWindowSize",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "ackThreshold",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "ackTimer",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "reconnectTries",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "reconnectRetryInterval",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "TopicServiceConfiguration",
+      "description": "Topic service configuration for asynchronous (push-based) consumption via Listener",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "topicName",
+          "description": "The topic name to subscribe to",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "durability",
+          "description": "Durability: TEMPORARY (ephemeral/direct) or DURABLE (persisted on broker)",
+          "type": {
+            "name": "Durability",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Durability"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "endpointName",
+          "description": "Endpoint name - REQUIRED when durability is DURABLE (optional for TEMPORARY)\nUsed to identify the durable topic endpoint on the broker. Must be unique for durable endpoints.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "ackMode",
+          "description": "",
+          "type": {
+            "name": "AcknowledgementMode",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AcknowledgementMode"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "messageSelector",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "transportWindowSize",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "ackThreshold",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "ackTimer",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "reconnectTries",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "reconnectRetryInterval",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ServiceConfiguration",
+      "description": "Service subscription configuration (sealed: QueueServiceConfiguration | TopicServiceConfiguration)",
+      "type": "Union",
+      "members": [
+        {
+          "name": "ballerinax/solace:0.4.0:QueueServiceConfiguration",
+          "type": {
+            "name": "QueueServiceConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "QueueServiceConfiguration"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerinax/solace:0.4.0:TopicServiceConfiguration",
+          "type": {
+            "name": "TopicServiceConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TopicServiceConfiguration"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Message",
+      "description": "Message type for publishing/consuming",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "payload",
+          "description": "The payload of the message. When consuming, declare a narrowed subtype\n(e.g. `record {|*Message; string payload;|}`) to have the payload data-bound\ninto the declared type",
+          "type": {
+            "name": "anydata"
+          }
+        },
+        {
+          "name": "deliveryMode",
+          "description": "Delivery mode for the message (DIRECT, PERSISTENT, or NON_PERSISTENT)",
+          "type": {
+            "name": "DeliveryMode",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DeliveryMode"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "priority",
+          "description": "Message priority (0-9, where 9 is the highest)",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "timeToLive",
+          "description": "Time-to-live in seconds (0 \u003d never expires, only for PERSISTENT/NON_PERSISTENT modes)",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "messageId",
+          "description": "Application-defined message ID for correlation",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "messageType",
+          "description": "Application-defined message type",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "correlationId",
+          "description": "Correlation ID for request-reply patterns",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "replyTo",
+          "description": "Reply-to destination for request-reply patterns",
+          "type": {
+            "name": "Destination",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Destination"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "senderId",
+          "description": "Sender ID (set by client or broker)",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "senderTimestamp",
+          "description": "Sender timestamp in UTC milliseconds from epoch",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "sequenceNumber",
+          "description": "Sequence number for message ordering (application-managed)\nSet by the application for message ordering and duplicate detection.",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "properties",
+          "description": "Properties map for custom key-value pairs",
+          "type": {
+            "name": "map\u003cballerinax/solace:0.4.0:Property\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "userData",
+          "description": "Application-specific user data attachment (max 36 bytes)",
+          "type": {
+            "name": "byte[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "receiveTimestamp",
+          "description": "Receive timestamp in UTC milliseconds from epoch (set by broker)",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "redelivered",
+          "description": "Whether message was previously delivered",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "destination",
+          "description": "Destination this message was published to (Only set on receive)",
+          "type": {
+            "name": "Destination",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Destination"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "deliveryCount",
+          "description": "Number of times this message has been delivered (Only set on receive)",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "expiration",
+          "description": "Message expiration time in UTC milliseconds from epoch (populated by the client on receipt only when\n`calculateMessageExpiration` is enabled on the consumer/listener configuration; `0`/unset otherwise)",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Property",
+      "description": "Represents the allowed value types for a Solace message property.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "boolean",
+          "type": {
+            "name": "boolean"
+          }
+        },
+        {
+          "name": "int",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "byte",
+          "type": {
+            "name": "byte"
+          }
+        },
+        {
+          "name": "float",
+          "type": {
+            "name": "float"
+          }
+        },
+        {
+          "name": "string",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "byte[]",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "map\u003cballerinax/solace:0.4.0:Property\u003e",
+          "type": {
+            "name": "map\u003cballerinax/solace:0.4.0:Property\u003e"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Value",
+      "description": "Represents the allowed value types for entries in a Solace MapMessage payload.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "boolean",
+          "type": {
+            "name": "boolean"
+          }
+        },
+        {
+          "name": "int",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "byte",
+          "type": {
+            "name": "byte"
+          }
+        },
+        {
+          "name": "float",
+          "type": {
+            "name": "float"
+          }
+        },
+        {
+          "name": "string",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "byte[]",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "map\u003cballerinax/solace:0.4.0:Value\u003e",
+          "type": {
+            "name": "map\u003cballerinax/solace:0.4.0:Value\u003e"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Listener",
+      "description": "Initialize a new listener with the given connection configuration.\n",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initialize a new listener with the given connection configuration.\n",
+          "parameters": [
+            {
+              "name": "url",
+              "description": "The broker URL with format: [protocol:]host[:port]",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "messageVpn",
+              "description": "The message VPN to connect to",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "auth",
+              "description": "The authentication configuration (basic, Kerberos, or OAuth2)",
+              "type": {
+                "name": "AuthConfiguration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "AuthConfiguration"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{username: \"\"}"
+            },
+            {
+              "name": "secureSocket",
+              "description": "The SSL/TLS configuration for secure connections",
+              "type": {
+                "name": "SecureSocket",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "SecureSocket"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "clientName",
+              "description": "A unique client name to use to register to the appliance (auto-generated if not specified)",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "clientDescription",
+              "description": "A description for the application client",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "transacted",
+              "description": "Enable transacted messaging",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "compressionLevel",
+              "description": "ZLIB compression level (0 \u003d disabled, 1-9 \u003d compression)",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "0"
+            },
+            {
+              "name": "localhost",
+              "description": "The local interface IP address to bind for outbound connections",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "connectTimeout",
+              "description": "The maximum time in seconds for a connection attempt",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "0.0d"
+            },
+            {
+              "name": "readTimeout",
+              "description": "The maximum time in seconds for reading connection replies",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "0.0d"
+            },
+            {
+              "name": "retryConfig",
+              "description": "Retry configuration for connection attempts",
+              "type": {
+                "name": "RetryConfiguration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "RetryConfiguration"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "Additional Values",
+              "description": "Capture key value pairs",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true
+            },
+            {
+              "name": "generateReceiveTimestamps",
+              "description": "Whether to generate a receive timestamp on incoming messages\nWhen enabled, incoming messages will have receiveTimestamp automatically set by the client on receipt",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "calculateMessageExpiration",
+              "description": "Whether to calculate message expiration time on incoming messages\nWhen enabled, incoming messages will have expiration populated from the timeToLive field on receipt",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "config",
+              "description": "The connection configuration (auth, SSL/TLS, retry, etc.)",
+              "type": {
+                "name": "ListenerConfiguration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ListenerConfiguration"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "Error if initialization fails",
+            "type": {
+              "name": "ballerinax/solace:0.4.0:Error?"
+            }
+          }
+        },
+        {
+          "name": "attach",
+          "type": "Normal Function",
+          "description": "Attach a service to the listener.\n\nThe service must declare a remote `onMessage` method and may optionally declare an `onError`\nmethod. Its subscription is read from the `@solace:ServiceConfig` annotation.\n",
+          "parameters": [
+            {
+              "name": "s",
+              "description": "The service object to attach",
+              "type": {
+                "name": "Service",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Service"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "name",
+              "description": "Optional service name (ignored; subscription is taken from the annotation)",
+              "type": {
+                "name": "string[]|string|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "Error if attachment fails",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "detach",
+          "type": "Normal Function",
+          "description": "Detach a service from the listener.\n\nStops and closes the flow/consumer associated with the service.\n",
+          "parameters": [
+            {
+              "name": "s",
+              "description": "The service object to detach",
+              "type": {
+                "name": "Service",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Service"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "Error if detachment fails",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "\u0027start",
+          "type": "Normal Function",
+          "description": "Start the listener.\n\nBegins delivering messages to all attached services.\n",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "gracefulStop",
+          "type": "Normal Function",
+          "description": "Gracefully stop the listener.\n\nStops delivery to attached services and waits for in-flight message processing to complete\nbefore closing resources.\n",
+          "parameters": [],
+          "return": {
+            "description": "Error if stop fails",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "immediateStop",
+          "type": "Normal Function",
+          "description": "Immediately stop the listener.\n\nStops delivery and closes resources without waiting for in-flight processing.\n",
+          "parameters": [],
+          "return": {
+            "description": "Error if stop fails",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "name": "Caller",
+      "description": "Caller for explicit acknowledgement and transaction control within a service\u0027s `onMessage` method.\n\nA `Caller` is created by the `solace:Listener` and supplied as the optional second parameter of\n`onMessage`. Use it when the service is configured with `ackMode \u003d CLIENT_ACK` and needs manual\nacknowledgement, or when the listener connection is transacted and needs commit/rollback control.",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Caller for explicit acknowledgement and transaction control within a service\u0027s `onMessage` method.\n\nA `Caller` is created by the `solace:Listener` and supplied as the optional second parameter of\n`onMessage`. Use it when the service is configured with `ackMode \u003d CLIENT_ACK` and needs manual\nacknowledgement, or when the listener connection is transacted and needs commit/rollback control.",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "ballerinax/solace:solace:Caller"
+            }
+          }
+        },
+        {
+          "name": "ack",
+          "type": "Remote Function",
+          "description": "Acknowledge a message in `CLIENT_ACK` mode.\n\nIn `AUTO_ACK` mode messages are acknowledged automatically after `onMessage` returns\nsuccessfully and this method should not be called. When the listener connection is transacted,\nsettlement is governed by `commit`/`rollback`, so this method does not apply.\n",
+          "parameters": [
+            {
+              "name": "message",
+              "description": "The message to acknowledge",
+              "type": {
+                "name": "Message",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Message"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "Error if acknowledgement fails",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "nack",
+          "type": "Remote Function",
+          "description": "Negatively acknowledge a message (NACK).\n\nWhen the listener connection is transacted, this method returns an `Error`: JCSMP\u0027s settle()\nis a documented no-op on transacted flows, so calling `nack` there would silently have no\neffect. Use `commit`/`rollback` instead to control settlement.\n",
+          "parameters": [
+            {
+              "name": "message",
+              "description": "The message to negatively acknowledge",
+              "type": {
+                "name": "Message",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Message"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "requeue",
+              "description": "If true, the message is requeued for redelivery (FAILED outcome).\nIf false, the message moves to the DMQ immediately, if configured. If not, the message is simply\ndiscarded. (REJECTED outcome)",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            }
+          ],
+          "return": {
+            "description": "Error if NACK fails",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "\u0027commit",
+          "type": "Remote Function",
+          "description": "Commit the current transaction.\n\nOnly applicable when the listener connection is transacted.\n",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "\u0027rollback",
+          "type": "Remote Function",
+          "description": "Rollback the current transaction.\n\nOnly applicable when the listener connection is transacted.\n",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "MessageConsumer",
+      "description": "MessageConsumer for synchronous (pull-based) message consumption from Solace.\n\nSupports both queue and topic subscriptions:\n- Queue subscriptions: guaranteed message delivery via FlowReceiver\n- Topic subscriptions: direct message delivery via XMLMessageConsumer\n\nExample queue consumer:\n```ballerina\nfinal solace:MessageConsumer consumer \u003d check new (\n    url \u003d \"tcp://broker:55555\",\n    auth \u003d {username: \"default\"},\n    subscriptionConfig \u003d {\n        queueName: \"orders\",\n        ackMode: \"SUPPORTED_MESSAGE_ACK_AUTO\"\n    }\n);\nsolace:Message? msg \u003d check consumer-\u003ereceive(5.0);\n```\n\nExample topic consumer:\n```ballerina\nfinal solace:MessageConsumer consumer \u003d check new (\n    url \u003d \"tcp://broker:55555\",\n    auth \u003d {username: \"default\"},\n    subscriptionConfig \u003d {\n        topicName: \"orders/*/created\",\n        durability: \"TEMPORARY\"\n    }\n);\nsolace:Message? msg \u003d check consumer-\u003ereceive(10.0);\n```",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initialize a new MessageConsumer with the given configuration.\n",
+          "parameters": [
+            {
+              "name": "url",
+              "description": "The broker URL with format: [protocol:]host[:port]",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "messageVpn",
+              "description": "The message VPN to connect to",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "auth",
+              "description": "The authentication configuration (basic, Kerberos, or OAuth2)",
+              "type": {
+                "name": "AuthConfiguration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "AuthConfiguration"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{username: \"\"}"
+            },
+            {
+              "name": "secureSocket",
+              "description": "The SSL/TLS configuration for secure connections",
+              "type": {
+                "name": "SecureSocket",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "SecureSocket"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "clientName",
+              "description": "A unique client name to use to register to the appliance (auto-generated if not specified)",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "clientDescription",
+              "description": "A description for the application client",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "transacted",
+              "description": "Enable transacted messaging",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "compressionLevel",
+              "description": "ZLIB compression level (0 \u003d disabled, 1-9 \u003d compression)",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "0"
+            },
+            {
+              "name": "localhost",
+              "description": "The local interface IP address to bind for outbound connections",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "connectTimeout",
+              "description": "The maximum time in seconds for a connection attempt",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "0.0d"
+            },
+            {
+              "name": "readTimeout",
+              "description": "The maximum time in seconds for reading connection replies",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "0.0d"
+            },
+            {
+              "name": "retryConfig",
+              "description": "Retry configuration for connection attempts",
+              "type": {
+                "name": "RetryConfiguration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "RetryConfiguration"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "Additional Values",
+              "description": "Capture key value pairs",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true
+            },
+            {
+              "name": "generateReceiveTimestamps",
+              "description": "Whether to generate a receive timestamp on incoming messages\nWhen enabled, incoming messages will have receiveTimestamp automatically set by the client on receipt",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "calculateMessageExpiration",
+              "description": "Whether to calculate message expiration time on incoming messages\nWhen enabled, incoming messages will have expiration populated from the timeToLive field on receipt",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "subscriptionConfig",
+              "description": "The subscription configuration (queue or topic)",
+              "type": {
+                "name": "SubscriptionConfiguration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "SubscriptionConfiguration"
+                  }
+                ]
+              },
+              "default": "{}"
+            },
+            {
+              "name": "config",
+              "description": "The consumer configuration (composed of connection config + subscription config)",
+              "type": {
+                "name": "ConsumerConfiguration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ConsumerConfiguration"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "Error if initialization fails",
+            "type": {
+              "name": "ballerinax/solace:0.4.0:Error?"
+            }
+          }
+        },
+        {
+          "name": "receive",
+          "type": "Remote Function",
+          "description": "Receive a message with a timeout.\n\nBlocks up to the specified timeout waiting for a message. Returns nil if no message\narrives within the timeout period.\n",
+          "parameters": [
+            {
+              "name": "timeout",
+              "description": "Maximum time in seconds to wait for a message. A nil or zero timeout never expires",
+              "type": {
+                "name": "decimal|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "T",
+              "description": "Optional type description of the expected message type; declare a narrowed\n`record {|*Message; T payload;|}` to have the payload data-bound into `T`",
+              "type": {
+                "name": "record {|anydata payload; solace:DeliveryMode deliveryMode; int priority?; decimal timeToLive?; string messageId?; string messageType?; string correlationId?; solace:Destination replyTo?; string senderId?; int senderTimestamp?; int sequenceNumber?; map\u003csolace:Property\u003e properties?; byte[] userData?; int receiveTimestamp?; boolean redelivered?; solace:Destination destination?; int deliveryCount?; int expiration?;|}"
+              },
+              "optional": true,
+              "default": "solace:Message"
+            }
+          ],
+          "return": {
+            "description": "The received message, or nil if timeout occurs; Error if receive fails",
+            "type": {
+              "name": "T|Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "T"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "receiveNoWait",
+          "type": "Remote Function",
+          "description": "Receive a message without waiting.\n\nReturns immediately with a message if available, or nil if no message is available.\nThis is a non-blocking operation.\n",
+          "parameters": [
+            {
+              "name": "T",
+              "description": "Optional type description of the expected message type; declare a narrowed\n`record {|*Message; T payload;|}` to have the payload data-bound into `T`",
+              "type": {
+                "name": "record {|anydata payload; solace:DeliveryMode deliveryMode; int priority?; decimal timeToLive?; string messageId?; string messageType?; string correlationId?; solace:Destination replyTo?; string senderId?; int senderTimestamp?; int sequenceNumber?; map\u003csolace:Property\u003e properties?; byte[] userData?; int receiveTimestamp?; boolean redelivered?; solace:Destination destination?; int deliveryCount?; int expiration?;|}"
+              },
+              "optional": true,
+              "default": "solace:Message"
+            }
+          ],
+          "return": {
+            "description": "The received message, or nil if no message available; Error if receive fails",
+            "type": {
+              "name": "T|Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "T"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "ack",
+          "type": "Remote Function",
+          "description": "Acknowledge a message in CLIENT_ACKNOWLEDGE mode.\n\nOnly use this method if the subscription is configured with ackMode \u003d CLIENT_ACK.\nIn AUTO mode, messages are acknowledged automatically.\n\nFor transacted flows, calling this method has no effect.\n",
+          "parameters": [
+            {
+              "name": "message",
+              "description": "The message to acknowledge",
+              "type": {
+                "name": "Message",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Message"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "Error if acknowledgement fails",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "nack",
+          "type": "Remote Function",
+          "description": "Negatively acknowledge a message (NACK).\n\nSends a negative acknowledgement for the message, indicating processing failure.\n\nOnly use this method if the subscription is configured with ackMode \u003d CLIENT_ACK\nand the consumer flow is configured to support required settlement outcomes.\nFor transacted flows, settlement outcomes are ignored.\n",
+          "parameters": [
+            {
+              "name": "message",
+              "description": "The message to negatively acknowledge",
+              "type": {
+                "name": "Message",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Message"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "requeue",
+              "description": "If true (default), the message is made available for redelivery. (FAILED outcome)\nIf false, the message moves to the DMQ immediately, if configured.\nIf not configured, the message is simply discarded. (REJECTED outcome)",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            }
+          ],
+          "return": {
+            "description": "Error if NACK fails",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "\u0027commit",
+          "type": "Remote Function",
+          "description": "Commit the current transaction.\n\nOnly applicable in transacted mode. Commits all message operations since the last commit/rollback.\n",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "\u0027rollback",
+          "type": "Remote Function",
+          "description": "Rollback the current transaction.\n\nOnly applicable in transacted mode. Rolls back all message operations since the last commit/rollback.\n",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "close",
+          "type": "Remote Function",
+          "description": "Close the consumer and release all resources.\n",
+          "parameters": [],
+          "return": {
+            "description": "Error if close fails",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "destinationName",
+          "type": "Remote Function",
+          "description": "Get the resolved name of the destination (queue or topic) this consumer is bound to.\n\nFor a `durability: TEMPORARY` queue created without a `queueName` hint, this returns the broker-generated\nname - useful for publishing it as a `replyTo` address before any message has been received.\n",
+          "parameters": [],
+          "return": {
+            "description": "The destination name",
+            "type": {
+              "name": "string"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "MessageProducer",
+      "description": "MessageProducer for synchronous (blocking) message publishing to Solace.\n\nSupports both guaranteed (PERSISTENT/NON_PERSISTENT) and direct (DIRECT) message delivery modes.\nMessages are published to specified destinations (topics or queues).\n\nExample usage:\n```ballerina\nfinal solace:MessageProducer producer \u003d check new (\n    host \u003d \"tcp://broker:55555\",\n    auth \u003d {username: \"default\"}\n);\nsolace:Message message \u003d {\n    payload: \"Hello Solace\".toBytes(),\n    deliveryMode: solace:PERSISTENT,\n    priority: 4\n};\ncheck producer-\u003esend(message, {topicName: \"orders/created\"});\ncheck producer-\u003eclose();\n```",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initialize a new MessageProducer with the given connection configuration.\n",
+          "parameters": [
+            {
+              "name": "url",
+              "description": "The broker URL with format: [protocol:]host[:port]",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "messageVpn",
+              "description": "The message VPN to connect to",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "auth",
+              "description": "The authentication configuration (basic, Kerberos, or OAuth2)",
+              "type": {
+                "name": "AuthConfiguration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "AuthConfiguration"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{username: \"\"}"
+            },
+            {
+              "name": "secureSocket",
+              "description": "The SSL/TLS configuration for secure connections",
+              "type": {
+                "name": "SecureSocket",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "SecureSocket"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "clientName",
+              "description": "A unique client name to use to register to the appliance (auto-generated if not specified)",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "clientDescription",
+              "description": "A description for the application client",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "transacted",
+              "description": "Enable transacted messaging",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "compressionLevel",
+              "description": "ZLIB compression level (0 \u003d disabled, 1-9 \u003d compression)",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "0"
+            },
+            {
+              "name": "localhost",
+              "description": "The local interface IP address to bind for outbound connections",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "connectTimeout",
+              "description": "The maximum time in seconds for a connection attempt",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "0.0d"
+            },
+            {
+              "name": "readTimeout",
+              "description": "The maximum time in seconds for reading connection replies",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "0.0d"
+            },
+            {
+              "name": "retryConfig",
+              "description": "Retry configuration for connection attempts",
+              "type": {
+                "name": "RetryConfiguration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "RetryConfiguration"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "Additional Values",
+              "description": "Capture key value pairs",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true
+            },
+            {
+              "name": "generateSendTimestamps",
+              "description": "Whether to generate a send timestamp in outgoing messages\nWhen enabled, outgoing messages will have senderTimestamp automatically set if not already provided",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "generateSequenceNumbers",
+              "description": "Whether to generate a sequence number in outgoing messages\nWhen enabled, outgoing messages will have sequenceNumber automatically generated if not already set",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "config",
+              "description": "The producer connection configuration",
+              "type": {
+                "name": "ProducerConfiguration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ProducerConfiguration"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "Error if initialization fails",
+            "type": {
+              "name": "ballerinax/solace:0.4.0:Error?"
+            }
+          }
+        },
+        {
+          "name": "send",
+          "type": "Remote Function",
+          "description": "Send a message to the specified destination.\n",
+          "parameters": [
+            {
+              "name": "message",
+              "description": "The message to send (payload and optional properties)",
+              "type": {
+                "name": "Message",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Message"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "destination",
+              "description": "The destination to send to (topic or queue)",
+              "type": {
+                "name": "Destination",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Destination"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "Error if send fails",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "\u0027commit",
+          "type": "Remote Function",
+          "description": "Commit the current transaction.\n\nOnly applicable in transacted mode. Commits all message operations since the last commit/rollback.\n",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "\u0027rollback",
+          "type": "Remote Function",
+          "description": "Rollback the current transaction.\n\nOnly applicable in transacted mode. Rolls back all message operations since the last commit/rollback.\n",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "close",
+          "type": "Remote Function",
+          "description": "Close the producer and release all resources.\n\nAfter calling this method, the producer cannot be used.\n",
+          "parameters": [],
+          "return": {
+            "description": "Error if close fails",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "functions": [],
+  "services": [
+    {
+      "type": "fixed",
+      "name": "Service",
+      "listener": {
+        "name": "solace:Listener",
+        "parameters": [
+          {
+            "name": "url",
+            "description": "The Solace broker URL in the format `\u003cscheme\u003e://[username]:[password]@\u003chost\u003e[:port]`.\nSupported schemes are `smf` (plain-text) and `smfs` (TLS/SSL).\nMultiple hosts can be specified as a comma-separated list for failover support.\nDefault ports: 55555 (standard), 55003 (compression), 55443 (SSL)",
+            "type": {
+              "name": "string"
+            },
+            "default": "\"\""
+          },
+          {
+            "name": "config",
+            "description": "configurations used when initializing the listener",
+            "type": {
+              "name": "ListenerConfiguration",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "ListenerConfiguration"
+                }
+              ]
+            },
+            "optional": true,
+            "default": "{}"
+          }
+        ]
+      },
+      "methods": [
+        {
+          "name": "onMessage",
+          "type": "remote",
+          "description": "Triggers when a message is received from a Solace queue or topic",
+          "parameters": [
+            {
+              "name": "message",
+              "description": "The received Solace message",
+              "type": {
+                "name": "Message",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Message"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "caller",
+              "description": "The Solace caller to control transactions and message acknowledgement",
+              "type": {
+                "name": "Caller",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Caller"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          },
+          "optional": false
+        },
+        {
+          "name": "onError",
+          "type": "remote",
+          "description": "Triggers when an error occurs during message processing",
+          "parameters": [
+            {
+              "name": "solaceError",
+              "description": "The error occurred during message processing",
+              "type": {
+                "name": "Error",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Error"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          },
+          "optional": false
+        }
+      ]
+    }
+  ],
+  "annotations": [
+    {
+      "name": "ServiceConfig",
+      "attachmentPoint": "SERVICE",
+      "displayName": "Service Configuration",
+      "description": "Define advanced configurations like queue or topic name",
+      "typeConstraint": {
+        "name": "ServiceConfiguration",
+        "links": [
+          {
+            "category": "internal",
+            "recordName": "ServiceConfiguration"
+          }
+        ]
+      }
+    }
+  ]
+}

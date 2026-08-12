@@ -1,0 +1,4023 @@
+{
+  "name": "ballerinax/redis",
+  "description": "[Redis](https://redis.io/) is an open-source, in-memory data structure store that can be used as a database, cache, and message broker. It supports various data structures such as strings, hashes, lists, sets, and more.",
+  "readme": "## Overview\n\n[Redis](https://redis.io/) is an open-source, in-memory data structure store that can be used as a database, cache, and message broker. It supports various data structures such as strings, hashes, lists, sets, and more.\n\nThe Redis connector offers APIs to connect to Redis servers and manipulate key-value data, providing functionality to utilize Redis both as a database and cache. It is compatible with Redis server versions up to 7.2.x.\n\n### Key Features\n\n- In-memory data storage for high-performance access\n- Support for various data structures (Strings, Hashes, Lists, Sets, etc.)\n- Efficient connection management and pooling\n- Support for complex Redis operations and commands\n- GraalVM compatible for native image builds\n\n## Setup guide\n\nTo use the Redis connector, you need to have a Redis server running and accessible. For that, you can either install\nRedis locally or use a cloud-based Redis service.\n\n### Setting up a Redis server locally\n\n#### Step 1: Install Redis server\n1. Download and install Redis from the [official website](https://redis.io/download/).\n\n2. Follow the installation instructions based on your operating system.\n\n#### Step 2: Start Redis server\nTo start the Redis server, open a terminal and execute the following command.\n\n```bash\nredis-server\n```\n\n#### Step 3: Verify Redis connectivity\nAfter starting the Redis server, you can verify the connectivity using the Redis CLI.\nOpen a new terminal and execute the following command.\n\n```bash\nredis-cli ping\n```\n\nIf the server is running, you will receive a response of `\"PONG\"`.\n\n### Setting up a cloud-based Redis service\n\nSeveral cloud providers offer managed Redis services. Some of the popular ones are:\n\n1. **Redis Labs:** [Redis Labs](https://redis.com/) offers Redis Enterprise Cloud, a fully-managed Redis service in the cloud.\n2. **Amazon ElastiCache:** Amazon Web Services provides [ElastiCache](https://aws.amazon.com/elasticache/), a managed Redis service for deploying, operating, and scaling Redis in the AWS Cloud.\n3. **Google Cloud Memorystore:** Google Cloud offers [Memorystore](https://cloud.google.com/memorystore?hl\u003den) for Redis, a fully-managed Redis service on Google Cloud Platform.\n4. **Microsoft Azure Cache for Redis:** [Azure Cache for Redis](https://azure.microsoft.com/en-us/products/cache) is a fully-managed Redis service provided by Microsoft Azure.\n\nChoose the hosting solution that best fits your requirements and proceed with its setup instructions.\n\n## Quickstart\n\nTo use the `redis` connector in your Ballerina application, follow the steps below:\n\n### Step 1: Import the module\n\nImport the `redis` module.\n\n```ballerina\nimport ballerinax/redis;\n```\n\n### Step 2: Instantiate a new connector\n\nCreate a `redis:ConnectionConfig` instance by giving the Redis server configuration and\ninitialize the Ballerina Redis client using it.\n\n```ballerina\nredis:Client redis \u003d check new (\n    connection \u003d {\n        host: \"localhost\",\n        port: 6379\n    }\n);\n```\n\n### Step 3: Invoke the connector operation\n\nNow, you can use the available connector operations to interact with Redis.\n\n#### Set a key-value pair\n\n```ballerina\ncheck redis-\u003eset(\"key\", \"value\");\n```\n\n#### Get value by key\n\n```ballerina\nstring value \u003d check redis-\u003eget(\"key\");\n```\n\n### Step 4: Run the Ballerina application\n\nSave the changes and run the Ballerina application using the following command.\n\n```bash\nbal run\n```\n\n## Examples\n\nThe Redis connector provides practical examples illustrating usage in various scenarios.\nExplore these [examples](https://github.com/ballerina-platform/module-ballerinax-redis/tree/master/examples/) covering common Redis operations.\n\n1. [Cache management](https://github.com/ballerina-platform/module-ballerinax-redis/tree/master/examples/cache-management) - Implement caching using Redis to improve application performance.\n\n2. [Session management](https://github.com/ballerina-platform/module-ballerinax-redis/tree/master/examples/session-management) - Use Redis to manage user sessions efficiently.\n\n3. [Rate limiting](https://github.com/ballerina-platform/module-ballerinax-redis/tree/master/examples/rate-limiting) - Implement rate limiting for API endpoints using Redis.\n",
+  "typeDefs": [
+    {
+      "name": "NONE",
+      "description": "",
+      "type": "Constant",
+      "value": "NONE",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "CA",
+      "description": "",
+      "type": "Constant",
+      "value": "CA",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "FULL",
+      "description": "",
+      "type": "Constant",
+      "value": "FULL",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "Error",
+      "description": "Represents a redis generic error",
+      "type": "Error"
+    },
+    {
+      "name": "ConnectionConfig",
+      "description": "The client endpoint configuration for Redis.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "connection",
+          "description": "Connection configurations of the Redis server. This can be either a single URI or a set of parameters",
+          "type": {
+            "name": "ConnectionUri|ConnectionParams",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ConnectionUri"
+              },
+              {
+                "category": "internal",
+                "recordName": "ConnectionParams"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "connectionPooling",
+          "description": "Flag to indicate whether connection pooling is enabled",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "isClusterConnection",
+          "description": "Flag to indicate whether the connection is a cluster connection",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "Configurations related to SSL/TLS encryption",
+          "type": {
+            "name": "SecureSocket",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SecureSocket"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ConnectionUri",
+      "description": "The redis Connection URI based configurations. This can become useful when working with \nmanaged Redis databases, where the cloud provider usually provides a connection URI.\n",
+      "type": "Other"
+    },
+    {
+      "name": "ConnectionParams",
+      "description": "The connection parameters based configurations.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "host",
+          "description": "Host address of the Redis database  ",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "port",
+          "description": "Port of the Redis database  ",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "username",
+          "description": "The username for the Redis database",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "password",
+          "description": "The password for the Redis database  ",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "options",
+          "description": "Other connection options of the connection configuration",
+          "type": {
+            "name": "Options",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Options"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Options",
+      "description": "Connection options for Redis client endpoint.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "clientName",
+          "description": "Name of the client",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "database",
+          "description": "Database index which the client should interact with. Not applicable for cluster connections",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "connectionTimeout",
+          "description": "Connection timeout in seconds",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "keepAlive",
+          "description": "TCP keep-alive configuration for detecting stale connections.\nSet to `()` (nil) to disable. Default is `()` (disabled).",
+          "type": {
+            "name": "KeepAliveConfig|()",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "KeepAliveConfig"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "KeepAliveConfig",
+      "description": "TCP keep-alive configuration for detecting stale connections.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "idle",
+          "description": "Time in seconds the connection must be idle before the first keep-alive probe is sent",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "interval",
+          "description": "Time in seconds between individual keep-alive probes",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "count",
+          "description": "Maximum number of keep-alive probes before the connection is considered dead",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "SecureSocket",
+      "description": "Configurations for secure communication with the Redis server.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "cert",
+          "description": "Configurations associated with `crypto:TrustStore` or single certificate file that the client trusts  ",
+          "type": {
+            "name": "TrustStore|string",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "TrustStore",
+                "libraryName": "ballerina/crypto"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "key",
+          "description": "Configurations associated with `crypto:KeyStore` or combination of certificate and private key of the client  ",
+          "type": {
+            "name": "KeyStore|CertKey",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "KeyStore",
+                "libraryName": "ballerina/crypto"
+              },
+              {
+                "category": "internal",
+                "recordName": "CertKey"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "protocols",
+          "description": "List of protocols used for the connection established to Redis Server, such as TLSv1.2, TLSv1.1, TLSv1.",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "ciphers",
+          "description": "List of ciphers to be used for SSL connections",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "verifyMode",
+          "description": "The SSL/TLS verification mode. This can be either NONE, CA, or FULL.",
+          "type": {
+            "name": "SslVerifyMode",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SslVerifyMode"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "startTls",
+          "description": "Whether StartTLS is enabled",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "CertKey",
+      "description": "Represents a combination of certificate, private key, and private key password if encrypted.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "certFile",
+          "description": "File containing the certificate",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "keyFile",
+          "description": "File containing the private key in PKCS8 format",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "keyPassword",
+          "description": "Password of the private key if it is encrypted",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "SslVerifyMode",
+      "description": "Represents the SSL/TLS verification mode.\n",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "FULL",
+          "description": ""
+        },
+        {
+          "name": "CA",
+          "description": ""
+        },
+        {
+          "name": "NONE",
+          "description": ""
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "name": "Client",
+      "description": "Ballerina Redis connector provides the capability to access Redis cache.\nThis connector lets you to perform operations to access and manipulate key-value data stored in a Redis database. \n",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initialize the Redis client. \n",
+          "parameters": [
+            {
+              "name": "connection",
+              "description": "Connection configurations of the Redis server. This can be either a single URI or a set of parameters",
+              "type": {
+                "name": "ConnectionUri|ConnectionParams",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ConnectionUri"
+                  },
+                  {
+                    "category": "internal",
+                    "recordName": "ConnectionParams"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "\"redis://localhost:6379\""
+            },
+            {
+              "name": "connectionPooling",
+              "description": "Flag to indicate whether connection pooling is enabled",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "isClusterConnection",
+              "description": "Flag to indicate whether the connection is a cluster connection",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "secureSocket",
+              "description": "Configurations related to SSL/TLS encryption",
+              "type": {
+                "name": "SecureSocket",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "SecureSocket"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "config",
+              "description": "configuration for the connector",
+              "type": {
+                "name": "ConnectionConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ConnectionConfig"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "`redis:Error` in case of failures or `nil` if successful. ",
+            "type": {
+              "name": "ballerinax/redis:3.4.1:Error?"
+            }
+          }
+        },
+        {
+          "name": "append",
+          "type": "Remote Function",
+          "description": "Append a value to a key.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key referring to a value",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "value",
+              "description": "String value to be appended",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "Length of the string after the operation",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "bitCount",
+          "type": "Remote Function",
+          "description": "Count set bits in a string.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key referring to a value",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "Number of bits of the value",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "bitOpAnd",
+          "type": "Remote Function",
+          "description": "Perform bitwise AND between strings.\n",
+          "parameters": [
+            {
+              "name": "destination",
+              "description": "Result key of the operation",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "keys",
+              "description": "Input keys to perform AND between",
+              "type": {
+                "name": "string[]"
+              }
+            }
+          ],
+          "return": {
+            "description": "Size of the string stored in the destination key, that is equal to the size of the longest input\nstring",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "bitOpOr",
+          "type": "Remote Function",
+          "description": "Perform bitwise OR between strings.\n",
+          "parameters": [
+            {
+              "name": "destination",
+              "description": "Result key of the operation",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "keys",
+              "description": "Input keys to perform OR between",
+              "type": {
+                "name": "string[]"
+              }
+            }
+          ],
+          "return": {
+            "description": "Size of the string stored in the destination key, that is equal to the size of the longest input\nstring or `redis:Error` if an error occurs",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "bitOpNot",
+          "type": "Remote Function",
+          "description": "Perform bitwise NOT on a string.\n",
+          "parameters": [
+            {
+              "name": "destination",
+              "description": "Result key of the operation",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "key",
+              "description": "Input key to perform NOT",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "Size of the string stored in the destination key or `redis:Error` if an error occurs",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "bitOpXor",
+          "type": "Remote Function",
+          "description": "Perform bitwise XOR between strings.\n",
+          "parameters": [
+            {
+              "name": "destination",
+              "description": "Result key of the operation",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "keys",
+              "description": "Input keys to perform XOR between",
+              "type": {
+                "name": "string[]"
+              }
+            }
+          ],
+          "return": {
+            "description": "Size of the string stored in the destination key, that is equal to the size of the longest input\nstring or `redis:Error` if an error occurs",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "decr",
+          "type": "Remote Function",
+          "description": "Decrement integer value of a key by one.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key referring to a value",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "Value of key after the decrement",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "decrBy",
+          "type": "Remote Function",
+          "description": "Decrement integer value of a key by the given number.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key referring to a value",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "value",
+              "description": "Value to be decremented",
+              "type": {
+                "name": "int"
+              }
+            }
+          ],
+          "return": {
+            "description": "Value of key after decrement or `redis:Error` if an error occurs",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "getBit",
+          "type": "Remote Function",
+          "description": "Returns bit value at offset in the string value stored at key.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key referring to a value",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "offset",
+              "description": "Offset in string value",
+              "type": {
+                "name": "int"
+              }
+            }
+          ],
+          "return": {
+            "description": "Bit value stored at offset or `redis:Error` if an error occurs",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "getRange",
+          "type": "Remote Function",
+          "description": "Get substring of string stored at a key.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key referring to a value",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "startPos",
+              "description": "Starting point of substring",
+              "type": {
+                "name": "int"
+              }
+            },
+            {
+              "name": "end",
+              "description": "End point of substring",
+              "type": {
+                "name": "int"
+              }
+            }
+          ],
+          "return": {
+            "description": "Substring or `redis:Error` if an error occurs",
+            "type": {
+              "name": "string|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "getSet",
+          "type": "Remote Function",
+          "description": "Set string value of key and return its existing value.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key referring to a value",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "value",
+              "description": "Value to be set",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "Existing value stored at key, or nil when key does not exist or `redis:Error` if an error occurs",
+            "type": {
+              "name": "string|Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "get",
+          "type": "Remote Function",
+          "description": "Get value of key.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key referring to a value",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "Value of key, or nil when key does not exist or `redis:Error` if an error occurs",
+            "type": {
+              "name": "string|Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "incr",
+          "type": "Remote Function",
+          "description": "Increment integer value of a key by one.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key referring to a value",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "Value of key after increment",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "incrBy",
+          "type": "Remote Function",
+          "description": "Increment integer value of key by the given amount.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key referring to a value",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "value",
+              "description": "Amount to increment",
+              "type": {
+                "name": "int"
+              }
+            }
+          ],
+          "return": {
+            "description": "Value of key after increment",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "incrByFloat",
+          "type": "Remote Function",
+          "description": "Increment integer value of key by the given float.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key referring to a value",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "value",
+              "description": "Amount to increment",
+              "type": {
+                "name": "float"
+              }
+            }
+          ],
+          "return": {
+            "description": "Value of key after increment",
+            "type": {
+              "name": "float|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "mGet",
+          "type": "Remote Function",
+          "description": "Get values of all given keys. Fails with an `Error` if any of the given keys does not\nexist, since the returned type cannot represent a missing value. Use `mGetOptional` instead\nif any of the given keys might not exist.\n",
+          "parameters": [
+            {
+              "name": "keys",
+              "description": "Keys of which values need to be retrieved",
+              "type": {
+                "name": "string[]"
+              }
+            }
+          ],
+          "return": {
+            "description": "Array of values at specified keys",
+            "type": {
+              "name": "string[]|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "mGetOptional",
+          "type": "Remote Function",
+          "description": "Get values of all given keys. Unlike `mGet`, a key that does not exist is represented as\n`()` in the returned array.\n",
+          "parameters": [
+            {
+              "name": "keys",
+              "description": "Keys of which values need to be retrieved",
+              "type": {
+                "name": "string[]"
+              }
+            }
+          ],
+          "return": {
+            "description": "Array of values at specified keys, with `()` for a missing key",
+            "type": {
+              "name": "string|()[]|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "mSet",
+          "type": "Remote Function",
+          "description": "Set multiple keys to multiple values.\n",
+          "parameters": [
+            {
+              "name": "keyValueMap",
+              "description": "Map of key-value pairs to be set",
+              "type": {
+                "name": "map\u003cany\u003e"
+              }
+            }
+          ],
+          "return": {
+            "description": "String with value `OK` if the operation was successful",
+            "type": {
+              "name": "string|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "mSetNx",
+          "type": "Remote Function",
+          "description": "Set multiple keys to multiple values, only if none of the keys exist.\n",
+          "parameters": [
+            {
+              "name": "keyValueMap",
+              "description": "Map of key-value pairs to be set",
+              "type": {
+                "name": "map\u003cany\u003e"
+              }
+            }
+          ],
+          "return": {
+            "description": "True if the operation was successful, false if it failed",
+            "type": {
+              "name": "boolean|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "pSetEx",
+          "type": "Remote Function",
+          "description": "Set value and expiration in milliseconds of a key.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key referring to a value",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "value",
+              "description": "Value to be set",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "expirationTime",
+              "description": "Expiration time in milli seconds",
+              "type": {
+                "name": "int"
+              }
+            }
+          ],
+          "return": {
+            "description": "`OK` if successful or `redis:Error` if an error occurs",
+            "type": {
+              "name": "string|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "set",
+          "type": "Remote Function",
+          "description": "Set the value of a key.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key referring to a value",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "value",
+              "description": "Values",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "`OK` if successful",
+            "type": {
+              "name": "string|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "setBit",
+          "type": "Remote Function",
+          "description": "Sets or clears the bit at offset in the string value stored at key.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key referring to a value",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "value",
+              "description": "Value to be set",
+              "type": {
+                "name": "int"
+              }
+            },
+            {
+              "name": "offset",
+              "description": "Offset at which the value should be set",
+              "type": {
+                "name": "int"
+              }
+            }
+          ],
+          "return": {
+            "description": "Original bit value stored at offset or `redis:Error` if an error occurs",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "setEx",
+          "type": "Remote Function",
+          "description": "Set the value and expiration of a key.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key referring to a value",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "value",
+              "description": "Value to be set",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "expirationTime",
+              "description": "Expiration time to be set, in seconds",
+              "type": {
+                "name": "int"
+              }
+            }
+          ],
+          "return": {
+            "description": "On success `OK` or `redis:Error` if an error occurs",
+            "type": {
+              "name": "string|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "setNx",
+          "type": "Remote Function",
+          "description": "Set value of a key, only if key does not exist.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key referring to a value",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "value",
+              "description": "Value to be set",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "`True` if exist `False` if not or `redis:Error` if an error occurs",
+            "type": {
+              "name": "boolean|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "setNxEx",
+          "type": "Remote Function",
+          "description": "Set the value and expiration of a key, only if the key does not exist. Combines `setNx` and `setEx`\ninto a single atomic operation (`SET key value NX EX expirationTime`).\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key referring to a value",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "value",
+              "description": "Value to be set",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "expirationTime",
+              "description": "Expiration time to be set, in seconds",
+              "type": {
+                "name": "int"
+              }
+            }
+          ],
+          "return": {
+            "description": "`True` if the key was set, `False` if the key already existed, or `redis:Error` if an error occurs",
+            "type": {
+              "name": "boolean|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "setRange",
+          "type": "Remote Function",
+          "description": "Overwrite part of string at key starting at the specified offset.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key referring to a value",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "offset",
+              "description": "Offset at which the value should be set",
+              "type": {
+                "name": "int"
+              }
+            },
+            {
+              "name": "value",
+              "description": "Value to be set",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "Length of the string after it was modified or `redis:Error` if an error occurs",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "strLen",
+          "type": "Remote Function",
+          "description": "Get length of value stored in a key.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key referring to a value",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "Length of string at key, or 0 when key does not exist or `redis:Error` if an error occurs",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "lPush",
+          "type": "Remote Function",
+          "description": "Prepend one or multiple values to list.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key referring to a value",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "values",
+              "description": "Values to be prepended",
+              "type": {
+                "name": "string[]"
+              }
+            }
+          ],
+          "return": {
+            "description": "Length of list after the push operation(s) or `redis:Error` if an error occurs",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "lPop",
+          "type": "Remote Function",
+          "description": "Remove and get the first element in a list.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key referring to a value",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "Value of the first element, or nil when key does not exist or `redis:Error` if an error occurs",
+            "type": {
+              "name": "string|Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "lPushX",
+          "type": "Remote Function",
+          "description": "Prepend one or multiple values to a list, only if the list exists.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key referring to a value",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "values",
+              "description": "Values to be prepended",
+              "type": {
+                "name": "string[]"
+              }
+            }
+          ],
+          "return": {
+            "description": "Length of the list after the push operation(s)",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "bLPop",
+          "type": "Remote Function",
+          "description": "Remove and get the first element in a list, or block until one is available.\n",
+          "parameters": [
+            {
+              "name": "timeOut",
+              "description": "Timeout in seconds",
+              "type": {
+                "name": "int"
+              }
+            },
+            {
+              "name": "keys",
+              "description": "Keys referring to values",
+              "type": {
+                "name": "string[]"
+              }
+            }
+          ],
+          "return": {
+            "description": "`Nil` when no element could be popped and the timeout expired. A map containing one item, with the\nkey being  the name of the key where an element was popped and the second element  being the value of the\npopped element, or `redis:Error` if an error occurs",
+            "type": {
+              "name": "map\u003cany\u003e|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "bRPop",
+          "type": "Remote Function",
+          "description": "Remove and get the last element in a list, or block until one is available.\n",
+          "parameters": [
+            {
+              "name": "timeout",
+              "description": "Timeout in seconds",
+              "type": {
+                "name": "int"
+              }
+            },
+            {
+              "name": "keys",
+              "description": "Keys referring to values",
+              "type": {
+                "name": "string[]"
+              }
+            }
+          ],
+          "return": {
+            "description": "`nil` when no element could be popped and the timeout expired. A map containing one item, with the\nkey being  the name of the key where an element was popped and the second element being the value of the\npopped element, or `redis:Error` if an error occurs",
+            "type": {
+              "name": "map\u003cany\u003e|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "lIndex",
+          "type": "Remote Function",
+          "description": "Get an element from list by its index.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key referring to a value",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "index",
+              "description": "Index from which the element should be retrieved",
+              "type": {
+                "name": "int"
+              }
+            }
+          ],
+          "return": {
+            "description": "Value at the given index",
+            "type": {
+              "name": "string|Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "lInsert",
+          "type": "Remote Function",
+          "description": "Insert an element before or after another element in a list.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key referring to a value",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "before",
+              "description": "Boolean value representing Whether element should be inserted before or after the pivot",
+              "type": {
+                "name": "boolean"
+              }
+            },
+            {
+              "name": "pivot",
+              "description": "Pivot position",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "value",
+              "description": "Value to insert",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "Length of the list after the insert operation, or -1 when the value pivot not found, or `redis:Error` if\nan error occurs",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "lLen",
+          "type": "Remote Function",
+          "description": "Get length of a list.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key referring to a value",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "Length of list at key or `redis:Error` if an error occurs",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "lRange",
+          "type": "Remote Function",
+          "description": "Get a range of elements from a list.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key referring to a value",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "startPos",
+              "description": "Begining index of the range",
+              "type": {
+                "name": "int"
+              }
+            },
+            {
+              "name": "stopPos",
+              "description": "Last index of the range",
+              "type": {
+                "name": "int"
+              }
+            }
+          ],
+          "return": {
+            "description": "Array of elements in the specified range or `redis:Error` if an error occurs",
+            "type": {
+              "name": "string[]|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "lRem",
+          "type": "Remote Function",
+          "description": "Remove elements from list.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key referring to a value",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "count",
+              "description": "Number of elements to be removed",
+              "type": {
+                "name": "int"
+              }
+            },
+            {
+              "name": "value",
+              "description": "Value which the elements to be removed should be equal to",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "Number of elements removed or `redis:Error` if an error occurs",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "lSet",
+          "type": "Remote Function",
+          "description": "Set the value of an element in a list by its index.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the list",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "index",
+              "description": "Index of the element of which the value needs to be set",
+              "type": {
+                "name": "int"
+              }
+            },
+            {
+              "name": "value",
+              "description": "Value to be set",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "String with the value `OK` if the operation was successful or `redis:Error` if an error occurs",
+            "type": {
+              "name": "string|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "lTrim",
+          "type": "Remote Function",
+          "description": "Trim list to the specified range.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the list",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "startPos",
+              "description": "Starting index of the range",
+              "type": {
+                "name": "int"
+              }
+            },
+            {
+              "name": "stopPos",
+              "description": "End index of the range",
+              "type": {
+                "name": "int"
+              }
+            }
+          ],
+          "return": {
+            "description": "String with the value `OK` if the operation was successful",
+            "type": {
+              "name": "string|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "rPop",
+          "type": "Remote Function",
+          "description": "Remove and get the last element in a list.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the list",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "Value of the last element, or `nil` when key does not exist or `redis:Error` if an error occurs",
+            "type": {
+              "name": "string|Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "rPopLPush",
+          "type": "Remote Function",
+          "description": "Remove the last element in a list, append it to another list and return it.\n",
+          "parameters": [
+            {
+              "name": "src",
+              "description": "Source key",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "destination",
+              "description": "Destination key",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "Element being popped and pushed or `redis:Error` if an error occurs",
+            "type": {
+              "name": "string|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "rPush",
+          "type": "Remote Function",
+          "description": "Append one or multiple values to a list.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the list",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "values",
+              "description": "Array of values to be appended",
+              "type": {
+                "name": "string[]"
+              }
+            }
+          ],
+          "return": {
+            "description": "Length of the list after the push operation or `redis:Error` if an error occurs",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "rPushX",
+          "type": "Remote Function",
+          "description": "Append one or multiple values to a list, only if the list exists.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the list",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "values",
+              "description": "Array of values to be appended",
+              "type": {
+                "name": "string[]"
+              }
+            }
+          ],
+          "return": {
+            "description": "Length of the list after the push operation or `redis:Error` if an error occurs",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "sAdd",
+          "type": "Remote Function",
+          "description": "Add one or more members to a set.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the set",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "values",
+              "description": "Array of values to be added",
+              "type": {
+                "name": "string[]"
+              }
+            }
+          ],
+          "return": {
+            "description": "Number of elements that were added to the set, not including all the elements which were\nalready present in the set, or `redis:Error` if an error occurs",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "sCard",
+          "type": "Remote Function",
+          "description": "Get the number of members in a set\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the set",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "Cardinality (number of elements) of the set or `redis:Error` if an error occurs",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "sDiff",
+          "type": "Remote Function",
+          "description": "Return set resulting from the difference between the first set and all the successive sets\n",
+          "parameters": [
+            {
+              "name": "keys",
+              "description": "The keys of the sets",
+              "type": {
+                "name": "string[]"
+              }
+            }
+          ],
+          "return": {
+            "description": "An array of members of the resulting set or `redis:Error` if an error occurs",
+            "type": {
+              "name": "string[]|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "sDiffStore",
+          "type": "Remote Function",
+          "description": "Obtain the set resulting from the difference between the first set and all the successive.\nsets and store at the provided destination.\n",
+          "parameters": [
+            {
+              "name": "destination",
+              "description": "Destination key of the resulting set",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "keys",
+              "description": "Keys of the sets to find the difference of",
+              "type": {
+                "name": "string[]"
+              }
+            }
+          ],
+          "return": {
+            "description": "Number of members in the resulting set or `redis:Error` if an error occurs",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "sInter",
+          "type": "Remote Function",
+          "description": "Return the intersection of the provided sets.\n",
+          "parameters": [
+            {
+              "name": "keys",
+              "description": "Keys of the sets to be intersected",
+              "type": {
+                "name": "string[]"
+              }
+            }
+          ],
+          "return": {
+            "description": "Array of members of the resulting set or `redis:Error` if an error occurs",
+            "type": {
+              "name": "string[]|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "sInterStore",
+          "type": "Remote Function",
+          "description": "Obtain the intersection of the provided sets and store at the provided destination.\n",
+          "parameters": [
+            {
+              "name": "destination",
+              "description": "Destination key of the resulting set",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "keys",
+              "description": "Keys of the sets to be intersected",
+              "type": {
+                "name": "string[]"
+              }
+            }
+          ],
+          "return": {
+            "description": "Number of members of the resulting set or `redis:Error` if an error occurs",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "sIsMember",
+          "type": "Remote Function",
+          "description": "Determine if a given value is a member of a set.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the set",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "value",
+              "description": "Value of a key",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "boolean true/false depending on whether the value is a member of the set or not, or `redis:Error` if an error\noccurs",
+            "type": {
+              "name": "boolean|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "sMembers",
+          "type": "Remote Function",
+          "description": "Get all members in a set.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the set",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "Array of all members in the set or `redis:Error` if an error occurs",
+            "type": {
+              "name": "string[]|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "sMove",
+          "type": "Remote Function",
+          "description": "Move a member from one set to another.\n",
+          "parameters": [
+            {
+              "name": "src",
+              "description": "Source key",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "destination",
+              "description": "Destination key",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "member",
+              "description": "Member to be moved",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "`True` if the element is moved. `false` if the element is not a member of source and no\noperation was performed or `redis:Error` if an error occurs",
+            "type": {
+              "name": "boolean|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "sPop",
+          "type": "Remote Function",
+          "description": "Remove and return a random member from a set.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Source key",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "count",
+              "description": "Number of members to pop",
+              "type": {
+                "name": "int"
+              }
+            }
+          ],
+          "return": {
+            "description": "Array of removed elements or `nil` if key does not exist or `redis:Error` if an error occurs",
+            "type": {
+              "name": "string[]|Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "sRandMember",
+          "type": "Remote Function",
+          "description": "Get one or multiple random members from a set.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the set",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "count",
+              "description": "Number of members to obtain",
+              "type": {
+                "name": "int"
+              }
+            }
+          ],
+          "return": {
+            "description": "Array of the randomly selected elements, or `nil` when key does not exist or `redis:Error` if an error occurs",
+            "type": {
+              "name": "string[]|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "sRem",
+          "type": "Remote Function",
+          "description": "Remove one or more members from a set.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the set",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "members",
+              "description": "Array of members to remove",
+              "type": {
+                "name": "string[]"
+              }
+            }
+          ],
+          "return": {
+            "description": "Number of members that were removed from the set, not including non existing members or `redis:Error` if\nan error occurs",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "sUnion",
+          "type": "Remote Function",
+          "description": "Return the union of multiple sets.\n",
+          "parameters": [
+            {
+              "name": "keys",
+              "description": "Array of keys of sets",
+              "type": {
+                "name": "string[]"
+              }
+            }
+          ],
+          "return": {
+            "description": "Array of members of the resulting set or `redis:Error` if an error occurs",
+            "type": {
+              "name": "string[]|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "sUnionStore",
+          "type": "Remote Function",
+          "description": "Return the union of multiple sets.\n",
+          "parameters": [
+            {
+              "name": "destination",
+              "description": "Destination key of the resulting set",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "keys",
+              "description": "Array of keys of sets",
+              "type": {
+                "name": "string[]"
+              }
+            }
+          ],
+          "return": {
+            "description": "Number of members of the resulting set or `redis:Error` if an error occurs",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "zAdd",
+          "type": "Remote Function",
+          "description": "Add one or more members to a sorted set, or update its score if it already exist.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the sorted set",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "memberScoreMap",
+              "description": "Map of members and corresponding scores",
+              "type": {
+                "name": "map\u003cany\u003e"
+              }
+            }
+          ],
+          "return": {
+            "description": "Number of elements that were added to the sorted set, not including all the elements which were\nalready present in the set for which the score was updated, or `redis:Error` if an error occurs",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "zCard",
+          "type": "Remote Function",
+          "description": "Get the number of members in a sorted set.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the sorted set",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "Cardinality (number of elements) of the sorted set or `redis:Error` if an error occurs",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "zCount",
+          "type": "Remote Function",
+          "description": "Count the members in a sorted set with scores within the given range.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the sorted set",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "min",
+              "description": "Minimum score of the range",
+              "type": {
+                "name": "float"
+              }
+            },
+            {
+              "name": "max",
+              "description": "Maximum score of the range",
+              "type": {
+                "name": "float"
+              }
+            }
+          ],
+          "return": {
+            "description": "Number of elements in the specified score range or `redis:Error` if an error occurs",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "zIncrBy",
+          "type": "Remote Function",
+          "description": "Increment the score of a member in a sorted set.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the sorted set",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "amount",
+              "description": "Amount to increment",
+              "type": {
+                "name": "float"
+              }
+            },
+            {
+              "name": "member",
+              "description": "Member whose score to be incremented",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "New score of the member or `redis:Error` if an error occurs",
+            "type": {
+              "name": "float|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "zInterStore",
+          "type": "Remote Function",
+          "description": "Intersect multiple sorted sets and store the resulting sorted set in a new key.\n",
+          "parameters": [
+            {
+              "name": "destination",
+              "description": "Destination key of the resulting sorted set",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "keys",
+              "description": "Keys of the sorted sets to be intersected",
+              "type": {
+                "name": "string[]"
+              }
+            }
+          ],
+          "return": {
+            "description": "Number of elements in the resulting sorted set or `redis:Error` if an error occurs",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "zLexCount",
+          "type": "Remote Function",
+          "description": "Count the members in a sorted set within the given lexicographical range.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the sorted set",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "min",
+              "description": "Minimum lexicographical value of the range",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "max",
+              "description": "Maximum lexicographical value of the range",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "Number of elements in the specified lexicographical value range or `redis:Error` if an error occurs",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "zRange",
+          "type": "Remote Function",
+          "description": "Return a range of members in a sorted set, by index.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the sorted set",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "min",
+              "description": "Minimum index of the range",
+              "type": {
+                "name": "int"
+              }
+            },
+            {
+              "name": "max",
+              "description": "Maximum index of the range",
+              "type": {
+                "name": "int"
+              }
+            }
+          ],
+          "return": {
+            "description": "Range of members in a sorted set, by index, or `redis:Error` if an error occurs",
+            "type": {
+              "name": "string[]|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "zRangeByLex",
+          "type": "Remote Function",
+          "description": "Return a range of members in a sorted set, by lexicographical range from lowest to highest.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the sorted set",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "min",
+              "description": "Minimum lexicographical value of the range",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "max",
+              "description": "Maximum lexicographical value of the range",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "Array of members in the specified lexicographical value range ordered from lowest to highest or `redis:Error`\nif an error occurs",
+            "type": {
+              "name": "string[]|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "zRevRangeByLex",
+          "type": "Remote Function",
+          "description": "Return a range of members in a sorted set, by lexicographical range ordered from highest to\nlowest.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the sorted set",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "min",
+              "description": "Lexicographical value of the range",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "max",
+              "description": "Maximum lexicographical value of the range",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "Array of members in the specified lexicographical value range ordered from highest to lowest or `redis:Error`\nif an error occurs",
+            "type": {
+              "name": "string[]|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "zRangeByScore",
+          "type": "Remote Function",
+          "description": "Return a range of members in a sorted set, by score from lowest to highest.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of sorted set",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "min",
+              "description": "Minimum score of range",
+              "type": {
+                "name": "float"
+              }
+            },
+            {
+              "name": "max",
+              "description": "Maximum score of range",
+              "type": {
+                "name": "float"
+              }
+            }
+          ],
+          "return": {
+            "description": "Array of members in the specified score range ordered from lowest to highest or `redis:Error` if an error\noccurs",
+            "type": {
+              "name": "string[]|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "zRank",
+          "type": "Remote Function",
+          "description": "Determine index of a member in a sorted set.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the sorted set",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "member",
+              "description": "Member of which the index needs to be obtained",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "Index of the member or `redis:Error` if an error occurs",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "zRem",
+          "type": "Remote Function",
+          "description": "Remove one or more members from a sorted set\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the sorted set",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "members",
+              "description": "Members to be removed",
+              "type": {
+                "name": "string[]"
+              }
+            }
+          ],
+          "return": {
+            "description": "Number of members removed from the sorted set, not including non existing members or `redis:Error` if an\nerror occurs",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "zRemRangeByLex",
+          "type": "Remote Function",
+          "description": "Remove all members in a sorted set between the given lexicographical range.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the sorted set",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "min",
+              "description": "Minimum lexicographical value of the range",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "max",
+              "description": "Maximum lexicographical value of the range",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "Number of members removed from the sorted set or `redis:Error` if an error occurs",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "zRemRangeByRank",
+          "type": "Remote Function",
+          "description": "Remove all members in a sorted set within the given indices.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the sorted set",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "min",
+              "description": "Minimum index of the range",
+              "type": {
+                "name": "int"
+              }
+            },
+            {
+              "name": "max",
+              "description": "Maximum index of the range",
+              "type": {
+                "name": "int"
+              }
+            }
+          ],
+          "return": {
+            "description": "Number of members removed from the sorted set or `redis:Error` if an error occurs",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "zRemRangeByScore",
+          "type": "Remote Function",
+          "description": "Remove all members in a sorted set within the given scores.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the sorted set",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "min",
+              "description": "Minimum score of the range",
+              "type": {
+                "name": "float"
+              }
+            },
+            {
+              "name": "max",
+              "description": "Maximum score of the range",
+              "type": {
+                "name": "float"
+              }
+            }
+          ],
+          "return": {
+            "description": "Number of members removed from the sorted set or `redis:Error` if an error occurs",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "zRevRange",
+          "type": "Remote Function",
+          "description": "Return a range of members in a sorted set, by index, ordered highest to lowest.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the sorted set",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "min",
+              "description": "Minimum index of the range",
+              "type": {
+                "name": "int"
+              }
+            },
+            {
+              "name": "max",
+              "description": "Maximum index of the range",
+              "type": {
+                "name": "int"
+              }
+            }
+          ],
+          "return": {
+            "description": "Number of elements in the specified index range or `redis:Error` if an error occurs",
+            "type": {
+              "name": "string[]|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "zRevRangeByScore",
+          "type": "Remote Function",
+          "description": "Return a range of members in a sorted set, by score from highest to lowest.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the sorted set",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "min",
+              "description": "Minimum score of the range",
+              "type": {
+                "name": "float"
+              }
+            },
+            {
+              "name": "max",
+              "description": "Maximum score of the range",
+              "type": {
+                "name": "float"
+              }
+            }
+          ],
+          "return": {
+            "description": "Array of members in the specified score range ordered from highest to lowest or `redis:Error` if an error\noccurs",
+            "type": {
+              "name": "string[]|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "zRevRank",
+          "type": "Remote Function",
+          "description": "Determine the index of a member in a sorted set\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the sorted set",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "member",
+              "description": "Member of which the index needs to be obtained",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "Index of the member or `redis:Error` if an error occurs",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "zScore",
+          "type": "Remote Function",
+          "description": "Determine the score of a member in a sorted set\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the sorted set",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "member",
+              "description": "Member of which the score needs to be obtained",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "Score of the member or `redis:Error` if an error occurs",
+            "type": {
+              "name": "float|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "zUnionStore",
+          "type": "Remote Function",
+          "description": "Return the union of multiple sorted sets\n",
+          "parameters": [
+            {
+              "name": "destination",
+              "description": "Destination key of the resulting set",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "keys",
+              "description": "Array of keys of sorted sets",
+              "type": {
+                "name": "string[]"
+              }
+            }
+          ],
+          "return": {
+            "description": "Number of members of the resulting sorted set or `redis:Error` if an error occurs",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "hDel",
+          "type": "Remote Function",
+          "description": "Delete one or more hash fields.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the hash",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "fields",
+              "description": "Array of fields to be deleted",
+              "type": {
+                "name": "string[]"
+              }
+            }
+          ],
+          "return": {
+            "description": "Number of fields that were removed from the hash, not including specified but non existing fields or\n`redis:Error` if an error occurs",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "hExists",
+          "type": "Remote Function",
+          "description": "Determine if a hash field exists.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the hash",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "\u0027field",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "Boolean `true` if the hash contains the field. boolean false if the hash does not contain\nfield or key does not exist or `redis:Error` if an error occurs",
+            "type": {
+              "name": "boolean|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "hGet",
+          "type": "Remote Function",
+          "description": "Get the value of a hash field.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the hash",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "\u0027field",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "Value of the field or `redis:Error` if an error occurs",
+            "type": {
+              "name": "string|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "hGetAll",
+          "type": "Remote Function",
+          "description": "Get the all values of a hash.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the hash",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "Map of field-value pairs or `redis:Error` if an error occurs",
+            "type": {
+              "name": "map\u003cany\u003e|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "hIncrBy",
+          "type": "Remote Function",
+          "description": "Increment the integer value of a hash field by the given number.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the hash",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "\u0027field",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "amount",
+              "description": "Amount to increment",
+              "type": {
+                "name": "int"
+              }
+            }
+          ],
+          "return": {
+            "description": "Value of the field or `redis:Error` if an error occurs",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "hIncrByFloat",
+          "type": "Remote Function",
+          "description": "Increment the float value of a hash field by the given number.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the hash",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "\u0027field",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "amount",
+              "description": "Amount to increment",
+              "type": {
+                "name": "float"
+              }
+            }
+          ],
+          "return": {
+            "description": "Value of the field or `redis:Error` if an error occurs",
+            "type": {
+              "name": "float|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "hKeys",
+          "type": "Remote Function",
+          "description": "Get all the fields in a hash.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the hash",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "Array of hash fields or `redis:Error` if an error occurs",
+            "type": {
+              "name": "string[]|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "hLen",
+          "type": "Remote Function",
+          "description": "Get the number of fields in a hash.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the hash",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "Number of fields or `redis:Error` if an error occurs",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "hMGet",
+          "type": "Remote Function",
+          "description": "Get the values of all the given hash fields.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the hash",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "fields",
+              "description": "Array of hash fields",
+              "type": {
+                "name": "string[]"
+              }
+            }
+          ],
+          "return": {
+            "description": "Map of field-value pairs or `redis:Error` if an error occurs",
+            "type": {
+              "name": "map\u003cany\u003e|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "hMSet",
+          "type": "Remote Function",
+          "description": "Set multiple hash fields to multiple values.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the hash",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "fieldValueMap",
+              "description": "Map of field-value pairs",
+              "type": {
+                "name": "map\u003cany\u003e"
+              }
+            }
+          ],
+          "return": {
+            "description": "String with the value `OK` if the operation was successful, or `redis:Error` if an error occurs",
+            "type": {
+              "name": "string|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "hSet",
+          "type": "Remote Function",
+          "description": "Set the string value of a hash field.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the hash",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "\u0027field",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "value",
+              "description": "Value to be set to the field",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "Boolean `true` if field is a new field in the hash and value was set. boolean false if\nfield already exists in the hash and the value was updated, or `redis:Error` if an error occurs",
+            "type": {
+              "name": "boolean|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "hSetNx",
+          "type": "Remote Function",
+          "description": "Set the string value of a hash field, only if the field does not exist.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the hash",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "\u0027field",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "value",
+              "description": "Value to be set to the field",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "Boolean `true` if field is a new field in the hash and value was set. boolean false if\nfield already exists in the hash and no operation was performed, or `redis:Error` if an error occurs",
+            "type": {
+              "name": "boolean|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "hStrLen",
+          "type": "Remote Function",
+          "description": "Get the string length of the field value in a hash.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the hash",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "\u0027field",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "Length of the field value, or 0 when field is not present in the hash or key does\nnot exist at all, or `redis:Error` if an error occurs",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "hVals",
+          "type": "Remote Function",
+          "description": "Get all the values in a hash.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the hash",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "Array of values in the hash, or an empty array when key does not exist or `redis:Error` if an error occurs",
+            "type": {
+              "name": "string[]|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "del",
+          "type": "Remote Function",
+          "description": "Delete one or more keys.\n",
+          "parameters": [
+            {
+              "name": "keys",
+              "description": "Key to be deleted",
+              "type": {
+                "name": "string[]"
+              }
+            }
+          ],
+          "return": {
+            "description": "Number of keys that were removed",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "exists",
+          "type": "Remote Function",
+          "description": "Determine how many keys exist.\n",
+          "parameters": [
+            {
+              "name": "keys",
+              "description": "Keys of which existence to be found out",
+              "type": {
+                "name": "string[]"
+              }
+            }
+          ],
+          "return": {
+            "description": "Number of existing keys or `redis:Error` if an error occurs",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "expire",
+          "type": "Remote Function",
+          "description": "Set a key\u0027s time to live in seconds.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Keys of which expiry time to be set",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "seconds",
+              "description": "Expiry in seconds",
+              "type": {
+                "name": "int"
+              }
+            }
+          ],
+          "return": {
+            "description": "Boolean `true` if the timeout was set. false if key does not exist or the timeout could not be set or\n`redis:Error` if an error occurs",
+            "type": {
+              "name": "boolean|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "keys",
+          "type": "Remote Function",
+          "description": "Find all keys matching the given pattern.\n",
+          "parameters": [
+            {
+              "name": "pattern",
+              "description": "Pattern to match",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "Array of keys matching the given pattern or `redis:Error` if an error occurs",
+            "type": {
+              "name": "string[]|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "move",
+          "type": "Remote Function",
+          "description": "Move a key to another database.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key to be moved",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "database",
+              "description": "Database to which the key needs to be moved",
+              "type": {
+                "name": "int"
+              }
+            }
+          ],
+          "return": {
+            "description": "Boolean true if key was succesfully moved, boolean false otherwise or `redis:Error` if an error occurs",
+            "type": {
+              "name": "boolean|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "persist",
+          "type": "Remote Function",
+          "description": "Remove the expiration from a key.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of which expiry time should be removed",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "Boolean `true` if the timeout was removed. boolean `false` if key does not exist or does not have\nan associated timeout, or `redis:Error` if an error occurs",
+            "type": {
+              "name": "boolean|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "pExpire",
+          "type": "Remote Function",
+          "description": "Set a key\u0027s time to live in milliseconds.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of which expiry time should be removed",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "expirationTime",
+              "description": "Expiry time in milli seconds",
+              "type": {
+                "name": "int"
+              }
+            }
+          ],
+          "return": {
+            "description": "Boolean `true` if the timeout was set. boolean false if key does not exist or the timeout could not\nbe set, or `redis:Error` if an error occurs",
+            "type": {
+              "name": "boolean|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "pTtl",
+          "type": "Remote Function",
+          "description": "Get the time to live for a key in milliseconds.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of which time-to-live should be obtained",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "TTL of the key, in milli seconds or `redis:Error` if an error occurs",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "randomKey",
+          "type": "Remote Function",
+          "description": "Return a random key from the keyspace.\n",
+          "parameters": [],
+          "return": {
+            "description": "Random key, or `nil` when the database is empty or `redis:Error` if an error occurs",
+            "type": {
+              "name": "string|Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "rename",
+          "type": "Remote Function",
+          "description": "Rename a key.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key to be renamed",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "newName",
+              "description": "New name of the key",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "String with the value `OK` if the operation was successful or `redis:Error` if an error occurs",
+            "type": {
+              "name": "string|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "renameNx",
+          "type": "Remote Function",
+          "description": "Rename a key, only if the new key does not exist.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key to be renamed",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "newName",
+              "description": "New name of the key",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "Boolean `true` if key was renamed to newkey. boolean `false` if newkey already exists. Or `redis:Error` if an\nerror occurs",
+            "type": {
+              "name": "boolean|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "sort",
+          "type": "Remote Function",
+          "description": "Sort elements in a list, set or sorted set.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the data type to be sorted",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "Sorted array containing the members of the sorted data type or `redis:Error` if an error occurs",
+            "type": {
+              "name": "string[]|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "ttl",
+          "type": "Remote Function",
+          "description": "Get the time to live for a key.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of which the time to live needs to be obtained",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "Time to live in seconds or a negative value/`redis:Error` in order to signal an error in evaluating ttl.\nWhether it is a negative value of an `redis:Error` would differ depending on whether the error occurs at DB\nlevel or the driver level",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "redisType",
+          "type": "Remote Function",
+          "description": "Determine the type stored at key.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of which the type needs to be obtained",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "Type stored at key",
+            "type": {
+              "name": "string|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "clusterInfo",
+          "type": "Remote Function",
+          "description": "Retrieve information and statistics about the cluster observed by the current node.\nThis command is exclusively available in cluster mode. If the connection is in a non-clustered mode,\nthe API will return a `redis:Error`. Other errors will also be appropriately handled.\n",
+          "parameters": [],
+          "return": {
+            "description": "a bulk-string-reply as a string array or, \na `redis:Error` if the connection is non-clustered or encounters any other errors.",
+            "type": {
+              "name": "string[]|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "ping",
+          "type": "Remote Function",
+          "description": "Ping the server.\n",
+          "parameters": [],
+          "return": {
+            "description": "String with the value `PONG` if the operation was successful",
+            "type": {
+              "name": "string|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "auth",
+          "type": "Remote Function",
+          "description": "Authenticate to the server.\n",
+          "parameters": [
+            {
+              "name": "password",
+              "description": "Password to authenticate",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "String with the value `OK` if the operation was successful or `redis:Error` if an error occurs",
+            "type": {
+              "name": "string|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "echo",
+          "type": "Remote Function",
+          "description": "Echo the given string.\n",
+          "parameters": [
+            {
+              "name": "message",
+              "description": "Message to be echo-ed",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "Message itself if the operation was successful or `redis:Error` if an error occurs",
+            "type": {
+              "name": "string|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "flushDb",
+          "type": "Remote Function",
+          "description": "Remove all the keys from the currently selected database.\n",
+          "parameters": [],
+          "return": {
+            "description": "String with the value `OK` if the operation was successful or `redis:Error` if an error occurs",
+            "type": {
+              "name": "string|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "flushAll",
+          "type": "Remote Function",
+          "description": "Remove all the keys from all the databases.\n",
+          "parameters": [],
+          "return": {
+            "description": "String with the value `OK` if the operation was successful or `redis:Error` if an error occurs",
+            "type": {
+              "name": "string|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "close",
+          "type": "Normal Function",
+          "description": "Close the connection.\n",
+          "parameters": [],
+          "return": {
+            "description": "`nil` if the operation was successful or an `redis:Error` if an error occurs",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "functions": [],
+  "services": [],
+  "annotations": []
+}

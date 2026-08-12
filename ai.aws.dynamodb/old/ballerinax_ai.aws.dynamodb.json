@@ -1,0 +1,569 @@
+{
+  "name": "ballerinax/ai.aws.dynamodb",
+  "description": "",
+  "readme": "## Overview\n\nThis module provides a DynamoDB-backed short-term memory store to use with AI messages (e.g., with AI agents, model providers, etc.).\n\n### Key Features\n\n- Amazon DynamoDB-backed persistent storage for short-term AI message memory\n- One item per message using a composite primary key (partition key + sort key), so each session\u0027s history scales independently\n- The system message is stored as a singleton item and overwritten in place; interactive messages are appended in insertion order via a per-key sequence counter\n- Configurable maximum messages per key with automatic enforcement\n- Automatic table creation on initialization, with a configurable billing mode\n- Support for both connection configuration and an existing `dynamodb:Client`\n\n## Prerequisites\n\n- An AWS account with DynamoDB access and credentials (access key ID and secret access key). Follow [this guide](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html) to obtain credentials.\n- The credentials must allow the `DescribeTable`, `CreateTable`, `GetItem`, `PutItem`, `UpdateItem`, `DeleteItem`, `Query`, and `BatchWriteItem` actions.\n\n## Quickstart\n\nFollow the steps below to use this store in your Ballerina application:\n\n1. Import the `ballerinax/ai.aws.dynamodb` module.\n\n```ballerina\nimport ballerinax/ai.aws.dynamodb;\n```\n\nOptionally, import the `ballerina/ai` and/or `ballerinax/aws.dynamodb` module(s).\n\n```ballerina\nimport ballerina/ai;\nimport ballerinax/aws.dynamodb;\n```\n\n2. Create the short-term memory store by passing either the connection configuration or a `dynamodb:Client`.\n\n    i. Using the connection configuration\n\n    ```ballerina\n    import ballerina/ai;\n    import ballerinax/ai.aws.dynamodb;\n\n    configurable string accessKeyId \u003d ?;\n    configurable string secretAccessKey \u003d ?;\n    configurable string region \u003d ?;\n\n    ai:ShortTermMemoryStore store \u003d check new dynamodb:ShortTermMemoryStore({\n        awsCredentials: {accessKeyId, secretAccessKey},\n        region\n    });\n    ```\n\n    ii. Using an existing `dynamodb:Client`\n\n    ```ballerina\n    import ballerina/ai;\n    import ballerinax/aws.dynamodb;\n    import ballerinax/ai.aws.dynamodb as dynamodbStore;\n\n    configurable string accessKeyId \u003d ?;\n    configurable string secretAccessKey \u003d ?;\n    configurable string region \u003d ?;\n\n    dynamodb:Client dynamodbClient \u003d check new ({\n        awsCredentials: {accessKeyId, secretAccessKey},\n        region\n    });\n    ai:ShortTermMemoryStore store \u003d check new dynamodbStore:ShortTermMemoryStore(dynamodbClient);\n    ```\n\n    Optionally, specify the maximum number of messages per key (`maxMessagesPerKey` - defaults to `20`) and the table-level configuration via `tableConfig` (a `dynamodb:TableConfig` record). `tableConfig` groups the DynamoDB-specific settings: the table name (`tableName` - defaults to `\"chat_memory\"`), the billing mode used when the connector creates the table (`billingMode` - defaults to `dynamodb:PAY_PER_REQUEST`, with `readCapacityUnits`/`writeCapacityUnits` applied only when `billingMode` is `dynamodb:PROVISIONED`), the read consistency model (`consistentReads`), and optional `tags` and `sseSpecification` applied at table creation.\n\n    ```ballerina\n    ai:ShortTermMemoryStore store \u003d check new dynamodb:ShortTermMemoryStore({\n        awsCredentials: {accessKeyId, secretAccessKey},\n        region\n    }, 10, tableConfig \u003d {tableName: \"my_app_memory\"});\n    ```\n\n## Storage model\n\nThe connector stores every message as its own item in a single DynamoDB table with a composite primary key:\n\n| Attribute | Key role | Description |\n|---|---|---|\n| `MemoryKey` | Partition key (`HASH`) | The memory/session key. |\n| `MessageId` | Sort key (`RANGE`) | `system` for the singleton system message, `counter` for the per-key sequence counter, and `msg#\u003czero-padded-sequence\u003e` for interactive messages. |\n| `Body` | Attribute | The JSON-encoded message body (for `system` and `msg#` items). |\n| `Seq` | Attribute | The monotonically increasing interactive sequence value (for the `counter` item). |\n\nOn initialization, the connector checks whether the table exists (`DescribeTable`) and creates it (`CreateTable`) with the schema above if it does not, waiting until the table becomes `ACTIVE`.\n",
+  "typeDefs": [
+    {
+      "name": "Error",
+      "description": "Represents a distinct error type for memory store errors.",
+      "type": "Error"
+    },
+    {
+      "name": "TableConfig",
+      "description": "Configuration for the DynamoDB table that backs the short-term memory store.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "tableName",
+          "description": "The name of the DynamoDB table used to store chat messages.\nMust be 3-255 characters long and contain only letters, digits, underscores, dots, and hyphens",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "createTableIfNotExists",
+          "description": "Whether the store should create the backing table when it does not\nalready exist. Defaults to `true`. When `true`, initialization calls `DescribeTable` (and\n`CreateTable` if the table is absent), which requires the `dynamodb:DescribeTable` and\n`dynamodb:CreateTable` IAM permissions. Set to `false` when the table is provisioned out of band\n(e.g. via IaC) and the runtime role is restricted to data-plane permissions; in that case the\nstore performs no control-plane calls during initialization and assumes the table already exists",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "billingMode",
+          "description": "The billing mode to request when the connector creates the table. Defaults to\n`dynamodb:PAY_PER_REQUEST` (on-demand). Note that this differs from the AWS `CreateTable` API\ndefault of `PROVISIONED`; set this explicitly to `dynamodb:PROVISIONED` (and provide\n`readCapacityUnits`/`writeCapacityUnits`) for provisioned-capacity tables. Ignored when\n`createTableIfNotExists` is `false` or the table already exists",
+          "type": {
+            "name": "BillingMode",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "BillingMode",
+                "libraryName": "ballerinax/aws.dynamodb"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "readCapacityUnits",
+          "description": "The read capacity units to provision when `billingMode` is `dynamodb:PROVISIONED`",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "writeCapacityUnits",
+          "description": "The write capacity units to provision when `billingMode` is `dynamodb:PROVISIONED`",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "consistentReads",
+          "description": "Whether reads against DynamoDB use strongly consistent reads. Defaults to `false`\n(eventually consistent), matching the DynamoDB default. Strongly consistent reads cost twice the read\ncapacity units of eventually consistent reads; set to `true` only when strong consistency is required",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "tags",
+          "description": "Optional tags to apply to the DynamoDB table when the connector creates it. Ignored if the\ntable already exists",
+          "type": {
+            "name": "Tag[]|()",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Tag",
+                "libraryName": "ballerinax/aws.dynamodb"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "sseSpecification",
+          "description": "Optional server-side encryption settings to apply when the connector creates\nthe table. If omitted, the table uses the default AWS-owned encryption key. Ignored if the table\nalready exists",
+          "type": {
+            "name": "SSESpecification|()",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "SSESpecification",
+                "libraryName": "ballerinax/aws.dynamodb"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ShortTermMemoryStore",
+      "description": "Initializes the DynamoDB-backed short-term memory store.\n",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes the DynamoDB-backed short-term memory store.\n",
+          "parameters": [
+            {
+              "name": "dbConnection",
+              "description": "The DynamoDB client or connection configuration to connect to DynamoDB",
+              "type": {
+                "name": "ConnectionConfig|Client",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ConnectionConfig",
+                    "libraryName": "ballerinax/aws.dynamodb"
+                  },
+                  {
+                    "category": "external",
+                    "recordName": "Client",
+                    "libraryName": "ballerinax/aws.dynamodb"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "maxMessagesPerKey",
+              "description": "The maximum number of interactive messages to store per key",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "20"
+            },
+            {
+              "name": "tableConfig",
+              "description": "Configuration for the DynamoDB table that backs the store, including the table\nname, whether to auto-create the table, billing mode, provisioned throughput, read consistency,\ntags, and server-side encryption",
+              "type": {
+                "name": "TableConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "TableConfig"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "ballerinax/ai.aws.dynamodb:1.0.0:Error?"
+            }
+          }
+        },
+        {
+          "name": "getChatSystemMessage",
+          "type": "Normal Function",
+          "description": "Retrieves the system message, if it was provided, for a given key.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "The key associated with the memory",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "A copy of the message if it was specified, nil if it was not, or an\n`Error` error if the operation fails",
+            "type": {
+              "name": "ChatSystemMessage|Error|()",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "ChatSystemMessage",
+                  "libraryName": "ballerina/ai"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "getChatInteractiveMessages",
+          "type": "Normal Function",
+          "description": "Retrieves all stored interactive chat messages (i.e., all chat messages except the system\nmessage) for a given key.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "The key associated with the memory",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "A copy of the messages, or an `Error` error if the operation fails",
+            "type": {
+              "name": "ChatInteractiveMessage[]|Error",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "ChatInteractiveMessage",
+                  "libraryName": "ballerina/ai"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "getAll",
+          "type": "Normal Function",
+          "description": "Retrieves all stored chat messages for a given key.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "The key associated with the memory",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "A copy of the messages, or an `Error` error if the operation fails",
+            "type": {
+              "name": "[ballerina/ai:1.13.0:ChatSystemMessage, ballerina/ai:1.13.0:ChatInteractiveMessage...]|ChatInteractiveMessage[]|Error",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "ChatInteractiveMessage",
+                  "libraryName": "ballerina/ai"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "put",
+          "type": "Normal Function",
+          "description": "Adds one or more chat messages to the memory store for a given key.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "The key associated with the memory",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "message",
+              "description": "The `ChatMessage` message or messages to store. If multiple\n`ChatSystemMessage` values are provided in an array, only the last one is\npersisted; earlier system messages in the array are discarded.",
+              "type": {
+                "name": "ChatUserMessage|ChatSystemMessage|ChatAssistantMessage|ChatFunctionMessage|ChatMessage[]",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ChatUserMessage",
+                    "libraryName": "ballerina/ai"
+                  },
+                  {
+                    "category": "external",
+                    "recordName": "ChatSystemMessage",
+                    "libraryName": "ballerina/ai"
+                  },
+                  {
+                    "category": "external",
+                    "recordName": "ChatAssistantMessage",
+                    "libraryName": "ballerina/ai"
+                  },
+                  {
+                    "category": "external",
+                    "recordName": "ChatFunctionMessage",
+                    "libraryName": "ballerina/ai"
+                  },
+                  {
+                    "category": "external",
+                    "recordName": "ChatMessage",
+                    "libraryName": "ballerina/ai"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "nil on success, or an `Error` if the operation fails",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "removeChatSystemMessage",
+          "type": "Normal Function",
+          "description": "Removes the system chat message, if specified, for a given key.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "The key associated with the memory",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "nil on success or if there is no system chat message against the key,\nor an `Error` error if the operation fails",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "removeChatInteractiveMessages",
+          "type": "Normal Function",
+          "description": "Removes all stored interactive chat messages (i.e., all chat messages except the system\nmessage) for a given key.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "The key associated with the memory",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "count",
+              "description": "Optional number of messages to remove, starting from the first interactive message in;\nif not provided, removes all messages",
+              "type": {
+                "name": "int|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "nil on success, or an `Error` error if the operation fails",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "removeAll",
+          "type": "Normal Function",
+          "description": "Removes all stored chat messages for a given key, including any pending human-in-the-loop\napproval checkpoint for that key, so an abandoned pause does not retain its whole history\nsnapshot indefinitely. The message deletion and the checkpoint deletion are separate\nDynamoDB calls and are not atomic; if the second call fails, the error is returned and the\ncheckpoint is left in place for a retry.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "The key associated with the memory",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "nil on success, or an `Error` error if the operation fails",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "isFull",
+          "type": "Normal Function",
+          "description": "Checks if the memory store is full for a given key.\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "The key associated with the memory",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "true if the memory store is full, false otherwise, or an `Error` error if the operation fails",
+            "type": {
+              "name": "boolean|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "getCapacity",
+          "type": "Normal Function",
+          "description": "Retrieves the maximum number of interactive messages that can be stored for each key.\n",
+          "parameters": [],
+          "return": {
+            "description": "The configured capacity of the message store per key",
+            "type": {
+              "name": "int"
+            }
+          }
+        },
+        {
+          "name": "putCheckpoint",
+          "type": "Normal Function",
+          "description": "Stores (or replaces) the pending human-in-the-loop approval for its session.\n",
+          "parameters": [
+            {
+              "name": "approval",
+              "description": "The pending approval to persist",
+              "type": {
+                "name": "PendingApproval",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "PendingApproval",
+                    "libraryName": "ballerina/ai"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "nil on success, or an `Error` if the operation fails",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "getCheckpoint",
+          "type": "Normal Function",
+          "description": "Returns the pending human-in-the-loop approval for a session, if any.\n\nUses `consistentReads` (defaults to `false`, eventually consistent). A `getCheckpoint` call\nmade shortly after `putCheckpoint` can therefore return `()` even though a checkpoint was\njust stored. Set `consistentReads` to `true` if callers need read-after-write for this. Note\n`takeCheckpoint` is unaffected - `DeleteItem` (with `ReturnValues`) is always strongly\nconsistent, regardless of `consistentReads`.\n",
+          "parameters": [
+            {
+              "name": "sessionId",
+              "description": "The session to look up",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "The pending approval, nil if none is pending, or an `Error` if the operation fails",
+            "type": {
+              "name": "PendingApproval|()|Error",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "PendingApproval",
+                  "libraryName": "ballerina/ai"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "removeCheckpoint",
+          "type": "Normal Function",
+          "description": "Removes the pending human-in-the-loop approval for a session, if any.\n",
+          "parameters": [
+            {
+              "name": "sessionId",
+              "description": "The session to clear",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "nil on success, or an `Error` if the operation fails",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "takeCheckpoint",
+          "type": "Normal Function",
+          "description": "Fetches and removes the pending human-in-the-loop approval for a session. Uses DynamoDB\u0027s\n`ReturnValues: ALL_OLD` on the delete so the fetch-and-remove happens as a single atomic\noperation - a concurrent duplicate resume for the same session cannot also claim and execute\nthe same approved tool call.\n",
+          "parameters": [
+            {
+              "name": "sessionId",
+              "description": "The session to claim",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "The claimed pending approval, nil if none was pending, or an `Error` if the operation fails",
+            "type": {
+              "name": "PendingApproval|()|Error",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "PendingApproval",
+                  "libraryName": "ballerina/ai"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "clients": [],
+  "functions": [],
+  "services": [],
+  "annotations": []
+}

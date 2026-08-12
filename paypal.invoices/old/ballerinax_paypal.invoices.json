@@ -1,0 +1,5536 @@
+{
+  "name": "ballerinax/paypal.invoices",
+  "description": "[PayPal](https://www.paypal.com/) is a global online payment platform that enables individuals and businesses to securely send and receive money, process transactions, and access merchant services.",
+  "readme": "## Overview\r\n\r\n[PayPal](https://www.paypal.com/) is a global online payment platform that enables individuals and businesses to securely send and receive money, process transactions, and access merchant services.\r\n\r\nThe PayPal Invoices connector offers APIs to connect and interact with the [PayPal Invoicing API v2](https://developer.paypal.com/docs/api/invoicing/v2/), enabling the creation, management, and tracking of invoices within applications.\r\n\r\n### Key Features\r\n\r\n- Create, send, and manage invoices programmatically\r\n- Support for PayPal Invoicing API v2\r\n- Track invoice status and handle payments\r\n- Manage invoicing details including billing info and line items\r\n\r\n## Setup guide\r\n\r\nTo use the PayPal Invoices connector, you must have access to a [PayPal Developer account](https://developer.paypal.com/).\r\n\r\n### Step 1: Create a business account\r\n\r\n1. Open the [PayPal Developer Dashboard](https://developer.paypal.com/dashboard).\r\n\r\n2. Click on \"Sandbox Accounts\" under \"Testing Tools\".\r\n\r\n   ![Sandbox accounts](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-paypal.invoices/main/docs/setup/resources/sandbox-accounts.png)\r\n\r\n3. Create a Business account\r\n\r\n   \u003e Note: Some PayPal options and features may vary by region or country; check availability before creating an account.\r\n\r\n   ![Create business account](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-paypal.invoices/main/docs/setup/resources/create-account.png)\r\n\r\n### Step 2: Create a REST API app\r\n\r\n1. Navigate to the \"Apps and Credentials\" tab and create a new merchant app.\r\n\r\n   Provide a name for the application and select the Business account you created earlier.\r\n\r\n   ![Create app](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-paypal.invoices/main/docs/setup/resources/create-app.png)\r\n\r\n### Step 3: Obtain Client ID and Client Secret\r\n\r\n1. After creating your new app, you will see your **Client ID** and **Client Secret**. Make sure to copy and securely store these credentials.\r\n\r\n   ![Credentials](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-paypal.invoices/main/docs/setup/resources/get-credentials.png)\r\n\r\n## Quickstart\r\n\r\nTo use the `paypal.invoices` connector in your Ballerina application, update the `.bal` file as follows:\r\n\r\n### Step 1: Import the module\r\n\r\nImport the `paypal.invoices` module.\r\n\r\n```ballerina\r\nimport ballerinax/paypal.invoices as paypal;\r\n```\r\n\r\n### Step 2: Instantiate a new connector\r\n\r\n1. Create a `Config.toml` file and configure the obtained credentials in the above steps as follows:\r\n\r\n```toml\r\nclientId \u003d \"\u003ctest-client-id\u003e\"\r\nclientSecret \u003d \"\u003ctest-client-secret\u003e\"\r\n\r\nserviceUrl \u003d \"\u003cpaypal-service-url\u003e\"\r\ntokenUrl \u003d \"\u003cpaypal-token-url\u003e\"\r\n```\r\n\r\n2. Create a `paypal.invoices:ConnectionConfig` with the obtained credentials and initialize the connector with it.\r\n\r\n```ballerina\r\nconfigurable string clientId \u003d ?;\r\nconfigurable string clientSecret \u003d ?;\r\nconfigurable string merchantEmail \u003d ?;\r\n\r\nconfigurable string serviceUrl \u003d ?;\r\nconfigurable string tokenUrl \u003d ?;\r\n```\r\n\r\n```ballerina\r\nfinal paypal.invoices:Client paypalInvoices \u003d check new ({\r\n    auth: {\r\n        clientId,\r\n        clientSecret,\r\n        tokenUrl\r\n    }\r\n}, serviceUrl);\r\n```\r\n\r\n### Step 3: Invoke the connector operation\r\n\r\nNow, utilize the available connector operations.\r\n\r\n#### Create a draft invoice\r\n\r\n```ballerina\r\npublic function main() returns error? {\r\n    paypal.invoices:Invoice invoice \u003d {\r\n        detail: {\r\n            invoice_number: \"INV-001\",\r\n            currency_code: \"USD\"\r\n        },\r\n        invoicer: {\r\n            name: {\r\n                given_name: \"John\",\r\n                surname: \"Doe\"\r\n            },\r\n            email_address: \"merchant@example.com\"\r\n        },\r\n        primary_recipients: [{\r\n            billing_info: {\r\n                name: {\r\n                    given_name: \"Jane\",\r\n                    surname: \"Smith\"\r\n                },\r\n                email_address: \"customer@example.com\"\r\n            }\r\n        }],\r\n        items: [{\r\n            name: \"Product or Service\",\r\n            quantity: \"1\",\r\n            unit_amount: {\r\n                currency_code: \"USD\",\r\n                value: \"100.00\"\r\n            }\r\n        }]\r\n    };\r\n\r\n    paypal.invoices:Invoice response \u003d check paypalInvoices-\u003e/invoices.post(invoice);\r\n}\r\n```\r\n\r\n### Step 4: Run the Ballerina application\r\n\r\n```bash\r\nbal run\r\n```\r\n\r\n## Examples\r\n\r\nThe `PayPal Invoices` connector provides practical examples illustrating usage in various scenarios. Explore these [examples](https://github.com/ballerina-platform/module-ballerinax-paypal.invoices/tree/main/examples/), covering the following use cases:\r\n\r\n1. [**Record invoice**](https://github.com/ballerina-platform/module-ballerinax-paypal.invoices/tree/main/examples/paypal-record-invoice): Create and manage draft invoices with detailed billing information and line items.\r\n\r\n2. [**Send and cancel invoice**](https://github.com/ballerina-platform/module-ballerinax-paypal.invoices/tree/main/examples/paypal-send-cancel-invoice): Send invoices to customers and handle cancellation scenarios.\r\n",
+  "typeDefs": [
+    {
+      "name": "Detail",
+      "description": "The details of the invoice like notes, terms and conditions, memo, attachments",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "reference",
+          "description": "The reference data. Includes a post office (PO) number.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "currency_code",
+          "description": "The [three-character ISO-4217 currency code](/docs/integration/direct/rest/currency-codes/) that identifies the currency",
+          "type": {
+            "name": "CurrencyCode",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CurrencyCode"
+              }
+            ]
+          }
+        },
+        {
+          "name": "note",
+          "description": "A note to the invoice recipient. Also appears on the invoice notification email.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "terms_and_conditions",
+          "description": "The general terms of the invoice. Can include return or cancellation policy and other terms and conditions.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "memo",
+          "description": "A private bookkeeping memo for the user.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "attachments",
+          "description": "An array of PayPal IDs for the files that are attached to an invoice.",
+          "type": {
+            "name": "FileReference[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "FileReference"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "CurrencyCode",
+      "description": "The [three-character ISO-4217 currency code](/docs/integration/direct/rest/currency-codes/) that identifies the currency",
+      "type": "Other"
+    },
+    {
+      "name": "FileReference",
+      "description": "The file reference. Can be a file in PayPal MediaServ, PayPal DMS, or other custom store",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "content_type",
+          "description": "The [Internet Assigned Numbers Authority (IANA) media type of the file](https://www.iana.org/assignments/media-types/media-types.xhtml)",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "create_time",
+          "description": "",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "size",
+          "description": "The size of the file, in bytes",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "reference_url",
+          "description": "The reference URL for the file",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "id",
+          "description": "The ID of the referenced file",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "DateTime",
+      "description": "The date and time, in [Internet date and time format](https://tools.ietf.org/html/rfc3339#section-5.6). Seconds are required while fractional seconds are optional.\u003cblockquote\u003e\u003cstrong\u003eNote:\u003c/strong\u003e The regular expression provides guidance but does not reject all invalid dates.\u003c/blockquote\u003e",
+      "type": "Other"
+    },
+    {
+      "name": "InvoiceDetailAllOf2",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "invoice_number",
+          "description": "The invoice number. Default is the number that is auto-incremented number from the last number.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "invoice_date",
+          "description": "The stand-alone date, in [Internet date and time format](https://tools.ietf.org/html/rfc3339#section-5.6). To represent special legal values, such as a date of birth, you should use dates with no associated time or time-zone data. Whenever possible, use the standard `date_time` type. This regular expression does not validate all dates. For example, February 31 is valid and nothing is known about leap years",
+          "type": {
+            "name": "DateNoTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateNoTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "payment_term",
+          "description": "The payment term of the invoice. Payment can be due upon receipt, a specified date, or in a set number of days",
+          "type": {
+            "name": "InvoicePaymentTerm",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "InvoicePaymentTerm"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "metadata",
+          "description": "The audit metadata. Captures all invoicing actions on create, send, update, and cancel",
+          "type": {
+            "name": "Metadata",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Metadata"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "DateNoTime",
+      "description": "The stand-alone date, in [Internet date and time format](https://tools.ietf.org/html/rfc3339#section-5.6). To represent special legal values, such as a date of birth, you should use dates with no associated time or time-zone data. Whenever possible, use the standard `date_time` type. This regular expression does not validate all dates. For example, February 31 is valid and nothing is known about leap years",
+      "type": "Other"
+    },
+    {
+      "name": "PaymentTerm",
+      "description": "The payment term of the invoice. Payment can be due upon receipt, a specified date, or in a set number of days",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "term_type",
+          "description": "",
+          "type": {
+            "name": "PaymentTermType",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PaymentTermType"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "PaymentTermType",
+      "description": "The payment term. Payment can be due upon receipt, a specified date, or in a set number of days",
+      "type": "Union",
+      "members": [
+        {
+          "name": "\"DUE_ON_RECEIPT\"",
+          "type": {
+            "name": "\"DUE_ON_RECEIPT\""
+          }
+        },
+        {
+          "name": "\"DUE_ON_DATE_SPECIFIED\"",
+          "type": {
+            "name": "\"DUE_ON_DATE_SPECIFIED\""
+          }
+        },
+        {
+          "name": "\"NET_10\"",
+          "type": {
+            "name": "\"NET_10\""
+          }
+        },
+        {
+          "name": "\"NET_15\"",
+          "type": {
+            "name": "\"NET_15\""
+          }
+        },
+        {
+          "name": "\"NET_30\"",
+          "type": {
+            "name": "\"NET_30\""
+          }
+        },
+        {
+          "name": "\"NET_45\"",
+          "type": {
+            "name": "\"NET_45\""
+          }
+        },
+        {
+          "name": "\"NET_60\"",
+          "type": {
+            "name": "\"NET_60\""
+          }
+        },
+        {
+          "name": "\"NET_90\"",
+          "type": {
+            "name": "\"NET_90\""
+          }
+        },
+        {
+          "name": "\"NO_DUE_DATE\"",
+          "type": {
+            "name": "\"NO_DUE_DATE\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "InvoicePaymentTermAllOf2",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "due_date",
+          "description": "The stand-alone date, in [Internet date and time format](https://tools.ietf.org/html/rfc3339#section-5.6). To represent special legal values, such as a date of birth, you should use dates with no associated time or time-zone data. Whenever possible, use the standard `date_time` type. This regular expression does not validate all dates. For example, February 31 is valid and nothing is known about leap years",
+          "type": {
+            "name": "DateNoTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateNoTime"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "InvoicePaymentTerm",
+      "description": "The payment term of the invoice. Payment can be due upon receipt, a specified date, or in a set number of days",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "term_type",
+          "description": "",
+          "type": {
+            "name": "PaymentTermType",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PaymentTermType"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "due_date",
+          "description": "",
+          "type": {
+            "name": "DateNoTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateNoTime"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "TemplateMetadata",
+      "description": "The audit metadata. Captures all template actions on create and update",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "last_update_time",
+          "description": "",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "last_updated_by",
+          "description": "The email address of the account that last edited the resource",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "create_time",
+          "description": "",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "created_by",
+          "description": "The email address of the account that created the resource",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "MetadataAllOf2",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "cancel_time",
+          "description": "The date and time, in [Internet date and time format](https://tools.ietf.org/html/rfc3339#section-5.6). Seconds are required while fractional seconds are optional.\u003cblockquote\u003e\u003cstrong\u003eNote:\u003c/strong\u003e The regular expression provides guidance but does not reject all invalid dates.\u003c/blockquote\u003e",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "cancelled_by",
+          "description": "The actor who canceled the resource.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "first_sent_time",
+          "description": "The date and time, in [Internet date and time format](https://tools.ietf.org/html/rfc3339#section-5.6). Seconds are required while fractional seconds are optional.\u003cblockquote\u003e\u003cstrong\u003eNote:\u003c/strong\u003e The regular expression provides guidance but does not reject all invalid dates.\u003c/blockquote\u003e",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "last_sent_time",
+          "description": "The date and time, in [Internet date and time format](https://tools.ietf.org/html/rfc3339#section-5.6). Seconds are required while fractional seconds are optional.\u003cblockquote\u003e\u003cstrong\u003eNote:\u003c/strong\u003e The regular expression provides guidance but does not reject all invalid dates.\u003c/blockquote\u003e",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "last_sent_by",
+          "description": "The email address of the account that last sent the resource.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "created_by_flow",
+          "description": "The frequency at which the invoice is sent:\u003cul\u003e\u003cli\u003eMultiple recipient. Sent to multiple recipients.\u003c/li\u003e\u003cli\u003eBatch. Sent in a batch.\u003c/li\u003e\u003cli\u003eRegular single. Sent one time to a single recipient.\u003c/li\u003e\u003c/ul\u003e",
+          "type": {
+            "name": "InvoiceCreationFlow",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "InvoiceCreationFlow"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "recipient_view_url",
+          "description": "The URL for the invoice payer view hosted on paypal.com.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "invoicer_view_url",
+          "description": "The URL for the invoice merchant view hosted on paypal.com.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "InvoiceCreationFlow",
+      "description": "The frequency at which the invoice is sent:\u003cul\u003e\u003cli\u003eMultiple recipient. Sent to multiple recipients.\u003c/li\u003e\u003cli\u003eBatch. Sent in a batch.\u003c/li\u003e\u003cli\u003eRegular single. Sent one time to a single recipient.\u003c/li\u003e\u003c/ul\u003e",
+      "type": "Union",
+      "members": [
+        {
+          "name": "\"MULTIPLE_RECIPIENTS_GROUP\"",
+          "type": {
+            "name": "\"MULTIPLE_RECIPIENTS_GROUP\""
+          }
+        },
+        {
+          "name": "\"BATCH\"",
+          "type": {
+            "name": "\"BATCH\""
+          }
+        },
+        {
+          "name": "\"REGULAR_SINGLE\"",
+          "type": {
+            "name": "\"REGULAR_SINGLE\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "Metadata",
+      "description": "The audit metadata. Captures all invoicing actions on create, send, update, and cancel",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "last_update_time",
+          "description": "",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "last_updated_by",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "create_time",
+          "description": "",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "created_by",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "cancel_time",
+          "description": "",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "cancelled_by",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "first_sent_time",
+          "description": "",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "last_sent_time",
+          "description": "",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "last_sent_by",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "created_by_flow",
+          "description": "",
+          "type": {
+            "name": "InvoiceCreationFlow",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "InvoiceCreationFlow"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "recipient_view_url",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "invoicer_view_url",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "InvoiceDetail",
+      "description": "The details of the invoice. Includes invoice number, date, payment terms, and audit metadata",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "reference",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "currency_code",
+          "description": "",
+          "type": {
+            "name": "CurrencyCode",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CurrencyCode"
+              }
+            ]
+          }
+        },
+        {
+          "name": "note",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "terms_and_conditions",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "memo",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "attachments",
+          "description": "",
+          "type": {
+            "name": "FileReference[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "FileReference"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "invoice_number",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "invoice_date",
+          "description": "",
+          "type": {
+            "name": "DateNoTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateNoTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "payment_term",
+          "description": "",
+          "type": {
+            "name": "InvoicePaymentTerm",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "InvoicePaymentTerm"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "metadata",
+          "description": "",
+          "type": {
+            "name": "Metadata",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Metadata"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "OAuth2ClientCredentialsGrantConfig",
+      "description": "OAuth2 Client Credentials Grant Configs",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "tokenUrl",
+          "description": "Token URL",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "clientId",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "clientSecret",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "scopes",
+          "description": "",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "defaultTokenExpTime",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "clockSkew",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "optionalParams",
+          "description": "",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "credentialBearer",
+          "description": "",
+          "type": {
+            "name": "CredentialBearer",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CredentialBearer",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "clientConfig",
+          "description": "",
+          "type": {
+            "name": "ClientConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientConfiguration",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "InvoicesUpdateHeaders",
+      "description": "Represents the Headers record for the operation: invoices.update",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "Prefer",
+          "description": "Specifies the preferred response format.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Invoice",
+      "description": "The invoice details which includes all information of the invoice like items, billing information",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "amount",
+          "description": "The invoice amount summary of item total, discount, tax total, and shipping",
+          "type": {
+            "name": "AmountSummaryDetail",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AmountSummaryDetail"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "configuration",
+          "description": "The invoice configuration details. Includes partial payment, tip, and tax calculated after discount",
+          "type": {
+            "name": "Configuration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Configuration"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "payments",
+          "description": "An array of payments registered against the invoice",
+          "type": {
+            "name": "Payments",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Payments"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "gratuity",
+          "description": "The currency and amount for a financial transaction, such as a balance or payment due",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "primary_recipients",
+          "description": "The billing and shipping information. Includes name, email, address, phone and language",
+          "type": {
+            "name": "RecipientInfo[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RecipientInfo"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "refunds",
+          "description": "The invoicing refund details. Includes the refund type, date, amount, and method",
+          "type": {
+            "name": "Refunds",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Refunds"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "due_amount",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "parent_id",
+          "description": "The parent ID to an invoice that defines the group invoice to which the invoice is related",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "invoicer",
+          "description": "The invoicer business information that appears on the invoice",
+          "type": {
+            "name": "InvoicerInfo",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "InvoicerInfo"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "links",
+          "description": "An array of request-related [HATEOAS links](/docs/api/reference/api-responses/#hateoas-links)",
+          "type": {
+            "name": "LinkDescription[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "LinkDescription"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "id",
+          "description": "The ID of the invoice",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "detail",
+          "description": "The details of the invoice. Includes invoice number, date, payment terms, and audit metadata",
+          "type": {
+            "name": "InvoiceDetail",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "InvoiceDetail"
+              }
+            ]
+          }
+        },
+        {
+          "name": "additional_recipients",
+          "description": "An array of one or more CC: emails to which notifications are sent. If you omit this parameter, a notification is sent to all CC: email addresses that are part of the invoice.\u003cblockquote\u003e\u003cstrong\u003eNote:\u003c/strong\u003e Valid values are email addresses in the `additional_recipients` value associated with the invoice.\u003c/blockquote\u003e",
+          "type": {
+            "name": "EmailAddress[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "EmailAddress"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "items",
+          "description": "An array of invoice line item information",
+          "type": {
+            "name": "Item[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Item"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "status",
+          "description": "The status of the invoice",
+          "type": {
+            "name": "InvoiceStatus",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "InvoiceStatus"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "AmountSummaryDetail",
+      "description": "The invoice amount summary of item total, discount, tax total, and shipping",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "breakdown",
+          "description": "The breakdown of the amount. Includes total item amount, total tax amount, custom amount, and shipping and discounts, if any",
+          "type": {
+            "name": "AmountWithBreakdown",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AmountWithBreakdown"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "value",
+          "description": "The value, which might be:\u003cul\u003e\u003cli\u003eAn integer for currencies like `JPY` that are not typically fractional.\u003c/li\u003e\u003cli\u003eA decimal fraction for currencies like `TND` that are subdivided into thousandths.\u003c/li\u003e\u003c/ul\u003eFor the required number of decimal places for a currency code, see [Currency Codes](/docs/integration/direct/rest/currency-codes/)",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "currency_code",
+          "description": "",
+          "type": {
+            "name": "CurrencyCode",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CurrencyCode"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "AmountWithBreakdown",
+      "description": "The breakdown of the amount. Includes total item amount, total tax amount, custom amount, and shipping and discounts, if any",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "tax_total",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "shipping",
+          "description": "The shipping fee for all items. Includes tax on shipping",
+          "type": {
+            "name": "ShippingCost",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ShippingCost"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "custom",
+          "description": "The custom amount to apply to an invoice. If you include a label, you must include a custom amount",
+          "type": {
+            "name": "CustomAmount",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CustomAmount"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "discount",
+          "description": "The discount. Can be an item- or invoice-level discount, or both. Can be applied as a percent or amount. If you provide both amount and percent, amount takes precedent",
+          "type": {
+            "name": "AggregatedDiscount",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AggregatedDiscount"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "item_total",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Money",
+      "description": "The currency and amount for a financial transaction, such as a balance or payment due",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "value",
+          "description": "The value, which might be:\u003cul\u003e\u003cli\u003eAn integer for currencies like `JPY` that are not typically fractional.\u003c/li\u003e\u003cli\u003eA decimal fraction for currencies like `TND` that are subdivided into thousandths.\u003c/li\u003e\u003c/ul\u003eFor the required number of decimal places for a currency code, see [Currency Codes](/docs/integration/direct/rest/currency-codes/)",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "currency_code",
+          "description": "",
+          "type": {
+            "name": "CurrencyCode",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CurrencyCode"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "ShippingCost",
+      "description": "The shipping fee for all items. Includes tax on shipping",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "amount",
+          "description": "The currency and amount for a financial transaction, such as a balance or payment due",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "tax",
+          "description": "The tax information. Includes the tax name and tax rate of invoice items. The tax amount is added to the item total",
+          "type": {
+            "name": "Tax",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Tax"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Tax",
+      "description": "The tax information. Includes the tax name and tax rate of invoice items. The tax amount is added to the item total",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "amount",
+          "description": "The currency and amount for a financial transaction, such as a balance or payment due",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "name",
+          "description": "The name of the tax applied on the invoice items",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "percent",
+          "description": "The percentage, as a fixed-point, signed decimal number. For example, define a 19.99% interest rate as `19.99`",
+          "type": {
+            "name": "Percentage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Percentage"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Percentage",
+      "description": "The percentage, as a fixed-point, signed decimal number. For example, define a 19.99% interest rate as `19.99`",
+      "type": "Other"
+    },
+    {
+      "name": "CustomAmount",
+      "description": "The custom amount to apply to an invoice. If you include a label, you must include a custom amount",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "amount",
+          "description": "The currency and amount for a financial transaction, such as a balance or payment due",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "label",
+          "description": "The label to the custom amount of the invoice",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "AggregatedDiscount",
+      "description": "The discount. Can be an item- or invoice-level discount, or both. Can be applied as a percent or amount. If you provide both amount and percent, amount takes precedent",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "item_discount",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "invoice_discount",
+          "description": "",
+          "type": {
+            "name": "Discount",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Discount"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Discount",
+      "description": "The discount as a percent or amount at invoice level. The invoice discount amount is subtracted from the item total",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "amount",
+          "description": "The currency and amount for a financial transaction, such as a balance or payment due",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "percent",
+          "description": "The percentage, as a fixed-point, signed decimal number. For example, define a 19.99% interest rate as `19.99`",
+          "type": {
+            "name": "Percentage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Percentage"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "TemplateConfiguration",
+      "description": "The template configuration details. Includes tax information, tip, and partial payment",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "tax_calculated_after_discount",
+          "description": "Indicates whether the tax is calculated before or after a discount. If `false`, the tax is calculated before a discount. If `true`, the tax is calculated after a discount",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "partial_payment",
+          "description": "",
+          "type": {
+            "name": "PartialPayment",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PartialPayment"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "allow_tip",
+          "description": "Indicates whether the invoice enables the customer to enter a tip amount during payment. If `true`, the invoice shows a tip amount field so that the customer can enter a tip amount. If `false`, the invoice does not show a tip amount field.\u003cblockquote\u003e\u003cstrong\u003eNote:\u003c/strong\u003e This feature is not available for users in `Hong Kong`, `Taiwan`, `India`, or `Japan`.\u003c/blockquote\u003e",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "tax_inclusive",
+          "description": "Indicates whether the unit price includes tax",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "PartialPayment",
+      "description": "The partial payment details. Includes the minimum amount that the invoicer expects from the payer",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "minimum_amount_due",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "allow_partial_payment",
+          "description": "Indicates whether the invoice allows a partial payment. If `false`, the invoice must be paid in full. If `true`, the invoice allows partial payments.\u003cblockquote\u003e\u003cstrong\u003eNote:\u003c/strong\u003e This feature is not available for users in `India`, `Brazil`, or `Israel`.\u003c/blockquote\u003e",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ConfigurationAllOf2",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "template_id",
+          "description": "The template ID. The template determines the layout of the invoice. Includes which fields to show and hide.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Configuration",
+      "description": "The invoice configuration details. Includes partial payment, tip, and tax calculated after discount",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "tax_calculated_after_discount",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "partial_payment",
+          "description": "",
+          "type": {
+            "name": "PartialPayment",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PartialPayment"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "allow_tip",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "tax_inclusive",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "template_id",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "description": "An array of payments registered against the invoice",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "paid_amount",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "transactions",
+          "description": "An array of payment details for the invoice. The payment details of the invoice like payment type, method, date, discount and transaction type",
+          "type": {
+            "name": "PaymentDetail[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PaymentDetail"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "PaymentDetail",
+      "description": "The payment details of the invoice. Includes payment type, method, date, discount, and transaction type",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "note",
+          "description": "A note associated with an external cash or check payment",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "shipping_info",
+          "description": "",
+          "type": {
+            "name": "ContactNameAddress",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ContactNameAddress"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "amount",
+          "description": "The currency and amount for a financial transaction, such as a balance or payment due",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "method",
+          "description": "The payment mode or method through which the invoicer can accept the payments",
+          "type": {
+            "name": "PaymentMethod",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PaymentMethod"
+              }
+            ]
+          }
+        },
+        {
+          "name": "payment_id",
+          "description": "The ID for a PayPal payment transaction. Required for the `PAYPAL` payment type",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "\u0027type",
+          "description": "The payment type. Can be PayPal or an external payment. Includes cash or a check",
+          "type": {
+            "name": "PaymentType",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PaymentType"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "payment_date",
+          "description": "",
+          "type": {
+            "name": "DateNoTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateNoTime"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "BusinessName",
+      "description": "The business name of the party",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "business_name",
+          "description": "Required. The business name of the party",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ContactNameAddressAllOf2",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "name",
+          "description": "The name of the party",
+          "type": {
+            "name": "Name",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Name"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "address",
+          "description": "The portable international postal address. Maps to [AddressValidationMetadata](https://github.com/googlei18n/libaddressinput/wiki/AddressValidationMetadata) and HTML 5.1 [Autofilling form controls: the autocomplete attribute](https://www.w3.org/TR/html51/sec-forms.html#autofilling-form-controls-the-autocomplete-attribute)",
+          "type": {
+            "name": "AddressPortable",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AddressPortable"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Name",
+      "description": "The name of the party",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "full_name",
+          "description": "When the party is a person, the party\u0027s full name",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "prefix",
+          "description": "The prefix, or title, to the party\u0027s name",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "surname",
+          "description": "When the party is a person, the party\u0027s surname or family name. Also known as the last name. Required when the party is a person. Use also to store multiple surnames including the matronymic, or mother\u0027s, surname",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "given_name",
+          "description": "When the party is a person, the party\u0027s given, or first, name",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "middle_name",
+          "description": "When the party is a person, the party\u0027s middle name. Use also to store multiple middle names including the patronymic, or father\u0027s, middle name",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "suffix",
+          "description": "The suffix for the party\u0027s name",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "alternate_full_name",
+          "description": "DEPRECATED. The party\u0027s alternate name. Can be a business name, nickname, or any other name that cannot be split into first, last name. Required when the party is a business",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "AddressPortable",
+      "description": "The portable international postal address. Maps to [AddressValidationMetadata](https://github.com/googlei18n/libaddressinput/wiki/AddressValidationMetadata) and HTML 5.1 [Autofilling form controls: the autocomplete attribute](https://www.w3.org/TR/html51/sec-forms.html#autofilling-form-controls-the-autocomplete-attribute)",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "country_code",
+          "description": "",
+          "type": {
+            "name": "CountryCode",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CountryCode"
+              }
+            ]
+          }
+        },
+        {
+          "name": "admin_area_1",
+          "description": "The highest level sub-division in a country, which is usually a province, state, or ISO-3166-2 subdivision. Format for postal delivery. For example, `CA` and not `California`. Value, by country, is:\u003cul\u003e\u003cli\u003eUK. A county.\u003c/li\u003e\u003cli\u003eUS. A state.\u003c/li\u003e\u003cli\u003eCanada. A province.\u003c/li\u003e\u003cli\u003eJapan. A prefecture.\u003c/li\u003e\u003cli\u003eSwitzerland. A kanton.\u003c/li\u003e\u003c/ul\u003e",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "address_line_1",
+          "description": "The first line of the address. For example, number or street. For example, `173 Drury Lane`. Required for data entry and compliance and risk checks. Must contain the full address",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "admin_area_3",
+          "description": "A sub-locality, suburb, neighborhood, or district. Smaller than `admin_area_level_2`. Value is:\u003cul\u003e\u003cli\u003eBrazil. Suburb, bairro, or neighborhood.\u003c/li\u003e\u003cli\u003eIndia. Sub-locality or district. Street name information is not always available but a sub-locality or district can be a very small area.\u003c/li\u003e\u003c/ul\u003e",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "address_details",
+          "description": "",
+          "type": {
+            "name": "AddressDetails",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AddressDetails"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "admin_area_2",
+          "description": "A city, town, or village. Smaller than `admin_area_level_1`",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "address_line_3",
+          "description": "The third line of the address, if needed. For example, a street complement for Brazil, direction text, such as `next to Walmart`, or a landmark in an Indian address",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "address_line_2",
+          "description": "The second line of the address. For example, suite or apartment number",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "admin_area_4",
+          "description": "The neighborhood, ward, or district. Smaller than `admin_area_level_3` or `sub_locality`. Value is:\u003cul\u003e\u003cli\u003eThe postal sorting code for Guernsey and many French territories, such as French Guiana.\u003c/li\u003e\u003cli\u003eThe fine-grained administrative levels in China.\u003c/li\u003e\u003c/ul\u003e",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "postal_code",
+          "description": "The postal code, which is the zip code or equivalent. Typically required for countries with a postal code or an equivalent. See [postal code](https://en.wikipedia.org/wiki/Postal_code)",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "CountryCode",
+      "description": "The [two-character ISO 3166-1 code](/docs/integration/direct/rest/country-codes/) that identifies the country or region.\u003cblockquote\u003e\u003cstrong\u003eNote:\u003c/strong\u003e The country code for Great Britain is \u003ccode\u003eGB\u003c/code\u003e and not \u003ccode\u003eUK\u003c/code\u003e as used in the top-level domain names for that country. Use the `C2` country code for China worldwide for comparable uncontrolled price (CUP) method, bank card, and cross-border transactions.\u003c/blockquote\u003e",
+      "type": "Other"
+    },
+    {
+      "name": "AddressDetails",
+      "description": "The non-portable additional address details that are sometimes needed for compliance, risk, or other scenarios where fine-grain address information might be needed. Not portable with common third party and open source. Redundant with core fields.\u003cbr/\u003eFor example, `address_portable.address_line_1` is usually a combination of `address_details.street_number`, `street_name`, and `street_type`",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "building_name",
+          "description": "A named locations that represents the premise. Usually a building name or number or collection of buildings with a common name or number. For example, \u003ccode\u003eCraven House\u003c/code\u003e",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "street_number",
+          "description": "The street number",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "street_type",
+          "description": "The street type. For example, avenue, boulevard, road, or expressway",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "sub_building",
+          "description": "The first-order entity below a named building or location that represents the sub-premise. Usually a single building within a collection of buildings with a common name. Can be a flat, story, floor, room, or apartment",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "delivery_service",
+          "description": "The delivery service. Post office box, bag number, or post office name",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "street_name",
+          "description": "The street name. Just `Drury` in `Drury Lane`",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ContactNameAddress",
+      "description": "The contact information of the user. Includes name and address",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "business_name",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "name",
+          "description": "",
+          "type": {
+            "name": "Name",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Name"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "address",
+          "description": "",
+          "type": {
+            "name": "AddressPortable",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AddressPortable"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "PaymentMethod",
+      "description": "The payment mode or method through which the invoicer can accept the payments",
+      "type": "Union",
+      "members": [
+        {
+          "name": "\"BANK_TRANSFER\"",
+          "type": {
+            "name": "\"BANK_TRANSFER\""
+          }
+        },
+        {
+          "name": "\"CASH\"",
+          "type": {
+            "name": "\"CASH\""
+          }
+        },
+        {
+          "name": "\"CHECK\"",
+          "type": {
+            "name": "\"CHECK\""
+          }
+        },
+        {
+          "name": "\"CREDIT_CARD\"",
+          "type": {
+            "name": "\"CREDIT_CARD\""
+          }
+        },
+        {
+          "name": "\"DEBIT_CARD\"",
+          "type": {
+            "name": "\"DEBIT_CARD\""
+          }
+        },
+        {
+          "name": "\"PAYPAL\"",
+          "type": {
+            "name": "\"PAYPAL\""
+          }
+        },
+        {
+          "name": "\"WIRE_TRANSFER\"",
+          "type": {
+            "name": "\"WIRE_TRANSFER\""
+          }
+        },
+        {
+          "name": "\"OTHER\"",
+          "type": {
+            "name": "\"OTHER\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "PaymentType",
+      "description": "The payment type. Can be PayPal or an external payment. Includes cash or a check",
+      "type": "Union",
+      "members": [
+        {
+          "name": "\"PAYPAL\"",
+          "type": {
+            "name": "\"PAYPAL\""
+          }
+        },
+        {
+          "name": "\"EXTERNAL\"",
+          "type": {
+            "name": "\"EXTERNAL\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "RecipientInfo",
+      "description": "The billing and shipping information. Includes name, email, address, phone, and language",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "shipping_info",
+          "description": "",
+          "type": {
+            "name": "ContactNameAddress",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ContactNameAddress"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "billing_info",
+          "description": "",
+          "type": {
+            "name": "BillingInfo",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "BillingInfo"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "BillingInfoAllOf2",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "email_address",
+          "description": "The internationalized email address.\u003cblockquote\u003e\u003cstrong\u003eNote:\u003c/strong\u003e Up to 64 characters are allowed before and 255 characters are allowed after the \u003ccode\u003e@\u003c/code\u003e sign. However, the generally accepted maximum length for an email address is 254 characters. The pattern verifies that an unquoted \u003ccode\u003e@\u003c/code\u003e sign exists.\u003c/blockquote\u003e",
+          "type": {
+            "name": "EmailAddress",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "EmailAddress"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "phones",
+          "description": "The invoice recipient\u0027s phone numbers. Extension number is not supported.",
+          "type": {
+            "name": "PhoneDetail[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PhoneDetail"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "additional_info",
+          "description": "Any additional information about the recipient.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "language",
+          "description": "The [language tag](https://tools.ietf.org/html/bcp47#section-2) for the language in which to localize the error-related strings, such as messages, issues, and suggested actions. The tag is made up of the [ISO 639-2 language code](https://www.loc.gov/standards/iso639-2/php/code_list.php), the optional [ISO-15924 script tag](https://www.unicode.org/iso15924/codelists.html), and the [ISO-3166 alpha-2 country code](/docs/integration/direct/rest/country-codes/)",
+          "type": {
+            "name": "Language",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Language"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "EmailAddress",
+      "description": "The internationalized email address.\u003cblockquote\u003e\u003cstrong\u003eNote:\u003c/strong\u003e Up to 64 characters are allowed before and 255 characters are allowed after the \u003ccode\u003e@\u003c/code\u003e sign. However, the generally accepted maximum length for an email address is 254 characters. The pattern verifies that an unquoted \u003ccode\u003e@\u003c/code\u003e sign exists.\u003c/blockquote\u003e",
+      "type": "Other"
+    },
+    {
+      "name": "Phone",
+      "description": "The phone number, in its canonical international [E.164 numbering plan format](https://www.itu.int/rec/T-REC-E.164/en)",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "country_code",
+          "description": "The country calling code (CC), in its canonical international [E.164 numbering plan format](https://www.itu.int/rec/T-REC-E.164/en). The combined length of the CC and the national number must not be greater than 15 digits. The national number consists of a national destination code (NDC) and subscriber number (SN)",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "extension_number",
+          "description": "The extension number",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "national_number",
+          "description": "The national number, in its canonical international [E.164 numbering plan format](https://www.itu.int/rec/T-REC-E.164/en). The combined length of the country calling code (CC) and the national number must not be greater than 15 digits. The national number consists of a national destination code (NDC) and subscriber number (SN)",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "PhoneDetailAllOf2",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "phone_type",
+          "description": "The phone type",
+          "type": {
+            "name": "PhoneType",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PhoneType"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "PhoneType",
+      "description": "The phone type",
+      "type": "Union",
+      "members": [
+        {
+          "name": "\"FAX\"",
+          "type": {
+            "name": "\"FAX\""
+          }
+        },
+        {
+          "name": "\"HOME\"",
+          "type": {
+            "name": "\"HOME\""
+          }
+        },
+        {
+          "name": "\"MOBILE\"",
+          "type": {
+            "name": "\"MOBILE\""
+          }
+        },
+        {
+          "name": "\"OTHER\"",
+          "type": {
+            "name": "\"OTHER\""
+          }
+        },
+        {
+          "name": "\"PAGER\"",
+          "type": {
+            "name": "\"PAGER\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "PhoneDetail",
+      "description": "The phone details. Includes the phone number and type",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "phone_type",
+          "description": "",
+          "type": {
+            "name": "PhoneType",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PhoneType"
+              }
+            ]
+          }
+        },
+        {
+          "name": "country_code",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "extension_number",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "national_number",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Language",
+      "description": "The [language tag](https://tools.ietf.org/html/bcp47#section-2) for the language in which to localize the error-related strings, such as messages, issues, and suggested actions. The tag is made up of the [ISO 639-2 language code](https://www.loc.gov/standards/iso639-2/php/code_list.php), the optional [ISO-15924 script tag](https://www.unicode.org/iso15924/codelists.html), and the [ISO-3166 alpha-2 country code](/docs/integration/direct/rest/country-codes/)",
+      "type": "Other"
+    },
+    {
+      "name": "BillingInfo",
+      "description": "The billing information of the invoice recipient. Includes name, address, email, phone, and language",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "business_name",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "name",
+          "description": "",
+          "type": {
+            "name": "Name",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Name"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "address",
+          "description": "",
+          "type": {
+            "name": "AddressPortable",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AddressPortable"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "email_address",
+          "description": "",
+          "type": {
+            "name": "EmailAddress",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "EmailAddress"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "phones",
+          "description": "",
+          "type": {
+            "name": "PhoneDetail[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PhoneDetail"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "additional_info",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "language",
+          "description": "",
+          "type": {
+            "name": "Language",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Language"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Refunds",
+      "description": "The invoicing refund details. Includes the refund type, date, amount, and method",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "refund_amount",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "transactions",
+          "description": "An array of refund details for the invoice. Includes the refund type, date, amount, and method",
+          "type": {
+            "name": "RefundDetail[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RefundDetail"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "RefundDetail",
+      "description": "The refund details of the invoice. Includes the refund type, date, amount, and method",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "amount",
+          "description": "The currency and amount for a financial transaction, such as a balance or payment due",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "method",
+          "description": "The payment mode or method through which the invoicer can accept the payments",
+          "type": {
+            "name": "PaymentMethod",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PaymentMethod"
+              }
+            ]
+          }
+        },
+        {
+          "name": "\u0027type",
+          "description": "The payment type. Can be PayPal or an external payment. Includes cash or a check",
+          "type": {
+            "name": "PaymentType",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PaymentType"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "refund_id",
+          "description": "The ID for a PayPal payment transaction. Required for the `PAYPAL` payment type",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "refund_date",
+          "description": "",
+          "type": {
+            "name": "DateNoTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateNoTime"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "InvoicerInfoAllOf2",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "email_address",
+          "description": "The internationalized email address.\u003cblockquote\u003e\u003cstrong\u003eNote:\u003c/strong\u003e Up to 64 characters are allowed before and 255 characters are allowed after the \u003ccode\u003e@\u003c/code\u003e sign. However, the generally accepted maximum length for an email address is 254 characters. The pattern verifies that an unquoted \u003ccode\u003e@\u003c/code\u003e sign exists.\u003c/blockquote\u003e",
+          "type": {
+            "name": "EmailAddress",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "EmailAddress"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "phones",
+          "description": "An array of invoicer\u0027s phone numbers. The invoicer can choose to hide the phone number on the invoice.",
+          "type": {
+            "name": "PhoneDetail[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PhoneDetail"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "website",
+          "description": "The invoicer\u0027s website.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "tax_id",
+          "description": "The invoicer\u0027s tax ID.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "additional_notes",
+          "description": "Any additional information. Includes business hours.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "logo_url",
+          "description": "The full URL to an external logo image. The logo image must not be larger than 250 pixels wide by 90 pixels high.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "InvoicerInfo",
+      "description": "The invoicer business information that appears on the invoice",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "business_name",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "name",
+          "description": "",
+          "type": {
+            "name": "Name",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Name"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "address",
+          "description": "",
+          "type": {
+            "name": "AddressPortable",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AddressPortable"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "email_address",
+          "description": "",
+          "type": {
+            "name": "EmailAddress",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "EmailAddress"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "phones",
+          "description": "",
+          "type": {
+            "name": "PhoneDetail[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PhoneDetail"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "website",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "tax_id",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "additional_notes",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "logo_url",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "LinkDescription",
+      "description": "The request-related [HATEOAS link](/docs/api/reference/api-responses/#hateoas-links) information",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "method",
+          "description": "The HTTP method required to make the related call",
+          "type": {
+            "name": "\"GET\"|\"POST\"|\"PUT\"|\"DELETE\"|\"HEAD\"|\"CONNECT\"|\"OPTIONS\"|\"PATCH\""
+          },
+          "optional": true
+        },
+        {
+          "name": "rel",
+          "description": "The [link relation type](https://tools.ietf.org/html/rfc5988#section-4), which serves as an ID for a link that unambiguously describes the semantics of the link. See [Link Relations](https://www.iana.org/assignments/link-relations/link-relations.xhtml)",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "href",
+          "description": "The complete target URL. To make the related call, combine the method with this [URI Template-formatted](https://tools.ietf.org/html/rfc6570) link. For pre-processing, include the `$`, `(`, and `)` characters. The `href` is the key HATEOAS component that links a completed call with a subsequent call",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Item",
+      "description": "An array of invoice line item information. The maximum items for an invoice is `100`",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "quantity",
+          "description": "The quantity of the item that the invoicer provides to the payer. Value is from `-1000000` to `1000000`. Supports up to five decimal places",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "item_date",
+          "description": "",
+          "type": {
+            "name": "DateNoTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateNoTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "name",
+          "description": "The item name for the invoice line item",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "description",
+          "description": "The item description for the invoice line item",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "discount",
+          "description": "The discount as a percent or amount at invoice level. The invoice discount amount is subtracted from the item total",
+          "type": {
+            "name": "Discount",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Discount"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "unit_of_measure",
+          "description": "",
+          "type": {
+            "name": "UnitOfMeasure",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "UnitOfMeasure"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "tax",
+          "description": "The tax information. Includes the tax name and tax rate of invoice items. The tax amount is added to the item total",
+          "type": {
+            "name": "Tax",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Tax"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "id",
+          "description": "The ID of the invoice line item",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "unit_amount",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "UnitOfMeasure",
+      "description": "The unit of measure for the invoiced item",
+      "type": "Union",
+      "members": [
+        {
+          "name": "\"QUANTITY\"",
+          "type": {
+            "name": "\"QUANTITY\""
+          }
+        },
+        {
+          "name": "\"HOURS\"",
+          "type": {
+            "name": "\"HOURS\""
+          }
+        },
+        {
+          "name": "\"AMOUNT\"",
+          "type": {
+            "name": "\"AMOUNT\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "InvoiceStatus",
+      "description": "The status of the invoice",
+      "type": "Union",
+      "members": [
+        {
+          "name": "\"DRAFT\"",
+          "type": {
+            "name": "\"DRAFT\""
+          }
+        },
+        {
+          "name": "\"SENT\"",
+          "type": {
+            "name": "\"SENT\""
+          }
+        },
+        {
+          "name": "\"SCHEDULED\"",
+          "type": {
+            "name": "\"SCHEDULED\""
+          }
+        },
+        {
+          "name": "\"PAID\"",
+          "type": {
+            "name": "\"PAID\""
+          }
+        },
+        {
+          "name": "\"MARKED_AS_PAID\"",
+          "type": {
+            "name": "\"MARKED_AS_PAID\""
+          }
+        },
+        {
+          "name": "\"CANCELLED\"",
+          "type": {
+            "name": "\"CANCELLED\""
+          }
+        },
+        {
+          "name": "\"REFUNDED\"",
+          "type": {
+            "name": "\"REFUNDED\""
+          }
+        },
+        {
+          "name": "\"PARTIALLY_PAID\"",
+          "type": {
+            "name": "\"PARTIALLY_PAID\""
+          }
+        },
+        {
+          "name": "\"PARTIALLY_REFUNDED\"",
+          "type": {
+            "name": "\"PARTIALLY_REFUNDED\""
+          }
+        },
+        {
+          "name": "\"MARKED_AS_REFUNDED\"",
+          "type": {
+            "name": "\"MARKED_AS_REFUNDED\""
+          }
+        },
+        {
+          "name": "\"UNPAID\"",
+          "type": {
+            "name": "\"UNPAID\""
+          }
+        },
+        {
+          "name": "\"PAYMENT_PENDING\"",
+          "type": {
+            "name": "\"PAYMENT_PENDING\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "QrConfig",
+      "description": "The configuration for a QR code",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "width",
+          "description": "The width, in pixels, of the QR code image. Value is from `150` to `500`",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "action",
+          "description": "The type of URL for which to generate a QR code. Valid values are `pay` and `details`",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "height",
+          "description": "The height, in pixels, of the QR code image. Value is from `150` to `500`",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Templates",
+      "description": "An array of merchant-created templates with associated details that include the emails, addresses, and phone numbers from the user\u0027s PayPal profile",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "emails",
+          "description": "The internationalized email address.\u003cblockquote\u003e\u003cstrong\u003eNote:\u003c/strong\u003e Up to 64 characters are allowed before and 255 characters are allowed after the \u003ccode\u003e@\u003c/code\u003e sign. However, the generally accepted maximum length for an email address is 254 characters. The pattern verifies that an unquoted \u003ccode\u003e@\u003c/code\u003e sign exists.\u003c/blockquote\u003e",
+          "type": {
+            "name": "EmailAddress",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "EmailAddress"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "addresses",
+          "description": "An array of addresses in the user\u0027s PayPal profile",
+          "type": {
+            "name": "AddressPortable[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AddressPortable"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "templates",
+          "description": "An array of details for each template. If `fields` is `none`, returns only the template name, ID, and default status",
+          "type": {
+            "name": "Template[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Template"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "phones",
+          "description": "An array of phone numbers in the user\u0027s PayPal profile",
+          "type": {
+            "name": "PhoneDetail[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PhoneDetail"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "links",
+          "description": "An array of request-related [HATEOAS links](/docs/api/reference/api-responses/#hateoas-links)",
+          "type": {
+            "name": "LinkDescription[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "LinkDescription"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Template",
+      "description": "The template with invoice details to load with all captured fields",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "settings",
+          "description": "The template settings. Sets a template as the default template or edit template",
+          "type": {
+            "name": "TemplateSettings",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TemplateSettings"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "standard_template",
+          "description": "Indicates whether this template is a invoicer-created custom template. The system generates non-custom templates",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "template_info",
+          "description": "",
+          "type": {
+            "name": "TemplateInfo",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TemplateInfo"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "name",
+          "description": "The template name.\u003cblockquote\u003e\u003cstrong\u003eNote:\u003c/strong\u003e The template name must be unique.\u003c/blockquote\u003e",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "unit_of_measure",
+          "description": "",
+          "type": {
+            "name": "UnitOfMeasure",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "UnitOfMeasure"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "default_template",
+          "description": "Indicates whether this template is the default template. A invoicer can have one default template",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "links",
+          "description": "An array of request-related [HATEOAS links](/docs/api/reference/api-responses/#hateoas-links)",
+          "type": {
+            "name": "LinkDescription[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "LinkDescription"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "id",
+          "description": "The ID of the template",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "TemplateSettings",
+      "description": "The template settings. Sets a template as the default template or edit template",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "template_item_settings",
+          "description": "The template item headers display preference",
+          "type": {
+            "name": "TemplateItemSetting[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TemplateItemSetting"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "template_subtotal_settings",
+          "description": "The template subtotal headers display preference",
+          "type": {
+            "name": "TemplateSubtotalSetting[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TemplateSubtotalSetting"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "TemplateItemSetting",
+      "description": "The template item setting. Sets a template as the default template or edit template",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "display_preference",
+          "description": "",
+          "type": {
+            "name": "TemplateDisplayPreference",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TemplateDisplayPreference"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "field_name",
+          "description": "",
+          "type": {
+            "name": "TemplateItemField",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TemplateItemField"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "TemplateDisplayPreference",
+      "description": "The template display preference",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "hidden",
+          "description": "Indicates whether to show or hide this field",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "TemplateItemField",
+      "description": "The field names for the invoice line items in the template",
+      "type": "Union",
+      "members": [
+        {
+          "name": "\"ITEMS_QUANTITY\"",
+          "type": {
+            "name": "\"ITEMS_QUANTITY\""
+          }
+        },
+        {
+          "name": "\"ITEMS_DESCRIPTION\"",
+          "type": {
+            "name": "\"ITEMS_DESCRIPTION\""
+          }
+        },
+        {
+          "name": "\"ITEMS_DATE\"",
+          "type": {
+            "name": "\"ITEMS_DATE\""
+          }
+        },
+        {
+          "name": "\"ITEMS_DISCOUNT\"",
+          "type": {
+            "name": "\"ITEMS_DISCOUNT\""
+          }
+        },
+        {
+          "name": "\"ITEMS_TAX\"",
+          "type": {
+            "name": "\"ITEMS_TAX\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "TemplateSubtotalSetting",
+      "description": "The template subtotal setting. Includes the field name and display preference",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "display_preference",
+          "description": "",
+          "type": {
+            "name": "TemplateDisplayPreference",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TemplateDisplayPreference"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "field_name",
+          "description": "",
+          "type": {
+            "name": "TemplateSubtotalField",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TemplateSubtotalField"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "TemplateSubtotalField",
+      "description": "The field names in the template for discount, shipping, and custom amounts",
+      "type": "Union",
+      "members": [
+        {
+          "name": "\"DISCOUNT\"",
+          "type": {
+            "name": "\"DISCOUNT\""
+          }
+        },
+        {
+          "name": "\"SHIPPING\"",
+          "type": {
+            "name": "\"SHIPPING\""
+          }
+        },
+        {
+          "name": "\"CUSTOM\"",
+          "type": {
+            "name": "\"CUSTOM\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "TemplateInfo",
+      "description": "The template details. Includes invoicer business information, invoice recipients, items, and configuration",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "amount",
+          "description": "The invoice amount summary of item total, discount, tax total, and shipping",
+          "type": {
+            "name": "AmountSummaryDetail",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AmountSummaryDetail"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "due_amount",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "configuration",
+          "description": "The template configuration details. Includes tax information, tip, and partial payment",
+          "type": {
+            "name": "TemplateConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TemplateConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "invoicer",
+          "description": "The invoicer business information that appears on the invoice",
+          "type": {
+            "name": "InvoicerInfo",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "InvoicerInfo"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "detail",
+          "description": "The template-related details. Includes notes, terms and conditions, memo, and attachments",
+          "type": {
+            "name": "TemplateDetail",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TemplateDetail"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "primary_recipients",
+          "description": "The billing and shipping information. Includes name, email, address, phone, and language",
+          "type": {
+            "name": "RecipientInfo[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RecipientInfo"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "additional_recipients",
+          "description": "An array of one or more CC: emails to which notifications are sent. If you omit this parameter, a notification is sent to all CC: email addresses that are part of the invoice.\u003cblockquote\u003e\u003cstrong\u003eNote:\u003c/strong\u003e Valid values are email addresses in the `additional_recipients` value associated with the invoice.\u003c/blockquote\u003e",
+          "type": {
+            "name": "EmailAddress[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "EmailAddress"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "items",
+          "description": "An array of invoice line-item information",
+          "type": {
+            "name": "Item[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Item"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "TemplateDetailAllOf2",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "payment_term",
+          "description": "The payment term of the invoice. Payment can be due upon receipt, a specified date, or in a set number of days",
+          "type": {
+            "name": "PaymentTerm",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PaymentTerm"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "metadata",
+          "description": "The audit metadata. Captures all template actions on create and update",
+          "type": {
+            "name": "TemplateMetadata",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TemplateMetadata"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "TemplateDetail",
+      "description": "The template-related details. Includes notes, terms and conditions, memo, and attachments",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "reference",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "currency_code",
+          "description": "",
+          "type": {
+            "name": "CurrencyCode",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CurrencyCode"
+              }
+            ]
+          }
+        },
+        {
+          "name": "note",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "terms_and_conditions",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "memo",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "attachments",
+          "description": "",
+          "type": {
+            "name": "FileReference[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "FileReference"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "payment_term",
+          "description": "",
+          "type": {
+            "name": "PaymentTerm",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PaymentTerm"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "metadata",
+          "description": "",
+          "type": {
+            "name": "TemplateMetadata",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TemplateMetadata"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "InvoicingGenerateNextInvoiceNumberHeaders",
+      "description": "Represents the Headers record for the operation: invoicing.generate-next-invoice-number",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "Content\\-Type",
+          "description": "The content type should be set to `application/json`.",
+          "type": {
+            "name": "\"application/json\""
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "InvoiceNumber",
+      "description": "The invoice number",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "invoice_number",
+          "description": "The invoice number. If you omit this value, the default is the auto-incremented number from the last number",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ConnectionConfig",
+      "description": "Provides a set of configurations for controlling the behaviours when communicating with a remote HTTP endpoint.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "auth",
+          "description": "Configurations related to client authentication",
+          "type": {
+            "name": "OAuth2ClientCredentialsGrantConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OAuth2ClientCredentialsGrantConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "httpVersion",
+          "description": "The HTTP version understood by the client",
+          "type": {
+            "name": "HttpVersion",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "HttpVersion",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "http1Settings",
+          "description": "Configurations related to HTTP/1.x protocol",
+          "type": {
+            "name": "ClientHttp1Settings",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientHttp1Settings",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "http2Settings",
+          "description": "Configurations related to HTTP/2 protocol",
+          "type": {
+            "name": "ClientHttp2Settings",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientHttp2Settings",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "timeout",
+          "description": "The maximum time to wait (in seconds) for a response before closing the connection",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "forwarded",
+          "description": "The choice of setting `forwarded`/`x-forwarded` header",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "followRedirects",
+          "description": "Configurations associated with Redirection",
+          "type": {
+            "name": "FollowRedirects",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "FollowRedirects",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "poolConfig",
+          "description": "Configurations associated with request pooling",
+          "type": {
+            "name": "PoolConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "PoolConfiguration",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "cache",
+          "description": "HTTP caching related configurations",
+          "type": {
+            "name": "CacheConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CacheConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "compression",
+          "description": "Specifies the way of handling compression (`accept-encoding`) header",
+          "type": {
+            "name": "Compression",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Compression",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "circuitBreaker",
+          "description": "Configurations associated with the behaviour of the Circuit Breaker",
+          "type": {
+            "name": "CircuitBreakerConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CircuitBreakerConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "retryConfig",
+          "description": "Configurations associated with retrying",
+          "type": {
+            "name": "RetryConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "RetryConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "cookieConfig",
+          "description": "Configurations associated with cookies",
+          "type": {
+            "name": "CookieConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CookieConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "responseLimits",
+          "description": "Configurations associated with inbound response size limits",
+          "type": {
+            "name": "ResponseLimitConfigs",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ResponseLimitConfigs",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "SSL/TLS-related options",
+          "type": {
+            "name": "ClientSecureSocket",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientSecureSocket",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "proxy",
+          "description": "Proxy server related options",
+          "type": {
+            "name": "ProxyConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ProxyConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "socketConfig",
+          "description": "Provides settings related to client socket configuration",
+          "type": {
+            "name": "ClientSocketConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientSocketConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "validation",
+          "description": "Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "laxDataBinding",
+          "description": "Enables relaxed data binding on the client side. When enabled, `nil` values are treated as optional, \nand absent fields are handled as `nilable` types. Enabled by default.",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "InvoicesListQueries",
+      "description": "Represents the Queries record for the operation: invoices.list",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "page",
+          "description": "The page number to be retrieved, for the list of templates. So, a combination of `page\u003d1` and `page_size\u003d20` returns the first 20 templates. A combination of `page\u003d2` and `page_size\u003d20` returns the next 20 templates",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "fields",
+          "description": "The fields to return in the response. Value is `all` or `none`. To return only the template name, ID, and default attributes, specify `none`",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "total_required",
+          "description": "Indicates whether the to show \u003ccode\u003etotal_pages\u003c/code\u003e and \u003ccode\u003etotal_items\u003c/code\u003e in the response",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "page_size",
+          "description": "The maximum number of templates to return in the response",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "InvoicesCreateHeaders",
+      "description": "Represents the Headers record for the operation: invoices.create",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "Prefer",
+          "description": "Specifies the preferred response format.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "PaymentReference",
+      "description": "The reference to the payment detail",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "payment_id",
+          "description": "The ID for the invoice payment",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Invoices",
+      "description": "An array of merchant invoices. Includes the total invoices count and [HATEOAS links](/docs/api/reference/api-responses/#hateoas-links) for navigation",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "links",
+          "description": "An array of request-related [HATEOAS links](/docs/api/reference/api-responses/#hateoas-links)",
+          "type": {
+            "name": "LinkDescription[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "LinkDescription"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "total_pages",
+          "description": "The total number of pages that are available for the search criteria. \u003cblockquote\u003e\u003cstrong\u003eNote:\u003c/strong\u003e Clients MUST NOT assume that the value of total_pages is constant. The value MAY change from one request to the next\u003c/blockquote\u003e",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "total_items",
+          "description": "The total number of invoices that match the search criteria.\u003cblockquote\u003e\u003cstrong\u003eNote:\u003c/strong\u003e Clients MUST NOT assume that the value of \u003ccode\u003etotal_items\u003c/code\u003e is constant. The value MAY change from one request to the next.\u003c/blockquote\u003e",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "items",
+          "description": "The list of invoices that match the search criteria",
+          "type": {
+            "name": "Invoice[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Invoice"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "InvoicesUpdateQueries",
+      "description": "Represents the Queries record for the operation: invoices.update",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "send_to_recipient",
+          "description": "Indicates whether to send the invoice update notification to the recipient",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "send_to_invoicer",
+          "description": "Indicates whether to send the invoice update notification to the merchant",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Notification",
+      "description": "The email or SMS notification to send to the invoicer or payer on sending an invoice",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "note",
+          "description": "A note to the payer",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "send_to_recipient",
+          "description": "Indicates whether to send a copy of the email to the recipient",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "subject",
+          "description": "The subject of the email that is sent as a notification to the recipient",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "send_to_invoicer",
+          "description": "Indicates whether to send a copy of the email to the merchant",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "additional_recipients",
+          "description": "An array of one or more CC: emails to which notifications are sent. If you omit this parameter, a notification is sent to all CC: email addresses that are part of the invoice.\u003cblockquote\u003e\u003cstrong\u003eNote:\u003c/strong\u003e Valid values are email addresses in the `additional_recipients` value associated with the invoice.\u003c/blockquote\u003e",
+          "type": {
+            "name": "EmailAddress[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "EmailAddress"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "DateRange",
+      "description": "The date range. Filters invoices by creation date, invoice date, due date, and payment date",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "\u0027start",
+          "description": "The stand-alone date, in [Internet date and time format](https://tools.ietf.org/html/rfc3339#section-5.6). To represent special legal values, such as a date of birth, you should use dates with no associated time or time-zone data. Whenever possible, use the standard `date_time` type. This regular expression does not validate all dates. For example, February 31 is valid and nothing is known about leap years",
+          "type": {
+            "name": "DateNoTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateNoTime"
+              }
+            ]
+          }
+        },
+        {
+          "name": "end",
+          "description": "The stand-alone date, in [Internet date and time format](https://tools.ietf.org/html/rfc3339#section-5.6). To represent special legal values, such as a date of birth, you should use dates with no associated time or time-zone data. Whenever possible, use the standard `date_time` type. This regular expression does not validate all dates. For example, February 31 is valid and nothing is known about leap years",
+          "type": {
+            "name": "DateNoTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateNoTime"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "AmountRange",
+      "description": "The amount range",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "upper_amount",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          }
+        },
+        {
+          "name": "lower_amount",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "DateTimeRange",
+      "description": "The date and time range. Filters invoices by creation date, invoice date, due date, and payment date",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "\u0027start",
+          "description": "The date and time, in [Internet date and time format](https://tools.ietf.org/html/rfc3339#section-5.6). Seconds are required while fractional seconds are optional.\u003cblockquote\u003e\u003cstrong\u003eNote:\u003c/strong\u003e The regular expression provides guidance but does not reject all invalid dates.\u003c/blockquote\u003e",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          }
+        },
+        {
+          "name": "end",
+          "description": "The date and time, in [Internet date and time format](https://tools.ietf.org/html/rfc3339#section-5.6). Seconds are required while fractional seconds are optional.\u003cblockquote\u003e\u003cstrong\u003eNote:\u003c/strong\u003e The regular expression provides guidance but does not reject all invalid dates.\u003c/blockquote\u003e",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "202Response",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "links",
+          "description": "",
+          "type": {
+            "name": "LinkDescription[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "LinkDescription"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "InvoicesSearchInvoicesQueries",
+      "description": "Represents the Queries record for the operation: invoices.search-invoices",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "page",
+          "description": "The page number to be retrieved, for the list of templates. So, a combination of `page\u003d1` and `page_size\u003d20` returns the first 20 templates. A combination of `page\u003d2` and `page_size\u003d20` returns the next 20 templates",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "total_required",
+          "description": "Indicates whether the to show \u003ccode\u003etotal_pages\u003c/code\u003e and \u003ccode\u003etotal_items\u003c/code\u003e in the response",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "page_size",
+          "description": "The maximum number of templates to return in the response",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "RefundReference",
+      "description": "The reference to the refund payment detail",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "refund_id",
+          "description": "The ID of the refund of an invoice payment",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "SearchData",
+      "description": "The invoice search parameters",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "payment_date_range",
+          "description": "",
+          "type": {
+            "name": "DateTimeRange",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTimeRange"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "recipient_last_name",
+          "description": "Filters the search by the recipient last name",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "recipient_first_name",
+          "description": "Filters the search by the recipient first name",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "recipient_email",
+          "description": "Filters the search by the email address",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "invoice_date_range",
+          "description": "",
+          "type": {
+            "name": "DateRange",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateRange"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "memo",
+          "description": "A private bookkeeping memo for the user",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "currency_code",
+          "description": "",
+          "type": {
+            "name": "CurrencyCode",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CurrencyCode"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "reference",
+          "description": "The reference data, such as a PO number",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "total_amount_range",
+          "description": "",
+          "type": {
+            "name": "AmountRange",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AmountRange"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "archived",
+          "description": "Indicates whether to list merchant-archived invoices in the response. Value is:\u003cul\u003e\u003cli\u003e\u003ccode\u003etrue\u003c/code\u003e. Response lists only merchant-archived invoices.\u003c/li\u003e\u003cli\u003e\u003ccode\u003efalse\u003c/code\u003e. Response lists only unarchived invoices.\u003c/li\u003e\u003cli\u003e\u003ccode\u003enull\u003c/code\u003e. Response lists all invoices.\u003c/li\u003e\u003c/ul\u003e",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "due_date_range",
+          "description": "",
+          "type": {
+            "name": "DateRange",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateRange"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "creation_date_range",
+          "description": "",
+          "type": {
+            "name": "DateTimeRange",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTimeRange"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "recipient_business_name",
+          "description": "Filters the search by the recipient business name",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "fields",
+          "description": "A CSV file of fields to return for the user, if available. Because the invoice object can be very large, field filtering is required. Valid collection fields are \u003ccode\u003eitems\u003c/code\u003e, \u003ccode\u003epayments\u003c/code\u003e, \u003ccode\u003erefunds\u003c/code\u003e, \u003ccode\u003eadditional_recipients_info\u003c/code\u003e, and \u003ccode\u003eattachments\u003c/code\u003e",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "invoice_number",
+          "description": "Filters the search by the invoice number",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "status",
+          "description": "An array of status values",
+          "type": {
+            "name": "InvoiceStatus[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "InvoiceStatus"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "TemplatesListQueries",
+      "description": "Represents the Queries record for the operation: templates.list",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "page",
+          "description": "The page number to be retrieved, for the list of templates. So, a combination of `page\u003d1` and `page_size\u003d20` returns the first 20 templates. A combination of `page\u003d2` and `page_size\u003d20` returns the next 20 templates",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "fields",
+          "description": "The fields to return in the response. Value is `all` or `none`. To return only the template name, ID, and default attributes, specify `none`",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "page_size",
+          "description": "The maximum number of templates to return in the response",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "name": "Client",
+      "description": "Use the Invoicing API to create, send, and manage invoices. You can also use the API or webhooks to track invoice payments. When you send an invoice to a customer, the invoice moves from draft to payable state. PayPal then emails the customer a link to the invoice on the PayPal website. Customers with a PayPal account can log in and pay the invoice with PayPal. Alternatively, customers can pay as a guest with a debit card or credit card. For more information, see the \u003ca href\u003d\"/docs/invoicing/\"\u003eInvoicing Overview\u003c/a\u003e and the \u003ca href\u003d\"/docs/invoicing/basic-integration/\"\u003eInvoicing Integration Guide\u003c/a\u003e.",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Gets invoked to initialize the `connector`.\n",
+          "parameters": [
+            {
+              "name": "config",
+              "description": "The configurations to be used when initializing the `connector` ",
+              "type": {
+                "name": "ConnectionConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ConnectionConfig"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "serviceUrl",
+              "description": "URL of the target service ",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"https://api-m.sandbox.paypal.com/v2/invoicing\""
+            }
+          ],
+          "return": {
+            "description": "An error if connector initialization failed ",
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "List invoices\n",
+          "accessor": "get",
+          "paths": [
+            "invoices"
+          ],
+          "parameters": [
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "page",
+              "description": "The page number to be retrieved, for the list of templates. So, a combination of `page\u003d1` and `page_size\u003d20` returns the first 20 templates. A combination of `page\u003d2` and `page_size\u003d20` returns the next 20 templates",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "0"
+            },
+            {
+              "name": "fields",
+              "description": "The fields to return in the response. Value is `all` or `none`. To return only the template name, ID, and default attributes, specify `none`",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "total_required",
+              "description": "Indicates whether the to show \u003ccode\u003etotal_pages\u003c/code\u003e and \u003ccode\u003etotal_items\u003c/code\u003e in the response",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "page_size",
+              "description": "The maximum number of templates to return in the response",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "0"
+            },
+            {
+              "name": "Additional Values",
+              "description": "Capture key value pairs",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true
+            },
+            {
+              "name": "queries",
+              "description": "Queries to be sent with the request ",
+              "type": {
+                "name": "InvoicesListQueries",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "InvoicesListQueries"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "Invoices|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Invoices"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Create draft invoice\n",
+          "accessor": "post",
+          "paths": [
+            "invoices"
+          ],
+          "parameters": [
+            {
+              "name": "payload",
+              "description": "The invoice details which includes all information of the invoice like items, billing information ",
+              "type": {
+                "name": "Invoice",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Invoice"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "InvoicesCreateHeaders",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "InvoicesCreateHeaders"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "Invoice|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Invoice"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Send invoice\n",
+          "accessor": "post",
+          "paths": [
+            "invoices",
+            {
+              "name": "invoiceId",
+              "type": "string"
+            },
+            "send"
+          ],
+          "parameters": [
+            {
+              "name": "invoiceId",
+              "description": "The ID of the draft invoice to delete",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "payload",
+              "description": "The email or SMS notification to send to the payer when they send an invoice. ",
+              "type": {
+                "name": "Notification",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Notification"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "LinkDescription|202Response|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "LinkDescription"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "202Response"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Send invoice reminder\n",
+          "accessor": "post",
+          "paths": [
+            "invoices",
+            {
+              "name": "invoiceId",
+              "type": "string"
+            },
+            "remind"
+          ],
+          "parameters": [
+            {
+              "name": "invoiceId",
+              "description": "The ID of the draft invoice to delete",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "payload",
+              "description": "The email or SMS notification that will be sent to the payer for reminder ",
+              "type": {
+                "name": "Notification",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Notification"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Cancel sent invoice\n",
+          "accessor": "post",
+          "paths": [
+            "invoices",
+            {
+              "name": "invoiceId",
+              "type": "string"
+            },
+            "cancel"
+          ],
+          "parameters": [
+            {
+              "name": "invoiceId",
+              "description": "The ID of the draft invoice to delete",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "payload",
+              "description": "The email or SMS notification that will be sent to the payer on cancellation ",
+              "type": {
+                "name": "Notification",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Notification"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Record payment for invoice\n",
+          "accessor": "post",
+          "paths": [
+            "invoices",
+            {
+              "name": "invoiceId",
+              "type": "string"
+            },
+            "payments"
+          ],
+          "parameters": [
+            {
+              "name": "invoiceId",
+              "description": "The ID of the draft invoice to delete",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "payload",
+              "description": "The details of the payment to record against the invoice ",
+              "type": {
+                "name": "PaymentDetail",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "PaymentDetail"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "PaymentReference|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "PaymentReference"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Delete external payment\n",
+          "accessor": "delete",
+          "paths": [
+            "invoices",
+            {
+              "name": "invoiceId",
+              "type": "string"
+            },
+            "payments",
+            {
+              "name": "transactionId",
+              "type": "string"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "invoiceId",
+              "description": "The ID of the draft invoice to delete",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "transactionId",
+              "description": "The ID of the external refund transaction to delete",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Record refund for invoice\n",
+          "accessor": "post",
+          "paths": [
+            "invoices",
+            {
+              "name": "invoiceId",
+              "type": "string"
+            },
+            "refunds"
+          ],
+          "parameters": [
+            {
+              "name": "invoiceId",
+              "description": "The ID of the draft invoice to delete",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "payload",
+              "description": "The details of the refund to record against the invoice ",
+              "type": {
+                "name": "RefundDetail",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "RefundDetail"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "RefundReference|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "RefundReference"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Delete external refund\n",
+          "accessor": "delete",
+          "paths": [
+            "invoices",
+            {
+              "name": "invoiceId",
+              "type": "string"
+            },
+            "refunds",
+            {
+              "name": "transactionId",
+              "type": "string"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "invoiceId",
+              "description": "The ID of the draft invoice to delete",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "transactionId",
+              "description": "The ID of the external refund transaction to delete",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Generate QR code\n",
+          "accessor": "post",
+          "paths": [
+            "invoices",
+            {
+              "name": "invoiceId",
+              "type": "string"
+            },
+            "generate\\-qr\\-code"
+          ],
+          "parameters": [
+            {
+              "name": "invoiceId",
+              "description": "The ID of the draft invoice to delete",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "payload",
+              "description": "Optional configuration parameters to adjust QR code width, height and the encoded URL ",
+              "type": {
+                "name": "QrConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "QrConfig"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Generate invoice number\n",
+          "accessor": "post",
+          "paths": [
+            "generate\\-next\\-invoice\\-number"
+          ],
+          "parameters": [
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "InvoicingGenerateNextInvoiceNumberHeaders",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "InvoicingGenerateNextInvoiceNumberHeaders"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "InvoiceNumber|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "InvoiceNumber"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Show invoice details\n",
+          "accessor": "get",
+          "paths": [
+            "invoices",
+            {
+              "name": "invoiceId",
+              "type": "string"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "invoiceId",
+              "description": "The ID of the draft invoice to delete",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "Invoice|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Invoice"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Fully update invoice\n",
+          "accessor": "put",
+          "paths": [
+            "invoices",
+            {
+              "name": "invoiceId",
+              "type": "string"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "invoiceId",
+              "description": "The ID of the draft invoice to delete",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "payload",
+              "description": "A representation of changes to make in the invoice ",
+              "type": {
+                "name": "Invoice",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Invoice"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "InvoicesUpdateHeaders",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "InvoicesUpdateHeaders"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "send_to_recipient",
+              "description": "Indicates whether to send the invoice update notification to the recipient",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "send_to_invoicer",
+              "description": "Indicates whether to send the invoice update notification to the merchant",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "Additional Values",
+              "description": "Capture key value pairs",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true
+            },
+            {
+              "name": "queries",
+              "description": "Queries to be sent with the request ",
+              "type": {
+                "name": "InvoicesUpdateQueries",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "InvoicesUpdateQueries"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "Invoice|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Invoice"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Delete invoice\n",
+          "accessor": "delete",
+          "paths": [
+            "invoices",
+            {
+              "name": "invoiceId",
+              "type": "string"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "invoiceId",
+              "description": "The ID of the draft invoice to delete",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Search for invoices\n",
+          "accessor": "post",
+          "paths": [
+            "search\\-invoices"
+          ],
+          "parameters": [
+            {
+              "name": "payload",
+              "description": "The invoice search can be used to retrieve the invoices based on the search parameters ",
+              "type": {
+                "name": "SearchData",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "SearchData"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "page",
+              "description": "The page number to be retrieved, for the list of templates. So, a combination of `page\u003d1` and `page_size\u003d20` returns the first 20 templates. A combination of `page\u003d2` and `page_size\u003d20` returns the next 20 templates",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "0"
+            },
+            {
+              "name": "total_required",
+              "description": "Indicates whether the to show \u003ccode\u003etotal_pages\u003c/code\u003e and \u003ccode\u003etotal_items\u003c/code\u003e in the response",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "page_size",
+              "description": "The maximum number of templates to return in the response",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "0"
+            },
+            {
+              "name": "Additional Values",
+              "description": "Capture key value pairs",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true
+            },
+            {
+              "name": "queries",
+              "description": "Queries to be sent with the request ",
+              "type": {
+                "name": "InvoicesSearchInvoicesQueries",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "InvoicesSearchInvoicesQueries"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "Invoices|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Invoices"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "List templates\n",
+          "accessor": "get",
+          "paths": [
+            "templates"
+          ],
+          "parameters": [
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "page",
+              "description": "The page number to be retrieved, for the list of templates. So, a combination of `page\u003d1` and `page_size\u003d20` returns the first 20 templates. A combination of `page\u003d2` and `page_size\u003d20` returns the next 20 templates",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "0"
+            },
+            {
+              "name": "fields",
+              "description": "The fields to return in the response. Value is `all` or `none`. To return only the template name, ID, and default attributes, specify `none`",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "page_size",
+              "description": "The maximum number of templates to return in the response",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "0"
+            },
+            {
+              "name": "Additional Values",
+              "description": "Capture key value pairs",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true
+            },
+            {
+              "name": "queries",
+              "description": "Queries to be sent with the request ",
+              "type": {
+                "name": "TemplatesListQueries",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "TemplatesListQueries"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "Templates|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Templates"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Create template\n",
+          "accessor": "post",
+          "paths": [
+            "templates"
+          ],
+          "parameters": [
+            {
+              "name": "payload",
+              "type": {
+                "name": "Template",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Template"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "Template|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Template"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Show template details\n",
+          "accessor": "get",
+          "paths": [
+            "templates",
+            {
+              "name": "templateId",
+              "type": "string"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "templateId",
+              "description": "The ID of the template to delete",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "Template|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Template"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Fully update template\n",
+          "accessor": "put",
+          "paths": [
+            "templates",
+            {
+              "name": "templateId",
+              "type": "string"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "templateId",
+              "description": "The ID of the template to delete",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "payload",
+              "description": "A representation of changes to make in the template ",
+              "type": {
+                "name": "Template",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Template"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "Template|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Template"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Delete template\n",
+          "accessor": "delete",
+          "paths": [
+            "templates",
+            {
+              "name": "templateId",
+              "type": "string"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "templateId",
+              "description": "The ID of the template to delete",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "functions": [],
+  "services": [],
+  "annotations": []
+}
