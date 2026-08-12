@@ -1,0 +1,142 @@
+// ============================================================
+// Library: ballerina/auth
+// This module provides a framework for authentication/authorization based on the Basic Authentication scheme specified in [RFC 7617](https://datatracker.ietf.org/doc/html/rfc7617).
+// ============================================================
+import ballerina/auth;
+
+// --- README ---
+## Overview
+
+This module provides a framework for authentication/authorization based on the Basic Authentication scheme specified in [RFC 7617](https://datatracker.ietf.org/doc/html/rfc7617).
+
+The Basic Authentication scheme transmits credentials as user-id/password pairs encoded using Base64. This scheme is not considered to be a secure method of user authentication unless used in conjunction with some external secure system such as TLS as the user ID and password are passed over the network as cleartext.
+
+The Ballerina `auth` module facilitates auth providers that are to be used by the clients and listeners of different protocol connectors.
+
+### Listener file user store Basic Auth provider
+
+Represents the file user store based listener Basic Auth provider, which is used to authenticate the provided credentials against the provided file user store configurations. The users are denoted by a section in the `Config.toml` file. The username, password, and the scopes of a particular user are denoted as keys under the `users` section as shown below. For multiple users, the complete section has to be duplicated.
+
+```toml
+[[ballerina.auth.users]]
+username="alice"
+password="xxx"
+scopes=["read", "write"]
+```
+
+### Listener LDAP user store Basic Auth provider
+
+Represents the LDAP-based listener Basic Auth provider, which is used to authenticate the provided credentials against the provided LDAP user store configurations. This connects to an active directory or an LDAP, which retrieves the necessary user information and performs authentication and authorization.
+
+### Client Basic Auth provider
+
+Represents the client Basic Auth provider, which is used to authenticate with an external endpoint by generating a Basic Auth token against the provided credential configurations.
+
+// --- END README ---
+
+// --- Types ---
+
+# Represents the details of the authenticated user.
+# 
+
+type UserDetails record {
+    # The username of the authenticated user
+    string username;
+    # The scopes of the authenticated user
+    string[] scopes?;
+};
+
+// Unknown type: Error
+
+# Represents credentials for Basic Auth authentication.
+# 
+
+type CredentialsConfig record {
+    # Username for Basic Auth authentication
+    string username;
+    # Password for Basic Auth authentication
+    string password;
+};
+
+# Represents the listener Basic Auth provider, which could be used to authenticate credentials.
+# The `auth:ListenerBasicAuthProvider` acts as the interface for all the Basic Auth listener authentication providers.
+# Any type of implementation such as file store, LDAP user store, in memory user store, JDBC user store etc. should be
+# object-wise similar.
+class ListenerBasicAuthProvider {
+}
+
+# Represents the file user store configurations.
+
+type FileUserStoreConfig record {
+};
+
+# Represents the LDAP user store configurations.
+# 
+
+type LdapUserStoreConfig record {
+    # Unique name to identify the user store
+    string domainName;
+    # Connection URL of the LDAP server
+    string connectionUrl;
+    # The username used to connect to the LDAP server
+    string connectionName;
+    # The password used to connect to the LDAP server
+    string connectionPassword;
+    # DN of the context or object under which the user entries are stored in the LDAP server
+    string userSearchBase;
+    # Object class used to construct user entries
+    string userEntryObjectClass;
+    # The attribute used for uniquely identifying a user entry
+    string userNameAttribute;
+    # Filtering criteria used to search for a particular user entry
+    string userNameSearchFilter;
+    # Filtering criteria for searching user entries in the LDAP server
+    string userNameListFilter;
+    # DN of the context or object under which the group entries are stored in the LDAP server
+    string[] groupSearchBase;
+    # Object class used to construct group entries
+    string groupEntryObjectClass;
+    # The attribute used for uniquely identifying a group entry
+    string groupNameAttribute;
+    # Filtering criteria used to search for a particular group entry
+    string groupNameSearchFilter;
+    # Filtering criteria for searching group entries in the LDAP server
+    string groupNameListFilter;
+    # Define the attribute, which contains the distinguished names (DN) of user objects that are there in a group
+    string membershipAttribute;
+    # To indicate whether to cache the role list of a user
+    boolean userRolesCacheEnabled?;
+    # Define whether LDAP connection pooling is enabled
+    boolean connectionPoolingEnabled?;
+    # Connection timeout (in seconds) when making the initial LDAP connection
+    decimal connectionTimeout?;
+    # Reading timeout (in seconds) for LDAP operations
+    decimal readTimeout?;
+    # The SSL configurations for the LDAP client socket. This needs to be configured in order to communicate through LDAPs
+    SecureSocket secureSocket?;
+};
+
+# Represents the SSL/TLS configurations.
+# 
+
+type SecureSocket record {
+    # Configurations associated with the `crypto:TrustStore` or single certificate file that the client trusts
+    crypto:TrustStore|string cert; // Special Agent Note: TrustStore FROM ballerina/crypto package
+};
+
+// Unknown type: ClientBasicAuthProvider
+
+// Unknown type: ListenerFileUserStoreBasicAuthProvider
+
+// Unknown type: ListenerLdapUserStoreBasicAuthProvider
+
+// --- Functions ---
+
+# Extracts the username and the password from the Base64-encoded `username:password` value.
+# ```ballerina
+# [string, string] [username, password] = check auth:extractUsernameAndPassword("<credential>");
+# ```
+# 
+# + credential - The Base64-encoded `username:password` value
+# + return - A `string` tuple with the extracted username and password or else an `auth:Error` if an error occurred
+function extractUsernameAndPassword(string credential) returns [string, string]|Error;

@@ -1,0 +1,203 @@
+// ============================================================
+// Library: ballerina/yaml
+// This module provides APIs to convert a YAML configuration file to json, and vice-versa.
+// ============================================================
+import ballerina/yaml;
+
+// --- README ---
+## Overview
+
+This module provides APIs to convert a YAML configuration file to json, and vice-versa.
+
+Since the parser is following LL(1) grammar, it follows a non-recursive predictive parsing algorithm which operates in a linear time complexity.
+
+For information on the operations, which you can perform with the `yaml` module, see the below **Functions**.
+
+// --- END README ---
+
+// --- Types ---
+
+const string MAPPING = "MAPPING";
+
+const string SEQUENCE = "SEQUENCE";
+
+const string STRING = "STRING";
+
+const string FAILSAFE_SCHEMA = "FAILSAFE_SCHEMA";
+
+const string JSON_SCHEMA = "JSON_SCHEMA";
+
+const string CORE_SCHEMA = "CORE_SCHEMA";
+
+# Represents an error caused during the composing.
+type ComposingError composer:ComposeError|parser:GrammarError|lexer:ScanningError|common:IndentationError|common:ConversionError|common:AliasingError|schema:ConstructionError;
+
+# Represents an error caused during the emitting.
+type EmittingError emitter:EmittingError;
+
+# Represents an error caused when failed to access the file.
+type FileError io:Error|file:Error;
+
+# Represents the generic error type for the YAML package.
+type Error composer:ComposeError|parser:GrammarError|lexer:ScanningError|common:IndentationError|common:ConversionError|common:AliasingError|schema:ConstructionError|EmittingError|io:Error|file:Error;
+
+# Represents an error caused regarding YAML schema.
+type SchemaError schema:ConstructionError|common:ConversionError;
+
+# Represents an error caused during the parsing.
+type ParsingError parser:GrammarError|lexer:ScanningError|common:IndentationError|common:ConversionError|common:AliasingError;
+
+# Represents an error caused during the lexical analyzing.
+type LexicalError lexer:ScanningError|common:IndentationError|common:ConversionError;
+
+# Represents an error caused when failed to alias an anchor.
+type AliasingError common:AliasingError;
+
+# Represents an error caused when the indentation is not correct.
+type IndentationError common:IndentationError;
+
+# Represents an error caused by the Ballerina lang when converting a data type.
+type ConversionError common:ConversionError;
+
+# Represents an error caused for an invalid compose.
+type ComposeError composer:ComposeError;
+
+# Represents an error caused for an invalid grammar production.
+type GrammarError parser:GrammarError;
+
+# Represents an error that is generated when an invalid character for a lexeme is detected.
+type ScanningError lexer:ScanningError;
+
+# Represents an error caused when constructing a Ballerina data type.
+type ConstructionError schema:ConstructionError;
+
+# Configurations for writing a YAML document.
+# 
+
+type WriteConfig record {
+    # Number of whitespace for an indentation  
+    int indentationPolicy?;
+    # The maximum depth level for a block collection 
+    int blockLevel?;
+    # If set, the tags are written along with the nodes
+    boolean canonical?;
+    # If set, single quotes are used to surround scalars
+    boolean useSingleQuotes?;
+    # If set, all the scalars are surrounded by quotes
+    boolean forceQuotes?;
+    # YAML schema used for writing
+    YAMLSchema schema?;
+    # Custom YAML types for the schema
+    YamlType[] yamlTypes?;
+    # Custom tag handles that can be included as directives
+    map<string> customTagHandles?;
+    # If set, the parser will write a stream of YAML documents
+    boolean isStream?;
+};
+
+# Represents the YAML schema available for the parser.
+# 
+enum YAMLSchema {
+    CORE_SCHEMA,
+    JSON_SCHEMA,
+    FAILSAFE_SCHEMA
+}
+
+# Represents the attributes of the custom YAML type.
+# 
+
+type YamlType record {
+    # YAML tag for the custom type  
+    string tag;
+    # The equivalent Ballerina type for the YAML tag  
+    typedesc<json> ballerinaType;
+    # Fail safe schema type
+    FailSafeSchema kind;
+    # Function to generate the Ballerina data structure.  
+    function (json data) returns json|SchemaError construct;
+    # Function to convert the Ballerina data structure to YAML.
+    function (json data) returns string|SchemaError represent;
+};
+
+# Represents the basic YAML types available in the Fail safe schema.
+# 
+enum FailSafeSchema {
+    STRING,
+    SEQUENCE,
+    MAPPING
+}
+
+# Configurations for reading a YAML document.
+# 
+
+type ReadConfig record {
+    # YAML schema used for writing  
+    YAMLSchema schema?;
+    # Custom YAML types for the schema  
+    YamlType[] yamlTypes?;
+    # If set, the parser reads a stream of YAML documents  
+    boolean isStream?;
+    # Flag is set if anchors can be redefined multiple times
+    boolean allowAnchorRedefinition?;
+    # Flag is set if same map keys are allowed in a mapping
+    boolean allowMapEntryRedefinition?;
+};
+
+// --- Functions ---
+
+# Parses a Ballerina string of YAML content into a Ballerina map object.
+# 
+# + yamlString - YAML content
+# + schema - YAML schema used for writing  
+# + yamlTypes - Custom YAML types for the schema  
+# + isStream - If set, the parser reads a stream of YAML documents  
+# + allowAnchorRedefinition - Flag is set if anchors can be redefined multiple times
+# + allowMapEntryRedefinition - Flag is set if same map keys are allowed in a mapping
+# + config - Configuration for reading a YAML file
+# + return - YAML map object on success. Else, returns an error
+function readString(string yamlString, YAMLSchema schema = CORE_SCHEMA, YamlType[] yamlTypes = [], boolean isStream = false, boolean allowAnchorRedefinition = true, boolean allowMapEntryRedefinition = false, ReadConfig config) returns json|composer:ComposeError|parser:GrammarError|lexer:ScanningError|common:IndentationError|common:ConversionError|common:AliasingError|schema:ConstructionError|EmittingError|io:file:Error|io:file:Error; // Special Agent Note: ComposeError FROM ballerina/yaml.composer package, GrammarError FROM ballerina/yaml.parser package, ScanningError FROM ballerina/yaml.lexer package, IndentationError, ConversionError, AliasingError FROM ballerina/yaml.common package, ConstructionError FROM ballerina/yaml.schema package, Error FROM ballerina/io package, Error FROM ballerina/file package
+
+# Parses a YAML file into a Ballerina json object.
+# 
+# + filePath - Path to the YAML file
+# + schema - YAML schema used for writing  
+# + yamlTypes - Custom YAML types for the schema  
+# + isStream - If set, the parser reads a stream of YAML documents  
+# + allowAnchorRedefinition - Flag is set if anchors can be redefined multiple times
+# + allowMapEntryRedefinition - Flag is set if same map keys are allowed in a mapping
+# + config - Configuration for reading a YAML file
+# + return - YAML map object on success. Else, returns an error
+function readFile(string filePath, YAMLSchema schema = CORE_SCHEMA, YamlType[] yamlTypes = [], boolean isStream = false, boolean allowAnchorRedefinition = true, boolean allowMapEntryRedefinition = false, ReadConfig config) returns json|composer:ComposeError|parser:GrammarError|lexer:ScanningError|common:IndentationError|common:ConversionError|common:AliasingError|schema:ConstructionError|EmittingError|io:file:Error|io:file:Error; // Special Agent Note: ComposeError FROM ballerina/yaml.composer package, GrammarError FROM ballerina/yaml.parser package, ScanningError FROM ballerina/yaml.lexer package, IndentationError, ConversionError, AliasingError FROM ballerina/yaml.common package, ConstructionError FROM ballerina/yaml.schema package, Error FROM ballerina/io package, Error FROM ballerina/file package
+
+# Converts the YAML structure to an array of strings.
+# 
+# + yamlStructure - Structure to be written to the file
+# + indentationPolicy - Number of whitespace for an indentation  
+# + blockLevel - The maximum depth level for a block collection 
+# + canonical - If set, the tags are written along with the nodes
+# + useSingleQuotes - If set, single quotes are used to surround scalars
+# + forceQuotes - If set, all the scalars are surrounded by quotes
+# + schema - YAML schema used for writing
+# + yamlTypes - Custom YAML types for the schema
+# + customTagHandles - Custom tag handles that can be included as directives
+# + isStream - If set, the parser will write a stream of YAML documents
+# + config - Configurations for writing a YAML file
+# + return - YAML content on success. Else, an error on failure
+function writeString(json yamlStructure, int indentationPolicy = 2, int blockLevel = 1, boolean canonical = false, boolean useSingleQuotes = false, boolean forceQuotes = false, YAMLSchema schema = CORE_SCHEMA, YamlType[] yamlTypes = [], map<string> customTagHandles = {}, boolean isStream = false, WriteConfig config) returns string[]|composer:ComposeError|parser:GrammarError|lexer:ScanningError|common:IndentationError|common:ConversionError|common:AliasingError|schema:ConstructionError|EmittingError|io:file:Error|io:file:Error; // Special Agent Note: ComposeError FROM ballerina/yaml.composer package, GrammarError FROM ballerina/yaml.parser package, ScanningError FROM ballerina/yaml.lexer package, IndentationError, ConversionError, AliasingError FROM ballerina/yaml.common package, ConstructionError FROM ballerina/yaml.schema package, Error FROM ballerina/io package, Error FROM ballerina/file package
+
+# Writes the YAML structure to a file.
+# 
+# + filePath - Path to the file  
+# + yamlStructure - Structure to be written to the file
+# + indentationPolicy - Number of whitespace for an indentation  
+# + blockLevel - The maximum depth level for a block collection 
+# + canonical - If set, the tags are written along with the nodes
+# + useSingleQuotes - If set, single quotes are used to surround scalars
+# + forceQuotes - If set, all the scalars are surrounded by quotes
+# + schema - YAML schema used for writing
+# + yamlTypes - Custom YAML types for the schema
+# + customTagHandles - Custom tag handles that can be included as directives
+# + isStream - If set, the parser will write a stream of YAML documents
+# + config - Configurations for writing a YAML file
+# + return - An error on failure
+function writeFile(string filePath, json yamlStructure, int indentationPolicy = 2, int blockLevel = 1, boolean canonical = false, boolean useSingleQuotes = false, boolean forceQuotes = false, YAMLSchema schema = CORE_SCHEMA, YamlType[] yamlTypes = [], map<string> customTagHandles = {}, boolean isStream = false, WriteConfig config) returns composer:ComposeError|parser:GrammarError|lexer:ScanningError|common:IndentationError|common:ConversionError|common:AliasingError|schema:ConstructionError|EmittingError|io:file:Error|io:file:Error|(); // Special Agent Note: ComposeError FROM ballerina/yaml.composer package, GrammarError FROM ballerina/yaml.parser package, ScanningError FROM ballerina/yaml.lexer package, IndentationError, ConversionError, AliasingError FROM ballerina/yaml.common package, ConstructionError FROM ballerina/yaml.schema package, Error FROM ballerina/io package, Error FROM ballerina/file package

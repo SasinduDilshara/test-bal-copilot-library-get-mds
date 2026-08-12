@@ -1,0 +1,283 @@
+// ============================================================
+// Library: ballerina/oauth2
+// This module provides a framework for interacting with OAuth2 authorization servers as specified in the [RFC 6749](https://datatracker.ietf.org/doc/html/rfc6749) and [RFC 7662](https://datatracker.ietf.org/doc/html/rfc7662).
+// ============================================================
+import ballerina/oauth2;
+
+// --- README ---
+## Overview
+
+This module provides a framework for interacting with OAuth2 authorization servers as specified in the [RFC 6749](https://datatracker.ietf.org/doc/html/rfc6749) and [RFC 7662](https://datatracker.ietf.org/doc/html/rfc7662).
+
+The OAuth 2.0 authorization framework enables a third-party application to obtain limited access to an HTTP service either on behalf of a resource owner by orchestrating an approval interaction between the resource owner and the HTTP service or by allowing the third-party application to obtain access on its own behalf.
+
+The Ballerina `oauth2` module facilitates auth providers that are to be used by the clients and listeners of different protocol connectors.
+
+### Listener OAuth2 provider
+
+Represents the listener OAuth2 provider, which is used to validate the received credential (access token) by calling the configured OAuth2 introspection endpoint.
+
+### Client OAuth2 provider
+
+Represents the client OAuth2 provider, which is used to generate OAuth2 access tokens using the configured OAuth2 token endpoint configurations. This supports the client credentials grant type, password grant type, and refresh token grant type.
+
+// --- END README ---
+
+// --- Types ---
+
+# Constant used to infer the values of refreshConfig from values provided for PasswordGrantConfig.
+const string INFER_REFRESH_CONFIG = "INFER_REFRESH_CONFIG";
+
+# Represents the default connection timeout values for the oauth2 client.
+const decimal DEFAULT_CONNECT_TIMEOUT = 15;
+
+# Represents the default request timeout value for the oauth2 client.
+const decimal DEFAULT_REQ_TIMEOUT = 30;
+
+const string HTTP_1_1 = "HTTP_1_1";
+
+const string HTTP_2 = "HTTP_2";
+
+const string AUTH_HEADER_BEARER = "AUTH_HEADER_BEARER";
+
+const string POST_BODY_BEARER = "POST_BODY_BEARER";
+
+# Represents the data structure, which is used to configure the OAuth2 client credentials grant type.
+# 
+
+type ClientCredentialsGrantConfig record {
+    # Token URL of the token endpoint
+    string tokenUrl;
+    # Client ID of the client authentication
+    string clientId;
+    # Client secret of the client authentication
+    string clientSecret;
+    # Scope(s) of the access request
+    string|string[] scopes?;
+    # Expiration time (in seconds) of the tokens if the token endpoint response does not contain an `expires_in` field
+    decimal defaultTokenExpTime?;
+    # Clock skew (in seconds) that can be used to avoid token validation failures due to clock synchronization problems
+    decimal clockSkew?;
+    # Map of the optional parameters used for the token endpoint
+    map<string> optionalParams?;
+    # Bearer of the authentication credentials, which is sent to the token endpoint
+    CredentialBearer credentialBearer?;
+    # HTTP client configurations, which are used to call the token endpoint
+    ClientConfiguration clientConfig?;
+};
+
+# Represents the credential-bearing methods.
+enum CredentialBearer {
+    POST_BODY_BEARER,
+    AUTH_HEADER_BEARER
+}
+
+# Represents the configurations of the client used to call the introspection endpoint.
+# 
+
+type ClientConfiguration record {
+    # The HTTP version of the client
+    HttpVersion httpVersion?;
+    # The list of custom HTTP headers
+    map<string> customHeaders?;
+    # The list of custom HTTP payload parameters
+    string customPayload?;
+    # The client auth configurations
+    ClientAuth auth?;
+    # SSL/TLS-related configurations
+    SecureSocket secureSocket?;
+    # Maximum time(in seconds) to wait for a connection to be established. By default, uses the global
+configuration `globalConnectTimeout` which defaults to 15 seconds
+    decimal connectTimeout?;
+    # Maximum time(in seconds) to wait for a response before the request times out. By default, uses the global
+configuration `globalReqTimeout` which defaults to 30 seconds
+    decimal reqTimeout?;
+};
+
+# Represents the HTTP versions.
+enum HttpVersion {
+    HTTP_2,
+    HTTP_1_1
+}
+
+# Represents the data structure, which is used to configure the OAuth2 password grant type.
+# 
+
+type PasswordGrantConfig record {
+    # Token URL of the token endpoint
+    string tokenUrl;
+    # Username for the password grant type
+    string username;
+    # Password for the password grant type
+    string password;
+    # Client ID of the client authentication
+    string clientId?;
+    # Client secret of the client authentication
+    string clientSecret?;
+    # Scope(s) of the access request
+    string|string[] scopes?;
+    # Configurations for refreshing the access token
+    RefreshConfig|"INFER_REFRESH_CONFIG" refreshConfig?;
+    # Expiration time (in seconds) of the tokens if the token endpoint response does not contain an `expires_in` field
+    decimal defaultTokenExpTime?;
+    # Clock skew (in seconds) that can be used to avoid token validation failures due to clock synchronization problems
+    decimal clockSkew?;
+    # Map of the optional parameters used for the token endpoint
+    map<string> optionalParams?;
+    # Bearer of the authentication credentials, which is sent to the token endpoint
+    CredentialBearer credentialBearer?;
+    # HTTP client configurations, which are used to call the token endpoint
+    ClientConfiguration clientConfig?;
+};
+
+# Represents the data structure, which is used for refresh configuration of the OAuth2 password grant type.
+# 
+
+type RefreshConfig record {
+    # Refresh token URL of the token endpoint
+    string refreshUrl;
+    # Scope(s) of the referesh token request
+    string|string[] scopes?;
+    # Map of the optional parameters used for the token endpoint
+    map<string> optionalParams?;
+    # Bearer of the authentication credential, which is sent to the token endpoint
+    CredentialBearer credentialBearer?;
+    # HTTP client configuration, which is used to call the refresh token endpoint
+    ClientConfiguration clientConfig?;
+};
+
+# Represents the data structure, which is used to configure the OAuth2 refresh token grant type.
+# 
+
+type RefreshTokenGrantConfig record {
+    # Refresh token URL of the token endpoint
+    string refreshUrl;
+    # Refresh token for the token endpoint
+    string refreshToken;
+    # Client ID of the client authentication
+    string clientId;
+    # Client secret of the client authentication
+    string clientSecret;
+    # Scope(s) of the access request
+    string|string[] scopes?;
+    # Expiration time (in seconds) of the tokens if the token endpoint response does not contain an `expires_in` field
+    decimal defaultTokenExpTime?;
+    # Clock skew (in seconds) that can be used to avoid token validation failures due to clock synchronization problems
+    decimal clockSkew?;
+    # Map of the optional parameters used for the token endpoint
+    map<string> optionalParams?;
+    # Bearer of the authentication credentials, which is sent to the token endpoint
+    CredentialBearer credentialBearer?;
+    # HTTP client configurations, which are used to call the token endpoint
+    ClientConfiguration clientConfig?;
+};
+
+# Represents the the authentication configuration types for the HTTP client used for token introspection.
+type ClientAuth ballerina/oauth2:2.15.0:ClientCredentialsGrantConfig|ballerina/oauth2:2.15.0:PasswordGrantConfig|ballerina/oauth2:2.15.0:RefreshTokenGrantConfig;
+
+# Represents the SSL/TLS configurations.
+# 
+
+type SecureSocket record {
+    # Disable SSL validation
+    boolean disable?;
+    # Configurations associated with the `crypto:TrustStore` or single certificate file that the client trusts
+    crypto:TrustStore|string cert?; // Special Agent Note: TrustStore FROM ballerina/crypto package
+    # Configurations associated with the `crypto:KeyStore` or combination of certificate and private key of the client
+    crypto:KeyStore|CertKey key?; // Special Agent Note: KeyStore FROM ballerina/crypto package
+};
+
+# Represents the combination of the certificate file path, private key file path, and private key password if encrypted.
+# 
+
+type CertKey record {
+    # A file containing the certificate
+    string certFile;
+    # A file containing the private key
+    string keyFile;
+    # Password of the private key (if encrypted)
+    string keyPassword?;
+};
+
+# Represents the data structure, which is used to configure the OAuth2 JWT bearer grant type.
+# 
+
+type JwtBearerGrantConfig record {
+    # Token URL of the token endpoint
+    string tokenUrl;
+    # A single JWT for the JWT bearer grant type
+    string assertion;
+    # Client ID of the client authentication
+    string clientId?;
+    # Client secret of the client authentication
+    string clientSecret?;
+    # Scope(s) of the access request
+    string|string[] scopes?;
+    # Expiration time (in seconds) of the tokens if the token endpoint response does not contain an `expires_in` field
+    decimal defaultTokenExpTime?;
+    # Clock skew (in seconds) that can be used to avoid token validation failures due to clock synchronization problems
+    decimal clockSkew?;
+    # Map of the optional parameters used for the token endpoint
+    map<string> optionalParams?;
+    # Bearer of the authentication credentials, which is sent to the token endpoint
+    CredentialBearer credentialBearer?;
+    # HTTP client configurations, which are used to call the token endpoint
+    ClientConfiguration clientConfig?;
+};
+
+# Represents the grant type configurations supported for OAuth2.
+type GrantConfig ballerina/oauth2:2.15.0:ClientCredentialsGrantConfig|ballerina/oauth2:2.15.0:PasswordGrantConfig|ballerina/oauth2:2.15.0:RefreshTokenGrantConfig|ballerina/oauth2:2.15.0:JwtBearerGrantConfig;
+
+# Represents the introspection endpoint configurations.
+# 
+
+type IntrospectionConfig record {
+    # URL of the introspection endpoint
+    string url;
+    # A hint about the type of the token submitted for introspection
+    string tokenTypeHint?;
+    # Map of the optional parameters used for the introspection endpoint
+    map<string> optionalParams?;
+    # Configurations for the cache used to store the OAuth2 access token and other related information
+    cache:CacheConfig cacheConfig?; // Special Agent Note: CacheConfig FROM ballerina/cache package
+    # Expiration time (in seconds) of the tokens if the introspection response does not contain an `exp` field
+    decimal defaultTokenExpTime?;
+    # HTTP client configurations, which call the introspection endpoint
+    ClientConfiguration clientConfig?;
+};
+
+# Represents the introspection endpoint response.
+# 
+
+type IntrospectionResponse record {
+    # Boolean indicator of whether or not the presented token is currently active
+    boolean active;
+    # A JSON string containing a space-separated list of scopes associated with this token
+    string scope?;
+    # Client identifier for the OAuth 2.0 client, which requested this token
+    string clientId?;
+    # Resource owner who authorized this token
+    string username?;
+    # Type of the token
+    string tokenType?;
+    # Expiry time (seconds since the Epoch)
+    int exp?;
+    # Time when the token was issued originally (seconds since the Epoch)
+    int iat?;
+    # Token is not to be used before this time (seconds since the Epoch)
+    int nbf?;
+    # Subject of the token
+    string sub?;
+    # Intended audience of the token
+    string aud?;
+    # Issuer of the token
+    string iss?;
+    # String identifier for the token
+    string jti?;
+};
+
+// Unknown type: Error
+
+// Unknown type: ClientOAuth2Provider
+
+// Unknown type: ListenerOAuth2Provider

@@ -1,0 +1,416 @@
+// ============================================================
+// Library: ballerina/file
+// This module provides APIs to create, delete, rename the file/directory, retrieve metadata of the given file, and manipulate the file paths in a way that is compatible with the operating system, and a `Directory Listener`, which is used to listen to the file changes in a directory in the local file system.
+// ============================================================
+import ballerina/file;
+
+// --- README ---
+## Overview
+
+This module provides APIs to create, delete, rename the file/directory, retrieve metadata of the given file, and manipulate the file paths in a way that is compatible with the operating system, and a `Directory Listener`, which is used to listen to the file changes in a directory in the local file system.
+
+This also provides the following separators which are widely used in file path creation:
+-  `file:pathSeparator`: It is a character used to separate the parent directories that make up the path to a specific location. For windows, it’s ‘\’ and for UNIX it’s ‘/’
+-  `file:pathListSeparator`: It is a character commonly used by the operating system to separate paths in the path list. For windows, it’s ‘;‘ and for UNIX it’s ‘:’
+
+### Directory listener
+
+The `file:Listener` is used to monitor all the files and subdirectories inside the specified directory. 
+
+A `Listener` endpoint can be defined using the mandatory `path` parameter and the optional `recursive` parameter as follows.
+
+```ballerina
+listener file:Listener inFolder = new ({
+    path: "<The directory path>",
+    recursive: false
+});
+```
+
+If the listener needs to monitor subdirectories of the given directory, `recursive` needs to be set to `true`. The default value of this is `false`.
+
+A `Service` has the defined remote methods with the `file:FileEvent` and can be exposed via a `Listener` endpoint. 
+When there are changes in the listening directory, the `file:FileEvent` will be triggered with the action of the file 
+such as creating, modifying, or deleting. 
+
+The remote methods supported by the `Service` are as follows.
+
+**onCreate:** This method is invoked once a new file is created in the listening directory.
+
+**onDelete:** This method is invoked once an existing file is deleted from the listening directory.
+
+**onModify:** This method is invoked once an existing file is modified in the listening directory.
+
+The following code sample shows how to create a `Service` with the `onCreate` remote method and attach it to the above `Listener` endpoint:
+
+```ballerina
+service "localObserver" on inFolder {
+
+    remote function onCreate(file:FileEvent m) returns error? {
+        string msg = "Create: " + m.name;
+        log:printInfo(msg);
+    }
+}
+```
+
+For information on the operations, which you can perform with the file module, see the below **Functions**.
+
+// --- END README ---
+
+// --- Types ---
+
+const string CLEAN = "CLEAN";
+
+const string SYMLINK = "SYMLINK";
+
+const string NORMCASE = "NORMCASE";
+
+const string RECURSIVE = "RECURSIVE";
+
+const string NON_RECURSIVE = "NON_RECURSIVE";
+
+const string EXISTS = "EXISTS";
+
+const string IS_DIR = "IS_DIR";
+
+const string IS_SYMLINK = "IS_SYMLINK";
+
+const string READABLE = "READABLE";
+
+const string WRITABLE = "WRITABLE";
+
+const string REPLACE_EXISTING = "REPLACE_EXISTING";
+
+const string COPY_ATTRIBUTES = "COPY_ATTRIBUTES";
+
+const string NO_FOLLOW_LINKS = "NO_FOLLOW_LINKS";
+
+# Represents an event, which will trigger when there is a change to the listening directory.
+# 
+
+type FileEvent record {
+    # Absolute file URI for triggered event
+    string name;
+    # Triggered event action. This can be create, delete or modify
+    string operation;
+};
+
+# Represents the options that can be passed to the `normalizePath` function.
+# 
+enum NormOption {
+    NORMCASE,
+    SYMLINK,
+    CLEAN
+}
+
+# Represents options that can be used when creating or removing directories.
+# 
+enum DirOption {
+    NON_RECURSIVE,
+    RECURSIVE
+}
+
+# Represents the options that can be passed to the test function.
+# 
+enum TestOption {
+    WRITABLE,
+    READABLE,
+    IS_SYMLINK,
+    IS_DIR,
+    EXISTS
+}
+
+# Represents options that can be used when copying files/directories
+# 
+enum CopyOption {
+    NO_FOLLOW_LINKS,
+    COPY_ATTRIBUTES,
+    REPLACE_EXISTING
+}
+
+# Represents a File service.
+class Service {
+}
+
+// Unknown type: Error
+
+// Unknown type: InvalidOperationError
+
+// Unknown type: PermissionError
+
+// Unknown type: FileSystemError
+
+// Unknown type: FileNotFoundError
+
+// Unknown type: NotLinkError
+
+// Unknown type: IOError
+
+// Unknown type: SecurityError
+
+// Unknown type: InvalidPathError
+
+// Unknown type: InvalidPatternError
+
+// Unknown type: RelativePathError
+
+// Unknown type: UNCPathError
+
+// Unknown type: GenericError
+
+# Metadata record contains metadata information of a file.
+# This record is returned by getMetaData function.
+# 
+
+type MetaData record {
+    # Absolute path of the file
+    string absPath;
+    # Size of the file (in bytes)
+    int size;
+    # The last modified time of the file
+    time:Utc modifiedTime; // Special Agent Note: Utc FROM ballerina/time package
+    # Whether the file is a directory or not
+    boolean dir;
+    # Whether the file is readable or not
+    boolean readable;
+    # Whether the file is writable or not
+    boolean writable;
+};
+
+# Represents the configurations that are required for a directory listener.
+# 
+
+type ListenerConfig record {
+    # Directory path which need to listen
+    string path;
+    # Recursively monitor all sub folders or not in the given direcotry path
+    boolean recursive?;
+};
+
+// Unknown type: Listener
+
+// --- Functions ---
+
+# Returns the current working directory.
+# ```ballerina
+# string dirPath = file:getCurrentDir();
+# ```
+# 
+# + return - Current working directory or else an empty string if the current working directory cannot be determined
+function getCurrentDir() returns string;
+
+# Creates a new directory with the specified name.
+# ```ballerina
+# check file:createDir("foo/bar");
+# ```
+# 
+# + dir - Directory name
+# + option - Indicates whether the `createDir` should create non-existing parent directories. The default is only to
+create the given current directory.
+# + return - A `file:Error` if the directory creation failed
+function createDir(string dir, DirOption option = NON_RECURSIVE) returns Error|();
+
+# Removes the specified file or directory.
+# ```ballerina
+# check file:remove("foo/bar.txt");
+# ```
+# 
+# + path - String value of the file/directory path
+# + option - Indicates whether the `remove` should recursively remove all the files inside the given directory
+# + return - An `file:Error` if failed to remove
+function remove(string path, DirOption option = NON_RECURSIVE) returns Error|();
+
+# Renames(Moves) the old path with the new path.
+# If the new path already exists and it is not a directory, this replaces the file.
+# ```ballerina
+# check file:rename("/A/B/C", "/A/B/D");
+# ```
+# 
+# + oldPath - String value of the old file path
+# + newPath - String value of the new file path
+# + return - An `file:Error` if failed to rename
+function rename(string oldPath, string newPath) returns Error|();
+
+# Creates a file in the specified file path.
+# Truncates if the file already exists in the given path.
+# ```ballerina
+# check file:create("bar.txt");
+# ```
+# 
+# + path - String value of the file path
+# + return - A `file:Error` if file creation failed
+function create(string path) returns Error|();
+
+# Returns the metadata information of the file specified in the file path.
+# ```ballerina
+# file:MetaData result = check file:getMetaData("foo/bar.txt");
+# ```
+# 
+# + path - String value of the file path.
+# + return - The `MetaData` instance with the file metadata or else a `file:Error`
+function getMetaData(string path) returns ballerina/file:1.13.0:MetaData & readonly|Error;
+
+# Reads the directory and returns a list of metadata of files and directories
+# inside the specified directory.
+# ```ballerina
+# file:MetaData[] results = check file:readDir("foo/bar");
+# ```
+# 
+# + path - String value of the directory path
+# + return - The `MetaData` array or else a `file:Error` if there is an error
+function readDir(string path) returns ballerina/file:1.13.0:MetaData[] & readonly|Error;
+
+# Copy the file/directory in the old path to the new path.
+# ```ballerina
+# check file:copy("/A/B/C", "/A/B/D", true);
+# ```
+# 
+# + sourcePath - String value of the old file path
+# + destinationPath - String value of the new file path
+# + options - Parameter to denote how the copy operation should be done. Supported options are,
+`REPLACE_EXISTING` - Replace the target path if it already exists,
+`COPY_ATTRIBUTES` - Copy the file attributes as well to the target,
+`NO_FOLLOW_LINKS` - If source is a symlink, only the link is copied, not the target of the link.
+# + return - An `file:Error` if failed to copy
+function copy(string sourcePath, string destinationPath, CopyOption[] options) returns Error|();
+
+# Creates a temporary file.
+# ```ballerina
+# string tmpFile = check file:createTemp();
+# ```
+# 
+# + suffix - Optional file suffix
+# + prefix - Optional file prefix
+# + dir - The directory path where the temp file should be created. If not specified,
+temp file will be created in the default temp directory of the OS.
+# + return - Temporary file path or else a `file:Error` if there is an error
+function createTemp(string|() suffix = (), string|() prefix = (), string|() dir = ()) returns string|Error;
+
+# Creates a temporary directory.
+# ```ballerina
+# string tmpDir = check file:createTempDir();
+# ```
+# 
+# + suffix - Optional directory suffix
+# + prefix - Optional directory prefix
+# + dir - The directory path where the temp directory should be created. If not specified, temp directory
+will be created in the default temp directory of the OS.
+# + return - Temporary directory path or else a `file:Error` if there is an error
+function createTempDir(string|() suffix = (), string|() prefix = (), string|() dir = ()) returns string|Error;
+
+# Tests a file path against a test condition .
+# ```ballerina
+# boolean result = check file:test("foo/bar.txt", file:EXISTS);
+# ```
+# 
+# + path - String value of the file path
+# + testOption - The option to be tested upon the path. Supported options are,
+`EXISTS` - Test whether a file path exists,
+`IS_DIR` - Test whether a file path is a directory,
+`IS_SYMLINK` - Test whether a file path is a symlink,
+`READABLE` - Test whether a file path is readable,
+`WRITABLE` - Test whether a file path is writable.
+# + return - True/false depending on the option to be tested or else a `file:Error` if there is an error
+function test(string path, TestOption testOption) returns boolean|Error;
+
+# Retrieves the absolute path from the provided location.
+# ```ballerina
+#  string absolutePath = check file:getAbsolutePath("test.txt");
+# ```
+# 
+# + path - String value of the file path free from potential malicious codes
+# + return - The absolute path reference or else a `file:Error` if the path cannot be derived
+function getAbsolutePath(string path) returns string|Error;
+
+# Reports whether the path is absolute.
+# A path is absolute if it is independent of the current directory.
+# On Unix, a path is absolute if it starts with the root.
+# On Windows, a path is absolute if it has a prefix and starts with the root: c:\windows.
+# ```ballerina
+#  boolean isAbsolute = check file:isAbsolutePath("/A/B/C");
+# ```
+# 
+# + path - String value of the file path
+# + return - `true` if path is absolute, `false` otherwise, or else an `file:Error`
+occurred if the path is invalid
+function isAbsolutePath(string path) returns boolean|Error;
+
+# Retrieves the base name of the file from the provided location,
+# which is the last element of the path.
+# Trailing path separators are removed before extracting the last element.
+# ```ballerina
+#  string name = check file:basename("/A/B/C.txt");
+# ```
+# 
+# + path - String value of file path
+# + return - The name of the file or else a `file:Error` if the path is invalid
+function basename(string path) returns string|Error;
+
+# Returns the enclosing parent directory.
+# If the path is empty, parent returns ".".
+# The returned path does not end in a separator unless it is the root directory.
+# ```ballerina
+#  string parentPath = check file:parentPath("/A/B/C.txt");
+# ```
+# 
+# + path - String value of the file/directory path
+# + return - Path of the parent directory or else a `file:Error`
+if an error occurred while getting the parent directory
+function parentPath(string path) returns string|Error;
+
+# Normalizes a path value.
+# ```ballerina
+#  string normalizedPath = check file:normalizePath("foo/../bar", file:CLEAN);
+# ```
+# 
+# + path - String value of the file path
+# + option - Normalization option. Supported options are,
+`CLEAN` - Get the shortest path name equivalent to the given path by eliminating multiple separators, '.', and '..',
+`SYMLINK` - Evaluate a symlink,
+`NORMCASE` - Normalize the case of a pathname. On windows, all the characters are converted to lowercase and "/" is
+converted to "\\".
+# + return - Normalized file path or else a `file:Error` if the path is invalid
+function normalizePath(string path, NormOption option) returns string|Error;
+
+# Splits a list of paths joined by the OS-specific path separator.
+# ```ballerina
+#  string[] parts = check file:splitPath("/A/B/C");
+# ```
+# 
+# + path - String value of the file path
+# + return - String array of the path components or else a `file:Error` if the path is invalid
+function splitPath(string path) returns string[]|Error;
+
+# Joins any number of path elements into a single path.
+# ```ballerina
+#  string path = check file:joinPath("/", "foo", "bar");
+# ```
+# 
+# + parts - String values of the file path parts
+# + return - String value of the file path or else a `file:Error` if the parts are invalid
+function joinPath(string parts) returns string|Error;
+
+# Returns a relative path, which is logically equivalent to the target path when joined to the base path with an
+# intervening separator.
+# An error is returned if the target path cannot be made relative to the base path.
+# ```ballerina
+#  string relative = check file:relativePath("a/b/e", "a/c/d");
+# ```
+# 
+# + base - String value of the base file path
+# + target - String value of the target file path
+# + return - The target path relative to the base path, or else an
+`file:Error` if target path cannot be made relative to the base path
+function relativePath(string base, string target) returns string|Error;
+
+// --- Service ---
+
+service file:Service on new file:Listener(ListenerConfig listenerConfig = {path: ""}) {
+    # The `onCreate` remote method will be triggered when a file is created in the specified directory
+    remote function onCreate(FileEvent event) returns error?;
+
+    # The `onDelete` remote method will be triggered when a file is deleted in the specified directory
+    remote function onDelete(FileEvent event) returns error?;
+
+    # The `onModify` remote method will be triggered when a file is modified in the specified directory
+    remote function onModify(FileEvent event) returns error?;
+}

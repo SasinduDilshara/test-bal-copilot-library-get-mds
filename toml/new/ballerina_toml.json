@@ -1,0 +1,558 @@
+{
+  "name": "ballerina/toml",
+  "description": "This module provides APIs to convert a TOML configuration file to `map\u003cjson\u003e`, and vice-versa.",
+  "readme": "## Overview\n\nThis module provides APIs to convert a TOML configuration file to `map\u003cjson\u003e`, and vice-versa.\n\nSince the parser is following LL(1) grammar, it follows a non-recursive predictive parsing algorithm which operates in a linear time complexity.\n\nFor information on the operations, which you can perform with the `toml` module, see the below **Functions**.\n",
+  "typeDefs": [
+    {
+      "name": "ParsingError",
+      "description": "Represents an error caused during the parsing.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "parser:GrammarError",
+          "type": {
+            "name": "GrammarError",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "GrammarError",
+                "libraryName": "ballerina/toml.parser"
+              }
+            ]
+          }
+        },
+        {
+          "name": "parser:ConversionError",
+          "type": {
+            "name": "ConversionError",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ConversionError",
+                "libraryName": "ballerina/toml.parser"
+              }
+            ]
+          }
+        },
+        {
+          "name": "lexer:LexicalError",
+          "type": {
+            "name": "LexicalError",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "LexicalError",
+                "libraryName": "ballerina/toml.lexer"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "WritingError",
+      "description": "Represents an error caused when writing a TOML file.",
+      "type": "Error",
+      "baseType": "writer:WritingError"
+    },
+    {
+      "name": "FileError",
+      "description": "Represents an error caused when failed to access the file.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "io:Error",
+          "type": {
+            "name": "Error",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Error",
+                "libraryName": "ballerina/io"
+              }
+            ]
+          }
+        },
+        {
+          "name": "file:Error",
+          "type": {
+            "name": "Error",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Error",
+                "libraryName": "ballerina/file"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Error",
+      "description": "Represents the generic error type for the TOML package.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "parser:GrammarError",
+          "type": {
+            "name": "GrammarError",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "GrammarError",
+                "libraryName": "ballerina/toml.parser"
+              }
+            ]
+          }
+        },
+        {
+          "name": "parser:ConversionError",
+          "type": {
+            "name": "ConversionError",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ConversionError",
+                "libraryName": "ballerina/toml.parser"
+              }
+            ]
+          }
+        },
+        {
+          "name": "lexer:LexicalError",
+          "type": {
+            "name": "LexicalError",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "LexicalError",
+                "libraryName": "ballerina/toml.lexer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "WritingError",
+          "type": {
+            "name": "WritingError",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "WritingError"
+              }
+            ]
+          }
+        },
+        {
+          "name": "io:Error",
+          "type": {
+            "name": "Error",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Error",
+                "libraryName": "ballerina/io"
+              }
+            ]
+          }
+        },
+        {
+          "name": "file:Error",
+          "type": {
+            "name": "Error",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Error",
+                "libraryName": "ballerina/file"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "LexicalError",
+      "description": "Represents an error caused by the lexical analyzer.",
+      "type": "Error",
+      "baseType": "lexer:LexicalError"
+    },
+    {
+      "name": "GrammarError",
+      "description": "Represents an error caused for an invalid grammar production.",
+      "type": "Error",
+      "baseType": "parser:GrammarError"
+    },
+    {
+      "name": "ConversionError",
+      "description": "Represents an error caused by the Ballerina lang when converting a data type.",
+      "type": "Error",
+      "baseType": "parser:ConversionError"
+    },
+    {
+      "name": "WriteConfig",
+      "description": "Configurations for writing a TOML document.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "indentationPolicy",
+          "description": "Number of spaces for an indentation",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "allowDottedKeys",
+          "description": "If set, dotted keys are used instead of standard tables where applicable.",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ReadConfig",
+      "description": "Configurations for reading a TOML document.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "parseOffsetDateTime",
+          "description": "If set, then offset date time is converted to Ballerina time:Utc",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    }
+  ],
+  "clients": [],
+  "functions": [
+    {
+      "name": "readString",
+      "type": "Normal Function",
+      "description": "Parses a Ballerina string of TOML content into a Ballerina map object.\n",
+      "parameters": [
+        {
+          "name": "tomlString",
+          "description": "TOML content",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "parseOffsetDateTime",
+          "description": "If set, then offset date time is converted to Ballerina time:Utc",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true,
+          "default": "true"
+        },
+        {
+          "name": "config",
+          "description": "Configuration for reading a TOML file",
+          "type": {
+            "name": "ReadConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ReadConfig"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ],
+      "return": {
+        "description": "TOML map object on success. Else, returns an error",
+        "type": {
+          "name": "map\u003cjson\u003e|GrammarError|ConversionError|LexicalError|WritingError|Error|Error",
+          "links": [
+            {
+              "category": "external",
+              "recordName": "GrammarError",
+              "libraryName": "ballerina/toml.parser"
+            },
+            {
+              "category": "external",
+              "recordName": "ConversionError",
+              "libraryName": "ballerina/toml.parser"
+            },
+            {
+              "category": "external",
+              "recordName": "LexicalError",
+              "libraryName": "ballerina/toml.lexer"
+            },
+            {
+              "category": "internal",
+              "recordName": "WritingError"
+            },
+            {
+              "category": "external",
+              "recordName": "Error",
+              "libraryName": "ballerina/io"
+            },
+            {
+              "category": "external",
+              "recordName": "Error",
+              "libraryName": "ballerina/file"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "readFile",
+      "type": "Normal Function",
+      "description": "Parses a TOML file into a Ballerina map object.\n",
+      "parameters": [
+        {
+          "name": "filePath",
+          "description": "Path to the toml file",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "parseOffsetDateTime",
+          "description": "If set, then offset date time is converted to Ballerina time:Utc",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true,
+          "default": "true"
+        },
+        {
+          "name": "config",
+          "description": "Configuration for reading a TOML file",
+          "type": {
+            "name": "ReadConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ReadConfig"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ],
+      "return": {
+        "description": "TOML map object on success. Else, returns an error",
+        "type": {
+          "name": "map\u003cjson\u003e|GrammarError|ConversionError|LexicalError|WritingError|Error|Error",
+          "links": [
+            {
+              "category": "external",
+              "recordName": "GrammarError",
+              "libraryName": "ballerina/toml.parser"
+            },
+            {
+              "category": "external",
+              "recordName": "ConversionError",
+              "libraryName": "ballerina/toml.parser"
+            },
+            {
+              "category": "external",
+              "recordName": "LexicalError",
+              "libraryName": "ballerina/toml.lexer"
+            },
+            {
+              "category": "internal",
+              "recordName": "WritingError"
+            },
+            {
+              "category": "external",
+              "recordName": "Error",
+              "libraryName": "ballerina/io"
+            },
+            {
+              "category": "external",
+              "recordName": "Error",
+              "libraryName": "ballerina/file"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "writeString",
+      "type": "Normal Function",
+      "description": "Converts the TOML structure to an array of strings.\n",
+      "parameters": [
+        {
+          "name": "tomlStructure",
+          "description": "Structure to be written to the file",
+          "type": {
+            "name": "map\u003cjson\u003e"
+          }
+        },
+        {
+          "name": "indentationPolicy",
+          "description": "Number of spaces for an indentation",
+          "type": {
+            "name": "int"
+          },
+          "optional": true,
+          "default": "2"
+        },
+        {
+          "name": "allowDottedKeys",
+          "description": "If set, dotted keys are used instead of standard tables where applicable.",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true,
+          "default": "true"
+        },
+        {
+          "name": "config",
+          "description": "Configurations for writing a TOML file",
+          "type": {
+            "name": "WriteConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "WriteConfig"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ],
+      "return": {
+        "description": "TOML content on success. Else, an error on failure",
+        "type": {
+          "name": "string[]|GrammarError|ConversionError|LexicalError|WritingError|Error|Error",
+          "links": [
+            {
+              "category": "external",
+              "recordName": "GrammarError",
+              "libraryName": "ballerina/toml.parser"
+            },
+            {
+              "category": "external",
+              "recordName": "ConversionError",
+              "libraryName": "ballerina/toml.parser"
+            },
+            {
+              "category": "external",
+              "recordName": "LexicalError",
+              "libraryName": "ballerina/toml.lexer"
+            },
+            {
+              "category": "internal",
+              "recordName": "WritingError"
+            },
+            {
+              "category": "external",
+              "recordName": "Error",
+              "libraryName": "ballerina/io"
+            },
+            {
+              "category": "external",
+              "recordName": "Error",
+              "libraryName": "ballerina/file"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "writeFile",
+      "type": "Normal Function",
+      "description": "Writes the TOML structure to a file.\n",
+      "parameters": [
+        {
+          "name": "filePath",
+          "description": "Path to the file  ",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "tomlStructure",
+          "description": "Structure to be written to the file",
+          "type": {
+            "name": "map\u003cjson\u003e"
+          }
+        },
+        {
+          "name": "indentationPolicy",
+          "description": "Number of spaces for an indentation",
+          "type": {
+            "name": "int"
+          },
+          "optional": true,
+          "default": "2"
+        },
+        {
+          "name": "allowDottedKeys",
+          "description": "If set, dotted keys are used instead of standard tables where applicable.",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true,
+          "default": "true"
+        },
+        {
+          "name": "config",
+          "description": "Configurations for writing a TOML file",
+          "type": {
+            "name": "WriteConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "WriteConfig"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ],
+      "return": {
+        "description": "An error on failure",
+        "type": {
+          "name": "GrammarError|ConversionError|LexicalError|WritingError|Error|Error|()",
+          "links": [
+            {
+              "category": "external",
+              "recordName": "GrammarError",
+              "libraryName": "ballerina/toml.parser"
+            },
+            {
+              "category": "external",
+              "recordName": "ConversionError",
+              "libraryName": "ballerina/toml.parser"
+            },
+            {
+              "category": "external",
+              "recordName": "LexicalError",
+              "libraryName": "ballerina/toml.lexer"
+            },
+            {
+              "category": "internal",
+              "recordName": "WritingError"
+            },
+            {
+              "category": "external",
+              "recordName": "Error",
+              "libraryName": "ballerina/io"
+            },
+            {
+              "category": "external",
+              "recordName": "Error",
+              "libraryName": "ballerina/file"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "services": [],
+  "annotations": []
+}

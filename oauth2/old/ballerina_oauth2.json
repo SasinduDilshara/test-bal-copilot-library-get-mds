@@ -1,0 +1,1112 @@
+{
+  "name": "ballerina/oauth2",
+  "description": "This module provides a framework for interacting with OAuth2 authorization servers as specified in the [RFC 6749](https://datatracker.ietf.org/doc/html/rfc6749) and [RFC 7662](https://datatracker.ietf.org/doc/html/rfc7662).",
+  "readme": "## Overview\n\nThis module provides a framework for interacting with OAuth2 authorization servers as specified in the [RFC 6749](https://datatracker.ietf.org/doc/html/rfc6749) and [RFC 7662](https://datatracker.ietf.org/doc/html/rfc7662).\n\nThe OAuth 2.0 authorization framework enables a third-party application to obtain limited access to an HTTP service either on behalf of a resource owner by orchestrating an approval interaction between the resource owner and the HTTP service or by allowing the third-party application to obtain access on its own behalf.\n\nThe Ballerina `oauth2` module facilitates auth providers that are to be used by the clients and listeners of different protocol connectors.\n\n### Listener OAuth2 provider\n\nRepresents the listener OAuth2 provider, which is used to validate the received credential (access token) by calling the configured OAuth2 introspection endpoint.\n\n### Client OAuth2 provider\n\nRepresents the client OAuth2 provider, which is used to generate OAuth2 access tokens using the configured OAuth2 token endpoint configurations. This supports the client credentials grant type, password grant type, and refresh token grant type.\n",
+  "typeDefs": [
+    {
+      "name": "INFER_REFRESH_CONFIG",
+      "description": "Constant used to infer the values of refreshConfig from values provided for PasswordGrantConfig.",
+      "type": "Constant",
+      "value": "INFER_REFRESH_CONFIG",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "DEFAULT_CONNECT_TIMEOUT",
+      "description": "Represents the default connection timeout values for the oauth2 client.",
+      "type": "Constant",
+      "value": "15",
+      "varType": {
+        "name": "decimal"
+      }
+    },
+    {
+      "name": "DEFAULT_REQ_TIMEOUT",
+      "description": "Represents the default request timeout value for the oauth2 client.",
+      "type": "Constant",
+      "value": "30",
+      "varType": {
+        "name": "decimal"
+      }
+    },
+    {
+      "name": "HTTP_1_1",
+      "description": "",
+      "type": "Constant",
+      "value": "HTTP_1_1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "HTTP_2",
+      "description": "",
+      "type": "Constant",
+      "value": "HTTP_2",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "AUTH_HEADER_BEARER",
+      "description": "",
+      "type": "Constant",
+      "value": "AUTH_HEADER_BEARER",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "POST_BODY_BEARER",
+      "description": "",
+      "type": "Constant",
+      "value": "POST_BODY_BEARER",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "ClientCredentialsGrantConfig",
+      "description": "Represents the data structure, which is used to configure the OAuth2 client credentials grant type.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "tokenUrl",
+          "description": "Token URL of the token endpoint",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "clientId",
+          "description": "Client ID of the client authentication",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "clientSecret",
+          "description": "Client secret of the client authentication",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "scopes",
+          "description": "Scope(s) of the access request",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "defaultTokenExpTime",
+          "description": "Expiration time (in seconds) of the tokens if the token endpoint response does not contain an `expires_in` field",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "clockSkew",
+          "description": "Clock skew (in seconds) that can be used to avoid token validation failures due to clock synchronization problems",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "optionalParams",
+          "description": "Map of the optional parameters used for the token endpoint",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "credentialBearer",
+          "description": "Bearer of the authentication credentials, which is sent to the token endpoint",
+          "type": {
+            "name": "CredentialBearer",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CredentialBearer"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "clientConfig",
+          "description": "HTTP client configurations, which are used to call the token endpoint",
+          "type": {
+            "name": "ClientConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ClientConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "CredentialBearer",
+      "description": "Represents the credential-bearing methods.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "POST_BODY_BEARER",
+          "description": ""
+        },
+        {
+          "name": "AUTH_HEADER_BEARER",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "ClientConfiguration",
+      "description": "Represents the configurations of the client used to call the introspection endpoint.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "httpVersion",
+          "description": "The HTTP version of the client",
+          "type": {
+            "name": "HttpVersion",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "HttpVersion"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "customHeaders",
+          "description": "The list of custom HTTP headers",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "customPayload",
+          "description": "The list of custom HTTP payload parameters",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "auth",
+          "description": "The client auth configurations",
+          "type": {
+            "name": "ClientAuth",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ClientAuth"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "SSL/TLS-related configurations",
+          "type": {
+            "name": "SecureSocket",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SecureSocket"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "connectTimeout",
+          "description": "Maximum time(in seconds) to wait for a connection to be established. By default, uses the global\nconfiguration `globalConnectTimeout` which defaults to 15 seconds",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "reqTimeout",
+          "description": "Maximum time(in seconds) to wait for a response before the request times out. By default, uses the global\nconfiguration `globalReqTimeout` which defaults to 30 seconds",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "HttpVersion",
+      "description": "Represents the HTTP versions.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "HTTP_2",
+          "description": ""
+        },
+        {
+          "name": "HTTP_1_1",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "PasswordGrantConfig",
+      "description": "Represents the data structure, which is used to configure the OAuth2 password grant type.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "tokenUrl",
+          "description": "Token URL of the token endpoint",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "username",
+          "description": "Username for the password grant type",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "password",
+          "description": "Password for the password grant type",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "clientId",
+          "description": "Client ID of the client authentication",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "clientSecret",
+          "description": "Client secret of the client authentication",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "scopes",
+          "description": "Scope(s) of the access request",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "refreshConfig",
+          "description": "Configurations for refreshing the access token",
+          "type": {
+            "name": "RefreshConfig|\"INFER_REFRESH_CONFIG\"",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RefreshConfig"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "defaultTokenExpTime",
+          "description": "Expiration time (in seconds) of the tokens if the token endpoint response does not contain an `expires_in` field",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "clockSkew",
+          "description": "Clock skew (in seconds) that can be used to avoid token validation failures due to clock synchronization problems",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "optionalParams",
+          "description": "Map of the optional parameters used for the token endpoint",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "credentialBearer",
+          "description": "Bearer of the authentication credentials, which is sent to the token endpoint",
+          "type": {
+            "name": "CredentialBearer",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CredentialBearer"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "clientConfig",
+          "description": "HTTP client configurations, which are used to call the token endpoint",
+          "type": {
+            "name": "ClientConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ClientConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "RefreshConfig",
+      "description": "Represents the data structure, which is used for refresh configuration of the OAuth2 password grant type.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "refreshUrl",
+          "description": "Refresh token URL of the token endpoint",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "scopes",
+          "description": "Scope(s) of the referesh token request",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "optionalParams",
+          "description": "Map of the optional parameters used for the token endpoint",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "credentialBearer",
+          "description": "Bearer of the authentication credential, which is sent to the token endpoint",
+          "type": {
+            "name": "CredentialBearer",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CredentialBearer"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "clientConfig",
+          "description": "HTTP client configuration, which is used to call the refresh token endpoint",
+          "type": {
+            "name": "ClientConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ClientConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "RefreshTokenGrantConfig",
+      "description": "Represents the data structure, which is used to configure the OAuth2 refresh token grant type.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "refreshUrl",
+          "description": "Refresh token URL of the token endpoint",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "refreshToken",
+          "description": "Refresh token for the token endpoint",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "clientId",
+          "description": "Client ID of the client authentication",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "clientSecret",
+          "description": "Client secret of the client authentication",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "scopes",
+          "description": "Scope(s) of the access request",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "defaultTokenExpTime",
+          "description": "Expiration time (in seconds) of the tokens if the token endpoint response does not contain an `expires_in` field",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "clockSkew",
+          "description": "Clock skew (in seconds) that can be used to avoid token validation failures due to clock synchronization problems",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "optionalParams",
+          "description": "Map of the optional parameters used for the token endpoint",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "credentialBearer",
+          "description": "Bearer of the authentication credentials, which is sent to the token endpoint",
+          "type": {
+            "name": "CredentialBearer",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CredentialBearer"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "clientConfig",
+          "description": "HTTP client configurations, which are used to call the token endpoint",
+          "type": {
+            "name": "ClientConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ClientConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ClientAuth",
+      "description": "Represents the the authentication configuration types for the HTTP client used for token introspection.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "ballerina/oauth2:2.15.0:ClientCredentialsGrantConfig",
+          "type": {
+            "name": "ClientCredentialsGrantConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ClientCredentialsGrantConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerina/oauth2:2.15.0:PasswordGrantConfig",
+          "type": {
+            "name": "PasswordGrantConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PasswordGrantConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerina/oauth2:2.15.0:RefreshTokenGrantConfig",
+          "type": {
+            "name": "RefreshTokenGrantConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RefreshTokenGrantConfig"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SecureSocket",
+      "description": "Represents the SSL/TLS configurations.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "disable",
+          "description": "Disable SSL validation",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "cert",
+          "description": "Configurations associated with the `crypto:TrustStore` or single certificate file that the client trusts",
+          "type": {
+            "name": "TrustStore|string",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "TrustStore",
+                "libraryName": "ballerina/crypto"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "key",
+          "description": "Configurations associated with the `crypto:KeyStore` or combination of certificate and private key of the client",
+          "type": {
+            "name": "KeyStore|CertKey",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "KeyStore",
+                "libraryName": "ballerina/crypto"
+              },
+              {
+                "category": "internal",
+                "recordName": "CertKey"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "CertKey",
+      "description": "Represents the combination of the certificate file path, private key file path, and private key password if encrypted.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "certFile",
+          "description": "A file containing the certificate",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "keyFile",
+          "description": "A file containing the private key",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "keyPassword",
+          "description": "Password of the private key (if encrypted)",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "JwtBearerGrantConfig",
+      "description": "Represents the data structure, which is used to configure the OAuth2 JWT bearer grant type.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "tokenUrl",
+          "description": "Token URL of the token endpoint",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "assertion",
+          "description": "A single JWT for the JWT bearer grant type",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "clientId",
+          "description": "Client ID of the client authentication",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "clientSecret",
+          "description": "Client secret of the client authentication",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "scopes",
+          "description": "Scope(s) of the access request",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "defaultTokenExpTime",
+          "description": "Expiration time (in seconds) of the tokens if the token endpoint response does not contain an `expires_in` field",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "clockSkew",
+          "description": "Clock skew (in seconds) that can be used to avoid token validation failures due to clock synchronization problems",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "optionalParams",
+          "description": "Map of the optional parameters used for the token endpoint",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "credentialBearer",
+          "description": "Bearer of the authentication credentials, which is sent to the token endpoint",
+          "type": {
+            "name": "CredentialBearer",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CredentialBearer"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "clientConfig",
+          "description": "HTTP client configurations, which are used to call the token endpoint",
+          "type": {
+            "name": "ClientConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ClientConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "GrantConfig",
+      "description": "Represents the grant type configurations supported for OAuth2.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "ballerina/oauth2:2.15.0:ClientCredentialsGrantConfig",
+          "type": {
+            "name": "ClientCredentialsGrantConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ClientCredentialsGrantConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerina/oauth2:2.15.0:PasswordGrantConfig",
+          "type": {
+            "name": "PasswordGrantConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PasswordGrantConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerina/oauth2:2.15.0:RefreshTokenGrantConfig",
+          "type": {
+            "name": "RefreshTokenGrantConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RefreshTokenGrantConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerina/oauth2:2.15.0:JwtBearerGrantConfig",
+          "type": {
+            "name": "JwtBearerGrantConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "JwtBearerGrantConfig"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "IntrospectionConfig",
+      "description": "Represents the introspection endpoint configurations.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "url",
+          "description": "URL of the introspection endpoint",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "tokenTypeHint",
+          "description": "A hint about the type of the token submitted for introspection",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "optionalParams",
+          "description": "Map of the optional parameters used for the introspection endpoint",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "cacheConfig",
+          "description": "Configurations for the cache used to store the OAuth2 access token and other related information",
+          "type": {
+            "name": "CacheConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CacheConfig",
+                "libraryName": "ballerina/cache"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "defaultTokenExpTime",
+          "description": "Expiration time (in seconds) of the tokens if the introspection response does not contain an `exp` field",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "clientConfig",
+          "description": "HTTP client configurations, which call the introspection endpoint",
+          "type": {
+            "name": "ClientConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ClientConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "IntrospectionResponse",
+      "description": "Represents the introspection endpoint response.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "active",
+          "description": "Boolean indicator of whether or not the presented token is currently active",
+          "type": {
+            "name": "boolean"
+          }
+        },
+        {
+          "name": "scope",
+          "description": "A JSON string containing a space-separated list of scopes associated with this token",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "clientId",
+          "description": "Client identifier for the OAuth 2.0 client, which requested this token",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "username",
+          "description": "Resource owner who authorized this token",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "tokenType",
+          "description": "Type of the token",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "exp",
+          "description": "Expiry time (seconds since the Epoch)",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "iat",
+          "description": "Time when the token was issued originally (seconds since the Epoch)",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "nbf",
+          "description": "Token is not to be used before this time (seconds since the Epoch)",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "sub",
+          "description": "Subject of the token",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "aud",
+          "description": "Intended audience of the token",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "iss",
+          "description": "Issuer of the token",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "jti",
+          "description": "String identifier for the token",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Error",
+      "description": "Represents the error type of the module. This will be returned if an error occurred while the listener OAuth2 provider\ntries to validate the received credentials and the client OAuth2 provider tries to generate the token.",
+      "type": "Error"
+    },
+    {
+      "name": "ClientOAuth2Provider",
+      "description": "Provides authorization based on the provided OAuth2 configurations.\n",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Provides authorization based on the provided OAuth2 configurations.\n",
+          "parameters": [
+            {
+              "name": "grantConfig",
+              "description": "OAuth2 grant type configurations",
+              "type": {
+                "name": "GrantConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "GrantConfig"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        },
+        {
+          "name": "generateToken",
+          "type": "Normal Function",
+          "description": "Get an OAuth2 access token from the token endpoint.\n```ballerina\nstring token \u003d check provider.generateToken();\n```\n",
+          "parameters": [],
+          "return": {
+            "description": "Received OAuth2 access token or else an `oauth2:Error` if an error occurred",
+            "type": {
+              "name": "string|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ListenerOAuth2Provider",
+      "description": "Provides authorization based on the provided introspection configurations.\n",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Provides authorization based on the provided introspection configurations.\n",
+          "parameters": [
+            {
+              "name": "introspectionConfig",
+              "description": "Introspection endpoint configurations",
+              "type": {
+                "name": "IntrospectionConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "IntrospectionConfig"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        },
+        {
+          "name": "authorize",
+          "type": "Normal Function",
+          "description": "Validates the provided OAuth2 acess token against the introspection endpoint.\n```ballerina\nboolean result \u003d check provider.authorize(\"\u003ccredential\u003e\");\n```\n",
+          "parameters": [
+            {
+              "name": "credential",
+              "description": "OAuth2 access token to be validated",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "optionalParams",
+              "description": "Map of the optional parameters used for the introspection endpoint",
+              "type": {
+                "name": "map\u003cstring\u003e|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "An `oauth2:IntrospectionResponse` if the validation is successful or else an `oauth2:Error` if an error occurred",
+            "type": {
+              "name": "IntrospectionResponse|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "IntrospectionResponse"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "clients": [],
+  "functions": [],
+  "services": [],
+  "annotations": []
+}

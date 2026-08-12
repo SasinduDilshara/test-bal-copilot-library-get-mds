@@ -1,0 +1,557 @@
+{
+  "name": "ballerina/pdf",
+  "description": "The `ballerina/pdf` module provides functionality to convert HTML content to PDF documents and read data from existing PDFs. It processes HTML strings — including full documents, fragments, and messy real-world markup — and produces PDF byte arrays suitable for writing to files or sending over the network.",
+  "readme": "The `ballerina/pdf` module provides functionality to convert HTML content to PDF documents and read data from existing PDFs. It processes HTML strings — including full documents, fragments, and messy real-world markup — and produces PDF byte arrays suitable for writing to files or sending over the network.\n\nAll processing is done locally with no external service dependencies.\n\n## Quickstart\n\nTo use the `pdf` connector in your Ballerina application, modify the `.bal` file as follows:\n\n### Step 1: Import the module\n\nImport the `pdf` module.\n\n```ballerina\nimport ballerina/pdf;\n```\n\n### Step 2: Invoke module functions\n\n#### Extract text from a PDF\n\n```ballerina\nbyte[] pdfBytes \u003d check io:fileReadBytes(\"document.pdf\");\nstring[] pages \u003d check pdf:extractText(pdfBytes);\nforeach int i in 0 ..\u003c pages.length() {\n   io:println(\"Page \", i + 1, \": \", pages[i]);\n}\n```\n\n#### Convert PDF pages to images\n\n```ballerina\nbyte[] pdfBytes \u003d check io:fileReadBytes(\"document.pdf\");\nstring[] base64Images \u003d check pdf:toImages(pdfBytes);\n// Each element is a Base64-encoded PNG string (one per page)\n```\n\n#### Convert html to pdf\n\nConvert an HTML string to a PDF document.\n\n```ballerina\nbyte[] pdfBytes \u003d check pdf:parseHtml(\"\u003ch1\u003eHello World\u003c/h1\u003e\u003cp\u003eGenerated with Ballerina.\u003c/p\u003e\");\ncheck io:fileWriteBytes(\"output.pdf\", pdfBytes);\n```\n\n#### Convert with custom options\n\n```ballerina\nstring html \u003d check io:fileReadString(\"report.html\");\nbyte[] pdfBytes \u003d check pdf:parseHtml(html,\n   fallbackFontSize \u003d 10.0,\n   pageSize \u003d pdf:LETTER,\n   margins \u003d {top: 72, right: 54, bottom: 72, left: 54},\n   additionalCss \u003d \"body { font-family: sans-serif; } .container { width: 100% !important; }\"\n);\ncheck io:fileWriteBytes(\"report.pdf\", pdfBytes);\n```\n\n### Step 3: Run the Ballerina application\n\n```bash\nbal run\n```\n\n## Examples\n\nThe `pdf` module provides practical examples illustrating usage in various scenarios. Explore these [examples](https://github.com/ballerina-platform/module-ballerina-pdf/tree/main/examples/).\n\n1. [HTML to PDF conversion](https://github.com/ballerina-platform/module-ballerina-pdf/tree/main/examples/html-to-pdf/) — Reads an HTML report file and converts it to PDF.\n\n## Known limitations (HTML-to-PDF conversion)\n\nThe `parseHtml` function uses a custom HTML/CSS renderer that supports CSS 2.1 core layout (block, inline, float, table, absolute/relative positioning) but has gaps compared to browser rendering. Key limitations:\n\n- **Layout:** No flexbox, CSS Grid, or multi-column layout. No `position: fixed` or `position: sticky`.\n- **Tables:** No `rowspan`, no `\u003ccaption\u003e`, no `table-layout: fixed` algorithm.\n- **Text:** No `text-align: justify`, no hyphenation, no `text-indent`, no `text-overflow: ellipsis`.\n- **CSS features:** No `::before`/`::after` pseudo-elements, no CSS counters, no `calc()`, no custom properties (`var()`), no `@import`, no `@media` queries (print/all media types are supported).\n- **Visual:** No CSS gradients, no `text-shadow`, no CSS transforms, no SVG rendering. Only `solid` border style is supported.\n- **Fonts:** No `@font-face` (use the `customFonts` option instead). No OpenType features. Bundled fonts: Liberation Sans and Liberation Serif (metrically compatible with Arial and Times New Roman).\n- **Page control:** No `page-break-inside: avoid`, no orphans/widows control, no `@page` margin boxes.\n",
+  "typeDefs": [
+    {
+      "name": "A4",
+      "description": "",
+      "type": "Constant",
+      "value": "A4",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "LETTER",
+      "description": "",
+      "type": "Constant",
+      "value": "LETTER",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "LEGAL",
+      "description": "",
+      "type": "Constant",
+      "value": "LEGAL",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "Error",
+      "description": "Base error type for all PDF module errors.",
+      "type": "Error",
+      "baseType": "error"
+    },
+    {
+      "name": "HtmlParseError",
+      "description": "Error during HTML parsing or preprocessing.\nReturned when the input HTML cannot be parsed into a valid DOM.",
+      "type": "Error",
+      "baseType": "error"
+    },
+    {
+      "name": "RenderError",
+      "description": "Error during the PDF rendering pipeline (layout, painting, or PDF generation).",
+      "type": "Error",
+      "baseType": "error"
+    },
+    {
+      "name": "ReadError",
+      "description": "Error during PDF reading operations (text extraction, image conversion).\nReturned when the input PDF is corrupted, inaccessible, or invalid.",
+      "type": "Error",
+      "baseType": "error"
+    },
+    {
+      "name": "StandardPageSize",
+      "description": "Standard page size presets for PDF output.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "LEGAL",
+          "description": ""
+        },
+        {
+          "name": "LETTER",
+          "description": ""
+        },
+        {
+          "name": "A4",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "CustomPageSize",
+      "description": "Custom page dimensions in points (1 point \u003d 1/72 inch).\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "width",
+          "description": "Page width in points",
+          "type": {
+            "name": "float"
+          }
+        },
+        {
+          "name": "height",
+          "description": "Page height in points",
+          "type": {
+            "name": "float"
+          }
+        }
+      ]
+    },
+    {
+      "name": "PageSize",
+      "description": "Page size for PDF output. Use a standard preset or specify custom dimensions in points.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "\"LEGAL\"",
+          "type": {
+            "name": "\"LEGAL\""
+          }
+        },
+        {
+          "name": "\"LETTER\"",
+          "type": {
+            "name": "\"LETTER\""
+          }
+        },
+        {
+          "name": "\"A4\"",
+          "type": {
+            "name": "\"A4\""
+          }
+        },
+        {
+          "name": "CustomPageSize",
+          "type": {
+            "name": "CustomPageSize",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CustomPageSize"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PageMargins",
+      "description": "Page margins in points (1 point \u003d 1/72 inch). \nThis is the default margin for the PDF output.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "top",
+          "description": "Top margin",
+          "type": {
+            "name": "float"
+          },
+          "optional": true
+        },
+        {
+          "name": "right",
+          "description": "Right margin",
+          "type": {
+            "name": "float"
+          },
+          "optional": true
+        },
+        {
+          "name": "bottom",
+          "description": "Bottom margin",
+          "type": {
+            "name": "float"
+          },
+          "optional": true
+        },
+        {
+          "name": "left",
+          "description": "Left margin",
+          "type": {
+            "name": "float"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Font",
+      "description": "A custom font to register for PDF conversion.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "family",
+          "description": "CSS font-family name used to reference this font in HTML/CSS",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "content",
+          "description": "TTF font file content as bytes",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "bold",
+          "description": "Whether this is a bold variant (default: false)",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "italic",
+          "description": "Whether this is an italic variant (default: false)",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ConversionOptions",
+      "description": "Options controlling HTML-to-PDF conversion behavior.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "fallbackFontSize",
+          "description": "Fallback font size in points (default: 12.0, per CSS spec \"medium\" keyword).\nUsed when CSS does not specify a font-size for an element. CSS `font-size`\ndeclarations in the HTML take precedence over this value.",
+          "type": {
+            "name": "float"
+          },
+          "optional": true
+        },
+        {
+          "name": "pageSize",
+          "description": "Page size for the PDF output. Use a standard preset (A4, LETTER, LEGAL)\nor a CustomPageSize record with custom width/height in points. When omitted,\nthe CSS `@page` size rule is used if present, otherwise defaults to A4.",
+          "type": {
+            "name": "PageSize",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PageSize"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "margins",
+          "description": "Page margins in points (top, right, bottom, left). When omitted, the CSS\n`@page` margin rule is used if present, otherwise defaults to 0 (no page margin).",
+          "type": {
+            "name": "PageMargins",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PageMargins"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "additionalCss",
+          "description": "Additional CSS to inject into the document before conversion.\nUse this for consumer-specific style overrides without modifying the HTML.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "customFonts",
+          "description": "Custom fonts to register for the conversion. Each entry specifies the font family,\nTTF content, and weight/style flags. CSS references the font via `font-family`.",
+          "type": {
+            "name": "Font[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Font"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "maxPages",
+          "description": "Maximum number of pages in the output PDF. Content is scaled to fit within\nthis page limit. Must be greater than 0 when provided.",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        }
+      ]
+    }
+  ],
+  "clients": [],
+  "functions": [
+    {
+      "name": "parseHtml",
+      "type": "Normal Function",
+      "description": "Converts HTML content to PDF bytes.\n",
+      "parameters": [
+        {
+          "name": "html",
+          "description": "The HTML string to convert (can be a full document or fragment).",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "fallbackFontSize",
+          "description": "Fallback font size in points (default: 12.0, per CSS spec \"medium\" keyword).\nUsed when CSS does not specify a font-size for an element. CSS `font-size`\ndeclarations in the HTML take precedence over this value.",
+          "type": {
+            "name": "float"
+          },
+          "optional": true,
+          "default": "12.0"
+        },
+        {
+          "name": "pageSize",
+          "description": "Page size for the PDF output. Use a standard preset (A4, LETTER, LEGAL)\nor a CustomPageSize record with custom width/height in points. When omitted,\nthe CSS `@page` size rule is used if present, otherwise defaults to A4.",
+          "type": {
+            "name": "PageSize",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PageSize"
+              }
+            ]
+          },
+          "optional": true,
+          "default": "\"LEGAL\""
+        },
+        {
+          "name": "margins",
+          "description": "Page margins in points (top, right, bottom, left). When omitted, the CSS\n`@page` margin rule is used if present, otherwise defaults to 0 (no page margin).",
+          "type": {
+            "name": "PageMargins",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PageMargins"
+              }
+            ]
+          },
+          "optional": true,
+          "default": "{}"
+        },
+        {
+          "name": "additionalCss",
+          "description": "Additional CSS to inject into the document before conversion.\nUse this for consumer-specific style overrides without modifying the HTML.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "default": "\"\""
+        },
+        {
+          "name": "customFonts",
+          "description": "Custom fonts to register for the conversion. Each entry specifies the font family,\nTTF content, and weight/style flags. CSS references the font via `font-family`.",
+          "type": {
+            "name": "Font[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Font"
+              }
+            ]
+          },
+          "optional": true,
+          "default": "[]"
+        },
+        {
+          "name": "maxPages",
+          "description": "Maximum number of pages in the output PDF. Content is scaled to fit within\nthis page limit. Must be greater than 0 when provided.",
+          "type": {
+            "name": "int"
+          },
+          "optional": true,
+          "default": "0"
+        },
+        {
+          "name": "options",
+          "description": "Conversion options (all optional with defaults)",
+          "type": {
+            "name": "ConversionOptions",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ConversionOptions"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ],
+      "return": {
+        "description": "PDF file content as a byte array, or an error",
+        "type": {
+          "name": "byte[]|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "extractText",
+      "type": "Normal Function",
+      "description": "Extracts text content from each page of a PDF document.\n",
+      "parameters": [
+        {
+          "name": "pdf",
+          "description": "The PDF document as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        }
+      ],
+      "return": {
+        "description": "An array of text strings (one per page), or an error",
+        "type": {
+          "name": "string[]|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "fileExtractText",
+      "type": "Normal Function",
+      "description": "Extracts text content from each page of a PDF file.\n",
+      "parameters": [
+        {
+          "name": "filePath",
+          "description": "Path to the PDF file",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "An array of text strings (one per page), or an error",
+        "type": {
+          "name": "string[]|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "urlExtractText",
+      "type": "Normal Function",
+      "description": "Extracts text content from each page of a PDF at the given URL.\n",
+      "parameters": [
+        {
+          "name": "url",
+          "description": "URL pointing to a PDF document",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "An array of text strings (one per page), or an error",
+        "type": {
+          "name": "string[]|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "toImages",
+      "type": "Normal Function",
+      "description": "Converts each page of a PDF document to a Base64-encoded PNG image.\n",
+      "parameters": [
+        {
+          "name": "pdf",
+          "description": "The PDF document as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        }
+      ],
+      "return": {
+        "description": "An array of Base64-encoded PNG strings (one per page), or an error",
+        "type": {
+          "name": "string[]|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "fileToImages",
+      "type": "Normal Function",
+      "description": "Converts each page of a PDF file to a Base64-encoded PNG image.\n",
+      "parameters": [
+        {
+          "name": "filePath",
+          "description": "Path to the PDF file",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "An array of Base64-encoded PNG strings (one per page), or an error",
+        "type": {
+          "name": "string[]|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "urlToImages",
+      "type": "Normal Function",
+      "description": "Converts each page of a PDF at the given URL to a Base64-encoded PNG image.\n",
+      "parameters": [
+        {
+          "name": "url",
+          "description": "URL pointing to a PDF document",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "An array of Base64-encoded PNG strings (one per page), or an error",
+        "type": {
+          "name": "string[]|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "services": [],
+  "annotations": []
+}

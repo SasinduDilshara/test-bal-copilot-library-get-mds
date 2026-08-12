@@ -1,0 +1,115 @@
+// ============================================================
+// Library: ballerina/jballerina.java.arrays
+// This module provides APIs to create new Java array instances, get elements from arrays, set elements, etc. 
+// ============================================================
+import ballerina/jballerina.java.arrays;
+
+// --- README ---
+## Overview
+
+This module provides APIs to create new Java array instances, get elements from arrays, set elements, etc. 
+
+#### Create a Java array instance
+```ballerina
+handle stringClass = check java:getClass("java.lang.String");
+handle StrArray = arrays:newInstance(stringClass, 4);
+```
+
+#### Get an element from a Java array
+```ballerina
+handle firstWord = arrays:get(words, 0);
+```
+
+#### Replace an element in a Java array
+```ballerina
+arrays:set(strArray, 0, java:fromString("Ballerina"));
+```
+
+#### Get Java array length
+```ballerina
+int length = arrays:getLength(array);
+```
+
+#### Get a Ballerina array from a Java array
+```ballerina
+int[] array = <int[]> check arrays:fromHandle(arrayHandle, "int");
+```
+
+#### Get a Java array from a Ballerina array
+```ballerina
+handle handleValue = check arrays:toHandle(bArray, "char");
+```
+
+
+// --- END README ---
+
+// --- Functions ---
+
+# Returns a `handle`, which refers to the new Java array instance with the specified element type and dimensions. This function completes abruptly
+# with a `panic` if the specified handle refers to a Java null or if zero dimensions have been provided.
+# ```ballerina
+# handle stringClass = check java:getClass("java.lang.String");
+# handle StrArray = arrays:newInstance(stringClass, 4);
+# ```
+# 
+# + classType - The handle, which refers to the element type of the array
+# + dimensions - The dimensions of the array
+# + return - The handle, which refers to the new Java array instance
+function newInstance(handle classType, int dimensions) returns handle;
+
+# Returns a `handle`, which refers to the element at the specified index in the given Java array. This function
+# completes abruptly with a `panic` if the specified handle refers to a Java null or if the handle does not refer
+# to a Java array.
+# ```ballerina
+# handle words = getSortedArray();
+# handle firstWord = arrays:get(words, 0);
+# ```
+# 
+# + array - The `handle`, which refers to the Java array
+# + index - The index of the element to be returned
+# + return - The `handle`, which refers to the element at the specified position in the Java array
+function get(handle array, int index) returns handle;
+
+# Replaces the indexed element at the specified index in the given Java array with the specified element. This
+# function completes abruptly with a `panic` if the specified handle refers to a Java null or if the handle does
+# not refer to a Java array.
+# ```ballerina
+# handle strArray = getStringArray();
+# arrays:set(strArray, 0, java:fromString("Ballerina"));
+# ```
+# 
+# + array - The `handle`, which refers to the Java array
+# + index - The index of the element to be replaced
+# + element - The `handle`, which refers to the java element to be stored at the specified index
+function set(handle array, int index, handle element) returns ();
+
+# Returns the length of the given Java array.
+# ```ballerina
+# handle array = getArray();
+# int length = arrays:getLength(array);
+# ```
+# 
+# + array - The `handle`, which refers to the Java array
+# + return - The length of the given Java array
+function getLength(handle array) returns int;
+
+# Returns a Ballerina array for a handle that holds a Java array.
+# ```ballerina
+# int[] array = <int[]> check arrays:fromHandle(arrayHandle, "int");
+# ```
+# 
+# + array - The `handle`, which refers to the Java array
+# + jType - The `string` parameter provided to specify the Java array element type
+# + bType - The optional `string` parameter provided to specify the Ballerina array element type
+# + return - Ballerina array `any[]|error` for the provided handle
+function fromHandle(handle array, string jType, string bType = "default") returns any[]|error;
+
+# Returns a handle value, which refers to the java array representation for a Ballerina array.
+# ```ballerina
+# handle handleValue = check arrays:toHandle(array, "char");
+# ```
+# 
+# + array - Ballerina array which is to be converted to a handle reference
+# + jType - Java class name or the primitive type of the array elements referenced by the handle
+# + return - The `handle` which refers to the Java array representation of the Ballerina array, or an error if the conversion fails
+function toHandle(any[] array, string jType) returns handle|error;

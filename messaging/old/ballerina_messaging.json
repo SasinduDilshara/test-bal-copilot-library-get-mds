@@ -1,0 +1,408 @@
+{
+  "name": "ballerina/messaging",
+  "description": "Ballerina developers often face challenges when integrating with diverse message brokers or database clients for ",
+  "readme": "## Overview\n\nBallerina developers often face challenges when integrating with diverse message brokers or database clients for \nmessage persistence and consumption due to their distinct APIs. This package addresses this by offering a unified \nAPI for storing and consuming messages, abstracting away the specifics of the underlying message store technology. \nThis fosters consistency in development, allows for flexible switching or simultaneous use of different message stores,\nand enables the consistent implementation of critical messaging patterns like retry mechanisms and dead-letter \nqueues(DLQs).\n\n### Message Store Interface\n\nThe `MessageStore` interface defines the fundamental contract for message persistence and retrieval. Implementations \nof this interface allow Ballerina applications to interact with different message storage systems in a uniform manner.\n\n```ballerina\n# Represents the message payload with a unique consumer ID.\npublic type Message record {|\n    # The unique identifier for the message\n    string id;\n    # The message payload\n    anydata payload;\n|};\n\n# Represents a message store interface for storing and retrieving messages.\npublic type MessageStore isolated client object {\n\n    # Stores a message in the message store.\n    #\n    # + payload - The message payload to be stored\n    # + return - An error if the message could not be stored, or `()`\n    isolated remote function store(anydata payload) returns error?;\n\n    # Retrieves the top message from the message store without removing it.\n    #\n    # + return - The retrieved message, or () if the store is empty, or an error if an error occurs\n    isolated remote function retrieve() returns Message|error?;\n\n    # Acknowledges the top message retrieved from the message store.\n    #\n    # + id - The unique identifier of the message to acknowledge. This should be the same as the `id`\n    # of the message retrieved from the store.\n    # + success - Indicates whether the message was processed successfully or not\n    # + return - An error if the acknowledgment could not be processed, or `()`\n    isolated remote function acknowledge(string id, boolean success \u003d true) returns error?;\n};\n```\n\n### Store Listener\n\nThe Store Listener is responsible for orchestrating message consumption from any `MessageStore` implementation. \nIt operates by polling the associated message store at configurable intervals and dispatching messages to an attached \nservice.\n\nTo initialize a listener, provide an instance of a `MessageStore`:\n\n```ballerina\n// Example using an in-memory store\nmessaging:Store msgStore \u003d new messaging:InMemoryMessageStore();\n\nlistener messaging:StoreListener msgStoreListener \u003d new(msgStore);\n```\n\nThe listener\u0027s behavior, including polling frequency, retry mechanisms, and dead-letter queue (DLQ) support, \ncan be customized using the listener configuration.\n\n```ballerina\n# Represents the message store listener configuration,\npublic type StoreListenerConfiguration record {|\n    # The interval in seconds at which the listener polls for new messages\n    decimal pollingInterval \u003d 1;\n    # The maximum number of retries for processing a message. \n    # If set to 0, the message will not be retried\n    int maxRetries \u003d 3;\n    # The interval in seconds between retries for processing a message\n    decimal retryInterval \u003d 1;\n    # If true, the message will be acknowledged as failed after the maximum number of retries.\n    # Else the message will be acknowledged with success\n    boolean ackWithFailureAfterMaxRetries \u003d true;\n    # An optional message store to store messages that could not be processed after the maximum \n    # number of retries. On successful storage, the message will be acknowledged with success\n    Store deadLetterStore?;\n|};\n```\n\n### Message Store Service\n\nA message store service, defined by the `messaging:StoreService` type, can be attached to a `messaging:Listener` to \nprocess messages retrieved from the message store. This service exposes a single remote method, `onMessage`, which is\ninvoked when a new message is received.\n\n```ballerina\n# This service object defines the contract for processing messages from a message store.\npublic type Service distinct isolated service object {\n\n    # This remote function is called when a new message is received from the message store.\n    #\n    # + payload - The message payload to be processed\n    # + return - An error if the message could not be processed, or a nil value\n    isolated remote function onMessage(anydata payload) returns error?;\n};\n```\n\nIf the `onMessage` function returns an `error`, the message processing will be retried based on the configured \n`maxRetries` and `retryInterval`. If the maximum retries are exhausted and a `deadLetterStore` is configured, the \nmessage will be moved to the dead-letter store.\n\n### Example\n\nThe following example demonstrates how to utilize this package to set up an in-memory message store and a listener to \nprocess messages:\n\n```ballerina\nimport ballerina/http;\nimport ballerina/io;\nimport ballerina/messaging;\n\n// Initialize an in-memory message store\nmessaging:Store msgStore \u003d new messaging:InMemoryMessageStore();\n\n// Initialize a message store listener with custom configuration\nlistener messaging:Listener msgStoreListener \u003d new(msgStore, {\n    pollingInterval: 10,  // Poll every 10 seconds\n    maxRetries: 2,        // Retry message processing up to 2 times\n    retryInterval: 2      // Wait 2 seconds between retries\n});\n\n// Define and attach a service to the listener to handle incoming messages\nservice on msgStoreListener {\n\n    isolated remote function onMessage(anydata payload) returns error? {\n        io:println(\"Received message payload: \", payload);\n\n        // Simulate a processing failure for specific message payload\n        if payload is string \u0026\u0026 payload \u003d\u003d \"fail\" {\n            return error(\"Message processing failed due to \u0027fail\u0027 payload\");\n        }\n        // If no error is returned, the message is acknowledged as successfully processed\n    }\n}\n\n// Defines an HTTP service to produce messages to the message store\nservice /api/v1 on new http:Listener(8080) {\n\n    // Endpoint to send messages to the message store\n    resource function post messages(@http:Payload anydata payload) returns http:Accepted|error {\n        check msgStore.store(payload);\n        return http:ACCEPTED;\n    }\n}\n```\n",
+  "typeDefs": [
+    {
+      "name": "Message",
+      "description": "Represents the message payload with a unique consumer ID.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "id",
+          "description": "The unique identifier used by the consumer to acknowledge the message",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "payload",
+          "description": "The message payload",
+          "type": {
+            "name": "anydata"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Error",
+      "description": "Represents the default error type.",
+      "type": "Error"
+    },
+    {
+      "name": "StoreListenerConfiguration",
+      "description": "Represents the message store listener configuration,",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "pollingInterval",
+          "description": "The interval in seconds at which the listener polls for new messages",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxRetries",
+          "description": "The maximum number of retries for processing a message. \nIf set to 0, the message will not be retried",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "retryInterval",
+          "description": "The interval in seconds between retries for processing a message",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "ackWithFailureAfterMaxRetries",
+          "description": "If true, the message will be acknowledged with failure after the maximum number of retries is reached.\nElse the message will be acknowledged with success.",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "deadLetterStore",
+          "description": "An optional message store to store messages that could not be processed after the maximum \nnumber of retries. On successful storage, the message will be acknowledged with success",
+          "type": {
+            "name": "Store",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Store"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Store",
+      "description": "Represents a message store interface for storing and retrieving messages.",
+      "type": "Class"
+    },
+    {
+      "name": "StoreService",
+      "description": "This service object defines the contract for processing messages from a message store.",
+      "type": "Class"
+    },
+    {
+      "name": "StoreListener",
+      "description": "Initializes a new instance of Message Store Listener.\n",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes a new instance of Message Store Listener.\n",
+          "parameters": [
+            {
+              "name": "messageStore",
+              "description": "The message store to retrieve messages from",
+              "type": {
+                "name": "Store",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Store"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "pollingInterval",
+              "description": "The interval in seconds at which the listener polls for new messages",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "1"
+            },
+            {
+              "name": "maxRetries",
+              "description": "The maximum number of retries for processing a message. \nIf set to 0, the message will not be retried",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "3"
+            },
+            {
+              "name": "retryInterval",
+              "description": "The interval in seconds between retries for processing a message",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "1"
+            },
+            {
+              "name": "ackWithFailureAfterMaxRetries",
+              "description": "If true, the message will be acknowledged with failure after the maximum number of retries is reached.\nElse the message will be acknowledged with success.",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "true"
+            },
+            {
+              "name": "deadLetterStore",
+              "description": "An optional message store to store messages that could not be processed after the maximum \nnumber of retries. On successful storage, the message will be acknowledged with success",
+              "type": {
+                "name": "Store",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Store"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "object {}"
+            },
+            {
+              "name": "config",
+              "description": "The configuration for the message store listener",
+              "type": {
+                "name": "StoreListenerConfiguration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "StoreListenerConfiguration"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "An error if the listener could not be initialized, or `()`",
+            "type": {
+              "name": "ballerina/messaging:1.0.0:Error?"
+            }
+          }
+        },
+        {
+          "name": "attach",
+          "type": "Normal Function",
+          "description": "Attaches a message store service to the listener. Only one service can be attached to this \nlistener.\n",
+          "parameters": [
+            {
+              "name": "msgStoreService",
+              "description": "The message store service to attach",
+              "type": {
+                "name": "StoreService",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "StoreService"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "path",
+              "description": "The path is not relevant for this listener. Only allowing a nil value",
+              "type": {
+                "name": "()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "An error if the service could not be attached, or a nil value",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "detach",
+          "type": "Normal Function",
+          "description": "Detaches the message store service from the listener.\n",
+          "parameters": [
+            {
+              "name": "msgStoreService",
+              "description": "The message store service to detach",
+              "type": {
+                "name": "StoreService",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "StoreService"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "An error if the service could not be detached, or a nil value",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "\u0027start",
+          "type": "Normal Function",
+          "description": "Starts the message store listener to poll and process messages.\n",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "gracefulStop",
+          "type": "Normal Function",
+          "description": "Gracefully stops the message store listener by waiting for any ongoing processing to \ncomplete before stopping. This is not implemented yet, and currently this will call \nimmediateStop.\n",
+          "parameters": [],
+          "return": {
+            "description": "An error if the listener could not be stopped, or a nil value",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "immediateStop",
+          "type": "Normal Function",
+          "description": "Immediately stops the message store listener without waiting for any ongoing processing \nto complete.\n",
+          "parameters": [],
+          "return": {
+            "description": "An error if the listener could not be stopped, or `()`.",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "name": "InMemoryMessageStore",
+      "description": "Represents an in-memory message store.",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes a new instance of the InMemoryStore.",
+          "parameters": [],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        },
+        {
+          "name": "store",
+          "type": "Remote Function",
+          "description": "Stores a message in the message store.\n",
+          "parameters": [
+            {
+              "name": "payload",
+              "description": "The message payload to be stored",
+              "type": {
+                "name": "anydata"
+              }
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "()"
+            }
+          }
+        },
+        {
+          "name": "retrieve",
+          "type": "Remote Function",
+          "description": "Retrieves the top message from the message store.\n",
+          "parameters": [],
+          "return": {
+            "description": "The retrieved message, or `()` if the store is empty",
+            "type": {
+              "name": "Message|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Message"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "acknowledge",
+          "type": "Remote Function",
+          "description": "Acknowledges the processing of a message.\n",
+          "parameters": [
+            {
+              "name": "id",
+              "description": "The unique identifier of the message to acknowledge",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "success",
+              "description": "Indicates whether the message was processed successfully",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            }
+          ],
+          "return": {
+            "description": "An error if the acknowledgment could not be processed, or `()`",
+            "type": {
+              "name": "error?"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "functions": [],
+  "services": [],
+  "annotations": []
+}

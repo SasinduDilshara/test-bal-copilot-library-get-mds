@@ -1,0 +1,180 @@
+// ============================================================
+// Library: ballerina/cache
+// This module provides APIs for in-memory caching by using a semi-persistent mapping from keys to values. Cache entries are added to the cache manually and are stored in the cache until either evicted or invalidated manually.
+// ============================================================
+import ballerina/cache;
+
+// --- README ---
+## Overview
+
+This module provides APIs for in-memory caching by using a semi-persistent mapping from keys to values. Cache entries are added to the cache manually and are stored in the cache until either evicted or invalidated manually.
+
+This is based on the Least Recently Used (LRU) eviction algorithm by using a `map` data structure and defining the most basic operations on a collection of cache entries, which entails basic reading, writing, and deleting individual cache items. 
+It does not allow the `()` as a key or value of the cache and entries can be accessed safely by multiple concurrent threads as it is thread-safe.
+
+The cache can be defined with optional configurations as follows:
+```ballerina
+cache:Cache cache = new (capacity = 10, evictionFactor = 0.2, defaultMaxAge = 0.5, cleanupInterval = 1);
+```
+
+The Cache entries will be evicted in case of the following scenarios:
+
+- When using the `get` API, if the returning cache entry has expired, it gets removed.
+- When using the `put` API, if the cache size has reached its capacity, the number of entries that get removed will be based on the `eviction policy` and the `eviction factor`.
+- If `cleanupInterval` (optional property) is configured, the recurrence task will remove the expired cache entries based on the configured interval. The main benefit of this property is that you can optimize the memory usage while adding some additional CPU costs and vice versa. The default behaviour is the CPU-optimized method.
+
+The `cache:AbstractCache` object has the common APIs for the caching functionalities. Custom implementations of the cache can be done with different data storages like file, database, etc., with the structural equivalency to the `cache:AbstractCacheObject` object.
+
+```ballerina
+public type AbstractCache object {
+    public function put(string key, any value, int maxAgeInSeconds) returns Error?;
+    public function get(string key) returns any|Error;
+    public function invalidate(string key) returns Error?;
+    public function invalidateAll() returns Error?;
+    public function hasKey(string key) returns boolean;
+    public function keys() returns string[];
+    public function size() returns int;
+    public function capacity() returns int;
+};
+```
+The Ballerina Cache package provides the `cache:Cache` class, which is a `map` data structure based implementation of the `cache:AbstractCache` object.
+
+// --- END README ---
+
+// --- Types ---
+
+const string LRU = "LRU";
+
+# The `cache:AbstractCache` object is used for custom implementations of the Ballerina cache.
+# Any custom cache implementation should be object-wise similar.
+class AbstractCache {
+
+    # Adds the given key value pair to the cache. If the cache previously contained a value associated with the key, the
+    # old value is replaced by the new value.
+    # 
+    function put(string key, any value, decimal maxAge = -1) returns Error|();
+
+    # Returns the cached value associated with the provided key.
+    # 
+    function get(string key) returns any|Error;
+
+    # Discards a cached value from the cache.
+    # 
+    function invalidate(string key) returns Error|();
+
+    # Discards all the cached values from the cache.
+    # 
+    function invalidateAll() returns Error|();
+
+    # Checks whether the given key has an associated cache value.
+    # 
+    function hasKey(string key) returns boolean;
+
+    # Returns all keys from the cache.
+    # 
+    function keys() returns string[];
+
+    # Returns the current size of the cache.
+    # 
+    function size() returns int;
+
+    # Returns the capacity of the cache.
+    # 
+    function capacity() returns int;
+}
+
+# Represents configurations for the `cache:Cache` object.
+# 
+
+type CacheConfig record {
+    # Maximum number of entries allowed in the cache
+    @constraint:Int { minValue: 1 }
+    int capacity?;
+    # The factor by which the entries will be evicted once the cache is full
+    @constraint:Float { minValueExclusive: 0, maxValue: 1 }
+    float evictionFactor?;
+    # The policy which is used to evict entries once the cache is full
+    EvictionPolicy evictionPolicy?;
+    # The max-age in seconds which all the cache entries are valid. '-1' means, the entries are
+valid forever. This will be overwritten by the `maxAge` property set when inserting item into
+the cache
+    @constraint:Number { minValue: -1 }
+    decimal defaultMaxAge?;
+    # Interval (in seconds) of the timer task, which will clean up the cache
+    @constraint:Number { minValueExclusive: 0 }
+    decimal cleanupInterval?;
+};
+
+# Possible types of eviction policy that can be passed into the `EvictionPolicy`.
+enum EvictionPolicy {
+    LRU
+}
+
+# Represents Cache related errors. This will be returned if an error occurred while doing any of the cache operations.
+type Error error;
+
+# Initializes new `cache:Cache` instance.
+# ```ballerina
+# cache:Cache cache = new(capacity = 10, evictionFactor = 0.2);
+# ```
+# 
+class Cache {
+    function init(int capacity = 100, float evictionFactor = 0.25, EvictionPolicy evictionPolicy = LRU, decimal defaultMaxAge = -1, decimal cleanupInterval = 0.0d, CacheConfig cacheConfig) returns ();
+
+    # Adds the given key value pair to the cache. If the cache previously contained a value associated with the
+    # provided key, the old value will be replaced by the newly-provided value.
+    # ```ballerina
+    # check cache.put("Hello", "Ballerina");
+    # ```
+    # 
+    function put(string key, any value, decimal maxAge = 0.0d) returns Error|();
+
+    # Returns the cached value associated with the provided key.
+    # ```ballerina
+    # any value = check cache.get(key);
+    # ```
+    # 
+    function get(string key) returns any|Error;
+
+    # Discards a cached value from the cache.
+    # ```ballerina
+    # check cache.invalidate(key);
+    # ```
+    # 
+    function invalidate(string key) returns Error|();
+
+    # Discards all the cached values from the cache.
+    # ```ballerina
+    # check cache.invalidateAll();
+    # ```
+    # 
+    function invalidateAll() returns Error|();
+
+    # Checks whether the given key has an associated cached value.
+    # ```ballerina
+    # boolean result = cache.hasKey(key);
+    # ```
+    # 
+    function hasKey(string key) returns boolean;
+
+    # Returns a list of all the keys from the cache.
+    # ```ballerina
+    # string[] keys = cache.keys();
+    # ```
+    # 
+    function keys() returns string[];
+
+    # Returns the size of the cache.
+    # ```ballerina
+    # int result = cache.size();
+    # ```
+    # 
+    function size() returns int;
+
+    # Returns the capacity of the cache.
+    # ```ballerina
+    # int result = cache.capacity();
+    # ```
+    # 
+    function capacity() returns int;
+}

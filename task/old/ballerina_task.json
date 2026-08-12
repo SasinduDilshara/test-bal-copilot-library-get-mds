@@ -1,0 +1,1119 @@
+{
+  "name": "ballerina/task",
+  "description": "This module provides APIs to schedule a Ballerina job either once or periodically and to manage the execution of those jobs.",
+  "readme": "## Overview\n\nThis module provides APIs to schedule a Ballerina job either once or periodically and to manage the execution of those jobs.\n\n### Jobs and scheduling\n\nEvery scheduling job in Ballerina needs to be represented by a `Job` object. Therefore, a `job` class with your custom logic needs to be created to execute it when the task is triggered.\n\nThe `task` package has the following two scheduling systems to schedule the job:\n\n- One-time job execution\n- Frequency-based job execution\n\n#### One-time job execution\n\nThis API provides the functionality to schedule a job at a specified time.\n\nThe following code snippet shows how to schedule a one-time job.\n\n```ballerina\nclass Job {\n\n    *task:Job;\n    string msg;\n\n    public function execute() {\n        io:println(self.msg);\n    }\n\n    isolated function init(string msg) {\n        self.msg \u003d msg;\n    }\n}\n\ntime:ZoneOffset zoneOffset \u003d {\n    hours: 5,\n    minutes: 30,\n    seconds: \u003cdecimal\u003e0.0\n};\ntime:Civil time \u003d {\n    year: 2021,\n    month: 4,\n    day: 13,\n    hour: 4,\n    minute: 50,\n    second: 50.52,\n    timeAbbrev: \"Asia/Colombo\",\n    utcOffset: zoneOffset\n};\n\ntask:JobId result \u003d check task:scheduleOneTimeJob(new Job(\"Hi\"), time);\n```\n\n#### Frequency-based job execution\n\nThis API provides the functionality to schedule jobs on a specific interval either once or periodically by configuring the configuration such as start time, end time, and maximum count.\n\nThe following code snippet shows how to schedule a recurring job by using this API.\n\n```ballerina\nclass Job {\n\n    *task:Job;\n    string msg;\n\n    public function execute() {\n        io:println(self.msg);\n    }\n\n    isolated function init(string msg) {\n        self.msg \u003d msg;\n    }\n}\n\ntime:ZoneOffset zoneOffset \u003d {\n    hours: 5,\n    minutes: 30\n};\ntime:Civil time \u003d {\n    year: 2021,\n    month: 3,\n    day: 31,\n    hour: 4,\n    minute: 50,\n    second: 50.52,\n    timeAbbrev: \"Asia/Colombo\",\n    utcOffset: zoneOffset\n};\n\ntask:JobId result \u003d check task:scheduleJobRecurByFrequency(new Job(\"Hi\"), 2.5, maxCount \u003d 10, startTime \u003d time);\n```\n\nFor information on the operations, which you can perform with the task module, see the below **Functions**.\n\n### Listener-based job execution\n\nThis approach enables you to schedule and execute recurring and one-time jobs as services with configurable trigger settings on the attached listener. This allows users to deploy a scheduled task as a service without the need of a thread sleep.\n\nThe following code snippet shows how to schedule a job by using the listener based approach.\n\n```ballerina\nlistener task:Listener taskListener \u003d new (\n    trigger \u003d {\n        interval: 2,\n        maxCount: 5\n    }\n);\n\nservice \"job-1\" on taskListener {\n    private int i \u003d 1;\n\n    isolated function execute() returns error? {\n        lock {\n            io:println(\"Counter: \", self.i);\n            self.i +\u003d 1;\n        }\n    }\n}\n```\n\nYou can enhance job reliability by adding retry configurations for failing job executions in task listeners.\n\n```ballerina\nlistener task:Listener taskListener \u003d new (\n    trigger \u003d {\n        interval: 20,\n        maxCount: 5\n    },\n    retryConfig: {\n        maxAttempts: 5,\n        retryInterval: 1\n    }\n);\n```\n\n### Task coordination\n\nTask coordination support is specifically designed for distributed systems where high availability and fault tolerance are essential requirements. The coordination mechanism ensures that when tasks are running across multiple nodes, only one node remains active while others stay on standby. If the active node fails or becomes unavailable, one of the standby nodes automatically takes over, maintaining continuous system availability and preventing service interruptions.\n\nThe system utilizes an RDBMS-based coordination mechanism to handle availability across multiple nodes, significantly improving the reliability and uptime of distributed applications in production environments.\nThe task coordination system follows a warm backup approach with the following characteristics:\n\n- Multiple nodes run identical program logic on separate task instances\n- One node is designated as the token bearer and actively executes the program logic\n- Other nodes act as watchdogs by continuously monitoring the status of the token bearer node\n- If the active node fails or becomes unresponsive, one of the candidate nodes automatically takes over without manual intervention\n\nThe following code snippet demonstrates how to implement task coordination across multiple nodes.\n\n```ballerina\nlistener task:Listener taskListener \u003d new (\n  trigger \u003d {\n    interval,\n    maxCount\n  }, \n  warmBackupConfig \u003d {\n    databaseConfig,\n    livenessCheckInterval,\n    taskId, // must be unique for each node\n    groupId,\n    heartbeatFrequency\n  }\n);\n\nservice \"job-1\" on taskListener {\n  private int i \u003d 1;\n\n  isolated function execute() {\n    // Add your business logic here\n    // This will only execute on the active node\n  }\n}\n```\n",
+  "typeDefs": [
+    {
+      "name": "FIXED",
+      "description": "",
+      "type": "Constant",
+      "value": "FIXED",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "EXPONENTIAL",
+      "description": "",
+      "type": "Constant",
+      "value": "EXPONENTIAL",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "LOG_AND_TERMINATE",
+      "description": "",
+      "type": "Constant",
+      "value": "LOG_AND_TERMINATE",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "LOG_AND_CONTINUE",
+      "description": "",
+      "type": "Constant",
+      "value": "LOG_AND_CONTINUE",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "TERMINATE",
+      "description": "",
+      "type": "Constant",
+      "value": "TERMINATE",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "CONTINUE",
+      "description": "",
+      "type": "Constant",
+      "value": "CONTINUE",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "WAIT",
+      "description": "",
+      "type": "Constant",
+      "value": "WAIT",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "IGNORE",
+      "description": "",
+      "type": "Constant",
+      "value": "IGNORE",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "LOG_AND_IGNORE",
+      "description": "",
+      "type": "Constant",
+      "value": "LOG_AND_IGNORE",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "Service",
+      "description": "Represents the task service that provides functionality to manage and execute scheduled tasks.",
+      "type": "Class"
+    },
+    {
+      "name": "MysqlConfig",
+      "description": "Represents the configuration required to connect to a database related to task coordination.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "host",
+          "description": "The hostname of the database server",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "user",
+          "description": "The username for the database connection",
+          "type": {
+            "name": "string?"
+          },
+          "optional": true
+        },
+        {
+          "name": "password",
+          "description": "The password for the database connection",
+          "type": {
+            "name": "string?"
+          },
+          "optional": true
+        },
+        {
+          "name": "port",
+          "description": "The port number of the database server",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "database",
+          "description": "The name of the database to connect to",
+          "type": {
+            "name": "string?"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "PostgresqlConfig",
+      "description": "Represents the configuration required to connect to a database related to task coordination.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "host",
+          "description": "The hostname of the database server",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "user",
+          "description": "The username for the database connection",
+          "type": {
+            "name": "string?"
+          },
+          "optional": true
+        },
+        {
+          "name": "password",
+          "description": "The password for the database connection",
+          "type": {
+            "name": "string?"
+          },
+          "optional": true
+        },
+        {
+          "name": "port",
+          "description": "The port number of the database server",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "database",
+          "description": "The name of the database to connect to",
+          "type": {
+            "name": "string?"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "DatabaseConfig",
+      "description": "Represents the configuration required to connect to a database related to task coordination.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "ballerina/task:2.11.2:MysqlConfig",
+          "type": {
+            "name": "MysqlConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "MysqlConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ballerina/task:2.11.2:PostgresqlConfig",
+          "type": {
+            "name": "PostgresqlConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PostgresqlConfig"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "WarmBackupConfig",
+      "description": "Represents the configuration required for task coordination.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "databaseConfig",
+          "description": "The database configuration for task coordination",
+          "type": {
+            "name": "DatabaseConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DatabaseConfig"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "livenessCheckInterval",
+          "description": "The interval (in seconds) to check the liveness of the job. Default is 30 seconds.",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "taskId",
+          "description": "Unique identifier for the current task",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "groupId",
+          "description": "The identifier for the group of tasks. This is used to identify the group of tasks that are\ncoordinating the task. It is recommended to use a unique identifier for each group of tasks.",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "heartbeatFrequency",
+          "description": "The interval (in seconds) for the node to update its heartbeat. Default is one second.",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ListenerConfiguration",
+      "description": "Listener configuration.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "trigger",
+          "description": "The trigger configuration for the listener",
+          "type": {
+            "name": "TriggerConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TriggerConfiguration"
+              }
+            ]
+          }
+        },
+        {
+          "name": "warmBackupConfig",
+          "description": "The configuration related to task coordination",
+          "type": {
+            "name": "WarmBackupConfig|()",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "WarmBackupConfig"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "TriggerConfiguration",
+      "description": "Recurring schedule configuration.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "interval",
+          "description": "The duration of the trigger (in seconds), which is used to run the job frequently",
+          "type": {
+            "name": "decimal"
+          }
+        },
+        {
+          "name": "maxCount",
+          "description": "The maximum number of trigger counts. If set to -1, job will run indefinitely",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "startTime",
+          "description": "The trigger start time in Ballerina `time:Civil`. If it is not provided, a trigger will\nstart immediately",
+          "type": {
+            "name": "Civil",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Civil",
+                "libraryName": "ballerina/time"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "endTime",
+          "description": "The trigger end time in Ballerina `time:Civil`",
+          "type": {
+            "name": "Civil",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Civil",
+                "libraryName": "ballerina/time"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "taskPolicy",
+          "description": "The policy, which is used to handle the error and will be waiting during the trigger time",
+          "type": {
+            "name": "TaskPolicy",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TaskPolicy"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "retryConfig",
+          "description": "The retry configurations for job executions",
+          "type": {
+            "name": "RetryConfiguration|()",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RetryConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "TaskPolicy",
+      "description": "Policies related to a trigger.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "errorPolicy",
+          "description": "The policy to follow when there is an error in Job execution",
+          "type": {
+            "name": "ErrorPolicy",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ErrorPolicy"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "waitingPolicy",
+          "description": "The policy to follow when the next task is triggering while the previous job is still\nbeing processing",
+          "type": {
+            "name": "WaitingPolicy",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "WaitingPolicy"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ErrorPolicy",
+      "description": "Possible options for the `ErrorPolicy`.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "CONTINUE",
+          "description": ""
+        },
+        {
+          "name": "TERMINATE",
+          "description": ""
+        },
+        {
+          "name": "LOG_AND_CONTINUE",
+          "description": ""
+        },
+        {
+          "name": "LOG_AND_TERMINATE",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "WaitingPolicy",
+      "description": "Possible options for the `WaitingPolicy`.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "LOG_AND_IGNORE",
+          "description": ""
+        },
+        {
+          "name": "IGNORE",
+          "description": ""
+        },
+        {
+          "name": "WAIT",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "RetryConfiguration",
+      "description": "Retry configuration for job execution.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "maxAttempts",
+          "description": "Maximum number of retry attempts",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "retryInterval",
+          "description": "Initial retry interval",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "backoffStrategy",
+          "description": "The strategy to use for retrying the job execution",
+          "type": {
+            "name": "RetryStrategy",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RetryStrategy"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "maxInterval",
+          "description": "Maximum amount of time to wait between retries",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "RetryStrategy",
+      "description": "Supported retry strategies for job execution.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "EXPONENTIAL",
+          "description": ""
+        },
+        {
+          "name": "FIXED",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "JobId",
+      "description": "A read-only record consisting of a unique identifier for a created job.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "id",
+          "description": "",
+          "type": {
+            "name": "int"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Job",
+      "description": "The Ballerina Job object provides the abstraction for a job instance, which schedules to execute periodically.",
+      "type": "Class"
+    },
+    {
+      "name": "Error",
+      "description": "Represents the error type of the `ballerina/task` module. This error type represents any error that can occur during\nthe execution of the task APIs.",
+      "type": "Error"
+    },
+    {
+      "name": "Listener",
+      "description": "Initializes the task \u0027listener.\n",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes the task \u0027listener.\n",
+          "parameters": [
+            {
+              "name": "trigger",
+              "description": "The trigger configuration for the listener",
+              "type": {
+                "name": "TriggerConfiguration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "TriggerConfiguration"
+                  }
+                ]
+              },
+              "default": "{interval: 0.0d}"
+            },
+            {
+              "name": "warmBackupConfig",
+              "description": "The configuration related to task coordination",
+              "type": {
+                "name": "WarmBackupConfig|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "WarmBackupConfig"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "Additional Values",
+              "description": "Capture key value pairs",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true
+            },
+            {
+              "name": "config",
+              "description": "The \u0027listener configuration",
+              "type": {
+                "name": "ListenerConfiguration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ListenerConfiguration"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "ballerina/task:2.11.2:Error?"
+            }
+          }
+        },
+        {
+          "name": "attach",
+          "type": "Normal Function",
+          "description": "Attaches a service to the \u0027listener.\n",
+          "parameters": [
+            {
+              "name": "s",
+              "description": "The service to be attached",
+              "type": {
+                "name": "Service",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Service"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "name",
+              "description": "The service name",
+              "type": {
+                "name": "string[]|string|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "An error if the service cannot be attached",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "detach",
+          "type": "Normal Function",
+          "description": "Detaches a service from the \u0027listener.\n",
+          "parameters": [
+            {
+              "name": "s",
+              "description": "The service to be detached",
+              "type": {
+                "name": "Service",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Service"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "An error if the service cannot be detached",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "\u0027start",
+          "type": "Normal Function",
+          "description": "Starts the \u0027listener.\n",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "gracefulStop",
+          "type": "Normal Function",
+          "description": "Stops the \u0027listener gracefully.\n",
+          "parameters": [],
+          "return": {
+            "description": "An error if the \u0027listener fails to stop",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "immediateStop",
+          "type": "Normal Function",
+          "description": "Stops the \u0027listener immediately.\n",
+          "parameters": [],
+          "return": {
+            "description": "An error if the \u0027listener fails to stop",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "clients": [],
+  "functions": [
+    {
+      "name": "getTimeInMillies",
+      "type": "Normal Function",
+      "description": "Gets time in milliseconds of the given `time:Civil`.\n",
+      "parameters": [
+        {
+          "name": "time",
+          "description": "The Ballerina `time:Civil`",
+          "type": {
+            "name": "Civil",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Civil",
+                "libraryName": "ballerina/time"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "Time in milliseconds or else `task:Error` if the process failed due to any reason",
+        "type": {
+          "name": "int|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "configureWorkerPool",
+      "type": "Normal Function",
+      "description": "Configure the scheduler worker pool.\n```ballerina\ncheck task:configureWorkerPool(4, 7);\n```\n",
+      "parameters": [
+        {
+          "name": "workerCount",
+          "description": "Specifies the number of workers that are available for the concurrent execution of jobs.\nIt should be a positive integer. The recommendation is to set a value less than 10. Default sets to 5.",
+          "type": {
+            "name": "int"
+          },
+          "optional": true,
+          "default": "5"
+        },
+        {
+          "name": "waitingTime",
+          "description": "The number of seconds as a decimal the scheduler will tolerate a trigger to pass its next-fire-time\nbefore being considered as `ignored the trigger`",
+          "type": {
+            "name": "Seconds",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Seconds",
+                "libraryName": "ballerina/time"
+              }
+            ]
+          },
+          "optional": true,
+          "default": "5"
+        }
+      ],
+      "return": {
+        "description": "A `task:Error` if the process failed due to any reason or else ()",
+        "type": {
+          "name": "Error|()",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "scheduleOneTimeJob",
+      "type": "Normal Function",
+      "description": "Schedule the given `task:Job` for the given time. Once scheduled, it will return a job ID, which can be used to manage\nthe job.\n```ballerina\ntime:Utc newTime \u003d time:utcAddSeconds(time:utcNow(), 3);\ntime:Civil time \u003d time:utcToCivil(newTime);\ntask:JobId jobId \u003d check task:scheduleOneTimeJob(new Job(), time);\n```\n",
+      "parameters": [
+        {
+          "name": "job",
+          "description": "Ballerina job, which is to be executed during the trigger",
+          "type": {
+            "name": "Job",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Job"
+              }
+            ]
+          }
+        },
+        {
+          "name": "triggerTime",
+          "description": "The specific time in Ballerina `time:Civil` to trigger only one time",
+          "type": {
+            "name": "Civil",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Civil",
+                "libraryName": "ballerina/time"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "A `task:JobId` or else a `task:Error` if the process failed due to any reason",
+        "type": {
+          "name": "JobId|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "JobId"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "scheduleJobRecurByFrequency",
+      "type": "Normal Function",
+      "description": "Schedule the recurring `task:Job` according to the given duration. Once scheduled, it will return the job ID, which\ncan be used to manage the job.\n```ballerina\ntask:JobId jobId \u003d check task:scheduleJobRecurByFrequency(new Job(), 3);\n```\n",
+      "parameters": [
+        {
+          "name": "job",
+          "description": "Ballerina job, which is to be executed by the scheduler",
+          "type": {
+            "name": "Job",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Job"
+              }
+            ]
+          }
+        },
+        {
+          "name": "interval",
+          "description": "The duration of the trigger (in seconds), which is used to run the job frequently",
+          "type": {
+            "name": "decimal"
+          }
+        },
+        {
+          "name": "maxCount",
+          "description": "The maximum number of trigger counts. If set to -1, job will run indefinitely",
+          "type": {
+            "name": "int"
+          },
+          "optional": true,
+          "default": "-1"
+        },
+        {
+          "name": "startTime",
+          "description": "The trigger start time in Ballerina `time:Civil`. If it is not provided, a trigger will\nstart immediately",
+          "type": {
+            "name": "Civil|()",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Civil",
+                "libraryName": "ballerina/time"
+              }
+            ]
+          },
+          "optional": true,
+          "default": "()"
+        },
+        {
+          "name": "endTime",
+          "description": "The trigger end time in Ballerina `time:Civil`",
+          "type": {
+            "name": "Civil|()",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Civil",
+                "libraryName": "ballerina/time"
+              }
+            ]
+          },
+          "optional": true,
+          "default": "()"
+        },
+        {
+          "name": "taskPolicy",
+          "description": "The policy, which is used to handle the error and will be waiting during the trigger time",
+          "type": {
+            "name": "TaskPolicy",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TaskPolicy"
+              }
+            ]
+          },
+          "optional": true,
+          "default": "{}"
+        }
+      ],
+      "return": {
+        "description": "A `task:JobId` or else a `task:Error` if the process failed due to any reason",
+        "type": {
+          "name": "JobId|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "JobId"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "unscheduleJob",
+      "type": "Normal Function",
+      "description": "Unschedule the `task:Job`, which is associated with the given job ID. If no job is running in the scheduler,\nthe scheduler will be shut down automatically.\n```ballerina\ncheck task:unscheduleJob(jobId);\n```\n",
+      "parameters": [
+        {
+          "name": "jobId",
+          "description": "The ID of the job as a `task:JobId`, which needs to be unscheduled",
+          "type": {
+            "name": "JobId",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "JobId"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "A `task:Error` if the process failed due to any reason or else ()",
+        "type": {
+          "name": "Error|()",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "pauseAllJobs",
+      "type": "Normal Function",
+      "description": "Pauses all the jobs.\n```ballerina\ncheck task:pauseAllJobs();\n```\n",
+      "parameters": [],
+      "return": {
+        "description": "A `task:Error` if an error occurred while pausing or else ()",
+        "type": {
+          "name": "Error|()",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "resumeAllJobs",
+      "type": "Normal Function",
+      "description": "Resumes all the jobs.\n```ballerina\ncheck task:resumeAllJobs();\n```\n",
+      "parameters": [],
+      "return": {
+        "description": "A `task:Error` when an error occurred while resuming or else ()",
+        "type": {
+          "name": "Error|()",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "pauseJob",
+      "type": "Normal Function",
+      "description": "Pauses the particular job.\n```ballerina\ncheck task:pauseJob(jobId);\n```\n",
+      "parameters": [
+        {
+          "name": "jobId",
+          "description": "The ID of the job as a `task:JobId`, which needs to be paused",
+          "type": {
+            "name": "JobId",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "JobId"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "A `task:Error` if an error occurred while pausing a job or else ()",
+        "type": {
+          "name": "Error|()",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "resumeJob",
+      "type": "Normal Function",
+      "description": "Resumes the particular job.\n```ballerina\ncheck task:resumeJob(jobId);\n```\n",
+      "parameters": [
+        {
+          "name": "jobId",
+          "description": "The ID of the job as a `task:JobId`, which needs to be resumed",
+          "type": {
+            "name": "JobId",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "JobId"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "A `task:Error` when an error occurred while resuming a job or else ()",
+        "type": {
+          "name": "Error|()",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "getRunningJobs",
+      "type": "Normal Function",
+      "description": "Gets all the running jobs.\n```ballerina\ntask:JobId[] result \u003d task:getRunningJobs();\n```\n",
+      "parameters": [],
+      "return": {
+        "description": "IDs of all the running jobs as an array",
+        "type": {
+          "name": "JobId[]",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "JobId"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "services": [],
+  "annotations": []
+}

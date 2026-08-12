@@ -1,0 +1,638 @@
+// ============================================================
+// Library: ballerina/xlsx
+// Provides functionality to read and write Microsoft Excel files in the XLSX format with type-safe data binding.
+// ============================================================
+import ballerina/xlsx;
+
+// --- README ---
+# Overview
+
+This module provides functionality to read and write Microsoft Excel files in the XLSX format with type-safe data binding to Ballerina records. It exposes a simple file-based API (`parseSheet` / `writeSheet`) for single-sheet ETL and an object-based Workbook API for multi-sheet operations, byte-array I/O, and Excel Tables.
+
+All processing is done locally with no external service dependencies.
+
+## Quickstart
+
+To use the `xlsx` module in your Ballerina application, modify the `.bal` file as follows:
+
+### Step 1: Import the module
+
+Import the `xlsx` module.
+
+```ballerina
+import ballerina/xlsx;
+```
+
+### Step 2: Invoke module functions
+
+#### Parse an XLSX file into typed records
+
+```ballerina
+type Employee record {|
+    string name;
+    int age;
+    string department;
+|};
+
+Employee[] employees = check xlsx:parseSheet("employees.xlsx");
+```
+
+You can also target a specific sheet by name or index, or fall back to a flexible shape:
+
+```ballerina
+Employee[] sales = check xlsx:parseSheet("report.xlsx", "Sales");
+map<xlsx:CellValue>[] rows = check xlsx:parseSheet("unknown.xlsx");
+string[][] raw = check xlsx:parseSheet("anything.xlsx");
+```
+
+#### Write records to an XLSX file
+
+```ballerina
+Employee[] employees = [
+    {name: "John", age: 30, department: "IT"},
+    {name: "Jane", age: 28, department: "HR"}
+];
+
+check xlsx:writeSheet(employees, "output.xlsx", "Employees");
+```
+
+Writing to an existing file preserves every other sheet, table, and formula — only the named sheet is affected. By default the write **fails if that sheet already exists**, so data is never overwritten by accident; pass `sheetWriteMode` to opt in:
+
+```ballerina
+// Replace the sheet's contents, keeping the rest of the workbook.
+check xlsx:writeSheet(employees, "report.xlsx", "Employees", sheetWriteMode = xlsx:REPLACE);
+
+// Append rows below the existing data.
+check xlsx:writeSheet(employees, "report.xlsx", "Employees", sheetWriteMode = xlsx:APPEND);
+```
+
+> **Note:** The write is atomic — on failure the original file is preserved, never partially overwritten.
+
+#### Map non-matching headers with `@xlsx:Name`
+
+When the Excel column header does not match the Ballerina field name, use the `@xlsx:Name` annotation. The mapping is bidirectional — it applies on both parse and write.
+
+```ballerina
+type Employee record {|
+    @xlsx:Name {value: "Employee Name"}
+    string name;
+
+    @xlsx:Name {value: "Years of Service"}
+    int tenure;
+|};
+
+Employee[] employees = check xlsx:parseSheet("employees.xlsx");
+```
+
+#### Work with multiple sheets via the `Workbook` API
+
+```ballerina
+xlsx:Workbook wb = check xlsx:fromFile("report.xlsx");
+
+string[] sheetNames = wb.getSheetNames();
+xlsx:Sheet sales = check wb.getSheet("Sales");
+Employee[] salesRows = check sales.getRows();
+
+xlsx:Sheet summary = check wb.createSheet("Summary");
+check summary.putRows(salesRows);
+
+check wb.save();
+check wb.close();
+```
+
+`Workbook` construction comes in three flavours:
+
+```ballerina
+xlsx:Workbook wb1 = new;                                    // empty in-memory workbook (saveAs required to persist)
+xlsx:Workbook wb2 = check xlsx:fromFile("existing.xlsx");   // open an existing file (errors if missing)
+xlsx:Workbook wb3 = check xlsx:fromBytes(sourceBytes);      // open from a byte array (e.g., SFTP / HTTP body)
+```
+
+To create a brand-new file with a specific name, use `new` (in-memory) followed by `wb.saveAs("path.xlsx")`.
+
+#### Bytes in, bytes out
+
+```ballerina
+byte[] inputBytes = check sftp->get("/in/orders.xlsx");
+xlsx:Workbook wb = check xlsx:fromBytes(inputBytes);
+
+xlsx:Sheet sheet = check wb.getSheet(0);
+Order[] orders = check sheet.getRows();
+// ... enrich orders ...
+check sheet.putRows(orders);
+
+byte[] outputBytes = check wb.toBytes();
+check sftp->put("/out/orders-enriched.xlsx", outputBytes);
+check wb.close();
+```
+
+#### Read and write Excel Tables
+
+Excel Tables (ListObjects) are addressed by name and are unique across the workbook. For one-shot read/write flows, use the tier 1 conveniences:
+
+```ballerina
+Employee[] employees = check xlsx:parseTable("sales.xlsx", "EmployeeTable");
+
+Employee[] newEmployees = [{name: "Alice", age: 31, department: "Eng"}];
+check xlsx:writeTable([...employees, ...newEmployees], "sales.xlsx", "EmployeeTable");
+// writeTable resizes the table's data range to fit the data (grows or shrinks)
+```
+
+For richer operations (totals row, rename, resize, or coordination with other workbook changes), go through the Workbook API:
+
+```ballerina
+xlsx:Workbook wb = check xlsx:fromFile("sales.xlsx");
+xlsx:Table empTable = check wb.getTable("EmployeeTable");
+
+Employee[] employees = check empTable.getRows();
+if check empTable.hasTotalRow() {
+    map<xlsx:CellValue> totals = check empTable.getTotalRow();
+    // ...
+}
+check empTable.putRows([...employees, ...newEmployees]);
+
+check wb.save();
+check wb.close();
+```
+
+#### Bind dates and times to `time:Civil`, `time:Date`, or `time:TimeOfDay`
+
+Declare the field's type to control the shape — typed time records, or ISO 8601 strings:
+
+```ballerina
+import ballerina/time;
+
+type Transaction record {|
+    int id;
+    time:Civil timestamp;      // date-time cell → time:Civil
+    time:Date settledOn;       // date-only cell → time:Date
+    decimal amount;
+|};
+
+Transaction[] txns = check xlsx:parseSheet("transactions.xlsx");
+```
+
+Writing the same record back produces date-formatted cells, not text cells. Use `string` instead of the `time:*` types if you want ISO strings in your record.
+
+#### Continue parsing on row-level errors with fail-safe mode
+
+```ballerina
+Employee[] employees = check xlsx:parseSheet("data.xlsx", 0, {
+    failSafe: {
+        enableConsoleLogs: true,
+        fileOutputMode: {
+            filePath: "./xlsx-errors.log",
+            contentType: RAW_AND_METADATA
+        }
+    }
+});
+```
+
+Rows that fail type conversion or constraint validation are skipped and logged; structural errors (corrupted file, missing sheet) still fail immediately.
+
+### Step 3: Run the Ballerina application
+
+```bash
+bal run
+```
+
+## Examples
+
+The `xlsx` module provides practical examples illustrating usage in various scenarios. Explore these [examples](https://github.com/ballerina-platform/module-ballerina-xlsx/tree/main/examples/), progressing from the simplest Tier 1 read/write loop through multi-sheet workbooks, validation, and in-memory byte pipelines to database and enrichment flows.
+
+1. [Process Employee Data](https://github.com/ballerina-platform/module-ballerina-xlsx/tree/main/examples/process-employee-data) — Tier 1 quickstart. Write employee records, read them back into typed records, filter, write the filtered subset. Demonstrates `parseSheet`, `writeSheet`, and `@xlsx:Name` column mapping.
+2. [Monthly Sales Report](https://github.com/ballerina-platform/module-ballerina-xlsx/tree/main/examples/monthly-sales-report) — Build a multi-sheet workbook with an embedded Excel Table and `time:Date` columns; reopen and query it through the Workbook + Table APIs.
+3. [Validated Bulk Import](https://github.com/ballerina-platform/module-ballerina-xlsx/tree/main/examples/validated-bulk-import) — Parse a partner file with `@constraint` validation and fail-safe error logging — clean rows flow downstream; rejected rows are logged with their raw values and reason.
+4. [In-Memory Pipeline](https://github.com/ballerina-platform/module-ballerina-xlsx/tree/main/examples/in-memory-pipeline) — Process XLSX bytes end-to-end without disk I/O. Demonstrates `xlsx:fromBytes` and `Workbook.toBytes()` — the shape an HTTP service or queue consumer would use.
+5. [Database to Excel](https://github.com/ballerina-platform/module-ballerina-xlsx/tree/main/examples/database-to-excel) — Read rows from a database (in-memory H2, no server to configure), map them onto a consumer's column layout with `@xlsx:Name`, build the workbook with the Workbook API, and serialise it to bytes with `Workbook.toBytes()`.
+6. [Standardize and Enrich](https://github.com/ballerina-platform/module-ballerina-xlsx/tree/main/examples/standardize-and-enrich) — Parse an Excel file's bytes with `xlsx:fromBytes`, map its layout onto a standard schema, enrich each row (region lookup, computed total, customer tier, `time:Date` stamp), and write the result with `writeSheet`.
+
+// --- END README ---
+
+// --- Types ---
+
+# Use the last cached value (default)
+const string CACHED = "CACHED";
+
+# Return the formula text, such as "=SUM(A1:A10)"
+const string TEXT = "TEXT";
+
+# Fail instead of overwriting existing content
+const string FAIL_IF_EXISTS = "FAIL_IF_EXISTS";
+
+# Overwrite existing content in place
+const string REPLACE = "REPLACE";
+
+# Add new content, shifting existing content down to make room
+const string APPEND = "APPEND";
+
+# Log only the metadata: timestamp, location, and message
+const string METADATA = "METADATA";
+
+# Log only the offending row data
+const string RAW = "RAW";
+
+# Log both the row data and the metadata
+const string RAW_AND_METADATA = "RAW_AND_METADATA";
+
+# Overwrite the log on the first error, then append the rest
+const string OVERWRITE = "OVERWRITE";
+
+# Details attached to an XLSX error.
+
+type ErrorDetails record {
+    # Sheet where the error occurred
+    string sheetName?;
+    # Table where the error occurred
+    string tableName?;
+    # Cell address where the error occurred
+    string cellAddress?;
+    # Row number where the error occurred
+    int rowNumber?;
+    # Column number where the error occurred
+    int columnNumber?;
+    # Record field involved in the error
+    string fieldName?;
+};
+
+// Unknown type: Error
+
+// Unknown type: ParseError
+
+// Unknown type: FileNotFoundError
+
+// Unknown type: SheetNotFoundError
+
+// Unknown type: SheetExistsError
+
+// Unknown type: TypeConversionError
+
+// Unknown type: ConstraintValidationError
+
+// Unknown type: TableNotFoundError
+
+// Unknown type: TableExistsError
+
+// Unknown type: TableOverlapError
+
+// Unknown type: InvalidTableRangeError
+
+# A worksheet in a workbook, with methods to read and write rows, columns, cells, and tables.
+# Obtained from a `Workbook` (for example `getSheet` or `createSheet`); not constructed directly.
+class Sheet {
+}
+
+# An Excel Table (ListObject) in a worksheet, with automatic header handling, an optional totals
+# row, and auto-resize on write. Table names are unique across the workbook.
+# 
+# Obtained from a `Workbook` or `Sheet` (for example `getTable` or `createTable`); not constructed
+# directly.
+# 
+# ```ballerina
+# xlsx:Table empTable = check wb.getTable("EmployeeTable");
+# Employee[] employees = check empTable.getRows();
+# check empTable.putRows(newEmployees);
+# ```
+class Table {
+}
+
+# How to read cells that contain a formula.
+enum FormulaMode {
+    TEXT,
+    CACHED
+}
+
+# How a sheet write treats content already at the target.
+enum SheetWriteMode {
+    APPEND,
+    REPLACE,
+    FAIL_IF_EXISTS
+}
+
+# How `writeTable` / `Table.putRows` treats the table's existing data.
+# 
+# `REPLACE` (default) replaces the data and resizes the range to fit; `APPEND` adds rows below it.
+# A table always has a data region, so there is no `FAIL_IF_EXISTS`.
+enum TableWriteMode {
+    APPEND,
+    REPLACE
+}
+
+# Maps a record field to an Excel column header when the two names differ.
+# Applies on both read and write; fields without it use the field name as the header.
+
+type NameConfig record {
+    # The Excel column header to map to this field
+    string value;
+};
+
+# Read options shared by every read operation; the common base of all read-option records.
+
+type CommonParseOptions record {
+    # How to read formula cells (default: CACHED)
+    FormulaMode formulaMode?;
+    # Match headers case-insensitively, so "Name" matches field `name` (default: false)
+    boolean caseInsensitiveHeaders?;
+};
+
+# Read options for sheets, which address rows by absolute position.
+
+type CommonSheetParseOptions record {
+    # 0-based row holding the column headers (default: 0). Set to `null` for no headers, which
+names columns `col0`, `col1`, and so on. Ignored when reading into `string[][]`.
+    int? headerRowIndex?;
+    # 0-based row where data begins (default: `headerRowIndex` + 1, or 0 when there are no headers)
+    int dataStartRowIndex?;
+    FormulaMode formulaMode?;
+    boolean caseInsensitiveHeaders?;
+};
+
+# Data projection for record and map reads.
+# 
+# As `{}` (default) extra columns are ignored; as `false` every record field must have a column.
+
+type DataProjection record {
+    # Treat nil cells as absent for optional fields (default: false)
+    boolean nilAsOptionalField?;
+    # Allow missing columns for nilable fields (default: false)
+    boolean absentAsNilableType?;
+};
+
+# Options for bulk sheet reads (`parseSheet`, `Sheet.getRows`).
+
+type ParseOptions record {
+    # Maximum number of data rows to read (default: all)
+    int rowCount?;
+    # Validate parsed records against their `@constraint` annotations (default: true)
+    boolean enableConstraintValidation?;
+    # Data projection: `{}` ignores extra columns (default), `false` requires an exact match
+    DataProjection|false allowDataProjection?;
+    # Skip and log row-level errors instead of failing the read
+    FailSafeOptions failSafe?;
+    int? headerRowIndex?;
+    int dataStartRowIndex?;
+    FormulaMode formulaMode?;
+    boolean caseInsensitiveHeaders?;
+};
+
+# Fail-safe parsing: skip and log row-level errors instead of failing the read.
+# Structural errors (corrupted file, missing sheet, header errors) always fail immediately.
+
+type FailSafeOptions record {
+    # Log errors to the console (default: true)
+    boolean enableConsoleLogs?;
+    # Include the offending row data in console output (default: false)
+    boolean includeSourceDataInConsole?;
+    # Also write errors to a file
+    FileOutputMode fileOutputMode?;
+};
+
+# File-based error logging, written to when set in `FailSafeOptions`.
+
+type FileOutputMode record {
+    # Path to the error log file (required)
+    string filePath;
+    # What to include in each log entry (default: METADATA)
+    ErrorLogContentType contentType?;
+    # How to write the log file (default: APPEND)
+    FileWriteOption fileWriteOption?;
+};
+
+# What to include when logging parsing errors.
+enum ErrorLogContentType {
+    RAW_AND_METADATA,
+    RAW,
+    METADATA
+}
+
+# How to write the error log file (default: `APPEND`, which adds to the existing file).
+enum FileWriteOption {
+    OVERWRITE,
+    APPEND
+}
+
+# Options for reading a single sheet row (`Sheet.getRow`). Fail-fast: no `failSafe` or `rowCount`.
+
+type RowParseOptions record {
+    # Validate the parsed record against its `@constraint` annotations (default: true)
+    boolean enableConstraintValidation?;
+    # Data projection: `{}` ignores extra columns (default), `false` requires an exact match
+    DataProjection|false allowDataProjection?;
+    int? headerRowIndex?;
+    int dataStartRowIndex?;
+    FormulaMode formulaMode?;
+    boolean caseInsensitiveHeaders?;
+};
+
+# Options for reading a single column (`Sheet.getColumn`).
+
+type ColumnParseOptions record {
+    # Maximum number of cells to read (default: all)
+    int rowCount?;
+    int? headerRowIndex?;
+    int dataStartRowIndex?;
+    FormulaMode formulaMode?;
+    boolean caseInsensitiveHeaders?;
+};
+
+# Options for bulk table reads (`parseTable`, `Table.getRows`).
+
+type TableParseOptions record {
+    # Maximum number of data rows to read (default: all)
+    int rowCount?;
+    # Validate parsed records against their `@constraint` annotations (default: true)
+    boolean enableConstraintValidation?;
+    # Data projection: `{}` ignores extra columns (default), `false` requires an exact match
+    DataProjection|false allowDataProjection?;
+    # Skip and log row-level errors instead of failing the read
+    FailSafeOptions failSafe?;
+    FormulaMode formulaMode?;
+    boolean caseInsensitiveHeaders?;
+};
+
+# Options for reading a single table row (`Table.getRow`). Fail-fast: no `failSafe` or `rowCount`.
+
+type TableRowParseOptions record {
+    # Validate the parsed record against its `@constraint` annotations (default: true)
+    boolean enableConstraintValidation?;
+    # Data projection: `{}` ignores extra columns (default), `false` requires an exact match
+    DataProjection|false allowDataProjection?;
+    FormulaMode formulaMode?;
+    boolean caseInsensitiveHeaders?;
+};
+
+# Options for `Sheet.putRows`.
+
+type WriteOptions record {
+    # Write a header row from field names or map keys (default: true; ignored for `string[][]`)
+    boolean writeHeaders?;
+    # 0-based target row. Omitted, uses the mode's natural point: the end of the data for
+`APPEND`, row 0 otherwise.
+    int startRowIndex?;
+    # How to treat existing content at the target (default: `APPEND`)
+    SheetWriteMode sheetWriteMode?;
+};
+
+# Options for `writeSheet`.
+
+type SheetWriteOptions record {
+    # Write a header row from field names or map keys (default: true; ignored for `string[][]`)
+    boolean writeHeaders?;
+    # 0-based row where a fresh write starts (default: 0). Used by `FAIL_IF_EXISTS` and `REPLACE`;
+ignored by `APPEND`, which writes below the existing data.
+    int startRowIndex?;
+    # How to treat the sheet when it already exists (default: `FAIL_IF_EXISTS`). `REPLACE` drops
+and recreates the sheet, discarding its tables and formatting.
+    SheetWriteMode sheetWriteMode?;
+};
+
+# Options for writing a single row (`Sheet.setRow`).
+
+type RowWriteOptions record {
+    # 0-based row holding the headers, used to align a record or map by name (default: 0).
+Ignored for `string[]` data, which is written positionally.
+    int headerRowIndex?;
+    # How to treat existing content at the target row (default: `REPLACE`)
+    SheetWriteMode sheetWriteMode?;
+};
+
+# Options for `writeTable` / `Table.putRows`.
+
+type TableWriteOptions record {
+    # How to treat the table's existing data (default: `REPLACE`)
+    TableWriteMode tableWriteMode?;
+    # For `APPEND`, the 0-based data-row index to insert at; omitted, appends at the end.
+Ignored by `REPLACE`.
+    int insertAt?;
+};
+
+# An XLSX cell value: a string, number (int/float/decimal), boolean, date/time, or `()` for a blank cell.
+type CellValue string|int|float|decimal|boolean|ballerina/time:2.8.1:Date|ballerina/time:2.8.1:Civil|ballerina/time:2.8.1:TimeOfDay|();
+
+# A single row: either a `map<CellValue>` keyed by column header, or a `string[]` of cell text
+# in column order. A typed record also binds when every field type is a subtype of `CellValue`.
+type Row map<ballerina/xlsx:1.0.1:CellValue>|string[];
+
+# A rectangular cell range in a sheet, with all indices 0-based.
+
+type CellRange record {
+    # First row index (0-based)
+    int firstRowIndex;
+    # Last row index (0-based)
+    int lastRowIndex;
+    # First column index (0-based)
+    int firstColumnIndex;
+    # Last column index (0-based)
+    int lastColumnIndex;
+};
+
+# Location within an XLSX file where an error occurred.
+
+type Location record {
+    # Row number (1-based, as displayed in Excel)
+    int row;
+    # Column number (1-based)
+    int column;
+};
+
+# The structured JSON written to error log files.
+
+type LogOutput record {
+    # ISO 8601 timestamp of the error
+    string time?;
+    # Row and column where the error occurred
+    Location location?;
+    # The error message
+    string message?;
+    # The offending row data (only with RAW_AND_METADATA)
+    string offendingRow?;
+};
+
+// Unknown type: Workbook
+
+// --- Functions ---
+
+# Parse a sheet from an XLSX file into records, maps, or a string grid.
+# 
+# ```ballerina
+# Employee[] employees = check xlsx:parseSheet("employees.xlsx");
+# ```
+# 
+# + path - Path to the XLSX file
+# + sheet - Sheet name or 0-based index (default: 0, the first sheet)
+# + options - Parse options
+# + t - Target row type
+# + return - Parsed rows or an error
+function parseSheet(string path, string|int sheet = 0, ParseOptions options = {}, map<xlsx:CellValue>|string[] t = xlsx:Row) returns t[]|Error;
+
+# Write rows to a sheet in an XLSX file, creating the file if it does not exist.
+# 
+# Only the named sheet is affected; other sheets, their tables, and formulas are preserved.
+# By default the write fails if the sheet already exists.
+# 
+# ```ballerina
+# Employee[] employees = [{name: "John", age: 30}];
+# check xlsx:writeSheet(employees, "staff.xlsx", "Employees");
+# ```
+# 
+# + data - Rows to write (records, maps, or string arrays)
+# + path - Path to the XLSX file
+# + sheetName - Target sheet name (default: "Sheet1")
+# + writeHeaders - Write a header row from field names or map keys (default: true; ignored for `string[][]`)
+# + startRowIndex - 0-based row where a fresh write starts (default: 0). Used by `FAIL_IF_EXISTS` and `REPLACE`;
+ignored by `APPEND`, which writes below the existing data.
+# + sheetWriteMode - How to treat the sheet when it already exists (default: `FAIL_IF_EXISTS`). `REPLACE` drops
+and recreates the sheet, discarding its tables and formatting.
+# + options - Write options
+# + return - An error if the write fails, or if the sheet exists under FAIL_IF_EXISTS
+function writeSheet(Row[] data, string path, string sheetName = "Sheet1", boolean writeHeaders = true, int startRowIndex = 0, SheetWriteMode sheetWriteMode = FAIL_IF_EXISTS, SheetWriteOptions options) returns Error|();
+
+# Parse an Excel table by name into records, maps, or a string grid.
+# 
+# Table names are unique across the workbook, so no sheet is needed. Headers and any totals
+# row are excluded.
+# 
+# ```ballerina
+# Employee[] employees = check xlsx:parseTable("sales.xlsx", "EmployeeTable");
+# ```
+# 
+# + path - Path to the XLSX file
+# + tableName - Name of the table to parse
+# + options - Table parse options
+# + t - Target row type
+# + return - Parsed rows or an error such as `TableNotFoundError`
+function parseTable(string path, string tableName, TableParseOptions options = {}, map<xlsx:CellValue>|string[] t = xlsx:Row) returns t[]|Error;
+
+# Write rows to an existing Excel table, resizing its data range to fit.
+# 
+# By default the table's data is replaced; `tableWriteMode = APPEND` adds rows below it instead.
+# 
+# ```ballerina
+# check xlsx:writeTable(employees, "sales.xlsx", "EmployeeTable");
+# ```
+# 
+# + data - Rows to write (records, maps, or string arrays)
+# + path - Path to the XLSX file containing the table
+# + tableName - Name of the table to write to
+# + tableWriteMode - How to treat the table's existing data (default: `REPLACE`)
+# + insertAt - For `APPEND`, the 0-based data-row index to insert at; omitted, appends at the end.
+Ignored by `REPLACE`.
+# + options - Table write options
+# + return - A `TableNotFoundError`, a `TableOverlapError` if a resize collides, or another error
+function writeTable(Row[] data, string path, string tableName, TableWriteMode tableWriteMode = REPLACE, int insertAt = 0, TableWriteOptions options) returns Error|();
+
+# Open an XLSX workbook from a file path.
+# 
+# To create a new file, use `new` and then `saveAs(path)`.
+# 
+# + path - Path to the XLSX file
+# + return - The opened workbook, or an error if the path is missing or the file is invalid
+function fromFile(string path) returns Workbook|Error;
+
+# Open an XLSX workbook from an in-memory byte array.
+# 
+# The workbook has no associated file; use `saveAs(path)` to persist it.
+# 
+# + sourceBytes - XLSX content as a byte array
+# + return - The opened workbook, or an error if the bytes are invalid
+function fromBytes(byte[] sourceBytes) returns Workbook|Error;

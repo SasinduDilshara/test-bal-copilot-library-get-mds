@@ -1,6 +1,6 @@
 # Copilot library renders — `old/` and `new/`
 
-Both sides render the same 162 libraries at the **exact versions pinned in `CLAUDE.md`**
+Both sides render the same 206 libraries at the **exact versions pinned in `CLAUDE.md`**
 (Ballerina 2201.13.4, Swan Lake Update 13). Per-library pinned-vs-resolved evidence is in `versions.txt`.
 
 | | `old/` | `new/` |
@@ -25,13 +25,13 @@ Directory name is the org-stripped `<library_name>`; file names keep the `<org>_
 
 | | `old/` | `new/` |
 |---|---|---|
-| Libraries | 162 | 162 |
-| JSON produced | **162** (46.8 MB) | **162** (51.2 MB) |
-| Renders produced | **162** (13.9 MB) | **162** (15.2 MB) |
-| Resolved at pinned version | **162 / 162** | **162 / 162** |
+| Libraries | 206 | 206 |
+| JSON produced | **206** (48.4 MB) | **206** (52.8 MB) |
+| Renders produced | **206** (14.5 MB) | **206** (15.9 MB) |
+| Resolved at pinned version | **206 / 206** | **206 / 206** |
 | Stage-1 failures | 0 | 0 |
 | Render failures | 0 (after the mcp patch below) | 0 |
-| `// Unknown type:` lines | **2,370** across 101 libs | **0** |
+| `// Unknown type:` lines | **2,656** across 141 libs | **0** |
 
 ## How the pinning was enforced (it differs between the two)
 
@@ -48,12 +48,25 @@ confirming no library had a **newer**-than-pinned version there that would win i
 The renders use it, so pinning here is direct rather than inferred.
 
 In both cases the probe recorded the version actually resolved for every library and compared it to
-the pinned table; all 162 returned `PIN_OK` on both sides.
+the pinned table; all 206 returned `PIN_OK` on both sides.
 
 This mattered. An early pass without a pinned home silently rendered **22 libraries at older
 versions** — `openai.chat` 4.0.1 (pinned 5.0.0), `github` 5.1.0 (6.0.0), `salesforce` 8.4.0 (8.7.0),
 `mysql`/`postgresql`/`mssql` at 1.17–1.18 (1.19.0) — and left 112 unresolved. Those renders looked
 complete and plausible; only the resolved-version check exposed them.
+
+## Library set
+
+The set grew from 162 to **206**. The 44 added libraries are the `module-ballerina-*` repositories in
+the `ballerina-platform` GitHub organisation that were absent from the list and are published to
+Ballerina Central, pinned at their latest Central version at the time of the run.
+
+Four `module-ballerina-*` repositories were deliberately **excluded** — they have no package on
+Central, so there is nothing to resolve or render: `ballerina/c2c`, `ballerina/docker`,
+`ballerina/kubernetes`, `ballerina/data.toml`.
+
+The 44 were rendered with `.claude/skills/render-copilot-libraries`, which enforces the same gates
+described above.
 
 ## Deviation from source
 
@@ -66,7 +79,7 @@ complete and plausible; only the resolved-version check exposed them.
 
 `to-syntax-string.ts:440` (`renderFixedService`). Without it `ballerina/mcp` crashes with
 `TypeError: service.methods is not iterable` — its single fixed service carries only
-`type,name,listener`, so `methods` is `undefined`. Re-rendering all 162 with the patch changed
+`type,name,listener`, so `methods` is `undefined`. Re-rendering all 162 (the original set) with the patch changed
 **only** `ballerina_mcp.bal.txt`, verified by checksum comparison of every render before and after.
 
 **`new/` required no patch** — spec v2 rewrites `to-syntax-string.ts` (2,459 lines vs 592) and the
@@ -79,7 +92,7 @@ removed after each run.
 
 **Type coverage is the headline.** In `main`, `renderTypeDef` handles only Record, Enum, Union,
 Constant, and Class; `Error`, untagged object types, and `Other` fall through to a bare
-`// Unknown type: <name>` comment with no members — 2,370 such lines across 101 of the 162 renders
+`// Unknown type: <name>` comment with no members — 2,656 such lines across 141 of the 206 renders
 (worst: `stripe` 610, `discord` 421, `sap.s4hana.api_sales_order_srv` 167, `http` 155). **Spec v2
 emits none.** `ballerinax/copybook` shows it concretely:
 
@@ -115,7 +128,7 @@ the spec-v2 diff above shows.
 
 ## Verification performed
 
-- All 324 JSON files parse; each top-level `name` matches its `org/name`.
-- All 324 renders carry the matching `// Library: <org>/<name>` header for their directory.
+- All 412 JSON files parse; each top-level `name` matches its `org/name`.
+- All 412 renders carry the matching `// Library: <org>/<name>` header for their directory.
 - No empty, missing, or unexpected files in any `old/` or `new/` directory.
-- Both stage-1 runs reported `PIN_OK` for all 162 libraries against the `CLAUDE.md` table.
+- Both stage-1 runs reported `PIN_OK` for all 206 libraries against the `CLAUDE.md` table.

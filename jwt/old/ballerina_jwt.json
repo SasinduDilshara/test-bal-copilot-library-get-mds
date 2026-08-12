@@ -1,0 +1,847 @@
+{
+  "name": "ballerina/jwt",
+  "description": "This module provides a framework for authentication/authorization with JWTs and generation/validation of JWTs as specified in the [RFC 7519](https://datatracker.ietf.org/doc/html/rfc7519), [RFC 7515](https://datatracker.ietf.org/doc/html/rfc7515), and [RFC 7517](https://datatracker.ietf.org/doc/html/rfc7517).",
+  "readme": "## Overview\n\nThis module provides a framework for authentication/authorization with JWTs and generation/validation of JWTs as specified in the [RFC 7519](https://datatracker.ietf.org/doc/html/rfc7519), [RFC 7515](https://datatracker.ietf.org/doc/html/rfc7515), and [RFC 7517](https://datatracker.ietf.org/doc/html/rfc7517).\n\nJSON Web Token (JWT) is a compact, URL-safe means of representing claims to be transferred between two parties. The claims in a JWT are encoded as a JSON object that is used as the payload of a JSON Web Signature (JWS) structure or as the plaintext of a JSON Web Encryption (JWE) structure enabling the claims to be signed digitally or protecting the integrity with a Message Authentication Code(MAC) and/or encrypted.\n\nThe Ballerina `jwt` module facilitates auth providers that are to be used by the clients and listeners of different protocol connectors. Also, it provides the APIs for issuing a self-signed JWT and validating a JWT.\n\n### Listener JWT Auth provider\n\nRepresents the listener JWT Auth provider, which is used to authenticate the provided credentials (JWT) against the provided JWT validator configurations.\n\n### Client JWT Auth provider\n\nRepresents the client JWT Auth provider, which is used to authenticate with an external endpoint by issuing a self-signed JWT against the provided JWT issuer configurations.\n\n### JWT issuer\n\nA self-signed JWT can be issued with the provided configurations using this API as follows:\n\n```ballerina\njwt:IssuerConfig issuerConfig \u003d {\n    username: \"ballerina\",\n    issuer: \"wso2\",\n    audience: \"vEwzbcasJVQm1jVYHUHCjhxZ4tYa\",\n    expTime: 3600,\n    signatureConfig: {\n        config: {\n            keyFile: \"/path/to/private.key\"\n        }\n    }\n};\n\nstring jwt \u003d check jwt:issue(issuerConfig);\n```\n\n### JWT validator\n\nA JWT can be validated with the provided configurations using the API as follows:\n\n```ballerina\nstring jwt \u003d \"eyJ0eXAiOiJKV1QiLA0KI[...omitted for brevity...]mB92K27uhbwW1gFWFOEjXk\";\n\njwt:ValidatorConfig validatorConfig \u003d {\n    issuer: \"wso2\",\n    audience: \"vEwzbcasJVQm1jVYHUHCjhxZ4tYa\",\n    clockSkew: 60,\n    signatureConfig: {\n        certFile: \"/path/to/public.crt\"\n    }\n};\n\njwt:Payload result \u003d check jwt:validate(jwt, validatorConfig);\n```\n",
+  "typeDefs": [
+    {
+      "name": "RS256",
+      "description": "The `RSA-SHA256` algorithm.",
+      "type": "Constant",
+      "value": "RS256",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "RS384",
+      "description": "The `RSA-SHA384` algorithm.",
+      "type": "Constant",
+      "value": "RS384",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "RS512",
+      "description": "The `RSA-SHA512` algorithm.",
+      "type": "Constant",
+      "value": "RS512",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "HS256",
+      "description": "The `HMAC-SHA256` algorithm.",
+      "type": "Constant",
+      "value": "HS256",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "HS384",
+      "description": "The `HMAC-SHA384` algorithm.",
+      "type": "Constant",
+      "value": "HS384",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "HS512",
+      "description": "The `HMAC-SHA512` algorithm.",
+      "type": "Constant",
+      "value": "HS512",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "NONE",
+      "description": "Unsecured JWS (no signing).",
+      "type": "Constant",
+      "value": "none",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "HTTP_1_1",
+      "description": "",
+      "type": "Constant",
+      "value": "HTTP_1_1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "HTTP_2",
+      "description": "",
+      "type": "Constant",
+      "value": "HTTP_2",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "SigningAlgorithm",
+      "description": "Represents the cryptographic algorithms used to secure the JWS.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "\"RS256\"",
+          "type": {
+            "name": "\"RS256\""
+          }
+        },
+        {
+          "name": "\"RS384\"",
+          "type": {
+            "name": "\"RS384\""
+          }
+        },
+        {
+          "name": "\"RS512\"",
+          "type": {
+            "name": "\"RS512\""
+          }
+        },
+        {
+          "name": "\"HS256\"",
+          "type": {
+            "name": "\"HS256\""
+          }
+        },
+        {
+          "name": "\"HS384\"",
+          "type": {
+            "name": "\"HS384\""
+          }
+        },
+        {
+          "name": "\"HS512\"",
+          "type": {
+            "name": "\"HS512\""
+          }
+        },
+        {
+          "name": "\"none\"",
+          "type": {
+            "name": "\"none\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "Header",
+      "description": "Represents JWT header.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "alg",
+          "description": "Cryptographic algorithm used to secure the JWS",
+          "type": {
+            "name": "SigningAlgorithm",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SigningAlgorithm"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "typ",
+          "description": "Media type of the JWT",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "cty",
+          "description": "Content type, convey structural information about the JWT",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "kid",
+          "description": "Key ID, hint indicating which key was used to secure the JWS",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Payload",
+      "description": "Represents JWT payload.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "iss",
+          "description": "Issuer, identifies the principal that issued the JWT",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "sub",
+          "description": "Subject, identifies the principal that is the subject of the JWT",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "aud",
+          "description": "Audience, identifies the recipients that the JWT is intended for",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "exp",
+          "description": "Expiration time, identifies the expiration time (seconds since the Epoch) on or after which the JWT must not be accepted",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "nbf",
+          "description": "Not before, identifies the time (seconds since the Epoch) before which the JWT must not be accepted",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "iat",
+          "description": "Issued at, identifies the time (seconds since the Epoch) at which the JWT was issued",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "jti",
+          "description": "JWT ID, unique identifier for the JWT",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Error",
+      "description": "Represents the error type of the module. This will be returned if an error occurred while issuing/validating a JWT\nor any operation related to JWT auth providers.",
+      "type": "Error"
+    },
+    {
+      "name": "IssuerConfig",
+      "description": "Represents JWT issuer configurations.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "issuer",
+          "description": "JWT issuer, which is mapped to the `iss`",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "username",
+          "description": "JWT username, which is mapped to the `sub`",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "audience",
+          "description": "JWT audience, which is mapped to the `aud`",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "jwtId",
+          "description": "JWT ID, which is mapped to the `jti`",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "keyId",
+          "description": "JWT key ID, which is mapped the `kid`",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "customClaims",
+          "description": "Map of custom claims",
+          "type": {
+            "name": "map\u003cjson\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "expTime",
+          "description": "Expiry time in seconds",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "signatureConfig",
+          "description": "JWT signature configurations",
+          "type": {
+            "name": "IssuerSignatureConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "IssuerSignatureConfig"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "IssuerSignatureConfig",
+      "description": "Represents JWT signature configurations.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "algorithm",
+          "description": "Cryptographic signing algorithm for JWS",
+          "type": {
+            "name": "SigningAlgorithm",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SigningAlgorithm"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "config",
+          "description": "KeyStore configurations, private key configurations, `crypto:PrivateKey` or shared key configurations",
+          "type": {
+            "name": "record {|ballerina/crypto:2.12.1:KeyStore keyStore; string keyAlias; string keyPassword;|}|record {|string keyFile; string keyPassword?;|}|PrivateKey|string",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "PrivateKey",
+                "libraryName": "ballerina/crypto"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ValidatorConfig",
+      "description": "Represents JWT validator configurations.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "issuer",
+          "description": "Expected issuer, which is mapped to the `iss`",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "username",
+          "description": "Expected username, which is mapped to the `sub`",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "audience",
+          "description": "Expected audience, which is mapped to the `aud`",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "jwtId",
+          "description": "Expected JWT ID, which is mapped to the `jti`",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "keyId",
+          "description": "Expected JWT key ID, which is mapped the `kid`",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "customClaims",
+          "description": "Expected map of custom claims",
+          "type": {
+            "name": "map\u003cjson\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "clockSkew",
+          "description": "Clock skew (in seconds) that can be used to avoid token validation failures due to clock synchronization problems",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "signatureConfig",
+          "description": "JWT signature configurations",
+          "type": {
+            "name": "ValidatorSignatureConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ValidatorSignatureConfig"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "cacheConfig",
+          "description": "Configurations related to the cache, which are used to store parsed JWT information",
+          "type": {
+            "name": "CacheConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CacheConfig",
+                "libraryName": "ballerina/cache"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ValidatorSignatureConfig",
+      "description": "Represents JWT signature configurations.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "jwksConfig",
+          "description": "JWKS configurations",
+          "type": {
+            "name": "record {|string url; ballerina/cache:3.10.0:CacheConfig cacheConfig?; ballerina/jwt:2.15.1:ClientConfiguration clientConfig;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "certFile",
+          "description": "Public certificate file path or a `crypto:PublicKey`",
+          "type": {
+            "name": "string|PublicKey",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "PublicKey",
+                "libraryName": "ballerina/crypto"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "trustStoreConfig",
+          "description": "JWT TrustStore configurations",
+          "type": {
+            "name": "record {|ballerina/crypto:2.12.1:TrustStore trustStore; string certAlias;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "secret",
+          "description": "HMAC secret configuration",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ClientConfiguration",
+      "description": "Represents the configurations of the client used to call the JWKS endpoint.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "httpVersion",
+          "description": "The HTTP version of the client",
+          "type": {
+            "name": "HttpVersion",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "HttpVersion"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "SSL/TLS-related configurations",
+          "type": {
+            "name": "SecureSocket",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SecureSocket"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "HttpVersion",
+      "description": "Represents the HTTP versions.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "HTTP_2",
+          "description": ""
+        },
+        {
+          "name": "HTTP_1_1",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "SecureSocket",
+      "description": "Represents the SSL/TLS configurations.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "disable",
+          "description": "Disable SSL validation",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "cert",
+          "description": "Configurations associated with the `crypto:TrustStore` or single certificate file that the client trusts",
+          "type": {
+            "name": "TrustStore|string",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "TrustStore",
+                "libraryName": "ballerina/crypto"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "key",
+          "description": "Configurations associated with the `crypto:KeyStore` or combination of certificate and private key of the client",
+          "type": {
+            "name": "KeyStore|CertKey",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "KeyStore",
+                "libraryName": "ballerina/crypto"
+              },
+              {
+                "category": "internal",
+                "recordName": "CertKey"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "CertKey",
+      "description": "Represents the combination of the certificate file path, private key file path, and private key password if encrypted.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "certFile",
+          "description": "A file containing the certificate",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "keyFile",
+          "description": "A file containing the private key",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "keyPassword",
+          "description": "Password of the private key (if encrypted)",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ClientSelfSignedJwtAuthProvider",
+      "description": "Provides authentication based on the provided JWT configurations.\n",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Provides authentication based on the provided JWT configurations.\n",
+          "parameters": [
+            {
+              "name": "issuerConfig",
+              "description": "JWT issuer configurations",
+              "type": {
+                "name": "IssuerConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "IssuerConfig"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        },
+        {
+          "name": "generateToken",
+          "type": "Normal Function",
+          "description": "Issues a self-signed JWT for authentication.\n```ballerina\nstring token \u003d check provider.generateToken();\n```\n",
+          "parameters": [],
+          "return": {
+            "description": "Generated token or else a `jwt:Error` if an error occurred",
+            "type": {
+              "name": "string|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ListenerJwtAuthProvider",
+      "description": "Provides authentication based on the provided JWT.\n",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Provides authentication based on the provided JWT.\n",
+          "parameters": [
+            {
+              "name": "validatorConfig",
+              "description": "JWT validator configurations",
+              "type": {
+                "name": "ValidatorConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ValidatorConfig"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        },
+        {
+          "name": "authenticate",
+          "type": "Normal Function",
+          "description": "Authenticates the provided JWT.\n```ballerina\nboolean result \u003d check provider.authenticate(\"\u003ccredential\u003e\");\n```\n",
+          "parameters": [
+            {
+              "name": "credential",
+              "description": "JWT to be authenticated",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "`jwt:Payload` if authentication is successful or else a `jwt:Error` if an error occurred",
+            "type": {
+              "name": "Payload|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Payload"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "clients": [],
+  "functions": [
+    {
+      "name": "issue",
+      "type": "Normal Function",
+      "description": "Issues a JWT based on the provided configurations. JWT will be signed (JWS) if `crypto:KeyStore` information is\nprovided in the `jwt:KeyStoreConfig` and the `jwt:SigningAlgorithm` is not `jwt:NONE`.\n```ballerina\nstring jwt \u003d check jwt:issue(issuerConfig);\n```\n",
+      "parameters": [
+        {
+          "name": "issuerConfig",
+          "description": "JWT issuer configurations",
+          "type": {
+            "name": "IssuerConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "IssuerConfig"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "JWT as a `string` or else a `jwt:Error` if an error occurred",
+        "type": {
+          "name": "string|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "validate",
+      "type": "Normal Function",
+      "description": "Validates the provided JWT, against the provided configurations.\n```ballerina\njwt:Payload result \u003d check jwt:validate(jwt, validatorConfig);\n```\n",
+      "parameters": [
+        {
+          "name": "jwt",
+          "description": "JWT that needs to be validated",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "validatorConfig",
+          "description": "JWT validator configurations",
+          "type": {
+            "name": "ValidatorConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ValidatorConfig"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "`jwt:Payload` or else a `jwt:Error` if an error occurred",
+        "type": {
+          "name": "Payload|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Payload"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "decode",
+      "type": "Normal Function",
+      "description": "Decodes the provided JWT into the header and payload.\n```ballerina\n[jwt:Header, jwt:Payload] [header, payload] \u003d check jwt:decode(jwt);\n```\n",
+      "parameters": [
+        {
+          "name": "jwt",
+          "description": "JWT that needs to be decoded",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "The `jwt:Header` and `jwt:Payload` as a tuple or else a `jwt:Error` if an error occurred",
+        "type": {
+          "name": "[ballerina/jwt:2.15.1:Header, ballerina/jwt:2.15.1:Payload]|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "services": [],
+  "annotations": []
+}

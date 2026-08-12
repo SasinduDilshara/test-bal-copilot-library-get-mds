@@ -1,0 +1,356 @@
+// ============================================================
+// Library: ballerina/io
+// This module provides file read/write APIs and console print/read APIs. The file APIs allow read and write operations on different kinds of file types such as bytes, text, CSV, JSON, and XML. Further, these file APIs can be categorized as streaming and non-streaming APIs.
+// ============================================================
+import ballerina/io;
+
+// --- README ---
+## Overview
+
+This module provides file read/write APIs and console print/read APIs. The file APIs allow read and write operations on different kinds of file types such as bytes, text, CSV, JSON, and XML. Further, these file APIs can be categorized as streaming and non-streaming APIs.
+
+The following diagram depicts the overview architecture of the I/O package.
+
+![Architecture Diagram](https://raw.githubusercontent.com/ballerina-platform/module-ballerina-io/master/ballerina/docs/architecture.svg)
+
+The file I/O operations can be categorized further based on the serialization and deserialization types such as:
+- Bytes I/O
+- Strings I/O
+- CSV I/O
+- JSON I/O
+- XML I/O
+
+### Console I/O
+The console I/O APIs, which help you to read from the console as well as write to the console are as follows.
+- `io:print`
+- `io:println`
+- `io:readln`
+
+### Bytes I/O
+The bytes I/O APIs provide the reading and writing APIs in both streaming and non-streaming ways. Those APIs are,
+- `io:fileReadBytes`
+- `io:fileReadBlocksAsStream`
+- `io:fileWriteBytes`
+- `io:fileWriteBlocksFromStream`
+
+### Strings I/O
+The strings I/O APIs provide the reading and writing APIs in 3 different ways:
+1. Read the complete file content as a string and write a given string to a file
+2. Read the complete file content as a set of lines and write a given set of lines to a file
+3. Read the complete file content as a stream of lines and write a given stream of lines to a file
+
+The strings I/O APIs are as follows:
+- `io:fileReadString`
+- `io:fileReadLines`
+- `io:fileReadLinesAsStream`
+- `io:fileWriteLines`
+- `io:fileWriteLinesFromStream`
+
+### CSV I/O
+The CSV I/O APIs provide the reading and writing APIs in both streaming and non-streaming ways. Those APIs are:
+- `io:fileReadCsv`
+- `io:fileReadCsvAsStream`
+- `io:fileWriteCsv`
+- `io:fileWriteCsvFromStream`
+
+### JSON I/O
+The JSON I/O APIs provide the reading and writing APIs for JSON content. Those APIs are:
+- `io:fileReadJson`
+- `io:fileWriteJson`
+
+### XML I/O
+The XML I/O APIs provide the reading and writing APIs for XML content. Those APIs are:
+- `io:fileReadXml`
+- `io:fileWriteXml`
+
+// --- END README ---
+
+// --- Types ---
+
+# The default value is the format specified by the CSVChannel. Precedence will be given to the field separator and record separator.
+const string DEFAULT = "default";
+
+# Field separator will be "," and the record separator will be a new line.
+const string CSV = "csv";
+
+# Field separator will be a tab and the record separator will be a new line.
+const string TDF = "tdf";
+
+# Comma (,) will be used as the field separator.
+const string COMMA = ",";
+
+# Tab (/t) will be use as the field separator.
+const string TAB = "	";
+
+# Colon (:) will be use as the field separator.
+const string COLON = ":";
+
+# New line character.
+const string NEW_LINE = "
+";
+
+# Default encoding for the abstract read/write APIs.
+const string DEFAULT_ENCODING = "UTF8";
+
+# Represents the standard output stream.
+const int stdout = 1;
+
+# Represents the standard error stream.
+const int stderr = 2;
+
+const string OVERWRITE = "OVERWRITE";
+
+const string APPEND = "APPEND";
+
+const string DOCUMENT_ENTITY = "DOCUMENT_ENTITY";
+
+const string EXTERNAL_PARSED_ENTITY = "EXTERNAL_PARSED_ENTITY";
+
+# Represents the record separator of the CSV file.
+const string CSV_RECORD_SEPARATOR = "
+";
+
+# Represents the colon separator, which should be used to identify colon-separated files.
+const string FS_COLON = ":";
+
+# Represents the minimum number of headers, which will be included in the CSV.
+const int MINIMUM_HEADER_COUNT = 0;
+
+# Specifies the bytes to be in the order of most significant byte first.
+const string BIG_ENDIAN = "BE";
+
+# Specifies the byte order to be the least significant byte first.
+const string LITTLE_ENDIAN = "LE";
+
+// Unknown type: Block
+
+// Unknown type: ReadableByteChannel
+
+// Unknown type: ReadableCharacterChannel
+
+// Unknown type: ReadableTextRecordChannel
+
+// Unknown type: ReadableCSVChannel
+
+// Unknown type: WritableByteChannel
+
+// Unknown type: WritableCharacterChannel
+
+// Unknown type: WritableTextRecordChannel
+
+// Unknown type: WritableCSVChannel
+
+# Specifies the format used to represent CSV data.
+# 
+# DEFAULT - The default value is the format specified by the CSVChannel. Precedence will be given to the field
+# separator and record separator.
+# 
+# CSV - Field separator will be "," and the record separator will be a new line.
+# 
+# TDF - Field separator will be a tab and the record separator will be a new line.
+type Format "default"|"csv"|"tdf";
+
+# Field separators, which are supported by the `DelimitedTextRecordChannel`.
+# 
+# COMMA - Delimited text records will be separated using a comma
+# 
+# TAB - Delimited text records will be separated using a tab
+# 
+# COLON - Delimited text records will be separated using a colon(:)
+type Separator ","|"	"|":"|string;
+
+// Unknown type: Error
+
+// Unknown type: ConnectionTimedOutError
+
+// Unknown type: GenericError
+
+// Unknown type: AccessDeniedError
+
+// Unknown type: FileNotFoundError
+
+// Unknown type: TypeMismatchError
+
+// Unknown type: EofError
+
+// Unknown type: ConfigurationError
+
+# Represents a file opening options for writing.
+# 
+enum FileWriteOption {
+    APPEND,
+    OVERWRITE
+}
+
+# Represents the XML entity type that needs to be written.
+# 
+enum XmlEntityType {
+    EXTERNAL_PARSED_ENTITY,
+    DOCUMENT_ENTITY
+}
+
+# Represents the XML DOCTYPE entity.
+# 
+
+type XmlDoctype record {
+    # The system identifier
+    string? system?;
+    string? 'public?;
+    # Internal DTD schema
+    string? internalSubset?;
+};
+
+# Represents the writing options of an XML.
+# 
+
+type XmlWriteOptions record {
+    # The entity type of the XML input (the default value is `DOCUMENT_ENTITY`)
+    XmlEntityType xmlEntityType?;
+    # XML DOCTYPE value (the default value is `()`)
+    XmlDoctype|() doctype?;
+};
+
+# Represents raw templates.
+# e.g: `The respective int value is ${val}`
+class PrintableRawTemplate {
+}
+
+# Defines all the printable types.
+# 1. any typed value
+# 2. errors
+# 3. `io:PrintableRawTemplate` - an raw templated value
+type Printable any|error|ballerina/io:1.8.1:PrintableRawTemplate;
+
+# Defines the output streaming types.
+# 1. `stdout` - standard output stream
+# 2. `stderr` - standard error stream
+type FileOutputStream 1|2;
+
+# Represents network byte order.
+# 
+# BIG_ENDIAN - specifies the bytes to be in the order of most significant byte first.
+# 
+# LITTLE_ENDIAN - specifies the byte order to be the least significant byte first.
+type ByteOrder "BE"|"LE";
+
+// Unknown type: BlockStream
+
+// Unknown type: CSVStream
+
+// Unknown type: LineStream
+
+// Unknown type: ReadableDataChannel
+
+// Unknown type: StringReader
+
+// Unknown type: CsvIterator
+
+// Unknown type: WritableDataChannel
+
+// --- Functions ---
+
+# Reads the entire file content as a byte array.
+# ```ballerina
+# byte[]|io:Error content = io:fileReadBytes("./resources/myfile.txt");
+# ```
+# + path - The file path
+# + return - A read-only byte array or an `io:Error`
+function fileReadBytes(string path) returns byte[] & readonly|Error;
+
+# Writes a set of bytes to a file.
+# ```ballerina
+# byte[] content = [60, 78, 39, 28];
+# io:Error? result = io:fileWriteBytes("./resources/myfile.txt", content);
+# ```
+# + path - The file path
+# + content - Byte content to write
+# + option - Indicate whether to overwrite or append the given content
+# + return - An `io:Error` if the write operation fails, or ()
+function fileWriteBytes(string path, byte[] content, FileWriteOption option = OVERWRITE) returns Error|();
+
+# Reads file content as a CSV.
+# When the expected data type is record[], the first entry of the csv file should contain matching headers.
+# ```ballerina
+# string[][]|io:Error content = io:fileReadCsv("./resources/myfile.csv");
+# record{}[]|io:Error content = io:fileReadCsv("./resources/myfile.csv");
+# ```
+# + path - The CSV file path
+# + skipHeaders - Number of headers, which should be skipped prior to reading records
+# + returnType - The type of the return value (string[] or a Ballerina record)
+# + return - The entire CSV content in the channel as an array of string arrays, array of Ballerina records or an `io:Error`
+function fileReadCsv(string path, int skipHeaders = 0, string[]|map<anydata> returnType = string[]|map<anydata>) returns returnType[]|Error;
+
+# Writes CSV content to a file.
+# When the input is a record[] type in `OVERWRITE`, headers will be written to the CSV file.
+# For `APPEND`, order of the existing csv file is inferred using the headers.
+# ```ballerina
+# type Coord record {int x;int y;};
+# Coord[] contentRecord = [{x: 1,y: 2},{x: 1,y: 2}]
+# string[][] content = [["Anne", "Johnson", "SE"], ["John", "Cameron", "QA"]];
+# io:Error? result = io:fileWriteCsv("./resources/myfile.csv", content);
+# io:Error? resultRecord = io:fileWriteCsv("./resources/myfileRecord.csv", contentRecord);
+# ```
+# + path - The CSV file path
+# + content - CSV content as a two-dimensional string array or a Ballerina records array
+# + option - Indicate whether to overwrite or append the given content
+# + return - `()` when the writing was successful or an `io:Error`
+function fileWriteCsv(string path, string[][]|map<anydata>[] content, FileWriteOption option = OVERWRITE) returns Error|();
+
+# Reads the entire file content as a `string`.
+# The resulting string output does not contain the terminal carriage (e.g., `\r` or `\n`).
+# ```ballerina
+# string|io:Error content = io:fileReadString("./resources/myfile.txt");
+# ```
+# + path - The file path
+# + return - The entire file content as a string or an `io:Error`
+function fileReadString(string path) returns string|Error;
+
+# Reads the entire file content as a list of lines.
+# The resulting string array does not contain the terminal carriage (e.g., `\r` or `\n`).
+# ```ballerina
+# string[]|io:Error content = io:fileReadLines("./resources/myfile.txt");
+# ```
+# + path - The file path
+# + return - The file content as a string array or an `io:Error`
+function fileReadLines(string path) returns string[]|Error;
+
+# Reads file content as a JSON.
+# ```ballerina
+# json|io:Error content = io:fileReadJson("./resources/myfile.json");
+# ```
+# + path - The JSON file path
+# + return - The file content as a JSON object or an `io:Error`
+function fileReadJson(string path) returns json|Error;
+
+# Writes a string content to a file.
+# ```ballerina
+# string content = "Hello Universe..!!";
+# io:Error? result = io:fileWriteString("./resources/myfile.txt", content);
+# ```
+# + path - The file path
+# + content - String content to write
+# + option - Indicate whether to overwrite or append the given content
+# + return - `()` when the writing was successful or an `io:Error`
+function fileWriteString(string path, string content, FileWriteOption option = OVERWRITE) returns Error|();
+
+# Writes an array of lines to a file.
+# During the writing operation, a newline character `\n` will be added after each line.
+# ```ballerina
+# string[] content = ["Hello Universe..!!", "How are you?"];
+# io:Error? result = io:fileWriteLines("./resources/myfile.txt", content);
+# ```
+# + path - The file path
+# + content - An array of string lines to write
+# + option - Indicate whether to overwrite or append the given content
+# + return - `()` when the writing was successful or an `io:Error`
+function fileWriteLines(string path, string[] content, FileWriteOption option = OVERWRITE) returns Error|();
+
+# Writes a JSON to a file.
+# ```ballerina
+# json content = {"name": "Anne", "age": 30};
+# io:Error? result = io:fileWriteJson("./resources/myfile.json", content);
+# ```
+# + path - The JSON file path
+# + content - JSON content to write
+# + return - `()` when the writing was successful or an `io:Error`
+function fileWriteJson(string path, json content) returns Error|();

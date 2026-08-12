@@ -1,0 +1,346 @@
+{
+  "name": "ballerina/cache",
+  "description": "This module provides APIs for in-memory caching by using a semi-persistent mapping from keys to values. Cache entries are added to the cache manually and are stored in the cache until either evicted or invalidated manually.",
+  "readme": "## Overview\n\nThis module provides APIs for in-memory caching by using a semi-persistent mapping from keys to values. Cache entries are added to the cache manually and are stored in the cache until either evicted or invalidated manually.\n\nThis is based on the Least Recently Used (LRU) eviction algorithm by using a `map` data structure and defining the most basic operations on a collection of cache entries, which entails basic reading, writing, and deleting individual cache items. \nIt does not allow the `()` as a key or value of the cache and entries can be accessed safely by multiple concurrent threads as it is thread-safe.\n\nThe cache can be defined with optional configurations as follows:\n```ballerina\ncache:Cache cache \u003d new (capacity \u003d 10, evictionFactor \u003d 0.2, defaultMaxAge \u003d 0.5, cleanupInterval \u003d 1);\n```\n\nThe Cache entries will be evicted in case of the following scenarios:\n\n- When using the `get` API, if the returning cache entry has expired, it gets removed.\n- When using the `put` API, if the cache size has reached its capacity, the number of entries that get removed will be based on the `eviction policy` and the `eviction factor`.\n- If `cleanupInterval` (optional property) is configured, the recurrence task will remove the expired cache entries based on the configured interval. The main benefit of this property is that you can optimize the memory usage while adding some additional CPU costs and vice versa. The default behaviour is the CPU-optimized method.\n\nThe `cache:AbstractCache` object has the common APIs for the caching functionalities. Custom implementations of the cache can be done with different data storages like file, database, etc., with the structural equivalency to the `cache:AbstractCacheObject` object.\n\n```ballerina\npublic type AbstractCache object {\n    public function put(string key, any value, int maxAgeInSeconds) returns Error?;\n    public function get(string key) returns any|Error;\n    public function invalidate(string key) returns Error?;\n    public function invalidateAll() returns Error?;\n    public function hasKey(string key) returns boolean;\n    public function keys() returns string[];\n    public function size() returns int;\n    public function capacity() returns int;\n};\n```\nThe Ballerina Cache package provides the `cache:Cache` class, which is a `map` data structure based implementation of the `cache:AbstractCache` object.\n",
+  "typeDefs": [
+    {
+      "name": "LRU",
+      "description": "",
+      "type": "Constant",
+      "value": "LRU",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "AbstractCache",
+      "description": "The `cache:AbstractCache` object is used for custom implementations of the Ballerina cache.\nAny custom cache implementation should be object-wise similar.",
+      "type": "Class"
+    },
+    {
+      "name": "CacheConfig",
+      "description": "Represents configurations for the `cache:Cache` object.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "capacity",
+          "description": "Maximum number of entries allowed in the cache",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "evictionFactor",
+          "description": "The factor by which the entries will be evicted once the cache is full",
+          "type": {
+            "name": "float"
+          },
+          "optional": true
+        },
+        {
+          "name": "evictionPolicy",
+          "description": "The policy which is used to evict entries once the cache is full",
+          "type": {
+            "name": "EvictionPolicy",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "EvictionPolicy"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "defaultMaxAge",
+          "description": "The max-age in seconds which all the cache entries are valid. \u0027-1\u0027 means, the entries are\nvalid forever. This will be overwritten by the `maxAge` property set when inserting item into\nthe cache",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "cleanupInterval",
+          "description": "Interval (in seconds) of the timer task, which will clean up the cache",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "EvictionPolicy",
+      "description": "Possible types of eviction policy that can be passed into the `EvictionPolicy`.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "LRU",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "Error",
+      "description": "Represents Cache related errors. This will be returned if an error occurred while doing any of the cache operations.",
+      "type": "Error"
+    },
+    {
+      "name": "Cache",
+      "description": "Initializes new `cache:Cache` instance.\n```ballerina\ncache:Cache cache \u003d new(capacity \u003d 10, evictionFactor \u003d 0.2);\n```\n",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes new `cache:Cache` instance.\n```ballerina\ncache:Cache cache \u003d new(capacity \u003d 10, evictionFactor \u003d 0.2);\n```\n",
+          "parameters": [
+            {
+              "name": "capacity",
+              "description": "Maximum number of entries allowed in the cache",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "100"
+            },
+            {
+              "name": "evictionFactor",
+              "description": "The factor by which the entries will be evicted once the cache is full",
+              "type": {
+                "name": "float"
+              },
+              "optional": true,
+              "default": "0.25"
+            },
+            {
+              "name": "evictionPolicy",
+              "description": "The policy which is used to evict entries once the cache is full",
+              "type": {
+                "name": "EvictionPolicy",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "EvictionPolicy"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "LRU"
+            },
+            {
+              "name": "defaultMaxAge",
+              "description": "The max-age in seconds which all the cache entries are valid. \u0027-1\u0027 means, the entries are\nvalid forever. This will be overwritten by the `maxAge` property set when inserting item into\nthe cache",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "-1"
+            },
+            {
+              "name": "cleanupInterval",
+              "description": "Interval (in seconds) of the timer task, which will clean up the cache",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "0.0d"
+            },
+            {
+              "name": "cacheConfig",
+              "description": "Configurations for the `cache:Cache` object",
+              "type": {
+                "name": "CacheConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "CacheConfig"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        },
+        {
+          "name": "put",
+          "type": "Normal Function",
+          "description": "Adds the given key value pair to the cache. If the cache previously contained a value associated with the\nprovided key, the old value will be replaced by the newly-provided value.\n```ballerina\ncheck cache.put(\"Hello\", \"Ballerina\");\n```\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the value to be cached",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "value",
+              "description": "Value to be cached. Value should not be `()`",
+              "type": {
+                "name": "any"
+              }
+            },
+            {
+              "name": "maxAge",
+              "description": "The time in seconds for which the cache entry is valid. If the value is \u0027-1\u0027, the entry is\nvalid forever.",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "0.0d"
+            }
+          ],
+          "return": {
+            "description": "`()` if successfully added to the cache or a `cache:Error` if a `()` value is inserted to the cache.",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Returns the cached value associated with the provided key.\n```ballerina\nany value \u003d check cache.get(key);\n```\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the cached value, which should be retrieved",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "The cached value associated with the provided key or a `cache:Error` if the provided cache key is not\nexisiting in the cache or any error occurred while retrieving the value from the cache.",
+            "type": {
+              "name": "any|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "invalidate",
+          "type": "Normal Function",
+          "description": "Discards a cached value from the cache.\n```ballerina\ncheck cache.invalidate(key);\n```\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "Key of the cache value, which needs to be discarded from the cache",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "`()` if successfully discarded the value or a `cache:Error` if the provided cache key is not present\nin the cache",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "invalidateAll",
+          "type": "Normal Function",
+          "description": "Discards all the cached values from the cache.\n```ballerina\ncheck cache.invalidateAll();\n```\n",
+          "parameters": [],
+          "return": {
+            "description": "`()` if successfully discarded all the values from the cache or a `cache:Error` if any error\noccurred while discarding all the values from the cache.",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "hasKey",
+          "type": "Normal Function",
+          "description": "Checks whether the given key has an associated cached value.\n```ballerina\nboolean result \u003d cache.hasKey(key);\n```\n",
+          "parameters": [
+            {
+              "name": "key",
+              "description": "The key to be checked in the cache",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "`true` if a cached value is available for the provided key or `false` if there is no cached value\nassociated for the given key",
+            "type": {
+              "name": "boolean"
+            }
+          }
+        },
+        {
+          "name": "keys",
+          "type": "Normal Function",
+          "description": "Returns a list of all the keys from the cache.\n```ballerina\nstring[] keys \u003d cache.keys();\n```\n",
+          "parameters": [],
+          "return": {
+            "description": "Array of all the keys from the cache",
+            "type": {
+              "name": "string[]"
+            }
+          }
+        },
+        {
+          "name": "size",
+          "type": "Normal Function",
+          "description": "Returns the size of the cache.\n```ballerina\nint result \u003d cache.size();\n```\n",
+          "parameters": [],
+          "return": {
+            "description": "The size of the cache",
+            "type": {
+              "name": "int"
+            }
+          }
+        },
+        {
+          "name": "capacity",
+          "type": "Normal Function",
+          "description": "Returns the capacity of the cache.\n```ballerina\nint result \u003d cache.capacity();\n```\n",
+          "parameters": [],
+          "return": {
+            "description": "The capacity of the cache",
+            "type": {
+              "name": "int"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "clients": [],
+  "functions": [],
+  "services": [],
+  "annotations": []
+}

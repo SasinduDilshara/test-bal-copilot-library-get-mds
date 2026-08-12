@@ -1,0 +1,396 @@
+{
+  "name": "ballerina/constraint",
+  "description": "This module provides features to validate the values with respect to the constraints defined to the respective Ballerina types.",
+  "readme": "## Overview\n\nThis module provides features to validate the values with respect to the constraints defined to the respective Ballerina types.\n\nThe Ballerina `constraint` module facilitates APIs to do validations on the Ballerina types further with the use of annotations.\n\n### Constraint annotations\n\nThis library provides the following annotations on Ballerina types to validate the values created with the respective types.\n\n| Annotation           | Supported Constraints                                                                                                  | Associated Ballerina Type(s) |\n|----------------------|------------------------------------------------------------------------------------------------------------------------|------------------------------|\n| `@constraint:Int`    | `minValue`, `maxValue`, `minValueExclusive`, `maxValueExclusive`, `maxDigits`, `maxIntegerDigits`, `maxFractionDigits` | `int`                        |\n| `@constraint:Float`  | `minValue`, `maxValue`, `minValueExclusive`, `maxValueExclusive`, `maxDigits`, `maxIntegerDigits`, `maxFractionDigits` | `float`                      |\n| `@constraint:Number` | `minValue`, `maxValue`, `minValueExclusive`, `maxValueExclusive`, `maxDigits`, `maxIntegerDigits`, `maxFractionDigits` | `int`, `float`, `decimal`    |\n| `@constraint:String` | `length`, `minLength`, `maxLength`, `pattern`                                                                          | `string`                     |\n| `@constraint:Array`  | `length`, `minLength`, `maxLength`                                                                                     | `any[]`                      |\n| `@constraint:Date`   | `option` - `PAST` or `FUTURE` or `PAST_OR_PRESENT` or `FUTURE_OR_PRESENT`                                              | `constraint:Date`            |\n\nThe following example demonstrates how to apply constraint annotations to types.\n\n```ballerina\n@constraint:String { pattern: re `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\\\.[a-zA-Z]{2,}$` }\npublic type Email string;\n\n@constraint:Date { option: constraint:PAST }\npublic type DOB time:Date;\n\npublic type Person record {|\n    @constraint:String { minLength: 5, maxLength: 10 }\n    string name;\n    @constraint:Int { minValue: 18, maxValue: 60 }\n    int age;\n    Email email;\n    @constraint:Array { minLength: 1, maxLength: 5 }\n    string[] phoneNumbers;\n    DOB dob;\n|};\n```\n\n### Constraint validation\n\nThe `validate` function in this library can be used to validate the values with respect to the constraints defined in the respective types.\n\nThe following example demonstrates how to validate a value with respect to constraints in the type. The respective type is automatically inferred from the expression context.\n\n```ballerina\npublic function main() returns error? {\n    Person person \u003d {\n        name: \"John\",\n        age: 25,\n        email: \"john@mail.com\",\n        phoneNumbers: [\"1234567890\", \"0987654321\"],\n        dob: { year: 1996, month: 5, day: 15 }\n    };\n    \n    Person|error personValidated \u003d constraint:validate(person);\n    if personValidated is error {\n        io:println(\"Validation failed: \" + personValidated.message());\n    } else {\n        io:println(\"Validation successful\");\n    }\n}\n```\n\n### Custom error messages on validation failures\n\nOptionally a custom error message can be provided for each constraint. The following example demonstrates how to provide custom error messages for constraints.\n\n```ballerina\n@constraint:String { \n    pattern: {\n        value: re `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\\\.[a-zA-Z]{2,}$`,\n        message: \"Invalid email address\"\n    }\n}\npublic type Email string;\n\n@constraint:Date {\n    option: {\n        value: constraint:PAST,\n        message: \"Date of birth should be in the past\"\n    },\n    message: \"Invalid date found\"\n}\npublic type DOB time:Date;\n\npublic type Person record {|\n    @constraint:String { \n        minLength: 5, \n        maxLength: {\n            value: 10,\n            message: \"Name should be less than 10 characters\"\n        }\n    }\n    string name;\n    @constraint:Int {\n        minValue: {\n            value: 18,\n            message: \"Age should be greater than 18\"\n        },\n        maxValue: 60\n    }\n    int age;\n    Email email;\n    @constraint:Array { \n        minLength: {\n            value: 1,\n            message: \"At least one phone number should be provided\"\n        },\n        maxLength: 5 \n    }\n    string[] phoneNumbers;\n    DOB dob;\n|};\n```\n",
+  "typeDefs": [
+    {
+      "name": "PAST",
+      "description": "",
+      "type": "Constant",
+      "value": "PAST",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "PAST_OR_PRESENT",
+      "description": "",
+      "type": "Constant",
+      "value": "PAST_OR_PRESENT",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "FUTURE",
+      "description": "",
+      "type": "Constant",
+      "value": "FUTURE",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "FUTURE_OR_PRESENT",
+      "description": "",
+      "type": "Constant",
+      "value": "FUTURE_OR_PRESENT",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "ConstraintRecord",
+      "description": "Represents the constraint details as a record.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "value",
+          "description": "The value for the constraint",
+          "type": {
+            "name": "anydata"
+          }
+        },
+        {
+          "name": "message",
+          "description": "The message to be returned in case of the constraint violation",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "IntConstraints",
+      "description": "Represents the constraints associated with `int` type.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "minValue",
+          "description": "The inclusive lower bound of the constrained type",
+          "type": {
+            "name": "int|record {|int value; string message;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxValue",
+          "description": "The inclusive upper bound of the constrained type",
+          "type": {
+            "name": "int|record {|int value; string message;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "minValueExclusive",
+          "description": "The exclusive lower bound of the constrained type",
+          "type": {
+            "name": "int|record {|int value; string message;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxValueExclusive",
+          "description": "The exclusive upper bound of the constrained type",
+          "type": {
+            "name": "int|record {|int value; string message;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxDigits",
+          "description": "The maximum number of digits in the constrained type",
+          "type": {
+            "name": "int|record {|int value; string message;|}"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "FloatConstraints",
+      "description": "Represents the constraints associated with `float` type.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "minValue",
+          "description": "The inclusive lower bound of the constrained type",
+          "type": {
+            "name": "float|record {|float value; string message;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxValue",
+          "description": "The inclusive upper bound of the constrained type",
+          "type": {
+            "name": "float|record {|float value; string message;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "minValueExclusive",
+          "description": "The exclusive lower bound of the constrained type",
+          "type": {
+            "name": "float|record {|float value; string message;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxValueExclusive",
+          "description": "The exclusive upper bound of the constrained type",
+          "type": {
+            "name": "float|record {|float value; string message;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxIntegerDigits",
+          "description": "The maximum number of digits in the integer part of the constrained type",
+          "type": {
+            "name": "int|record {|int value; string message;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxFractionDigits",
+          "description": "The maximum number of digits in the fraction part of the constrained type",
+          "type": {
+            "name": "int|record {|int value; string message;|}"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "NumberConstraints",
+      "description": "Represents the constraints associated with `int`, `float` and `decimal` types.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "minValue",
+          "description": "The inclusive lower bound of the constrained type",
+          "type": {
+            "name": "decimal|record {|decimal value; string message;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxValue",
+          "description": "The inclusive upper bound of the constrained type",
+          "type": {
+            "name": "decimal|record {|decimal value; string message;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "minValueExclusive",
+          "description": "The exclusive lower bound of the constrained type",
+          "type": {
+            "name": "decimal|record {|decimal value; string message;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxValueExclusive",
+          "description": "The exclusive upper bound of the constrained type",
+          "type": {
+            "name": "decimal|record {|decimal value; string message;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxIntegerDigits",
+          "description": "The maximum number of digits in the integer part of the constrained type",
+          "type": {
+            "name": "int|record {|int value; string message;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxFractionDigits",
+          "description": "The maximum number of digits in the fraction part of the constrained type",
+          "type": {
+            "name": "int|record {|int value; string message;|}"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "StringConstraints",
+      "description": "Represents the constraints associated with `string` type.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "length",
+          "description": "The number of characters of the constrained `string` type",
+          "type": {
+            "name": "int|record {|int value; string message;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "minLength",
+          "description": "The inclusive lower bound of the number of characters of the constrained `string` type",
+          "type": {
+            "name": "int|record {|int value; string message;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxLength",
+          "description": "The inclusive upper bound of the number of characters of the constrained `string` type",
+          "type": {
+            "name": "int|record {|int value; string message;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "pattern",
+          "description": "The regular expression to be matched with the constrained `string` type",
+          "type": {
+            "name": "ballerina/lang.string:0.0.0:RegExp|record {|ballerina/lang.string:0.0.0:RegExp value; string message;|}"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ArrayConstraints",
+      "description": "Represents the constraints associated with `anydata[]` type.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "length",
+          "description": "The number of members of the constrained type",
+          "type": {
+            "name": "int|record {|int value; string message;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "minLength",
+          "description": "The inclusive lower bound of the number of members of the constrained type",
+          "type": {
+            "name": "int|record {|int value; string message;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxLength",
+          "description": "The inclusive upper bound of the number of members of the constrained type",
+          "type": {
+            "name": "int|record {|int value; string message;|}"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "DateOption",
+      "description": "Represents the date option to be validated.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "FUTURE_OR_PRESENT",
+          "description": ""
+        },
+        {
+          "name": "FUTURE",
+          "description": ""
+        },
+        {
+          "name": "PAST_OR_PRESENT",
+          "description": ""
+        },
+        {
+          "name": "PAST",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "DateConstraints",
+      "description": "Represents the constraints associated with `Date` type.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "option",
+          "description": "date option to be validated",
+          "type": {
+            "name": "ballerina/constraint:1.7.0:DateOption|record {|ballerina/constraint:1.7.0:DateOption value; string message;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "message",
+          "description": "The message to be returned in case of the constraint violation",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Error",
+      "description": "Represents the generic error type of the module.",
+      "type": "Error"
+    },
+    {
+      "name": "ValidationError",
+      "description": "Represents the errors occurs during constraint validations.",
+      "type": "Error"
+    },
+    {
+      "name": "TypeConversionError",
+      "description": "Represents the errors occurs during the type conversion.",
+      "type": "Error"
+    }
+  ],
+  "clients": [],
+  "functions": [
+    {
+      "name": "validate",
+      "type": "Normal Function",
+      "description": "Validates the provided value against the configured annotations. Additionally, if the type of the value is different\nfrom the expected return type then the value will be cloned with the contextually expected type before the validation.\n",
+      "parameters": [
+        {
+          "name": "value",
+          "description": "The `anydata` type value to be constrained",
+          "type": {
+            "name": "anydata"
+          }
+        },
+        {
+          "name": "td",
+          "description": "The type descriptor of the value to be constrained",
+          "type": {
+            "name": "anydata"
+          },
+          "optional": true,
+          "default": "anydata"
+        }
+      ],
+      "return": {
+        "description": "The type descriptor of the value which is validated or else an `constraint:Error` in case of an error",
+        "type": {
+          "name": "td|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "td"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "services": [],
+  "annotations": []
+}

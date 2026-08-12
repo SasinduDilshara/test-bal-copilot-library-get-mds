@@ -1,0 +1,198 @@
+// ============================================================
+// Library: ballerina/data.yaml
+// The Ballerina data.yaml library provides robust and flexible functionalities for working with YAML data within 
+// ============================================================
+import ballerina/data.yaml;
+
+// --- README ---
+# Ballerina YAML Data Library
+
+The Ballerina data.yaml library provides robust and flexible functionalities for working with YAML data within 
+Ballerina applications. 
+This library enables developers to seamlessly integrate YAML processing capabilities, 
+ensuring smooth data interchange and configuration management.
+
+## Key Features
+
+- **Versatile Input Handling**: Convert YAML input provided as strings, byte arrays, or streams of byte arrays into 
+ Ballerina's anydata sub-types, facilitating flexible data processing.
+- **Data Projection**: Efficiently project data from YAML documents and YAML streams, 
+ allowing for precise data extraction and manipulation.
+- **Ordered Data Representation**: Employ tuples to preserve the order of elements when dealing with 
+ YAML document streams of unknown order, ensuring the integrity of data sequences.
+- **Serialization**: Serialize Ballerina values into YAML-formatted strings, enabling easy generation of YAML content 
+ from Ballerina applications for configuration files, data storage, or data exchange purposes.
+
+## Usage
+
+### Converting external YAML document to a record value
+
+For transforming YAML content from an external source into a record value, 
+the `parseString`, `parseBytes`, `parseStream` functions can be used. 
+This external source can be in the form of a string or a byte array/byte-block-stream that houses the YAML data.
+This is commonly extracted from files or network sockets. The example below demonstrates the conversion of an 
+YAML value from an external source into a record value.
+
+```ballerina
+import ballerina/data.yaml;
+import ballerina/io;
+
+type Book record {|
+    string name;
+    string author;
+    int year;
+|};
+
+public function main() returns error? {
+    string yamlContent = check io:fileReadString("path/to/<file-name>.yaml");
+    Book book = check yaml:parseString(yamlContent);
+    io:println(book);
+}
+```
+
+Make sure to handle possible errors that may arise during the file reading or YAML to anydata conversion process. 
+The `check` keyword is utilized to handle these errors, 
+but more sophisticated error handling can be implemented as per your requirements.
+
+## Serialize anydata value to YAML
+
+The serialization of anydata value into YAML-formatted strings can be done in the below way.
+
+```ballerina
+import ballerina/data.yaml;
+import ballerina/io;
+
+public function main() returns error? {
+    json content = {
+        name: "Clean Code",
+        author: "Robert C. Martin",
+        year: 2008
+    };
+    string yamlString = check yaml:toYamlString(content);
+    io:println(yamlString);
+}
+```
+
+// --- END README ---
+
+// --- Types ---
+
+const string FAILSAFE_SCHEMA = "FAILSAFE_SCHEMA";
+
+const string JSON_SCHEMA = "JSON_SCHEMA";
+
+const string CORE_SCHEMA = "CORE_SCHEMA";
+
+# Represents the YAML schema available for the parser.
+# 
+enum YAMLSchema {
+    CORE_SCHEMA,
+    JSON_SCHEMA,
+    FAILSAFE_SCHEMA
+}
+
+# Represent the options that can be used for filtering in the projection.
+
+type Options record {
+    # schema - field description
+    YAMLSchema schema?;
+    # allowAnchorRedefinition - field description
+    boolean allowAnchorRedefinition?;
+    # allowMapEntryRedefinition - field description
+    boolean allowMapEntryRedefinition?;
+    # allowDataProjection - Enable or disable projection
+    record {|boolean nilAsOptionalField; boolean absentAsNilableType; boolean enableYamlStreamReorder; anydata...;|}|false allowDataProjection?;
+    # enableConstraintValidation - Enable or disable constraint validation
+    boolean enableConstraintValidation?;
+};
+
+# Configurations for writing a YAML document.
+
+type WriteConfig record {
+    # indentationPolicy - Number of whitespace for an indentation
+    int indentationPolicy?;
+    # blockLevel - The maximum depth level for a block collection
+    int blockLevel?;
+    # canonical - If set, the tags are written along with the nodes
+    boolean canonical?;
+    # useSingleQuotes - If set, single quotes are used to surround scalars
+    boolean useSingleQuotes?;
+    # forceQuotes - If set, all the scalars are surrounded by quotes
+    boolean forceQuotes?;
+    # schema - YAML schema used for writing
+    YAMLSchema schema?;
+    # isStream - If set, the parser will write a stream of YAML documents
+    boolean isStream?;
+    # flowStyle - If set, mappings and sequences will output in flow style
+    boolean flowStyle?;
+};
+
+# Represents the error type of the ballerina/data.yaml module. This error type represents any error that can occur
+# during the execution of data.yaml APIs.
+type Error error;
+
+# Defines the name of the JSON Object key.
+
+type NameConfig record {
+    # value - The name of the JSON Object key
+    string value;
+};
+
+// --- Functions ---
+
+# Converts YAML string to subtype of anydata.
+# 
+# ```ballerina
+# json value = yaml:parseString("name: Ballerina");
+# value ⇒ {"name": "Ballerina"}
+# ```
+# 
+# + s - Source string value
+# + options - Options to be used for filtering in the projection
+# + t - Target type
+# + return - On success, returns the given target type value, else returns an `yaml:Error`
+function parseString(string s, Options options = {}, anydata t = anydata) returns t|Error;
+
+# Converts YAML byte[] to subtype of anydata.
+# 
+# ```ballerina
+# byte[] content = "name: Ballerina".toBytes();
+# json value = yaml:parseBytes(content);
+# value ⇒ {"name": "Ballerina"}
+# ```
+# 
+# + s - Source byte[] value
+# + options - Options to be used for filtering in the projection
+# + t - Target type
+# + return - On success, returns the given target type value, else returns an `yaml:Error`
+function parseBytes(byte[] s, Options options = {}, anydata t = anydata) returns t|Error;
+
+# Converts YAML byte-block-stream to subtype of anydata.
+# 
+# ```ballerina
+# stream<byte[], error?> content = getStream();
+# json value = yaml:parseStream(content);
+# value ⇒ {"name": "Ballerina"}
+# ```
+# 
+# + s - Source byte-block-stream value
+# + options - Options to be used for filtering in the projection
+# + t - Target type
+# + return - On success, returns the given target type value, else returns an `yaml:Error`
+function parseStream(stream<byte[], error?> s, Options options = {}, anydata t = anydata) returns t|Error;
+
+# Converts anydata YAML value to a string.
+# 
+# ```ballerina
+# yaml:toYamlString({"name": "Ballerina"}) ⇒ "name: Ballerina"
+# ```
+# 
+# + yamlValue - Input yaml value
+# + config - Options used to get desired toString representation
+# + return - On success, returns to string value, else returns an `yaml:Error`
+function toYamlString(anydata yamlValue, WriteConfig config = {}) returns string|Error;
+
+// --- Annotations ---
+
+# The annotation is used to overwrite the existing record field name.
+public annotation NameConfig Name on record field;

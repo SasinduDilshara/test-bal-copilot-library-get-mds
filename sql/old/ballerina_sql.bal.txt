@@ -1,0 +1,1027 @@
+// ============================================================
+// Library: ballerina/sql
+// This module provides the generic interface and functionality to interact with an SQL database. The corresponding
+// ============================================================
+import ballerina/sql;
+
+// --- README ---
+## Overview
+
+This module provides the generic interface and functionality to interact with an SQL database. The corresponding
+database clients can be created by using specific database modules such as `mysql` or using the Java Database
+Connectivity module `jdbc`.
+
+### List of database modules
+
+Ballerina now has the [`jdbc` module](https://central.ballerina.io/ballerinax/java.jdbc) as the generic DB connector
+module to connect to any relational database by simply providing the JDBC URL and the other related properties.
+
+Ballerina also provides specially designed various database-specific DB connectors so that you can work with different
+databases, and you can access their DB-specific functionalities.
+
+* [`MySQL` module](https://central.ballerina.io/ballerinax/mysql)
+* [`PostgreSQL` module](https://central.ballerina.io/ballerinax/postgresql)
+* [`MSSQL` module](https://central.ballerina.io/ballerinax/mssql)
+* [`OracleDB` module](https://central.ballerina.io/ballerinax/oracledb)
+
+### Client
+
+A database client can be created using any of the above-listed database libraries. The operations and functionality explained below can be used with the newly created client.
+
+> **Tip** : The client should be used throughout the application lifetime.
+
+#### Handle connection pools
+
+All database libraries share the same connection pooling concept and there are three possible scenarios for connection
+pool handling. For its properties and possible values, see the
+[`sql:ConnectionPool`](https://central.ballerina.io/ballerina/sql/latest#ConnectionPool).
+
+> **Note**: Connection pooling is used to optimize opening and closing connections to the database. However, the pool comes with an overhead. It is best to configure the connection pool properties as per the application need to get the best performance.
+
+1. Global, shareable, default connection pool
+
+   If you do not provide the `poolOptions` field when creating the database client, a globally-shareable pool will be created for your database unless a connection pool matching with the properties you provided already exists. The `jdbc` library sample below shows how the global connection pool is used.
+
+    ```ballerina
+    jdbc:Client|sql:Error dbClient = new ("jdbc:mysql://localhost:3306/testdb", "root", "root");
+    ```
+
+2. Client-owned, unsharable connection pool
+
+   If you define the `connectionPool` field inline when creating the database client with the `sql:ConnectionPool` type, an unsharable connection pool will be created. The `jdbc` library sample below shows how the global connection pool is used.
+
+    ```ballerina
+    jdbc:Client|sql:Error dbClient = new (url = "jdbc:mysql://localhost:3306/testdb", connectionPool = { maxOpenConnections: 5 });
+    ```
+
+3. Local, shareable connection pool
+
+   If you create a record of the `sql:ConnectionPool` type and reuse that in the configuration of multiple clients,
+   a shared connection pool will be created for each set of clients that connects to the same database instance with the
+   same set of properties. The `jdbc` library sample below shows how the global connection pool is used.
+
+    ```ballerina
+    sql:ConnectionPool connPool = {maxOpenConnections: 5};
+
+    jdbc:Client|sql:Error dbClient1 = new (url = "jdbc:mysql://localhost:3306/testdb", connectionPool = connPool);
+    jdbc:Client|sql:Error dbClient2 = new (url = "jdbc:mysql://localhost:3306/testdb", connectionPool = connPool);
+    jdbc:Client|sql:Error dbClient3 = new (url = "jdbc:mysql://localhost:3306/testdb", connectionPool = connPool);
+    ```
+
+#### Close the client
+
+Once all the database operations are performed, you can close the database client you have created by invoking the `close()`
+operation. This will close the corresponding connection pool if it is not shared by any other database clients.
+
+> **Note** : The client must be closed only at the end of the application lifetime (or closed for graceful stops in a service).
+
+```ballerina
+error? e = dbClient.close();
+```
+Or
+```ballerina
+check dbClient.close();
+```
+
+### Database operations
+
+Once the client is created, database operations can be executed through that client. This library defines the interface
+and generic properties that are shared among multiple database clients. It also supports querying, inserting, deleting,
+updating, and batch updating data.
+
+#### Parameterized query
+
+The `sql:ParameterizedQuery` is used to construct the SQL query to be executed by the client.
+You can create a query with constant or dynamic input data as follows.
+
+**Query with constant values**
+
+```ballerina
+sql:ParameterizedQuery query = `SELECT * FROM students WHERE id < 10 AND age > 12`;
+```
+
+**Query with dynamic values**
+
+```ballerina
+int[] ids = [10, 50];
+int age = 12;
+sql:ParameterizedQuery query = `SELECT * FROM students WHERE id < ${ids[0]} AND age > ${age}`;
+```
+
+**Query with dynamic identifiers**
+
+In SQL, parameterization safely inserts user-provided values into queries using placeholders that are bound at runtime. Only values can be parameterized, while identifiers such as table names, column names, or file paths cannot.
+
+This restriction is intentional and consistent across all major database APIs, as allowing identifier parameterization could compromise query structure, reduce compatibility, and increase the risk of SQL injection attacks.
+
+The `sql:ParameterizedQuery` follows the same standard. It does not support parameterizing or updating identifiers and allows only safe substitution for query values.
+
+When dynamic identifiers are required, queries can be constructed using string interpolation. This approach enables identifiers to be inserted dynamically at runtime but bypasses the built-in safety guarantees of sql:ParameterizedQuery and should therefore be used with caution.
+
+>**Note**: Dynamic identifiers such as table names or column names should be used with caution. Since this approach bypasses the built-in safety guarantees of sql:ParameterizedQuery, all input values must be sanitized and validated before embedding them into queries. Use this method at your own risk to prevent potential SQL injection vulnerabilities and to maintain query integrity.
+
+The following example demonstrates how to dynamically include an identifier, such as a table name, using string interpolation. If the provided table name is validated successfully, a dynamic SQL statement is constructed with the table name embedded in the query. Finally, the query is assigned to a `sql:ParameterizedQuery` object for execution.
+
+```bal
+import ballerina/sql;
+import ballerina/regex;
+
+// Validates table name format using a simple regex
+function validateTableName(string tableName) returns boolean {
+    // Allows only alphanumeric characters and underscores, starting with a letter
+    regexp:RegExp pattern = re `^[A-Za-z][A-Za-z0-9_]*$`;
+    return pattern.isFullMatch(tableName);
+}
+
+function getEmployeeData(string tableName) returns error? {
+    if !validateTableName(tableName) {
+        return error("Invalid table name format. Only alphanumeric and underscore characters are allowed.");
+    }
+
+    // Dynamically build the query string with the validated table name
+    string queryString = string `SELECT id, name, department FROM ${tableName} WHERE is_active = true`;
+
+    sql:ParameterizedQuery selectQuery = ``;
+    selectQuery.strings = [queryString];
+}
+```
+
+Moreover, the SQL package has `sql:queryConcat()` and `sql:arrayFlattenQuery()` util functions which make it easier
+to create a dynamic/constant complex query.
+
+The `sql:queryConcat()` is used to create a parameterized query by concatenating a set of parameterized queries.
+The sample below shows how to concatenate queries.
+
+```ballerina
+int id = 10;
+int age = 12;
+sql:ParameterizedQuery query = `SELECT * FROM students`;
+sql:ParameterizedQuery query1 = ` WHERE id < ${id} AND age > ${age}`;
+sql:ParameterizedQuery sqlQuery = sql:queryConcat(query, query1);
+```
+
+The query with the `IN` operator can be created using the `sql:ParameterizedQuery` like below. Here you need to flatten the array and pass each element separated by a comma.
+
+```ballerina
+int[] ids = [1, 2, 3];
+sql:ParameterizedQuery query = `SELECT count(*) as total FROM DataTable
+                                WHERE row_id in (${ids[0]}, ${ids[1]}, ${ids[2]})`;
+```
+
+The util function `sql:arrayFlattenQuery()` is introduced to make the array flatten easier. It makes the inclusion of varying array elements into the query easier by flattening the array to return a parameterized query. You can construct the complex dynamic query with the `IN` operator by using both functions like below.
+
+```ballerina
+int[] ids = [1, 2];
+sql:ParameterizedQuery sqlQuery =
+                         sql:queryConcat(`SELECT * FROM DataTable WHERE id IN (`,
+                                          sql:arrayFlattenQuery(ids), `)`);
+```
+
+#### Create tables
+
+This sample creates a table with two columns. One column is of type `int` and the other is of type `varchar`.
+The `CREATE` statement is executed via the `execute` remote method of the client.
+
+```ballerina
+// Create the ‘Students’ table with the ‘id’, 'name', and ‘age’ fields.
+sql:ExecutionResult result =
+                check dbClient->execute(`CREATE TABLE student (
+                                           id INT AUTO_INCREMENT,
+                                           age INT,
+                                           name VARCHAR(255),
+                                           PRIMARY KEY (id)
+                                         )`);
+// A value of the sql:ExecutionResult type is returned for 'result'.
+```
+
+#### Insert data
+
+These samples show the data insertion by executing an `INSERT` statement using the `execute` remote method
+of the client.
+
+In this sample, the query parameter values are passed directly into the query statement of the `execute`
+remote method.
+
+```ballerina
+sql:ExecutionResult result = check dbClient->execute(`INSERT INTO student(age, name)
+                                                        VALUES (23, 'john')`);
+```
+
+In this sample, the parameter values, which are assigned to local variables are used to parameterize the SQL query in
+the `execute` remote method. This parameterization can be performed with any primitive Ballerina type
+like `string`, `int`, `float`, or `boolean` and in that case, the corresponding SQL type of the parameter is derived
+from the type of the Ballerina variable that is passed in.
+
+```ballerina
+string name = "Anne";
+int age = 8;
+
+sql:ParameterizedQuery query = `INSERT INTO student(age, name)
+                                  VALUES (${age}, ${name})`;
+sql:ExecutionResult result = check dbClient->execute(query);
+```
+
+In this sample, the parameter values are passed as a `sql:TypedValue` to the `execute` remote method. Use the
+corresponding subtype of the `sql:TypedValue` such as `sql:VarcharValue`, `sql:CharValue`, `sql:IntegerValue`, etc., when you need to
+provide more details such as the exact SQL type of the parameter.
+
+```ballerina
+sql:VarcharValue name = new ("James");
+sql:IntegerValue age = new (10);
+
+sql:ParameterizedQuery query = `INSERT INTO student(age, name)
+                                  VALUES (${age}, ${name})`;
+sql:ExecutionResult result = check dbClient->execute(query);
+```
+
+#### Insert data with auto-generated keys
+
+This sample demonstrates inserting data while returning the auto-generated keys. It achieves this by using the
+`execute` remote method to execute the `INSERT` statement.
+
+```ballerina
+int age = 31;
+string name = "Kate";
+
+sql:ParameterizedQuery query = `INSERT INTO student(age, name)
+                                  VALUES (${age}, ${name})`;
+sql:ExecutionResult result = check dbClient->execute(query);'
+
+// Number of rows affected by the execution of the query.
+int? count = result.affectedRowCount;
+
+// The integer or string generated by the database in response to a query execution.
+string|int? generatedKey = result.lastInsertId;
+```
+
+#### Query data
+
+These samples show how to demonstrate the different usages of the `query` operation to query the
+database table and obtain the result as a stream.
+
+>**Note**: When processing the stream, make sure to consume all fetched data or close the stream.
+
+This sample demonstrates querying data from a table in a database.
+First, a type is created to represent the returned result set. This record can be defined as an open or a closed record
+according to the requirement. If an open record is defined, the returned stream type will include both defined fields
+in the record and additional database columns fetched by the SQL query which are not defined in the record.
+Note the mapping of the database column to the returned record's property is case-insensitive if it is defined in the
+record(i.e., the `ID` column in the result can be mapped to the `id` property in the record). Additional column names are
+added to the returned record as in the SQL query. If the record is defined as a closed record, only defined fields in the
+record are returned or gives an error when additional columns present in the SQL query. Next, the `SELECT` query is executed
+via the `query` remote method of the client. Once the query is executed, each data record can be retrieved by iterating through
+the result set. The `stream` returned by the `SELECT` operation holds a pointer to the actual data in the database, and it
+loads data from the table only when it is accessed. This stream can be iterated only once.
+
+```ballerina
+// Define an open record type to represent the results.
+type Student record {
+    int id;
+    int age;
+    string name;
+};
+
+// Select the data from the database table. The query parameters are passed
+// directly. Similar to the `execute` samples, parameters can be passed as
+// sub types of `sql:TypedValue` as well.
+int id = 10;
+int age = 12;
+sql:ParameterizedQuery query = `SELECT * FROM students
+                                WHERE id < ${id} AND age > ${age}`;
+stream<Student, sql:Error?> resultStream = dbClient->query(query);
+
+// Iterating the returned table.
+check from Student student in resultStream
+    do {
+       // Can perform operations using the record 'student' of type `Student`.
+    };
+```
+
+Defining the return type is optional, and you can query the database without providing the result type. Hence,
+the above sample can be modified as follows with an open record type as the return type. The property name in the open record
+type will be the same as how the column is defined in the database.
+
+```ballerina
+// Select the data from the database table. The query parameters are passed
+// directly. Similar to the `execute` samples, parameters can be passed as
+// sub types of `sql:TypedValue` as well.
+int id = 10;
+int age = 12;
+sql:ParameterizedQuery query = `SELECT * FROM students
+                                WHERE id < ${id} AND age > ${age}`;
+stream<record{}, sql:Error?> resultStream = dbClient->query(query);
+
+// Iterating the returned table.
+check from record{} student in resultStream
+    do {
+        // Can perform operations using the record 'student'.
+        io:println("Student name: ", student.value["name"]);
+    };
+```
+
+`sql:Column` annotation can be used to map database columns to Typed record fields of different name. This annotation should be attached to record fields.
+```ballerina
+type Student record {
+    int id;
+    @sql:Column { name: "first_name" }
+    string firstName;
+    @sql:Column { name: "last_name" }
+    string lastName
+};
+```
+The above annotation will map the database column `first_name` to the Ballerina record field `firstName`. If the `query()` method does not return `first_name` column, the field will not be populated.
+
+Multiple table columns can be matched to a single Ballerina record within a returned record. For instance if the query returns data from multiple tables such as Students and Teachers.
+All columns of the `Teachers` table can be grouped to another Typed record such as `Teacher` type within the `Student` record.
+
+```ballerina
+public type Students record {|
+    int id;
+    string name;
+    string? age;
+    float? gpa;
+    Teachers teachers;
+|}
+type Teachers record {|
+    int id;
+    string name;
+|}
+```
+In the above scenario also, `sql:Column` annotation can be used to rename field name such as,
+```ballerina
+public type Students record {|
+    int id;
+    string name;
+    string? age;
+    float? gpa;
+    @sql:Column { name: "teachers" }
+    Teacher teacher;
+|}
+```
+
+There are situations in which you may not want to iterate through the database and in that case, you may decide
+to use the `sql:queryRow()` operation. If the provided return type is a record, this method returns only the first row
+retrieved by the query as a record.
+
+```ballerina
+int id = 10;
+sql:ParameterizedQuery query = `SELECT * FROM students WHERE id = ${id}`;
+Student retrievedStudent = check dbClient->queryRow(query);
+```
+
+The `sql:queryRow()` operation can also be used to retrieve a single value from the database (e.g., when querying using
+`COUNT()` and other SQL aggregation functions). If the provided return type is not a record (i.e., a primitive data type)
+, this operation will return the value of the first column of the first row retrieved by the query.
+
+```ballerina
+int age = 12;
+sql:ParameterizedQuery query = `SELECT COUNT(*) FROM students WHERE age < ${age}`;
+int youngStudents = check dbClient->queryRow(query);
+```
+
+#### Update data
+
+This sample demonstrates modifying data by executing an `UPDATE` statement via the `execute` remote method of
+the client.
+
+```ballerina
+int age = 23;
+sql:ParameterizedQuery query = `UPDATE students SET name = 'John' WHERE age = ${age}`;
+sql:ExecutionResult result = check dbClient->execute(query);
+```
+
+#### Delete data
+
+This sample demonstrates deleting data by executing a `DELETE` statement via the `execute` remote method of
+the client.
+
+```ballerina
+string name = "John";
+sql:ParameterizedQuery query = `DELETE from students WHERE name = ${name}`;
+sql:ExecutionResult result = check dbClient->execute(query);
+```
+
+#### Batch update data
+
+This sample demonstrates how to insert multiple records with a single `INSERT` statement that is executed via the
+`batchExecute` remote method of the client. This is done by creating a `table` with multiple records and a
+parameterized SQL query as same as the above `execute` operations.
+
+```ballerina
+// Create the table with the records that need to be inserted.
+var data = [
+  { name: "John", age: 25 },
+  { name: "Peter", age: 24 },
+  { name: "jane", age: 22 }
+];
+
+// Do the batch update by passing the batches.
+sql:ParameterizedQuery[] batch = from var row in data
+                                 select `INSERT INTO students ('name', 'age')
+                                           VALUES (${row.name}, ${row.age})`;
+sql:ExecutionResult[] result = check dbClient->batchExecute(batch);
+```
+
+#### Execute SQL stored procedures
+
+This sample demonstrates how to execute a stored procedure with a single `INSERT` statement that is executed via the
+`call` remote method of the client.
+
+```ballerina
+int uid = 10;
+sql:IntegerOutParameter insertId = new;
+
+sql:ProcedureCallResult result =
+                         check dbClient->call(`call InsertPerson(${uid}, ${insertId})`);
+stream<record{}, sql:Error?>? resultStr = result.queryResult;
+if resultStr is stream<record{}, sql:Error?> {
+    check from record{} value in resultStr
+        do {
+          // Can perform operations using the record 'result'.
+        };
+}
+check result.close();
+```
+
+>**Note**: Once the results are processed, the `close` method on the `sql:ProcedureCallResult` must be called.
+
+>**Note**: The default thread pool size used in Ballerina is: `the number of processors available * 2`. You can configure the thread pool size by using the `BALLERINA_MAX_POOL_SIZE` environment variable.
+
+// --- END README ---
+
+// --- Types ---
+
+const string BASE_TABLE = "BASE TABLE";
+
+const string VIEW = "VIEW";
+
+const string NO_ACTION = "NO ACTION";
+
+const string RESTRICT = "RESTRICT";
+
+const string CASCADE = "CASCADE";
+
+const string SET_NULL = "SET NULL";
+
+const string SET_DEFAULT = "SET DEFAULT";
+
+const string PROCEDURE = "PROCEDURE";
+
+const string FUNCTION = "FUNCTION";
+
+const string IN = "IN";
+
+const string OUT = "OUT";
+
+const string INOUT = "INOUT";
+
+const string NO_COLUMNS = "NO_COLUMNS";
+
+const string COLUMNS_ONLY = "COLUMNS_ONLY";
+
+const string COLUMNS_WITH_CONSTRAINTS = "COLUMNS_WITH_CONSTRAINTS";
+
+# Constant indicating that the specific batch statement executed successfully
+# but that the count of affected rows is unavailable.
+const int SUCCESS_NO_INFO = -2;
+
+# Constant indicating that the specific batch statement failed.
+const int EXECUTION_FAILED = -3;
+
+# Read committed isolation level
+const string TRANSACTION_READ_COMMITTED = "TRANSACTION_READ_COMMITTED";
+
+# Read uncommitted isolation level
+const string TRANSACTION_READ_UNCOMMITTED = "TRANSACTION_READ_UNCOMMITTED";
+
+# Repeatable read isolation level
+const string TRANSACTION_REPEATABLE_READ = "TRANSACTION_REPEATABLE_READ";
+
+# Serializable isolation level
+const string TRANSACTION_SERIALIZABLE = "TRANSACTION_SERIALIZABLE";
+
+# Defines the database column name which matches the record field. The default value is the record field name.
+# 
+
+type ColumnConfig record {
+    # The database column name
+    string name;
+};
+
+# Represents an SQL client.
+class Client {
+}
+
+
+type ConnectionPool record {
+    # The maximum number of open connections that the pool is allowed to have. Includes both idle and in-use
+connections. The default value is 15. This can be changed through the configuration API with the
+`ballerina.sql.maxOpenConnections` key
+    int maxOpenConnections?;
+    # The maximum lifetime (in seconds) of a connection in the pool. The default value is 1800 seconds
+(30 minutes). A value of 0 indicates an unlimited maximum lifetime (infinite lifetime). The minimum
+allowed value is 30 seconds. This can be changed through the configuration API with the
+`ballerina.sql.maxConnectionLifeTime` key.
+    decimal maxConnectionLifeTime?;
+    # The minimum number of idle connections that the pool tries to maintain. The default value is the same as
+`maxOpenConnections` and it can be changed through the configuration API with the
+`ballerina.sql.minIdleConnections` key
+    int minIdleConnections?;
+    # Maximum time (in seconds) to wait for a connection from the pool before failing. The default value is
+30 seconds. This can be changed through the configuration API with the `ballerina.sql.connectionTimeout` key
+    decimal connectionTimeout?;
+    # Maximum time (in seconds) an idle connection is kept before retirement. The default value is 600 seconds
+(10 minutes). This can be changed through the configuration API with the `ballerina.sql.idleTimeout` key
+    decimal idleTimeout?;
+    # Maximum time (in seconds) allowed for a connection validation. The default value is 5 seconds. This
+can be changed through the configuration API with the `ballerina.sql.validationTimeout` key
+    decimal validationTimeout?;
+    # Threshold (in seconds) to flag a potential connection leak (use `0` to disable leak detection). The default
+value is 0 seconds. This can be changed through the configuration API with the
+`ballerina.sql.leakDetectionThreshold` key
+    decimal leakDetectionThreshold?;
+    # Interval (in seconds) to periodically keep idle connections alive (use `0` to disable keep alive). The
+default value is 0 seconds. This can be changed through the configuration API with the
+`ballerina.sql.keepAliveTime` key
+    decimal keepAliveTime?;
+    # Pool name for logs/metrics. If unset, an internal name is used. The default value is nil. This can be
+changed through the configuration API with the `ballerina.sql.poolName` key
+    string? poolName?;
+    # Controls pool boot behavior: fail fast vs. lazy init. Use negative value to disable failure timeout. The
+default value is 1 second. This can be changed through the configuration API with the
+`ballerina.sql.initializationFailTimeout` key
+    decimal initializationFailTimeout?;
+    # Default transaction isolation for connections. If unset, driver default is used. Allowed values typically:
+`TRANSACTION_READ_UNCOMMITTED`, `TRANSACTION_READ_COMMITTED`, `TRANSACTION_REPEATABLE_READ`,
+`TRANSACTION_SERIALIZABLE`.
+This can be changed through the configuration API with the `ballerina.sql.transactionIsolation` key
+    ballerina/sql:1.19.0:TransactionIsolation? transactionIsolation?;
+    # SQL query to validate a connection. Leave unset to use driver-native validation. The default value is
+nil. This can be changed through the configuration API with the `ballerina.sql.connectionTestQuery` key
+    string? connectionTestQuery?;
+    # SQL executed when a new connection is created. Useful for session-level settings. The default value is
+nil. This can be changed through the configuration API with the `ballerina.sql.connectionInitSql` key
+    string|string[]? connectionInitSql?;
+    # Marks connections as read-only by default. Use with care when apps issue writes. The default value is
+false. This can be changed through the configuration API with the `ballerina.sql.readOnly` key
+    boolean readOnly?;
+    # Allows suspending the pool for maintenance. Rarely needed; keep disabled. The default value is false.
+This can be changed through the configuration API with the `ballerina.sql.allowPoolSuspension` key
+    boolean allowPoolSuspension?;
+    # Isolates pool's internal queries from application transactions. The default value is false. This can
+be changed through the configuration API with the `ballerina.sql.isolateInternalQueries` key
+    boolean isolateInternalQueries?;
+};
+
+# Represents the transaction isolation level.
+enum TransactionIsolation {
+    TRANSACTION_SERIALIZABLE,
+    TRANSACTION_REPEATABLE_READ,
+    TRANSACTION_READ_UNCOMMITTED,
+    TRANSACTION_READ_COMMITTED
+}
+
+# Represents the properties belonging to an `sql:BatchExecuteError`.
+# 
+
+type BatchExecuteErrorDetail record {
+    # SQL error code
+    int errorCode;
+    # SQL state
+    string? sqlState;
+    # Metadata of the query executions
+    ExecutionResult[] executionResults;
+};
+
+# Metadata of the query execution.
+# 
+
+type ExecutionResult record {
+    # Number of rows affected by the execution of the query. It may be one of the following,
+(1) A number greater than or equal to zero, the count of affected rows after the successful execution of the query
+(2) A value of the `SUCCESS_NO_INFO`, the count of affected rows is unknown after the successful execution of the query
+(3) A value of the `EXECUTION_FAILED`, the query execution failed
+    int? affectedRowCount;
+    # The ID generated by the database in response to a query execution. This can be `()` in case the database does not support this feature
+    string|int? lastInsertId;
+};
+
+# Represents the properties belonging to an `sql:DatabaseError`.
+# 
+
+type DatabaseErrorDetail record {
+    # SQL error code
+    int errorCode;
+    # SQL state
+    string? sqlState;
+};
+
+// Unknown type: Error
+
+// Unknown type: DatabaseError
+
+// Unknown type: BatchExecuteError
+
+// Unknown type: NoRowsError
+
+// Unknown type: ApplicationError
+
+// Unknown type: DataError
+
+// Unknown type: TypeMismatchError
+
+// Unknown type: ConversionError
+
+// Unknown type: FieldMismatchError
+
+// Unknown type: UnsupportedTypeError
+
+# Represents the type of the table/view retrieved through the `getTableInfo` function.
+# 
+enum TableType {
+    VIEW,
+    BASE_TABLE
+}
+
+# Represents the type of actions that would be taken on delete or on update for foreign key constraints.
+# 
+enum ReferentialRule {
+    SET_DEFAULT,
+    SET_NULL,
+    CASCADE,
+    RESTRICT,
+    NO_ACTION
+}
+
+# Represents the type of the routine retrieved through the `getRoutineInfo` function.
+# 
+enum RoutineType {
+    FUNCTION,
+    PROCEDURE
+}
+
+# Represents the mode of the parameter for a routine.
+# 
+enum ParameterMode {
+    INOUT,
+    OUT,
+    IN
+}
+
+# Represents a table in the database.
+# 
+
+type TableDefinition record {
+    # The name of the table
+    string name;
+    # Whether the table is a base table or a view
+    TableType 'type;
+    # The columns included in the table
+    ColumnDefinition[] columns?;
+    # Check constraints associated with the table
+    CheckConstraint[] checkConstraints?;
+};
+
+# Represents a column in a table.
+# 
+
+type ColumnDefinition record {
+    # The name of the column
+    string name;
+    # The SQL data-type associated with the column
+    string 'type;
+    # The default value of the column
+    anydata? defaultValue;
+    # Whether the column is nullable
+    boolean nullable;
+    # Referential constraints (foreign key relationships) associated with the column
+    ReferentialConstraint[] referentialConstraints?;
+};
+
+# Represents a referential constraint (foriegn key constraint).
+# 
+
+type ReferentialConstraint record {
+    # The name of the constraint
+    string name;
+    # The name of the table which contains the referenced column
+    string tableName;
+    # The name of the referenced column
+    string columnName;
+    # The action taken when an update statement violates the constraint
+    ReferentialRule updateRule;
+    # The action taken when a delete statement violates the constraint
+    ReferentialRule deleteRule;
+};
+
+# Represents a check constraint.
+# 
+
+type CheckConstraint record {
+    # The name of the constraint
+    string name;
+    # The actual text of the SQL definition statement
+    string clause;
+};
+
+# Represents a routine.
+# 
+
+type RoutineDefinition record {
+    # The name of the routine
+    string name;
+    # The type of the routine (procedure or function)
+    RoutineType 'type;
+    # If the routine returns a value, the return data-type. Else ()
+    string? returnType;
+    # The parameters associated with the routine
+    ParameterDefinition[] parameters;
+};
+
+# Represents a routine parameter.
+# 
+
+type ParameterDefinition record {
+    # The mode of the parameter (IN, OUT, INOUT)
+    ParameterMode mode;
+    # The name of the parameter
+    string name;
+    string 'type;
+};
+
+# Represents an SQL metadata client.
+# 
+class SchemaClient {
+}
+
+enum ColumnRetrievalOptions {
+    COLUMNS_WITH_CONSTRAINTS,
+    COLUMNS_ONLY,
+    NO_COLUMNS
+}
+
+# Generic type that can be passed to `sql:ParameterizedQuery` to represent parameters in the SQL query.
+# 
+class TypedValue {
+}
+
+# Generic type of ballerina basic types that can be passed to `sql:ParameterizedQuery` to represent parameters in the SQL query.
+type Value string|int|boolean|float|decimal|byte[]|xml|record {|anydata...;|}|ballerina/time:2.8.1:Utc|ballerina/time:2.8.1:Civil|ballerina/time:2.8.1:Date|ballerina/time:2.8.1:TimeOfDay|ballerina/time:2.8.1:Civil[]|ballerina/time:2.8.1:TimeOfDay[]|(string?)[]|(int?)[]|(boolean?)[]|(float?)[]|(decimal?)[]|(byte[]?)[]|ballerina/sql:1.19.0:TypedValue|();
+
+# The object constructed through backtick surrounded strings. Dynamic parameters of `sql:Value` type can be indicated using `${<variable name>}`
+# such as `` `The sql:ParameterizedQuery is ${variable_name}` ``.
+# This validates the parameter types during the query execution.
+# 
+class ParameterizedQuery {
+}
+
+# Represents the generic OUT Parameters in `sql:ParameterizedCallQuery`.
+class OutParameter {
+}
+
+// Unknown type: InOutParameter
+
+// Unknown type: CursorOutParameter
+
+# Generic type that can be passed to `sql:ParameterizedCallQuery` to indicate procedure/function parameters.
+type Parameter string|int|boolean|float|decimal|byte[]|xml|record {|anydata...;|}|ballerina/time:2.8.1:Utc|ballerina/time:2.8.1:Civil|ballerina/time:2.8.1:Date|ballerina/time:2.8.1:TimeOfDay|ballerina/time:2.8.1:Civil[]|ballerina/time:2.8.1:TimeOfDay[]|(string?)[]|(int?)[]|(boolean?)[]|(float?)[]|(decimal?)[]|(byte[]?)[]|ballerina/sql:1.19.0:TypedValue|()|ballerina/sql:1.19.0:InOutParameter|ballerina/sql:1.19.0:OutParameter|ballerina/sql:1.19.0:CursorOutParameter;
+
+# The object constructed through backtick surrounded strings. Dynamic parameters of `sql:Parameter` type can be indicated using `${<variable name>}`
+# such as `` `The sql:ParameterizedQuery is ${variable_name}` ``.
+# This validates the parameter types during the query execution.
+# Identifiers like table names or column names cannot be changed dynamically through parameters. In scenarios where dynamic identifiers are required,
+# queries can be safely constructed using string interpolation.
+# 
+class ParameterizedCallQuery {
+}
+
+# The iterator for the stream returned in the `query` function to be used to override the default behavior of the `sql:ResultIterator`.
+class CustomResultIterator {
+}
+
+// Unknown type: VarcharValue
+
+// Unknown type: VarcharArrayValue
+
+// Unknown type: NVarcharValue
+
+// Unknown type: NVarcharArrayValue
+
+// Unknown type: CharValue
+
+// Unknown type: CharArrayValue
+
+// Unknown type: NCharValue
+
+// Unknown type: TextValue
+
+// Unknown type: ClobValue
+
+// Unknown type: NClobValue
+
+// Unknown type: SmallIntValue
+
+// Unknown type: SmallIntArrayValue
+
+// Unknown type: IntegerValue
+
+// Unknown type: IntegerArrayValue
+
+// Unknown type: BigIntValue
+
+// Unknown type: BigIntArrayValue
+
+// Unknown type: NumericValue
+
+// Unknown type: NumericArrayValue
+
+// Unknown type: DecimalValue
+
+// Unknown type: DecimalArrayValue
+
+// Unknown type: RealValue
+
+// Unknown type: RealArrayValue
+
+// Unknown type: FloatValue
+
+// Unknown type: FloatArrayValue
+
+// Unknown type: DoubleValue
+
+// Unknown type: DoubleArrayValue
+
+// Unknown type: BitValue
+
+// Unknown type: BitArrayValue
+
+// Unknown type: BooleanValue
+
+// Unknown type: BooleanArrayValue
+
+// Unknown type: BinaryValue
+
+// Unknown type: BinaryArrayValue
+
+// Unknown type: VarBinaryValue
+
+// Unknown type: VarBinaryArrayValue
+
+// Unknown type: BlobValue
+
+// Unknown type: DateValue
+
+// Unknown type: DateArrayValue
+
+// Unknown type: TimeValue
+
+// Unknown type: TimeArrayValue
+
+// Unknown type: DateTimeValue
+
+// Unknown type: DateTimeArrayValue
+
+// Unknown type: TimestampValue
+
+// Unknown type: TimestampArrayValue
+
+// Unknown type: ArrayValue
+
+// Unknown type: RefValue
+
+// Unknown type: StructValue
+
+// Unknown type: RowValue
+
+// Unknown type: CharOutParameter
+
+// Unknown type: CharArrayOutParameter
+
+// Unknown type: VarcharOutParameter
+
+// Unknown type: VarcharArrayOutParameter
+
+// Unknown type: NCharOutParameter
+
+// Unknown type: NVarcharOutParameter
+
+// Unknown type: NVarcharArrayOutParameter
+
+// Unknown type: BinaryOutParameter
+
+// Unknown type: BinaryArrayOutParameter
+
+// Unknown type: VarBinaryOutParameter
+
+// Unknown type: VarBinaryArrayOutParameter
+
+// Unknown type: TextOutParameter
+
+// Unknown type: BlobOutParameter
+
+// Unknown type: ClobOutParameter
+
+// Unknown type: NClobOutParameter
+
+// Unknown type: DateOutParameter
+
+// Unknown type: DateArrayOutParameter
+
+// Unknown type: TimeOutParameter
+
+// Unknown type: TimeArrayOutParameter
+
+// Unknown type: TimeWithTimezoneOutParameter
+
+// Unknown type: TimeWithTimezoneArrayOutParameter
+
+// Unknown type: DateTimeOutParameter
+
+// Unknown type: DateTimeArrayOutParameter
+
+// Unknown type: TimestampOutParameter
+
+// Unknown type: TimestampArrayOutParameter
+
+// Unknown type: TimestampWithTimezoneOutParameter
+
+// Unknown type: TimestampWithTimezoneArrayOutParameter
+
+// Unknown type: ArrayOutParameter
+
+// Unknown type: RowOutParameter
+
+// Unknown type: SmallIntOutParameter
+
+// Unknown type: SmallIntArrayOutParameter
+
+// Unknown type: IntegerOutParameter
+
+// Unknown type: BigIntOutParameter
+
+// Unknown type: IntegerArrayOutParameter
+
+// Unknown type: BigIntArrayOutParameter
+
+// Unknown type: RealOutParameter
+
+// Unknown type: RealArrayOutParameter
+
+// Unknown type: FloatOutParameter
+
+// Unknown type: FloatArrayOutParameter
+
+// Unknown type: DoubleOutParameter
+
+// Unknown type: DoubleArrayOutParameter
+
+// Unknown type: NumericOutParameter
+
+// Unknown type: NumericArrayOutParameter
+
+// Unknown type: DecimalOutParameter
+
+// Unknown type: DecimalArrayOutParameter
+
+// Unknown type: BitOutParameter
+
+// Unknown type: BitArrayOutParameter
+
+// Unknown type: BooleanOutParameter
+
+// Unknown type: BooleanArrayOutParameter
+
+// Unknown type: RefOutParameter
+
+// Unknown type: StructOutParameter
+
+// Unknown type: XMLOutParameter
+
+// Unknown type: ResultIterator
+
+// Unknown type: ProcedureCallResult
+
+// --- Functions ---
+
+# Returns the global connection pool.
+# 
+# + return - The connection pool
+function getGlobalConnectionPool() returns ConnectionPool;
+
+# Concatenates all provided `sql:ParameterizedQuery`s into a single `sql:ParameterizedQuery`.
+# 
+# + queries - Set of `sql:ParameterizedQuery` queries
+# + return - An `sql:ParameterizedQuery`
+function queryConcat(ParameterizedQuery[] queries) returns ParameterizedQuery;
+
+# Joins the parameters in the array with the `,` delimiter into an `sql:ParameterizedQuery`.
+# 
+# + values - An array of `sql:Value` values
+# + return - An `sql:ParameterizedQuery`
+function arrayFlattenQuery(Value[] values) returns ParameterizedQuery;
+
+# Generates a stream consisting of `sql:Error` elements.
+# 
+# + message - Error message used to initialise an `sql:Error`
+# + return - A stream
+function generateApplicationErrorStream(string message) returns Error?>;

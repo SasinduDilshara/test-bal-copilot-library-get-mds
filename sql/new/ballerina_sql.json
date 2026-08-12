@@ -1,0 +1,5575 @@
+{
+  "name": "ballerina/sql",
+  "description": "This module provides the generic interface and functionality to interact with an SQL database. The corresponding",
+  "readme": "## Overview\n\nThis module provides the generic interface and functionality to interact with an SQL database. The corresponding\ndatabase clients can be created by using specific database modules such as `mysql` or using the Java Database\nConnectivity module `jdbc`.\n\n### List of database modules\n\nBallerina now has the [`jdbc` module](https://central.ballerina.io/ballerinax/java.jdbc) as the generic DB connector\nmodule to connect to any relational database by simply providing the JDBC URL and the other related properties.\n\nBallerina also provides specially designed various database-specific DB connectors so that you can work with different\ndatabases, and you can access their DB-specific functionalities.\n\n* [`MySQL` module](https://central.ballerina.io/ballerinax/mysql)\n* [`PostgreSQL` module](https://central.ballerina.io/ballerinax/postgresql)\n* [`MSSQL` module](https://central.ballerina.io/ballerinax/mssql)\n* [`OracleDB` module](https://central.ballerina.io/ballerinax/oracledb)\n\n### Client\n\nA database client can be created using any of the above-listed database libraries. The operations and functionality explained below can be used with the newly created client.\n\n\u003e **Tip** : The client should be used throughout the application lifetime.\n\n#### Handle connection pools\n\nAll database libraries share the same connection pooling concept and there are three possible scenarios for connection\npool handling. For its properties and possible values, see the\n[`sql:ConnectionPool`](https://central.ballerina.io/ballerina/sql/latest#ConnectionPool).\n\n\u003e **Note**: Connection pooling is used to optimize opening and closing connections to the database. However, the pool comes with an overhead. It is best to configure the connection pool properties as per the application need to get the best performance.\n\n1. Global, shareable, default connection pool\n\n   If you do not provide the `poolOptions` field when creating the database client, a globally-shareable pool will be created for your database unless a connection pool matching with the properties you provided already exists. The `jdbc` library sample below shows how the global connection pool is used.\n\n    ```ballerina\n    jdbc:Client|sql:Error dbClient \u003d new (\"jdbc:mysql://localhost:3306/testdb\", \"root\", \"root\");\n    ```\n\n2. Client-owned, unsharable connection pool\n\n   If you define the `connectionPool` field inline when creating the database client with the `sql:ConnectionPool` type, an unsharable connection pool will be created. The `jdbc` library sample below shows how the global connection pool is used.\n\n    ```ballerina\n    jdbc:Client|sql:Error dbClient \u003d new (url \u003d \"jdbc:mysql://localhost:3306/testdb\", connectionPool \u003d { maxOpenConnections: 5 });\n    ```\n\n3. Local, shareable connection pool\n\n   If you create a record of the `sql:ConnectionPool` type and reuse that in the configuration of multiple clients,\n   a shared connection pool will be created for each set of clients that connects to the same database instance with the\n   same set of properties. The `jdbc` library sample below shows how the global connection pool is used.\n\n    ```ballerina\n    sql:ConnectionPool connPool \u003d {maxOpenConnections: 5};\n\n    jdbc:Client|sql:Error dbClient1 \u003d new (url \u003d \"jdbc:mysql://localhost:3306/testdb\", connectionPool \u003d connPool);\n    jdbc:Client|sql:Error dbClient2 \u003d new (url \u003d \"jdbc:mysql://localhost:3306/testdb\", connectionPool \u003d connPool);\n    jdbc:Client|sql:Error dbClient3 \u003d new (url \u003d \"jdbc:mysql://localhost:3306/testdb\", connectionPool \u003d connPool);\n    ```\n\n#### Close the client\n\nOnce all the database operations are performed, you can close the database client you have created by invoking the `close()`\noperation. This will close the corresponding connection pool if it is not shared by any other database clients.\n\n\u003e **Note** : The client must be closed only at the end of the application lifetime (or closed for graceful stops in a service).\n\n```ballerina\nerror? e \u003d dbClient.close();\n```\nOr\n```ballerina\ncheck dbClient.close();\n```\n\n### Database operations\n\nOnce the client is created, database operations can be executed through that client. This library defines the interface\nand generic properties that are shared among multiple database clients. It also supports querying, inserting, deleting,\nupdating, and batch updating data.\n\n#### Parameterized query\n\nThe `sql:ParameterizedQuery` is used to construct the SQL query to be executed by the client.\nYou can create a query with constant or dynamic input data as follows.\n\n**Query with constant values**\n\n```ballerina\nsql:ParameterizedQuery query \u003d `SELECT * FROM students WHERE id \u003c 10 AND age \u003e 12`;\n```\n\n**Query with dynamic values**\n\n```ballerina\nint[] ids \u003d [10, 50];\nint age \u003d 12;\nsql:ParameterizedQuery query \u003d `SELECT * FROM students WHERE id \u003c ${ids[0]} AND age \u003e ${age}`;\n```\n\n**Query with dynamic identifiers**\n\nIn SQL, parameterization safely inserts user-provided values into queries using placeholders that are bound at runtime. Only values can be parameterized, while identifiers such as table names, column names, or file paths cannot.\n\nThis restriction is intentional and consistent across all major database APIs, as allowing identifier parameterization could compromise query structure, reduce compatibility, and increase the risk of SQL injection attacks.\n\nThe `sql:ParameterizedQuery` follows the same standard. It does not support parameterizing or updating identifiers and allows only safe substitution for query values.\n\nWhen dynamic identifiers are required, queries can be constructed using string interpolation. This approach enables identifiers to be inserted dynamically at runtime but bypasses the built-in safety guarantees of sql:ParameterizedQuery and should therefore be used with caution.\n\n\u003e**Note**: Dynamic identifiers such as table names or column names should be used with caution. Since this approach bypasses the built-in safety guarantees of sql:ParameterizedQuery, all input values must be sanitized and validated before embedding them into queries. Use this method at your own risk to prevent potential SQL injection vulnerabilities and to maintain query integrity.\n\nThe following example demonstrates how to dynamically include an identifier, such as a table name, using string interpolation. If the provided table name is validated successfully, a dynamic SQL statement is constructed with the table name embedded in the query. Finally, the query is assigned to a `sql:ParameterizedQuery` object for execution.\n\n```bal\nimport ballerina/sql;\nimport ballerina/regex;\n\n// Validates table name format using a simple regex\nfunction validateTableName(string tableName) returns boolean {\n    // Allows only alphanumeric characters and underscores, starting with a letter\n    regexp:RegExp pattern \u003d re `^[A-Za-z][A-Za-z0-9_]*$`;\n    return pattern.isFullMatch(tableName);\n}\n\nfunction getEmployeeData(string tableName) returns error? {\n    if !validateTableName(tableName) {\n        return error(\"Invalid table name format. Only alphanumeric and underscore characters are allowed.\");\n    }\n\n    // Dynamically build the query string with the validated table name\n    string queryString \u003d string `SELECT id, name, department FROM ${tableName} WHERE is_active \u003d true`;\n\n    sql:ParameterizedQuery selectQuery \u003d ``;\n    selectQuery.strings \u003d [queryString];\n}\n```\n\nMoreover, the SQL package has `sql:queryConcat()` and `sql:arrayFlattenQuery()` util functions which make it easier\nto create a dynamic/constant complex query.\n\nThe `sql:queryConcat()` is used to create a parameterized query by concatenating a set of parameterized queries.\nThe sample below shows how to concatenate queries.\n\n```ballerina\nint id \u003d 10;\nint age \u003d 12;\nsql:ParameterizedQuery query \u003d `SELECT * FROM students`;\nsql:ParameterizedQuery query1 \u003d ` WHERE id \u003c ${id} AND age \u003e ${age}`;\nsql:ParameterizedQuery sqlQuery \u003d sql:queryConcat(query, query1);\n```\n\nThe query with the `IN` operator can be created using the `sql:ParameterizedQuery` like below. Here you need to flatten the array and pass each element separated by a comma.\n\n```ballerina\nint[] ids \u003d [1, 2, 3];\nsql:ParameterizedQuery query \u003d `SELECT count(*) as total FROM DataTable\n                                WHERE row_id in (${ids[0]}, ${ids[1]}, ${ids[2]})`;\n```\n\nThe util function `sql:arrayFlattenQuery()` is introduced to make the array flatten easier. It makes the inclusion of varying array elements into the query easier by flattening the array to return a parameterized query. You can construct the complex dynamic query with the `IN` operator by using both functions like below.\n\n```ballerina\nint[] ids \u003d [1, 2];\nsql:ParameterizedQuery sqlQuery \u003d\n                         sql:queryConcat(`SELECT * FROM DataTable WHERE id IN (`,\n                                          sql:arrayFlattenQuery(ids), `)`);\n```\n\n#### Create tables\n\nThis sample creates a table with two columns. One column is of type `int` and the other is of type `varchar`.\nThe `CREATE` statement is executed via the `execute` remote method of the client.\n\n```ballerina\n// Create the ‘Students’ table with the ‘id’, \u0027name\u0027, and ‘age’ fields.\nsql:ExecutionResult result \u003d\n                check dbClient-\u003eexecute(`CREATE TABLE student (\n                                           id INT AUTO_INCREMENT,\n                                           age INT,\n                                           name VARCHAR(255),\n                                           PRIMARY KEY (id)\n                                         )`);\n// A value of the sql:ExecutionResult type is returned for \u0027result\u0027.\n```\n\n#### Insert data\n\nThese samples show the data insertion by executing an `INSERT` statement using the `execute` remote method\nof the client.\n\nIn this sample, the query parameter values are passed directly into the query statement of the `execute`\nremote method.\n\n```ballerina\nsql:ExecutionResult result \u003d check dbClient-\u003eexecute(`INSERT INTO student(age, name)\n                                                        VALUES (23, \u0027john\u0027)`);\n```\n\nIn this sample, the parameter values, which are assigned to local variables are used to parameterize the SQL query in\nthe `execute` remote method. This parameterization can be performed with any primitive Ballerina type\nlike `string`, `int`, `float`, or `boolean` and in that case, the corresponding SQL type of the parameter is derived\nfrom the type of the Ballerina variable that is passed in.\n\n```ballerina\nstring name \u003d \"Anne\";\nint age \u003d 8;\n\nsql:ParameterizedQuery query \u003d `INSERT INTO student(age, name)\n                                  VALUES (${age}, ${name})`;\nsql:ExecutionResult result \u003d check dbClient-\u003eexecute(query);\n```\n\nIn this sample, the parameter values are passed as a `sql:TypedValue` to the `execute` remote method. Use the\ncorresponding subtype of the `sql:TypedValue` such as `sql:VarcharValue`, `sql:CharValue`, `sql:IntegerValue`, etc., when you need to\nprovide more details such as the exact SQL type of the parameter.\n\n```ballerina\nsql:VarcharValue name \u003d new (\"James\");\nsql:IntegerValue age \u003d new (10);\n\nsql:ParameterizedQuery query \u003d `INSERT INTO student(age, name)\n                                  VALUES (${age}, ${name})`;\nsql:ExecutionResult result \u003d check dbClient-\u003eexecute(query);\n```\n\n#### Insert data with auto-generated keys\n\nThis sample demonstrates inserting data while returning the auto-generated keys. It achieves this by using the\n`execute` remote method to execute the `INSERT` statement.\n\n```ballerina\nint age \u003d 31;\nstring name \u003d \"Kate\";\n\nsql:ParameterizedQuery query \u003d `INSERT INTO student(age, name)\n                                  VALUES (${age}, ${name})`;\nsql:ExecutionResult result \u003d check dbClient-\u003eexecute(query);\u0027\n\n// Number of rows affected by the execution of the query.\nint? count \u003d result.affectedRowCount;\n\n// The integer or string generated by the database in response to a query execution.\nstring|int? generatedKey \u003d result.lastInsertId;\n```\n\n#### Query data\n\nThese samples show how to demonstrate the different usages of the `query` operation to query the\ndatabase table and obtain the result as a stream.\n\n\u003e**Note**: When processing the stream, make sure to consume all fetched data or close the stream.\n\nThis sample demonstrates querying data from a table in a database.\nFirst, a type is created to represent the returned result set. This record can be defined as an open or a closed record\naccording to the requirement. If an open record is defined, the returned stream type will include both defined fields\nin the record and additional database columns fetched by the SQL query which are not defined in the record.\nNote the mapping of the database column to the returned record\u0027s property is case-insensitive if it is defined in the\nrecord(i.e., the `ID` column in the result can be mapped to the `id` property in the record). Additional column names are\nadded to the returned record as in the SQL query. If the record is defined as a closed record, only defined fields in the\nrecord are returned or gives an error when additional columns present in the SQL query. Next, the `SELECT` query is executed\nvia the `query` remote method of the client. Once the query is executed, each data record can be retrieved by iterating through\nthe result set. The `stream` returned by the `SELECT` operation holds a pointer to the actual data in the database, and it\nloads data from the table only when it is accessed. This stream can be iterated only once.\n\n```ballerina\n// Define an open record type to represent the results.\ntype Student record {\n    int id;\n    int age;\n    string name;\n};\n\n// Select the data from the database table. The query parameters are passed\n// directly. Similar to the `execute` samples, parameters can be passed as\n// sub types of `sql:TypedValue` as well.\nint id \u003d 10;\nint age \u003d 12;\nsql:ParameterizedQuery query \u003d `SELECT * FROM students\n                                WHERE id \u003c ${id} AND age \u003e ${age}`;\nstream\u003cStudent, sql:Error?\u003e resultStream \u003d dbClient-\u003equery(query);\n\n// Iterating the returned table.\ncheck from Student student in resultStream\n    do {\n       // Can perform operations using the record \u0027student\u0027 of type `Student`.\n    };\n```\n\nDefining the return type is optional, and you can query the database without providing the result type. Hence,\nthe above sample can be modified as follows with an open record type as the return type. The property name in the open record\ntype will be the same as how the column is defined in the database.\n\n```ballerina\n// Select the data from the database table. The query parameters are passed\n// directly. Similar to the `execute` samples, parameters can be passed as\n// sub types of `sql:TypedValue` as well.\nint id \u003d 10;\nint age \u003d 12;\nsql:ParameterizedQuery query \u003d `SELECT * FROM students\n                                WHERE id \u003c ${id} AND age \u003e ${age}`;\nstream\u003crecord{}, sql:Error?\u003e resultStream \u003d dbClient-\u003equery(query);\n\n// Iterating the returned table.\ncheck from record{} student in resultStream\n    do {\n        // Can perform operations using the record \u0027student\u0027.\n        io:println(\"Student name: \", student.value[\"name\"]);\n    };\n```\n\n`sql:Column` annotation can be used to map database columns to Typed record fields of different name. This annotation should be attached to record fields.\n```ballerina\ntype Student record {\n    int id;\n    @sql:Column { name: \"first_name\" }\n    string firstName;\n    @sql:Column { name: \"last_name\" }\n    string lastName\n};\n```\nThe above annotation will map the database column `first_name` to the Ballerina record field `firstName`. If the `query()` method does not return `first_name` column, the field will not be populated.\n\nMultiple table columns can be matched to a single Ballerina record within a returned record. For instance if the query returns data from multiple tables such as Students and Teachers.\nAll columns of the `Teachers` table can be grouped to another Typed record such as `Teacher` type within the `Student` record.\n\n```ballerina\npublic type Students record {|\n    int id;\n    string name;\n    string? age;\n    float? gpa;\n    Teachers teachers;\n|}\ntype Teachers record {|\n    int id;\n    string name;\n|}\n```\nIn the above scenario also, `sql:Column` annotation can be used to rename field name such as,\n```ballerina\npublic type Students record {|\n    int id;\n    string name;\n    string? age;\n    float? gpa;\n    @sql:Column { name: \"teachers\" }\n    Teacher teacher;\n|}\n```\n\nThere are situations in which you may not want to iterate through the database and in that case, you may decide\nto use the `sql:queryRow()` operation. If the provided return type is a record, this method returns only the first row\nretrieved by the query as a record.\n\n```ballerina\nint id \u003d 10;\nsql:ParameterizedQuery query \u003d `SELECT * FROM students WHERE id \u003d ${id}`;\nStudent retrievedStudent \u003d check dbClient-\u003equeryRow(query);\n```\n\nThe `sql:queryRow()` operation can also be used to retrieve a single value from the database (e.g., when querying using\n`COUNT()` and other SQL aggregation functions). If the provided return type is not a record (i.e., a primitive data type)\n, this operation will return the value of the first column of the first row retrieved by the query.\n\n```ballerina\nint age \u003d 12;\nsql:ParameterizedQuery query \u003d `SELECT COUNT(*) FROM students WHERE age \u003c ${age}`;\nint youngStudents \u003d check dbClient-\u003equeryRow(query);\n```\n\n#### Update data\n\nThis sample demonstrates modifying data by executing an `UPDATE` statement via the `execute` remote method of\nthe client.\n\n```ballerina\nint age \u003d 23;\nsql:ParameterizedQuery query \u003d `UPDATE students SET name \u003d \u0027John\u0027 WHERE age \u003d ${age}`;\nsql:ExecutionResult result \u003d check dbClient-\u003eexecute(query);\n```\n\n#### Delete data\n\nThis sample demonstrates deleting data by executing a `DELETE` statement via the `execute` remote method of\nthe client.\n\n```ballerina\nstring name \u003d \"John\";\nsql:ParameterizedQuery query \u003d `DELETE from students WHERE name \u003d ${name}`;\nsql:ExecutionResult result \u003d check dbClient-\u003eexecute(query);\n```\n\n#### Batch update data\n\nThis sample demonstrates how to insert multiple records with a single `INSERT` statement that is executed via the\n`batchExecute` remote method of the client. This is done by creating a `table` with multiple records and a\nparameterized SQL query as same as the above `execute` operations.\n\n```ballerina\n// Create the table with the records that need to be inserted.\nvar data \u003d [\n  { name: \"John\", age: 25 },\n  { name: \"Peter\", age: 24 },\n  { name: \"jane\", age: 22 }\n];\n\n// Do the batch update by passing the batches.\nsql:ParameterizedQuery[] batch \u003d from var row in data\n                                 select `INSERT INTO students (\u0027name\u0027, \u0027age\u0027)\n                                           VALUES (${row.name}, ${row.age})`;\nsql:ExecutionResult[] result \u003d check dbClient-\u003ebatchExecute(batch);\n```\n\n#### Execute SQL stored procedures\n\nThis sample demonstrates how to execute a stored procedure with a single `INSERT` statement that is executed via the\n`call` remote method of the client.\n\n```ballerina\nint uid \u003d 10;\nsql:IntegerOutParameter insertId \u003d new;\n\nsql:ProcedureCallResult result \u003d\n                         check dbClient-\u003ecall(`call InsertPerson(${uid}, ${insertId})`);\nstream\u003crecord{}, sql:Error?\u003e? resultStr \u003d result.queryResult;\nif resultStr is stream\u003crecord{}, sql:Error?\u003e {\n    check from record{} value in resultStr\n        do {\n          // Can perform operations using the record \u0027result\u0027.\n        };\n}\ncheck result.close();\n```\n\n\u003e**Note**: Once the results are processed, the `close` method on the `sql:ProcedureCallResult` must be called.\n\n\u003e**Note**: The default thread pool size used in Ballerina is: `the number of processors available * 2`. You can configure the thread pool size by using the `BALLERINA_MAX_POOL_SIZE` environment variable.\n",
+  "typeDefs": [
+    {
+      "name": "BASE_TABLE",
+      "description": "",
+      "type": "Constant",
+      "value": "BASE TABLE",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "VIEW",
+      "description": "",
+      "type": "Constant",
+      "value": "VIEW",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "NO_ACTION",
+      "description": "",
+      "type": "Constant",
+      "value": "NO ACTION",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "RESTRICT",
+      "description": "",
+      "type": "Constant",
+      "value": "RESTRICT",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "CASCADE",
+      "description": "",
+      "type": "Constant",
+      "value": "CASCADE",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "SET_NULL",
+      "description": "",
+      "type": "Constant",
+      "value": "SET NULL",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "SET_DEFAULT",
+      "description": "",
+      "type": "Constant",
+      "value": "SET DEFAULT",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "PROCEDURE",
+      "description": "",
+      "type": "Constant",
+      "value": "PROCEDURE",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "FUNCTION",
+      "description": "",
+      "type": "Constant",
+      "value": "FUNCTION",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "IN",
+      "description": "",
+      "type": "Constant",
+      "value": "IN",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "OUT",
+      "description": "",
+      "type": "Constant",
+      "value": "OUT",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "INOUT",
+      "description": "",
+      "type": "Constant",
+      "value": "INOUT",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "NO_COLUMNS",
+      "description": "",
+      "type": "Constant",
+      "value": "NO_COLUMNS",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "COLUMNS_ONLY",
+      "description": "",
+      "type": "Constant",
+      "value": "COLUMNS_ONLY",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "COLUMNS_WITH_CONSTRAINTS",
+      "description": "",
+      "type": "Constant",
+      "value": "COLUMNS_WITH_CONSTRAINTS",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "SUCCESS_NO_INFO",
+      "description": "Constant indicating that the specific batch statement executed successfully\nbut that the count of affected rows is unavailable.",
+      "type": "Constant",
+      "value": "-2",
+      "varType": {
+        "name": "int"
+      }
+    },
+    {
+      "name": "EXECUTION_FAILED",
+      "description": "Constant indicating that the specific batch statement failed.",
+      "type": "Constant",
+      "value": "-3",
+      "varType": {
+        "name": "int"
+      }
+    },
+    {
+      "name": "TRANSACTION_READ_COMMITTED",
+      "description": "Read committed isolation level",
+      "type": "Constant",
+      "value": "TRANSACTION_READ_COMMITTED",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "TRANSACTION_READ_UNCOMMITTED",
+      "description": "Read uncommitted isolation level",
+      "type": "Constant",
+      "value": "TRANSACTION_READ_UNCOMMITTED",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "TRANSACTION_REPEATABLE_READ",
+      "description": "Repeatable read isolation level",
+      "type": "Constant",
+      "value": "TRANSACTION_REPEATABLE_READ",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "TRANSACTION_SERIALIZABLE",
+      "description": "Serializable isolation level",
+      "type": "Constant",
+      "value": "TRANSACTION_SERIALIZABLE",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "ColumnConfig",
+      "description": "Defines the database column name which matches the record field. The default value is the record field name.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "name",
+          "description": "The database column name",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Client",
+      "description": "Represents an SQL client.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "query",
+          "type": "Remote Function",
+          "description": "Executes the query, which may return multiple results.\nWhen processing the stream, make sure to consume all fetched data or close the stream.\n",
+          "parameters": [
+            {
+              "name": "sqlQuery",
+              "description": "The SQL query",
+              "type": {
+                "name": "ParameterizedQuery",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ParameterizedQuery"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "rowType",
+              "description": "The `typedesc` of the record to which the result needs to be returned",
+              "type": {
+                "name": "record {|anydata...;|}"
+              },
+              "optional": true,
+              "default": "\u003c\u003e"
+            }
+          ],
+          "return": {
+            "description": "Stream of records in the `rowType` type",
+            "type": {
+              "name": "stream\u003crowType, Error?\u003e"
+            }
+          }
+        },
+        {
+          "name": "queryRow",
+          "type": "Remote Function",
+          "description": "Executes the query, which is expected to return at most one row of the result.\nIf the query does not return any results, `sql:NoRowsError` is returned.\n",
+          "parameters": [
+            {
+              "name": "sqlQuery",
+              "description": "The SQL query",
+              "type": {
+                "name": "ParameterizedQuery",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ParameterizedQuery"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "returnType",
+              "description": "The `typedesc` of the record to which the result needs to be returned.\nIt can be a basic type if the query result contains only one column",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "\u003c\u003e"
+            }
+          ],
+          "return": {
+            "description": "Result in the `returnType` type or an `sql:Error`",
+            "type": {
+              "name": "returnType|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "returnType"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "execute",
+          "type": "Remote Function",
+          "description": "Executes the SQL query. Only the metadata of the execution is returned (not the results from the query).\n",
+          "parameters": [
+            {
+              "name": "sqlQuery",
+              "description": "The SQL query",
+              "type": {
+                "name": "ParameterizedQuery",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ParameterizedQuery"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "Metadata of the query execution as an `sql:ExecutionResult` or an `sql:Error`",
+            "type": {
+              "name": "ExecutionResult|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "ExecutionResult"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "batchExecute",
+          "type": "Remote Function",
+          "description": "Executes the SQL query with multiple sets of parameters in a batch. Only the metadata of the execution is returned (not the results from the query).\nIf one of the commands in the batch fails, an `sql:BatchExecuteError` will be returned. However, the driver may\nor may not continue to process the remaining commands in the batch after a failure.\n",
+          "parameters": [
+            {
+              "name": "sqlQueries",
+              "description": "The SQL query with multiple sets of parameters",
+              "type": {
+                "name": "ParameterizedQuery[]",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ParameterizedQuery"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "Metadata of the query execution as an `sql:ExecutionResult[]` or an `sql:Error`",
+            "type": {
+              "name": "ExecutionResult[]|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "ExecutionResult"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "call",
+          "type": "Remote Function",
+          "description": "Executes an SQL query, which calls a stored procedure or function. This may or may not\nreturn results. Once the results are processed, the `close` method on `sql:ProcedureCallResult` must be called.\n\nThis method supports two JDBC call syntaxes:\n- **Procedure call**: `` `{call procedureName(${param1}, ${param2})}` ``\n- **Function call**: `` `{${returnParam} \u003d call functionName(${param1})}` ``\n\nFor function calls, use an `OutParameter` (e.g., `VarcharOutParameter`) as the return parameter to capture\nthe function\u0027s return value:\n```ballerina\nsql:VarcharOutParameter retVal \u003d new;\nsql:ProcedureCallResult ret \u003d check dbClient-\u003ecall(`{${retVal} \u003d call myFunc(${param})}`);\nstring result \u003d check retVal.get(string);\ncheck ret.close();\n```\n",
+          "parameters": [
+            {
+              "name": "sqlQuery",
+              "description": "The SQL query",
+              "type": {
+                "name": "ParameterizedCallQuery",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ParameterizedCallQuery"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "rowTypes",
+              "description": "`typedesc` array of the records to which the results need to be returned",
+              "type": {
+                "name": "typedesc\u003crecord {|anydata...;|}\u003e[]"
+              },
+              "optional": true,
+              "default": "[]"
+            }
+          ],
+          "return": {
+            "description": "Summary of the execution and results are returned in an `sql:ProcedureCallResult`, or an `sql:Error`",
+            "type": {
+              "name": "ProcedureCallResult|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "ProcedureCallResult"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "close",
+          "type": "Normal Function",
+          "description": "Closes the SQL client and shuts down the connection pool. The client must be closed only at the end of the\napplication lifetime (or closed for graceful stops in a service).\n",
+          "parameters": [],
+          "return": {
+            "description": "Possible `sql:Error` when closing the client",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "isClient": true
+    },
+    {
+      "name": "ConnectionPool",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "maxOpenConnections",
+          "description": "The maximum number of open connections that the pool is allowed to have. Includes both idle and in-use\nconnections. The default value is 15. This can be changed through the configuration API with the\n`ballerina.sql.maxOpenConnections` key",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxConnectionLifeTime",
+          "description": "The maximum lifetime (in seconds) of a connection in the pool. The default value is 1800 seconds\n(30 minutes). A value of 0 indicates an unlimited maximum lifetime (infinite lifetime). The minimum\nallowed value is 30 seconds. This can be changed through the configuration API with the\n`ballerina.sql.maxConnectionLifeTime` key.",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "minIdleConnections",
+          "description": "The minimum number of idle connections that the pool tries to maintain. The default value is the same as\n`maxOpenConnections` and it can be changed through the configuration API with the\n`ballerina.sql.minIdleConnections` key",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "connectionTimeout",
+          "description": "Maximum time (in seconds) to wait for a connection from the pool before failing. The default value is\n30 seconds. This can be changed through the configuration API with the `ballerina.sql.connectionTimeout` key",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "idleTimeout",
+          "description": "Maximum time (in seconds) an idle connection is kept before retirement. The default value is 600 seconds\n(10 minutes). This can be changed through the configuration API with the `ballerina.sql.idleTimeout` key",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "validationTimeout",
+          "description": "Maximum time (in seconds) allowed for a connection validation. The default value is 5 seconds. This\ncan be changed through the configuration API with the `ballerina.sql.validationTimeout` key",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "leakDetectionThreshold",
+          "description": "Threshold (in seconds) to flag a potential connection leak (use `0` to disable leak detection). The default\nvalue is 0 seconds. This can be changed through the configuration API with the\n`ballerina.sql.leakDetectionThreshold` key",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "keepAliveTime",
+          "description": "Interval (in seconds) to periodically keep idle connections alive (use `0` to disable keep alive). The\ndefault value is 0 seconds. This can be changed through the configuration API with the\n`ballerina.sql.keepAliveTime` key",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "poolName",
+          "description": "Pool name for logs/metrics. If unset, an internal name is used. The default value is nil. This can be\nchanged through the configuration API with the `ballerina.sql.poolName` key",
+          "type": {
+            "name": "string?"
+          },
+          "optional": true
+        },
+        {
+          "name": "initializationFailTimeout",
+          "description": "Controls pool boot behavior: fail fast vs. lazy init. Use negative value to disable failure timeout. The\ndefault value is 1 second. This can be changed through the configuration API with the\n`ballerina.sql.initializationFailTimeout` key",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "transactionIsolation",
+          "description": "Default transaction isolation for connections. If unset, driver default is used. Allowed values typically:\n`TRANSACTION_READ_UNCOMMITTED`, `TRANSACTION_READ_COMMITTED`, `TRANSACTION_REPEATABLE_READ`,\n`TRANSACTION_SERIALIZABLE`.\nThis can be changed through the configuration API with the `ballerina.sql.transactionIsolation` key",
+          "type": {
+            "name": "TransactionIsolation?"
+          },
+          "optional": true
+        },
+        {
+          "name": "connectionTestQuery",
+          "description": "SQL query to validate a connection. Leave unset to use driver-native validation. The default value is\nnil. This can be changed through the configuration API with the `ballerina.sql.connectionTestQuery` key",
+          "type": {
+            "name": "string?"
+          },
+          "optional": true
+        },
+        {
+          "name": "connectionInitSql",
+          "description": "SQL executed when a new connection is created. Useful for session-level settings. The default value is\nnil. This can be changed through the configuration API with the `ballerina.sql.connectionInitSql` key",
+          "type": {
+            "name": "string|string[]?"
+          },
+          "optional": true
+        },
+        {
+          "name": "readOnly",
+          "description": "Marks connections as read-only by default. Use with care when apps issue writes. The default value is\nfalse. This can be changed through the configuration API with the `ballerina.sql.readOnly` key",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "allowPoolSuspension",
+          "description": "Allows suspending the pool for maintenance. Rarely needed; keep disabled. The default value is false.\nThis can be changed through the configuration API with the `ballerina.sql.allowPoolSuspension` key",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "isolateInternalQueries",
+          "description": "Isolates pool\u0027s internal queries from application transactions. The default value is false. This can\nbe changed through the configuration API with the `ballerina.sql.isolateInternalQueries` key",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "TransactionIsolation",
+      "description": "Represents the transaction isolation level.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "TRANSACTION_SERIALIZABLE",
+          "description": "Serializable isolation level"
+        },
+        {
+          "name": "TRANSACTION_REPEATABLE_READ",
+          "description": "Repeatable read isolation level"
+        },
+        {
+          "name": "TRANSACTION_READ_UNCOMMITTED",
+          "description": "Read uncommitted isolation level"
+        },
+        {
+          "name": "TRANSACTION_READ_COMMITTED",
+          "description": "Read committed isolation level"
+        }
+      ]
+    },
+    {
+      "name": "BatchExecuteErrorDetail",
+      "description": "Represents the properties belonging to an `sql:BatchExecuteError`.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "errorCode",
+          "description": "SQL error code",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "sqlState",
+          "description": "SQL state",
+          "type": {
+            "name": "string?"
+          }
+        },
+        {
+          "name": "executionResults",
+          "description": "Metadata of the query executions",
+          "type": {
+            "name": "ExecutionResult[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ExecutionResult"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "ExecutionResult",
+      "description": "Metadata of the query execution.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "affectedRowCount",
+          "description": "Number of rows affected by the execution of the query. It may be one of the following,\n(1) A number greater than or equal to zero, the count of affected rows after the successful execution of the query\n(2) A value of the `SUCCESS_NO_INFO`, the count of affected rows is unknown after the successful execution of the query\n(3) A value of the `EXECUTION_FAILED`, the query execution failed",
+          "type": {
+            "name": "int?"
+          }
+        },
+        {
+          "name": "lastInsertId",
+          "description": "The ID generated by the database in response to a query execution. This can be `()` in case the database does not support this feature",
+          "type": {
+            "name": "string|int?"
+          }
+        }
+      ]
+    },
+    {
+      "name": "DatabaseErrorDetail",
+      "description": "Represents the properties belonging to an `sql:DatabaseError`.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "errorCode",
+          "description": "SQL error code",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "sqlState",
+          "description": "SQL state",
+          "type": {
+            "name": "string?"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Error",
+      "description": "Defines the generic error type for the `sql` module.",
+      "type": "Error",
+      "baseType": "error"
+    },
+    {
+      "name": "DatabaseError",
+      "description": "Represents an error caused by an issue related to database accessibility, erroneous queries, constraint violations,\ndatabase resource clean-up, and other similar scenarios.",
+      "type": "Error",
+      "baseType": "error\u003crecord {|int errorCode; string? sqlState; anydata...;|}\u003e"
+    },
+    {
+      "name": "BatchExecuteError",
+      "description": "Represents an error that occurs during the execution of batch queries.",
+      "type": "Error",
+      "baseType": "error\u003crecord {|int errorCode; string? sqlState; ExecutionResult[] executionResults; anydata...;|}\u003e"
+    },
+    {
+      "name": "NoRowsError",
+      "description": "Represents an error that occurs when a query retrieves does not retrieve any rows when at least one row is expected.",
+      "type": "Error",
+      "baseType": "error"
+    },
+    {
+      "name": "ApplicationError",
+      "description": "Represents an error originating from application-level configurations.",
+      "type": "Error",
+      "baseType": "error"
+    },
+    {
+      "name": "DataError",
+      "description": "Represents an error that occurs during the processing of the parameters or returned results.",
+      "type": "Error",
+      "baseType": "error"
+    },
+    {
+      "name": "TypeMismatchError",
+      "description": "Represents an error that occurs when a query retrieves a result that differs from the supported result type.",
+      "type": "Error",
+      "baseType": "error"
+    },
+    {
+      "name": "ConversionError",
+      "description": "Represents an error that occurs when a query retrieves a result that is corrupted and cannot be converted to the expected type.",
+      "type": "Error",
+      "baseType": "error"
+    },
+    {
+      "name": "FieldMismatchError",
+      "description": "Represents an error that occurs when a query retrieves a result that cannot be mapped to the expected record type.",
+      "type": "Error",
+      "baseType": "error"
+    },
+    {
+      "name": "UnsupportedTypeError",
+      "description": "Represents an error that occurs when an unsupported parameter type is added to the query.",
+      "type": "Error",
+      "baseType": "error"
+    },
+    {
+      "name": "TableType",
+      "description": "Represents the type of the table/view retrieved through the `getTableInfo` function.\n",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "VIEW",
+          "description": ""
+        },
+        {
+          "name": "BASE_TABLE",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "ReferentialRule",
+      "description": "Represents the type of actions that would be taken on delete or on update for foreign key constraints.\n",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "SET_DEFAULT",
+          "description": ""
+        },
+        {
+          "name": "SET_NULL",
+          "description": ""
+        },
+        {
+          "name": "CASCADE",
+          "description": ""
+        },
+        {
+          "name": "RESTRICT",
+          "description": ""
+        },
+        {
+          "name": "NO_ACTION",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "RoutineType",
+      "description": "Represents the type of the routine retrieved through the `getRoutineInfo` function.\n",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "FUNCTION",
+          "description": ""
+        },
+        {
+          "name": "PROCEDURE",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "ParameterMode",
+      "description": "Represents the mode of the parameter for a routine.\n",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "INOUT",
+          "description": ""
+        },
+        {
+          "name": "OUT",
+          "description": ""
+        },
+        {
+          "name": "IN",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "TableDefinition",
+      "description": "Represents a table in the database.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "name",
+          "description": "The name of the table",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "\u0027type",
+          "description": "Whether the table is a base table or a view",
+          "type": {
+            "name": "TableType",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TableType"
+              }
+            ]
+          }
+        },
+        {
+          "name": "columns",
+          "description": "The columns included in the table",
+          "type": {
+            "name": "ColumnDefinition[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ColumnDefinition"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "checkConstraints",
+          "description": "Check constraints associated with the table",
+          "type": {
+            "name": "CheckConstraint[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CheckConstraint"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ColumnDefinition",
+      "description": "Represents a column in a table.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "name",
+          "description": "The name of the column",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "\u0027type",
+          "description": "The SQL data-type associated with the column",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "defaultValue",
+          "description": "The default value of the column",
+          "type": {
+            "name": "anydata?"
+          }
+        },
+        {
+          "name": "nullable",
+          "description": "Whether the column is nullable",
+          "type": {
+            "name": "boolean"
+          }
+        },
+        {
+          "name": "referentialConstraints",
+          "description": "Referential constraints (foreign key relationships) associated with the column",
+          "type": {
+            "name": "ReferentialConstraint[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ReferentialConstraint"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ReferentialConstraint",
+      "description": "Represents a referential constraint (foriegn key constraint).\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "name",
+          "description": "The name of the constraint",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "tableName",
+          "description": "The name of the table which contains the referenced column",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "columnName",
+          "description": "The name of the referenced column",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "updateRule",
+          "description": "The action taken when an update statement violates the constraint",
+          "type": {
+            "name": "ReferentialRule",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ReferentialRule"
+              }
+            ]
+          }
+        },
+        {
+          "name": "deleteRule",
+          "description": "The action taken when a delete statement violates the constraint",
+          "type": {
+            "name": "ReferentialRule",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ReferentialRule"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "CheckConstraint",
+      "description": "Represents a check constraint.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "name",
+          "description": "The name of the constraint",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "clause",
+          "description": "The actual text of the SQL definition statement",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "RoutineDefinition",
+      "description": "Represents a routine.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "name",
+          "description": "The name of the routine",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "\u0027type",
+          "description": "The type of the routine (procedure or function)",
+          "type": {
+            "name": "RoutineType",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RoutineType"
+              }
+            ]
+          }
+        },
+        {
+          "name": "returnType",
+          "description": "If the routine returns a value, the return data-type. Else ()",
+          "type": {
+            "name": "string?"
+          }
+        },
+        {
+          "name": "parameters",
+          "description": "The parameters associated with the routine",
+          "type": {
+            "name": "ParameterDefinition[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ParameterDefinition"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "ParameterDefinition",
+      "description": "Represents a routine parameter.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "mode",
+          "description": "The mode of the parameter (IN, OUT, INOUT)",
+          "type": {
+            "name": "ParameterMode",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ParameterMode"
+              }
+            ]
+          }
+        },
+        {
+          "name": "name",
+          "description": "The name of the parameter",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "\u0027type",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SchemaClient",
+      "description": "Represents an SQL metadata client.\n",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "listTables",
+          "type": "Remote Function",
+          "description": "Retrieves all tables in the database.\n",
+          "parameters": [],
+          "return": {
+            "description": "A string array containing the names of the tables or an `sql:Error`",
+            "type": {
+              "name": "string[]|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "getTableInfo",
+          "type": "Remote Function",
+          "description": "Retrieves information relevant to the provided table in the database.\n",
+          "parameters": [
+            {
+              "name": "tableName",
+              "description": "The name of the table",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "include",
+              "description": "Options on whether columnar and constraint related information should be fetched.\nIf `NO_COLUMNS` is provided, then no information related to columns will be retrieved.\nIf `COLUMNS_ONLY` is provided, then columnar information will be retrieved, but not constraint\nrelated information.\nIf `COLUMNS_WITH_CONSTRAINTS` is provided, then columar information along with constraint related\ninformation will be retrieved",
+              "type": {
+                "name": "ColumnRetrievalOptions",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ColumnRetrievalOptions"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "COLUMNS_ONLY"
+            }
+          ],
+          "return": {
+            "description": "An \u0027sql:TableDefinition\u0027 with the relevant table information or an `sql:Error`",
+            "type": {
+              "name": "TableDefinition|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "TableDefinition"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "listRoutines",
+          "type": "Remote Function",
+          "description": "Retrieves all routines in the database.\n",
+          "parameters": [],
+          "return": {
+            "description": "A string array containing the names of the routines or an `sql:Error`",
+            "type": {
+              "name": "string[]|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "getRoutineInfo",
+          "type": "Remote Function",
+          "description": "Retrieves information relevant to the provided routine in the database.\n",
+          "parameters": [
+            {
+              "name": "name",
+              "description": "The name of the routine",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "An \u0027sql:RoutineDefinition\u0027 with the relevant routine information or an `sql:Error`",
+            "type": {
+              "name": "RoutineDefinition|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "RoutineDefinition"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "close",
+          "type": "Normal Function",
+          "description": "Closes the SQL metadata client.\n",
+          "parameters": [],
+          "return": {
+            "description": "Possible `sql:Error` when closing the client",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "isClient": true
+    },
+    {
+      "name": "ColumnRetrievalOptions",
+      "description": "",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "COLUMNS_WITH_CONSTRAINTS",
+          "description": ""
+        },
+        {
+          "name": "COLUMNS_ONLY",
+          "description": ""
+        },
+        {
+          "name": "NO_COLUMNS",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "TypedValue",
+      "description": "Generic type that can be passed to `sql:ParameterizedQuery` to represent parameters in the SQL query.\n",
+      "type": "Class"
+    },
+    {
+      "name": "Value",
+      "description": "Generic type of ballerina basic types that can be passed to `sql:ParameterizedQuery` to represent parameters in the SQL query.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "string",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "int",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "boolean",
+          "type": {
+            "name": "boolean"
+          }
+        },
+        {
+          "name": "float",
+          "type": {
+            "name": "float"
+          }
+        },
+        {
+          "name": "decimal",
+          "type": {
+            "name": "decimal"
+          }
+        },
+        {
+          "name": "byte[]",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "xml",
+          "type": {
+            "name": "xml"
+          }
+        },
+        {
+          "name": "record {|anydata...;|}",
+          "type": {
+            "name": "record {|anydata...;|}"
+          }
+        },
+        {
+          "name": "time:Utc",
+          "type": {
+            "name": "Utc",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Utc",
+                "libraryName": "ballerina/time"
+              }
+            ]
+          }
+        },
+        {
+          "name": "time:Civil",
+          "type": {
+            "name": "Civil",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Civil",
+                "libraryName": "ballerina/time"
+              }
+            ]
+          }
+        },
+        {
+          "name": "time:Date",
+          "type": {
+            "name": "Date",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Date",
+                "libraryName": "ballerina/time"
+              }
+            ]
+          }
+        },
+        {
+          "name": "time:TimeOfDay",
+          "type": {
+            "name": "TimeOfDay",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "TimeOfDay",
+                "libraryName": "ballerina/time"
+              }
+            ]
+          }
+        },
+        {
+          "name": "time:Civil[]",
+          "type": {
+            "name": "Civil[]",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Civil",
+                "libraryName": "ballerina/time"
+              }
+            ]
+          }
+        },
+        {
+          "name": "time:TimeOfDay[]",
+          "type": {
+            "name": "TimeOfDay[]",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "TimeOfDay",
+                "libraryName": "ballerina/time"
+              }
+            ]
+          }
+        },
+        {
+          "name": "(string?)[]",
+          "type": {
+            "name": "(string?)[]"
+          }
+        },
+        {
+          "name": "(int?)[]",
+          "type": {
+            "name": "(int?)[]"
+          }
+        },
+        {
+          "name": "(boolean?)[]",
+          "type": {
+            "name": "(boolean?)[]"
+          }
+        },
+        {
+          "name": "(float?)[]",
+          "type": {
+            "name": "(float?)[]"
+          }
+        },
+        {
+          "name": "(decimal?)[]",
+          "type": {
+            "name": "(decimal?)[]"
+          }
+        },
+        {
+          "name": "(byte[]?)[]",
+          "type": {
+            "name": "(byte[]?)[]"
+          }
+        },
+        {
+          "name": "TypedValue",
+          "type": {
+            "name": "TypedValue",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TypedValue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "()",
+          "type": {
+            "name": "()"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ParameterizedQuery",
+      "description": "The object constructed through backtick surrounded strings. Dynamic parameters of `sql:Value` type can be indicated using `${\u003cvariable name\u003e}`\nsuch as `` `The sql:ParameterizedQuery is ${variable_name}` ``.\nThis validates the parameter types during the query execution.\n",
+      "type": "Class"
+    },
+    {
+      "name": "OutParameter",
+      "description": "Represents the generic OUT Parameters in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned Char SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "\u003c\u003e"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "InOutParameter",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "\u0027in",
+              "type": {
+                "name": "Value",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Value"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        },
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "CursorOutParameter",
+      "description": "Represents the Cursor Out Parameters in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL result set values to a ballerina stream value.\n",
+          "parameters": [
+            {
+              "name": "rowType",
+              "description": "The `typedesc` of the record to which the result needs to be returned",
+              "type": {
+                "name": "record {|anydata...;|}"
+              },
+              "optional": true,
+              "default": "record {|anydata...;|}"
+            }
+          ],
+          "return": {
+            "description": "Stream of records in the `rowType` type",
+            "type": {
+              "name": "stream\u003crowType, Error?\u003e"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Parameter",
+      "description": "Generic type that can be passed to `sql:ParameterizedCallQuery` to indicate procedure/function parameters.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "string",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "int",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "boolean",
+          "type": {
+            "name": "boolean"
+          }
+        },
+        {
+          "name": "float",
+          "type": {
+            "name": "float"
+          }
+        },
+        {
+          "name": "decimal",
+          "type": {
+            "name": "decimal"
+          }
+        },
+        {
+          "name": "byte[]",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "xml",
+          "type": {
+            "name": "xml"
+          }
+        },
+        {
+          "name": "record {|anydata...;|}",
+          "type": {
+            "name": "record {|anydata...;|}"
+          }
+        },
+        {
+          "name": "time:Utc",
+          "type": {
+            "name": "Utc",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Utc",
+                "libraryName": "ballerina/time"
+              }
+            ]
+          }
+        },
+        {
+          "name": "time:Civil",
+          "type": {
+            "name": "Civil",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Civil",
+                "libraryName": "ballerina/time"
+              }
+            ]
+          }
+        },
+        {
+          "name": "time:Date",
+          "type": {
+            "name": "Date",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Date",
+                "libraryName": "ballerina/time"
+              }
+            ]
+          }
+        },
+        {
+          "name": "time:TimeOfDay",
+          "type": {
+            "name": "TimeOfDay",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "TimeOfDay",
+                "libraryName": "ballerina/time"
+              }
+            ]
+          }
+        },
+        {
+          "name": "time:Civil[]",
+          "type": {
+            "name": "Civil[]",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Civil",
+                "libraryName": "ballerina/time"
+              }
+            ]
+          }
+        },
+        {
+          "name": "time:TimeOfDay[]",
+          "type": {
+            "name": "TimeOfDay[]",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "TimeOfDay",
+                "libraryName": "ballerina/time"
+              }
+            ]
+          }
+        },
+        {
+          "name": "(string?)[]",
+          "type": {
+            "name": "(string?)[]"
+          }
+        },
+        {
+          "name": "(int?)[]",
+          "type": {
+            "name": "(int?)[]"
+          }
+        },
+        {
+          "name": "(boolean?)[]",
+          "type": {
+            "name": "(boolean?)[]"
+          }
+        },
+        {
+          "name": "(float?)[]",
+          "type": {
+            "name": "(float?)[]"
+          }
+        },
+        {
+          "name": "(decimal?)[]",
+          "type": {
+            "name": "(decimal?)[]"
+          }
+        },
+        {
+          "name": "(byte[]?)[]",
+          "type": {
+            "name": "(byte[]?)[]"
+          }
+        },
+        {
+          "name": "TypedValue",
+          "type": {
+            "name": "TypedValue",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TypedValue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "()",
+          "type": {
+            "name": "()"
+          }
+        },
+        {
+          "name": "InOutParameter",
+          "type": {
+            "name": "InOutParameter",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "InOutParameter"
+              }
+            ]
+          }
+        },
+        {
+          "name": "OutParameter",
+          "type": {
+            "name": "OutParameter",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OutParameter"
+              }
+            ]
+          }
+        },
+        {
+          "name": "CursorOutParameter",
+          "type": {
+            "name": "CursorOutParameter",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CursorOutParameter"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "ParameterizedCallQuery",
+      "description": "The object constructed through backtick surrounded strings. Dynamic parameters of `sql:Parameter` type can be indicated using `${\u003cvariable name\u003e}`\nsuch as `` `The sql:ParameterizedQuery is ${variable_name}` ``.\nThis validates the parameter types during the query execution.\nIdentifiers like table names or column names cannot be changed dynamically through parameters. In scenarios where dynamic identifiers are required,\nqueries can be safely constructed using string interpolation.\n",
+      "type": "Class"
+    },
+    {
+      "name": "CustomResultIterator",
+      "description": "The iterator for the stream returned in the `query` function to be used to override the default behavior of the `sql:ResultIterator`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "nextResult",
+          "type": "Normal Function",
+          "description": "",
+          "parameters": [
+            {
+              "name": "iterator",
+              "type": {
+                "name": "ResultIterator",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ResultIterator"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "record {|anydata...;|}|Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "getNextQueryResult",
+          "type": "Normal Function",
+          "description": "",
+          "parameters": [
+            {
+              "name": "callResult",
+              "type": {
+                "name": "ProcedureCallResult",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ProcedureCallResult"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "boolean|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "VarcharValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "VarcharArrayValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "(string?)[]"
+              },
+              "optional": true,
+              "default": "[]"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "NVarcharValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "NVarcharArrayValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "(string?)[]"
+              },
+              "optional": true,
+              "default": "[]"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "CharValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "CharArrayValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "(string?)[]"
+              },
+              "optional": true,
+              "default": "[]"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "NCharValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "TextValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "ReadableCharacterChannel|string|()",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ReadableCharacterChannel",
+                    "libraryName": "ballerina/io"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ClobValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "ReadableCharacterChannel|string|()",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ReadableCharacterChannel",
+                    "libraryName": "ballerina/io"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "NClobValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "ReadableCharacterChannel|string|()",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ReadableCharacterChannel",
+                    "libraryName": "ballerina/io"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "SmallIntValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "int|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "SmallIntArrayValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "(int?)[]"
+              },
+              "optional": true,
+              "default": "[]"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "IntegerValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "int|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "IntegerArrayValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "(int?)[]"
+              },
+              "optional": true,
+              "default": "[]"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "BigIntValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "int|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "BigIntArrayValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "(int?)[]"
+              },
+              "optional": true,
+              "default": "[]"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "NumericValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "int|float|decimal|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "NumericArrayValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "(int?)[]|(float?)[]|(decimal?)[]"
+              },
+              "optional": true,
+              "default": "\u003cint?[]\u003e[]"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "DecimalValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "int|decimal|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "DecimalArrayValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "(int?)[]|(decimal?)[]"
+              },
+              "optional": true,
+              "default": "\u003cint?[]\u003e[]"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "RealValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "int|float|decimal|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "RealArrayValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "(int?)[]|(float?)[]|(decimal?)[]"
+              },
+              "optional": true,
+              "default": "\u003cint?[]\u003e[]"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "FloatValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "int|float|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "FloatArrayValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "(int?)[]|(float?)[]"
+              },
+              "optional": true,
+              "default": "\u003cint?[]\u003e[]"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "DoubleValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "int|float|decimal|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "DoubleArrayValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "(int?)[]|(float?)[]|(decimal?)[]"
+              },
+              "optional": true,
+              "default": "\u003cint?[]\u003e[]"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "BitValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "boolean|int|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "BitArrayValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "(boolean?)[]|(int?)[]"
+              },
+              "optional": true,
+              "default": "\u003cint?[]\u003e[]"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "BooleanValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "boolean|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "BooleanArrayValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "(boolean?)[]"
+              },
+              "optional": true,
+              "default": "[]"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "BinaryValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "byte[]|ReadableByteChannel|()",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ReadableByteChannel",
+                    "libraryName": "ballerina/io"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "BinaryArrayValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "ReadableByteChannel[]|byte[]|()[]",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ReadableByteChannel",
+                    "libraryName": "ballerina/io"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "\u003cbyte[]?[]\u003e[]"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "VarBinaryValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "byte[]|ReadableByteChannel|()",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ReadableByteChannel",
+                    "libraryName": "ballerina/io"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "VarBinaryArrayValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "byte[]|()[]|ReadableByteChannel[]",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ReadableByteChannel",
+                    "libraryName": "ballerina/io"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "\u003cbyte[]?[]\u003e[]"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "BlobValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "byte[]|ReadableByteChannel|()",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ReadableByteChannel",
+                    "libraryName": "ballerina/io"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "DateValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "string|Date|()",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "Date",
+                    "libraryName": "ballerina/time"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "DateArrayValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "string|()[]|Date|()[]",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "Date",
+                    "libraryName": "ballerina/time"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "\u003cstring?[]\u003e[]"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "TimeValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "string|TimeOfDay|()",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "TimeOfDay",
+                    "libraryName": "ballerina/time"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "TimeArrayValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "string|()[]|TimeOfDay|()[]",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "TimeOfDay",
+                    "libraryName": "ballerina/time"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "\u003cstring?[]\u003e[]"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "DateTimeValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "string|Civil|()",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "Civil",
+                    "libraryName": "ballerina/time"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "DateTimeArrayValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "string|()[]|Civil|()[]",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "Civil",
+                    "libraryName": "ballerina/time"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "\u003cstring?[]\u003e[]"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "TimestampValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "string|Utc|()",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "Utc",
+                    "libraryName": "ballerina/time"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "TimestampArrayValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "string|()[]|Utc|()[]",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "Utc",
+                    "libraryName": "ballerina/time"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "\u003cstring?[]\u003e[]"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ArrayValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "string[]|int[]|boolean[]|float[]|decimal[]|byte[][]|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ],
+      "isDeprecated": true
+    },
+    {
+      "name": "RefValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "record {|anydata...;|}|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "StructValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "record {|anydata...;|}|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "RowValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "byte[]|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "CharOutParameter",
+      "description": "Represents Char Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned Char SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "CharArrayOutParameter",
+      "description": "Represents Char Array Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned Char SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "VarcharOutParameter",
+      "description": "Represents Varchar Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "VarcharArrayOutParameter",
+      "description": "Represents Varchar Array Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "NCharOutParameter",
+      "description": "Represents NChar Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "NVarcharOutParameter",
+      "description": "Represents NVarchar Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "NVarcharArrayOutParameter",
+      "description": "Represents NVarchar Array Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "BinaryOutParameter",
+      "description": "Represents Binary Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "BinaryArrayOutParameter",
+      "description": "Represents Binary Array Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "VarBinaryOutParameter",
+      "description": "Represents VarBinary Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "VarBinaryArrayOutParameter",
+      "description": "Represents VarBinary Array Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "TextOutParameter",
+      "description": "Represents Text Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "BlobOutParameter",
+      "description": "Represents Blob Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ClobOutParameter",
+      "description": "Represents Clob Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "NClobOutParameter",
+      "description": "Represents NClob Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "DateOutParameter",
+      "description": "Represents Date Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "DateArrayOutParameter",
+      "description": "Represents Date Array Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "TimeOutParameter",
+      "description": "Represents Time Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "TimeArrayOutParameter",
+      "description": "Represents Time Array Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "TimeWithTimezoneOutParameter",
+      "description": "Represents Time With Timezone Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "TimeWithTimezoneArrayOutParameter",
+      "description": "Represents Time With Timezone Array Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "DateTimeOutParameter",
+      "description": "Represents DateTime Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "DateTimeArrayOutParameter",
+      "description": "Represents DateTime Array Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "TimestampOutParameter",
+      "description": "Represents Timestamp Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "TimestampArrayOutParameter",
+      "description": "Represents Timestamp Array Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "TimestampWithTimezoneOutParameter",
+      "description": "Represents Timestamp with Timezone Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "TimestampWithTimezoneArrayOutParameter",
+      "description": "Represents Timestamp with Timezone Array Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ArrayOutParameter",
+      "description": "Represents Array Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "RowOutParameter",
+      "description": "Represents Row Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "SmallIntOutParameter",
+      "description": "Represents SmallInt Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "SmallIntArrayOutParameter",
+      "description": "Represents SmallInt Array Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "IntegerOutParameter",
+      "description": "Represents Integer Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "BigIntOutParameter",
+      "description": "Represents BigInt Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "IntegerArrayOutParameter",
+      "description": "Represents Integer Array Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "BigIntArrayOutParameter",
+      "description": "Represents BigInt Array Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "RealOutParameter",
+      "description": "Represents Real Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "RealArrayOutParameter",
+      "description": "Represents Real Array Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "FloatOutParameter",
+      "description": "Represents Float Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "FloatArrayOutParameter",
+      "description": "Represents Float Array Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "DoubleOutParameter",
+      "description": "Represents Double Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "DoubleArrayOutParameter",
+      "description": "Represents Double Array Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "NumericOutParameter",
+      "description": "Represents Numeric Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "NumericArrayOutParameter",
+      "description": "Represents Numeric Array Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "DecimalOutParameter",
+      "description": "Represents Decimal Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "DecimalArrayOutParameter",
+      "description": "Represents Decimal Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "BitOutParameter",
+      "description": "Represents Bit Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "BitArrayOutParameter",
+      "description": "Represents Bit Array Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "BooleanOutParameter",
+      "description": "Represents Boolean Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "BooleanArrayOutParameter",
+      "description": "Represents Boolean Array Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "RefOutParameter",
+      "description": "Represents Ref Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "StructOutParameter",
+      "description": "Represents Struct Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "XMLOutParameter",
+      "description": "Represents XML Out Parameter in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses returned SQL value to a ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ResultIterator",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "err",
+              "type": {
+                "name": "Error|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Error"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "customResultIterator",
+              "type": {
+                "name": "CustomResultIterator|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "CustomResultIterator"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        },
+        {
+          "name": "next",
+          "type": "Normal Function",
+          "description": "",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "record {|record {|anydata...;|} value;|}|Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "close",
+          "type": "Normal Function",
+          "description": "",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ProcedureCallResult",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "customResultIterator",
+              "type": {
+                "name": "CustomResultIterator|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "CustomResultIterator"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        },
+        {
+          "name": "getNextQueryResult",
+          "type": "Normal Function",
+          "description": "Updates `executionResult` or `queryResult` field with the succeeding result in the result list. This will also close the current\nresult when called. The `close` method must be called once all the results are processed.\n",
+          "parameters": [],
+          "return": {
+            "description": "True if the next result is `queryResult`",
+            "type": {
+              "name": "boolean|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "close",
+          "type": "Normal Function",
+          "description": "Releases the associated resources such as the database connection, results, etc.\nThis method must be called once all results are processed.\n",
+          "parameters": [],
+          "return": {
+            "description": "An `sql:Error` if any error occurred while cleanup",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "clients": [],
+  "functions": [
+    {
+      "name": "getGlobalConnectionPool",
+      "type": "Normal Function",
+      "description": "Returns the global connection pool.\n",
+      "parameters": [],
+      "return": {
+        "description": "The connection pool",
+        "type": {
+          "name": "ConnectionPool",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "ConnectionPool"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "queryConcat",
+      "type": "Normal Function",
+      "description": "Concatenates all provided `sql:ParameterizedQuery`s into a single `sql:ParameterizedQuery`.\n",
+      "parameters": [
+        {
+          "name": "queries",
+          "description": "Set of `sql:ParameterizedQuery` queries",
+          "type": {
+            "name": "ParameterizedQuery[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ParameterizedQuery"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ],
+      "return": {
+        "description": "An `sql:ParameterizedQuery`",
+        "type": {
+          "name": "ParameterizedQuery",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "ParameterizedQuery"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "arrayFlattenQuery",
+      "type": "Normal Function",
+      "description": "Joins the parameters in the array with the `,` delimiter into an `sql:ParameterizedQuery`.\n",
+      "parameters": [
+        {
+          "name": "values",
+          "description": "An array of `sql:Value` values",
+          "type": {
+            "name": "Value[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Value"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "An `sql:ParameterizedQuery`",
+        "type": {
+          "name": "ParameterizedQuery",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "ParameterizedQuery"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "generateApplicationErrorStream",
+      "type": "Normal Function",
+      "description": "Generates a stream consisting of `sql:Error` elements.\n",
+      "parameters": [
+        {
+          "name": "message",
+          "description": "Error message used to initialise an `sql:Error`",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "A stream",
+        "type": {
+          "name": "stream\u003crecord {|anydata...;|}, Error?\u003e"
+        }
+      }
+    }
+  ],
+  "services": [],
+  "annotations": [
+    {
+      "name": "Column",
+      "attachmentPoint": "RECORD_FIELD",
+      "description": "The Annotation used to specify which database column matches the Typed record field.",
+      "typeConstraint": {
+        "name": "ColumnConfig",
+        "links": [
+          {
+            "category": "internal",
+            "recordName": "ColumnConfig"
+          }
+        ]
+      }
+    }
+  ]
+}

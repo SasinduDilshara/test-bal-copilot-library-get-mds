@@ -1,0 +1,257 @@
+// ============================================================
+// Library: ballerina/constraint
+// This module provides features to validate the values with respect to the constraints defined to the respective Ballerina types.
+// ============================================================
+import ballerina/constraint;
+
+// --- README ---
+## Overview
+
+This module provides features to validate the values with respect to the constraints defined to the respective Ballerina types.
+
+The Ballerina `constraint` module facilitates APIs to do validations on the Ballerina types further with the use of annotations.
+
+### Constraint annotations
+
+This library provides the following annotations on Ballerina types to validate the values created with the respective types.
+
+| Annotation           | Supported Constraints                                                                                                  | Associated Ballerina Type(s) |
+|----------------------|------------------------------------------------------------------------------------------------------------------------|------------------------------|
+| `@constraint:Int`    | `minValue`, `maxValue`, `minValueExclusive`, `maxValueExclusive`, `maxDigits`, `maxIntegerDigits`, `maxFractionDigits` | `int`                        |
+| `@constraint:Float`  | `minValue`, `maxValue`, `minValueExclusive`, `maxValueExclusive`, `maxDigits`, `maxIntegerDigits`, `maxFractionDigits` | `float`                      |
+| `@constraint:Number` | `minValue`, `maxValue`, `minValueExclusive`, `maxValueExclusive`, `maxDigits`, `maxIntegerDigits`, `maxFractionDigits` | `int`, `float`, `decimal`    |
+| `@constraint:String` | `length`, `minLength`, `maxLength`, `pattern`                                                                          | `string`                     |
+| `@constraint:Array`  | `length`, `minLength`, `maxLength`                                                                                     | `any[]`                      |
+| `@constraint:Date`   | `option` - `PAST` or `FUTURE` or `PAST_OR_PRESENT` or `FUTURE_OR_PRESENT`                                              | `constraint:Date`            |
+
+The following example demonstrates how to apply constraint annotations to types.
+
+```ballerina
+@constraint:String { pattern: re `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$` }
+public type Email string;
+
+@constraint:Date { option: constraint:PAST }
+public type DOB time:Date;
+
+public type Person record {|
+    @constraint:String { minLength: 5, maxLength: 10 }
+    string name;
+    @constraint:Int { minValue: 18, maxValue: 60 }
+    int age;
+    Email email;
+    @constraint:Array { minLength: 1, maxLength: 5 }
+    string[] phoneNumbers;
+    DOB dob;
+|};
+```
+
+### Constraint validation
+
+The `validate` function in this library can be used to validate the values with respect to the constraints defined in the respective types.
+
+The following example demonstrates how to validate a value with respect to constraints in the type. The respective type is automatically inferred from the expression context.
+
+```ballerina
+public function main() returns error? {
+    Person person = {
+        name: "John",
+        age: 25,
+        email: "john@mail.com",
+        phoneNumbers: ["1234567890", "0987654321"],
+        dob: { year: 1996, month: 5, day: 15 }
+    };
+    
+    Person|error personValidated = constraint:validate(person);
+    if personValidated is error {
+        io:println("Validation failed: " + personValidated.message());
+    } else {
+        io:println("Validation successful");
+    }
+}
+```
+
+### Custom error messages on validation failures
+
+Optionally a custom error message can be provided for each constraint. The following example demonstrates how to provide custom error messages for constraints.
+
+```ballerina
+@constraint:String { 
+    pattern: {
+        value: re `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$`,
+        message: "Invalid email address"
+    }
+}
+public type Email string;
+
+@constraint:Date {
+    option: {
+        value: constraint:PAST,
+        message: "Date of birth should be in the past"
+    },
+    message: "Invalid date found"
+}
+public type DOB time:Date;
+
+public type Person record {|
+    @constraint:String { 
+        minLength: 5, 
+        maxLength: {
+            value: 10,
+            message: "Name should be less than 10 characters"
+        }
+    }
+    string name;
+    @constraint:Int {
+        minValue: {
+            value: 18,
+            message: "Age should be greater than 18"
+        },
+        maxValue: 60
+    }
+    int age;
+    Email email;
+    @constraint:Array { 
+        minLength: {
+            value: 1,
+            message: "At least one phone number should be provided"
+        },
+        maxLength: 5 
+    }
+    string[] phoneNumbers;
+    DOB dob;
+|};
+```
+
+// --- END README ---
+
+// --- Types ---
+
+const string PAST = "PAST";
+
+const string PAST_OR_PRESENT = "PAST_OR_PRESENT";
+
+const string FUTURE = "FUTURE";
+
+const string FUTURE_OR_PRESENT = "FUTURE_OR_PRESENT";
+
+# Represents the constraint details as a record.
+# 
+
+type ConstraintRecord record {
+    # The value for the constraint
+    anydata value;
+    # The message to be returned in case of the constraint violation
+    string message;
+};
+
+# Represents the constraints associated with `int` type.
+# 
+
+type IntConstraints record {
+    # The inclusive lower bound of the constrained type
+    int|record {|int value; string message;|} minValue?;
+    # The inclusive upper bound of the constrained type
+    int|record {|int value; string message;|} maxValue?;
+    # The exclusive lower bound of the constrained type
+    int|record {|int value; string message;|} minValueExclusive?;
+    # The exclusive upper bound of the constrained type
+    int|record {|int value; string message;|} maxValueExclusive?;
+    # The maximum number of digits in the constrained type
+    int|record {|int value; string message;|} maxDigits?;
+};
+
+# Represents the constraints associated with `float` type.
+# 
+
+type FloatConstraints record {
+    # The inclusive lower bound of the constrained type
+    float|record {|float value; string message;|} minValue?;
+    # The inclusive upper bound of the constrained type
+    float|record {|float value; string message;|} maxValue?;
+    # The exclusive lower bound of the constrained type
+    float|record {|float value; string message;|} minValueExclusive?;
+    # The exclusive upper bound of the constrained type
+    float|record {|float value; string message;|} maxValueExclusive?;
+    # The maximum number of digits in the integer part of the constrained type
+    int|record {|int value; string message;|} maxIntegerDigits?;
+    # The maximum number of digits in the fraction part of the constrained type
+    int|record {|int value; string message;|} maxFractionDigits?;
+};
+
+# Represents the constraints associated with `int`, `float` and `decimal` types.
+# 
+
+type NumberConstraints record {
+    # The inclusive lower bound of the constrained type
+    decimal|record {|decimal value; string message;|} minValue?;
+    # The inclusive upper bound of the constrained type
+    decimal|record {|decimal value; string message;|} maxValue?;
+    # The exclusive lower bound of the constrained type
+    decimal|record {|decimal value; string message;|} minValueExclusive?;
+    # The exclusive upper bound of the constrained type
+    decimal|record {|decimal value; string message;|} maxValueExclusive?;
+    # The maximum number of digits in the integer part of the constrained type
+    int|record {|int value; string message;|} maxIntegerDigits?;
+    # The maximum number of digits in the fraction part of the constrained type
+    int|record {|int value; string message;|} maxFractionDigits?;
+};
+
+# Represents the constraints associated with `string` type.
+# 
+
+type StringConstraints record {
+    # The number of characters of the constrained `string` type
+    int|record {|int value; string message;|} length?;
+    # The inclusive lower bound of the number of characters of the constrained `string` type
+    int|record {|int value; string message;|} minLength?;
+    # The inclusive upper bound of the number of characters of the constrained `string` type
+    int|record {|int value; string message;|} maxLength?;
+    # The regular expression to be matched with the constrained `string` type
+    ballerina/lang.string:0.0.0:RegExp|record {|ballerina/lang.string:0.0.0:RegExp value; string message;|} pattern?;
+};
+
+# Represents the constraints associated with `anydata[]` type.
+# 
+
+type ArrayConstraints record {
+    # The number of members of the constrained type
+    int|record {|int value; string message;|} length?;
+    # The inclusive lower bound of the number of members of the constrained type
+    int|record {|int value; string message;|} minLength?;
+    # The inclusive upper bound of the number of members of the constrained type
+    int|record {|int value; string message;|} maxLength?;
+};
+
+# Represents the date option to be validated.
+enum DateOption {
+    FUTURE_OR_PRESENT,
+    FUTURE,
+    PAST_OR_PRESENT,
+    PAST
+}
+
+# Represents the constraints associated with `Date` type.
+# 
+
+type DateConstraints record {
+    # date option to be validated
+    ballerina/constraint:1.7.0:DateOption|record {|ballerina/constraint:1.7.0:DateOption value; string message;|} option?;
+    # The message to be returned in case of the constraint violation
+    string message?;
+};
+
+// Unknown type: Error
+
+// Unknown type: ValidationError
+
+// Unknown type: TypeConversionError
+
+// --- Functions ---
+
+# Validates the provided value against the configured annotations. Additionally, if the type of the value is different
+# from the expected return type then the value will be cloned with the contextually expected type before the validation.
+# 
+# + value - The `anydata` type value to be constrained
+# + td - The type descriptor of the value to be constrained
+# + return - The type descriptor of the value which is validated or else an `constraint:Error` in case of an error
+function validate(anydata value, anydata td = anydata) returns td|Error;

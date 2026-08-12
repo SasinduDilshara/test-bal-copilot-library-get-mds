@@ -1,0 +1,364 @@
+{
+  "name": "ballerina/regex",
+  "description": "",
+  "readme": "##\n\u003e**Deprecation Notice:** This library is deprecated and will no longer be maintained or updated. Instead, it is recommended to use the [`ballerina/lang.regexp`](https://lib.ballerina.io/ballerina/lang.regexp/latest) library for continued support and updates. For more information, see the new [RegExp type example](https://ballerina.io/by-example/regexp-type), [RegExp operations example](https://ballerina.io/by-example/regexp-operations), and [Regular expressions feature guide](https://ballerina.io/learn/distinctive-language-features/advanced-general-purpose-language-features/#regular-expressions).\n\n## Package overview\n\nThis module provides APIs for searching, splitting, and replacing the set of characters of a string. These APIs are using a\nregular expression as a `String` to perform these operations by finding the string matches.\n\n[Regular expressions](https://en.wikipedia.org/wiki/Regular_expression), are notations for describing sets of\ncharacter strings. If a particular string is in the set described by a regular expression, the regular expression matches that string.\n\n## Report issues\n\nTo report bugs, request new features, start new discussions, view project boards, etc., go to the [Ballerina standard library parent repository](https://github.com/ballerina-platform/ballerina-standard-library).\n\n### Useful links\n\n- Chat live with us via our [Discord server](https://discord.gg/ballerinalang).\n- Post all technical questions on Stack Overflow with the [#ballerina](https://stackoverflow.com/questions/tagged/ballerina) tag.\n\n\n## Module: regex\n\n\n\u003e**Deprecation Notice:** This library is deprecated and will no longer be maintained or updated. Instead, it is recommended to use the [`ballerina/lang.regexp`](https://lib.ballerina.io/ballerina/lang.regexp/latest) library for continued support and updates. For more information, see the new [RegExp type example](https://ballerina.io/by-example/regexp-type), [RegExp operations example](https://ballerina.io/by-example/regexp-operations), and [Regular expressions feature guide](https://ballerina.io/learn/distinctive-language-features/advanced-general-purpose-language-features/#regular-expressions).\n\n## Overview\n\nThis module provides APIs for searching, splitting, and replacing the set of characters of a string. These APIs are using a \nregular expression as a `String` to perform these operations by finding the string matches.\n\n[Regular expressions](https://en.wikipedia.org/wiki/Regular_expression), are notations for describing sets of \ncharacter strings. If a particular string is in the set described by a regular expression, the regular expression matches that string.\n\nFor information on the operations, which you can perform with the regex module, see the below **Functions**.\n",
+  "typeDefs": [
+    {
+      "name": "PartMatch",
+      "description": "Holds the matched substring and its position in the input string.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "matched",
+          "description": "Matched substring",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "startIndex",
+          "description": "The start index of the match",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "endIndex",
+          "description": "The last index of the match",
+          "type": {
+            "name": "int"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Groups",
+      "description": "Abstract object representation to hold information about matched regex groups.",
+      "type": "Class"
+    },
+    {
+      "name": "Match",
+      "description": "Holds the results of a match against a regular expression. \nIt contains the match boundaries, groups, and group boundaries.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "groups",
+          "description": "Information about matched regex groups",
+          "type": {
+            "name": "Groups",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Groups"
+              }
+            ]
+          }
+        },
+        {
+          "name": "matched",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "startIndex",
+          "description": "",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "endIndex",
+          "description": "",
+          "type": {
+            "name": "int"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Replacement",
+      "description": "A type to be used to get a replacement string.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "ballerina/regex:1.4.3:ReplacerFunction",
+          "type": {
+            "name": "ReplacerFunction",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ReplacerFunction"
+              }
+            ]
+          }
+        },
+        {
+          "name": "string",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    }
+  ],
+  "clients": [],
+  "functions": [
+    {
+      "name": "matches",
+      "type": "Normal Function",
+      "description": "Checks whether the given string matches the provided regex.\nNote that `\\\\` is used as for escape sequence and `\\\\\\\\` is used to insert a backslash\ncharacter in the string or regular expression. The following special characters should be escaped\nin the regex definition.\nSpecial Characters: `.`, `+`, `*`, `?`, `^`, `$`, `(`, `)`, `[`, `]`,` {`, `}`\n\n```ballerina\nboolean isMatched \u003d regex:matches(\"Ballerina is great\", \"Ba[a-z ]+\");\n```\n",
+      "parameters": [
+        {
+          "name": "stringToMatch",
+          "description": "The string to match the regex",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "regex",
+          "description": "The regex to match the string",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "`true` if the provided string matches the regex or else `false`",
+        "type": {
+          "name": "boolean"
+        }
+      }
+    },
+    {
+      "name": "replace",
+      "type": "Normal Function",
+      "description": "Replaces the first substring that matches the given regex with\nthe provided replacement string or string returned by the provided function.\nNote that `\\\\` is used as for escape sequence and `\\\\\\\\` is used to insert a backslash\ncharacter in the string or regular expression. The following special characters should be escaped\nin the regex definition.\nSpecial Characters: `.`, `+`, `*`, `?`, `^`, `$`, `(`, `)`, `[`, `]`,` {`, `}`\n\n```ballerina\nstring result \u003d regex:replace(\"Ballerina is great\", \"\\\\s+\", \"_\");\n```\n",
+      "parameters": [
+        {
+          "name": "originalString",
+          "description": "The original string to replace the first occurrence of the\nsubstring that matches the provided regex",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "regex",
+          "description": "The regex to match the first substring in the `originalString` to be replaced",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "replacement",
+          "description": "The replacement string or a function to be invoked to create the new substring to be\nused to replace the first match to the given regex",
+          "type": {
+            "name": "Replacement",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Replacement"
+              }
+            ]
+          }
+        },
+        {
+          "name": "startIndex",
+          "description": "The starting index for the search",
+          "type": {
+            "name": "int"
+          },
+          "optional": true,
+          "default": "0"
+        }
+      ],
+      "return": {
+        "description": "The resultant string with the replaced substring",
+        "type": {
+          "name": "string"
+        }
+      }
+    },
+    {
+      "name": "replaceAll",
+      "type": "Normal Function",
+      "description": "Replaces each occurrence of the substrings, which match the provided\nregex from the given original string value with the provided replacement string.\nNote that `\\\\` is used as for escape sequence and `\\\\\\\\` is used to insert a backslash\ncharacter in the string or regular expression. The following special characters should be escaped\nin the regex definition.\nSpecial Characters: `.`, `+`, `*`, `?`, `^`, `$`, `(`, `)`, `[`, `]`,` {`, `}`\n\n```ballerina\nstring result \u003d regex:replaceAll(\"Ballerina is great\", \"\\\\s+\", \"_\");\n```\n",
+      "parameters": [
+        {
+          "name": "originalString",
+          "description": "The original string to replace the occurrences of the\nsubstrings that match the provided regex",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "regex",
+          "description": "The regex to match the substrings in the `originalString` , which is to be replaced",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "replacement",
+          "description": "The replacement string or a function to be invoked to create the new substring to be\nused to replace the first match to the given regex",
+          "type": {
+            "name": "Replacement",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Replacement"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "The resultant string with the replaced substrings",
+        "type": {
+          "name": "string"
+        }
+      }
+    },
+    {
+      "name": "replaceFirst",
+      "type": "Normal Function",
+      "description": "Replaces the first substring that matches the given regex with\nthe provided replacement string.\nNote that `\\\\` is used as for escape sequence and `\\\\\\\\` is used to insert a backslash\ncharacter in the string or regular expression. The following special characters should be escaped\nin the regex definition.\nSpecial Characters: `.`, `+`, `*`, `?`, `^`, `$`, `(`, `)`, `[`, `]`,` {`, `}`\n\n```ballerina\nstring result \u003d regex:replaceFirst(\"Ballerina is great\", \"\\\\s+\", \"_\");\n```\n",
+      "parameters": [
+        {
+          "name": "originalString",
+          "description": "The original string to replace the first occurrence of the\nsubstring that matches the provided regex",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "regex",
+          "description": "The regex to match the first substring in the `originalString` to\nbe replaced",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "replacement",
+          "description": "The replacement string to replace the first substring, which\nmatches the regex",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "The resultant string with the replaced substring",
+        "type": {
+          "name": "string"
+        }
+      },
+      "isDeprecated": true
+    },
+    {
+      "name": "split",
+      "type": "Normal Function",
+      "description": "Returns an array of strings by splitting a string using the provided\nregex as the delimiter.\nNote that `\\\\` is used as for escape sequence and `\\\\\\\\` is used to insert a backslash\ncharacter in the string or regular expression. The following special characters should be escaped\nin the regex definition.\nSpecial Characters: `.`, `+`, `*`, `?`, `^`, `$`, `(`, `)`, `[`, `]`,` {`, `}`\n\n```ballerina\nstring[] result \u003d regex:split(\"Ballerina is great\", \" \");\n```\n",
+      "parameters": [
+        {
+          "name": "receiver",
+          "description": "The string to split",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "delimiter",
+          "description": "The delimiter is a regex, which splits the given string",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "An array of strings containing the individual strings that are split",
+        "type": {
+          "name": "string[]"
+        }
+      }
+    },
+    {
+      "name": "search",
+      "type": "Normal Function",
+      "description": "Returns the first substring in str that matches the regex.\nNote that `\\\\` is used as for escape sequence and `\\\\\\\\` is used to insert a backslash\ncharacter in the string or regular expression. The following special characters should be escaped\nin the regex definition.\nSpecial Characters: `.`, `+`, `*`, `?`, `^`, `$`, `(`, `)`, `[`, `]`,` {`, `}`\n\n```ballerina\nregex:Match? result \u003d regex:search(\"Betty Botter bought some butter but she said the butter’s bitter.\",\n                                   \"\\\\b[bB].tt[a-z]*\");\n```\n",
+      "parameters": [
+        {
+          "name": "str",
+          "description": "The string to be matched",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "regex",
+          "description": "The regex value",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "startIndex",
+          "description": "The starting index for the search",
+          "type": {
+            "name": "int"
+          },
+          "optional": true,
+          "default": "0"
+        }
+      ],
+      "return": {
+        "description": "a `Match` record which holds the matched substring, or nil if there is no match",
+        "type": {
+          "name": "Match|()",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Match"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "searchAll",
+      "type": "Normal Function",
+      "description": "Returns all substrings in string that match the regex.\nNote that `\\\\` is used as for escape sequence and `\\\\\\\\` is used to insert a backslash\ncharacter in the string or regular expression. The following special characters should be escaped\nin the regex definition.\nSpecial Characters: `.`, `+`, `*`, `?`, `^`, `$`, `(`, `)`, `[`, `]`,` {`, `}`\n\n```ballerina\nregex:Match[] result \u003d regex:searchAll(\"Betty Botter bought some butter but she said the butter’s bitter.\",\n                                     \"\\\\b[bB].tt[a-z]*\");\n```\n",
+      "parameters": [
+        {
+          "name": "str",
+          "description": "The string to be matched",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "regex",
+          "description": "The regex value",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "An array of `Match` records",
+        "type": {
+          "name": "Match[]",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Match"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "services": [],
+  "annotations": []
+}

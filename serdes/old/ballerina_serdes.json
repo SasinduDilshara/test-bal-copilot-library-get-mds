@@ -1,0 +1,149 @@
+{
+  "name": "ballerina/serdes",
+  "description": "",
+  "readme": "## Package overview\n\nThis package provides APIs for serializing and deserializing subtypes of Ballerina anydata type.\n\n### Proto3Schema\n\nAn instance of the `serdes:Proto3Schema` class is used to serialize and deserialize ballerina values using protocol buffers.\n\n#### Create a `serdes:Proto3Schema` object\n\n```ballerina\n// Define a type which is a subtype of anydata.\ntype Student record {\n    int id;\n    string name;\n    decimal fees;\n};\n\n// Create a schema object by passing the type.\nserdes:Proto3Schema schema \u003d check new (Student);\n```\nWhile instantiation of this object, an underlying proto3 schema generated for the provided typedesc.\n\n#### Serialization\n\n```ballerina\nStudent student \u003d {\n    id: 7894,\n    name: \"Liam\",\n    fees: 24999.99\n};\n\n// Serialize the record value to bytes.\nbyte[] bytes \u003d check schema.serialize(student);\n```\nA value having the same type as the provided type can be serialized by invoking the `serialize` method on the previously instantiated `serdes:Proto3Schema` object. The underlying implementation uses the previously generated proto3 schema to serialize the provided value.\n\n#### Deserialization\n\n```ballerina\ntype Student record {\n    int id;\n    string name;\n    decimal fees;\n};\n\nbyte[] bytes \u003d readSerializedDataToByteArray();\nserdes:Proto3Schema schema \u003d check new (Student);\n\n// Deserialize the record value from bytes.\nStudent student \u003d check schema.deserialize(bytes);\n```\nThe serialized value (`byte[]`) can be again deserialized by invoking the `deserialize` method on the instantiated `serdes:Proto3Schema` object. The underlying implementation uses the previously generated proto3 schema and deserializes the provided `byte[]`. As the result of deserialization the method returns the ballerina value with the type represented by the typedesc value provided during the `serdes:Proto3Schema` object instantiation.\n\n\n## Module: serdes\n\n## Overview\n\nThis module provides APIs for serializing and deserializing subtypes of Ballerina anydata type.\n\n### Proto3Schema\n\nAn instance of the `serdes:Proto3Schema` class is used to serialize and deserialize ballerina values using protocol buffers.\n\n#### Create a `serdes:Proto3Schema` object\n\n```ballerina\n// Define a type which is a subtype of anydata.\ntype Student record {\n    int id;\n    string name;\n    decimal fees;\n};\n\n// Create a schema object by passing the type.\nserdes:Proto3Schema schema \u003d check new (Student);\n```\nWhile instantiation of this object, an underlying proto3 schema generated for the provided typedesc.\n\n#### Serialization\n\n```ballerina\nStudent student \u003d {\n    id: 7894,\n    name: \"Liam\",\n    fees: 24999.99\n};\n\n// Serialize the record value to bytes.\nbyte[] bytes \u003d check schema.serialize(student);\n```\nA value having the same type as the provided type can be serialized by invoking the `serialize` method on the previously instantiated `serdes:Proto3Schema` object. The underlying implementation uses the previously generated proto3 schema to serialize the provided value.\n\n#### Deserialization\n\n```ballerina\ntype Student record {\n    int id;\n    string name;\n    decimal fees;\n};\n\nbyte[] bytes \u003d readSerializedDataToByteArray();\nserdes:Proto3Schema schema \u003d check new (Student);\n\n// Deserialize the record value from bytes.\nStudent student \u003d check schema.deserialize(bytes);\n```\nThe serialized value (`byte[]`) can be again deserialized by invoking the `deserialize` method on the instantiated `serdes:Proto3Schema` object. The underlying implementation uses the previously generated proto3 schema and deserializes the provided `byte[]`. As the result of deserialization the method returns the ballerina value with the type represented by the typedesc value provided during the `serdes:Proto3Schema` object instantiation.\n",
+  "typeDefs": [
+    {
+      "name": "Schema",
+      "description": "A Schema object that can be used to create custom serializers/deserializers.",
+      "type": "Class"
+    },
+    {
+      "name": "Error",
+      "description": "Represents any error related to Ballerina SerDes module",
+      "type": "Error"
+    },
+    {
+      "name": "Proto3Schema",
+      "description": "Generates a schema for a given data type.\n",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Generates a schema for a given data type.\n",
+          "parameters": [
+            {
+              "name": "ballerinaDataType",
+              "description": "The data type of the value that needs to be serialized",
+              "type": {
+                "name": "anydata"
+              }
+            }
+          ],
+          "return": {
+            "description": "A `serdes:Error` if the data type is not supported or else `()`",
+            "type": {
+              "name": "ballerina/serdes:0.2.0:Error?"
+            }
+          }
+        },
+        {
+          "name": "serialize",
+          "type": "Normal Function",
+          "description": "Serializes a given value.\n",
+          "parameters": [
+            {
+              "name": "data",
+              "description": "The value that is being serialized",
+              "type": {
+                "name": "anydata"
+              }
+            }
+          ],
+          "return": {
+            "description": "A byte array corresponding to the encoded value",
+            "type": {
+              "name": "byte[]|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "deserialize",
+          "type": "Normal Function",
+          "description": "Deserializes a given array of bytes.\n",
+          "parameters": [
+            {
+              "name": "encodedMessage",
+              "description": "The encoded byte array of the value that is serialized",
+              "type": {
+                "name": "byte[]"
+              }
+            },
+            {
+              "name": "T",
+              "description": "The type of the deserialized data. This will be inferred from the expected type",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The value represented by the encoded byte array",
+            "type": {
+              "name": "T|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "T"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "clients": [],
+  "functions": [
+    {
+      "name": "generateSchema",
+      "type": "Normal Function",
+      "description": "",
+      "parameters": [
+        {
+          "name": "serdes",
+          "type": {
+            "name": "Schema",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Schema"
+              }
+            ]
+          }
+        },
+        {
+          "name": "T",
+          "type": {
+            "name": "anydata"
+          }
+        }
+      ],
+      "return": {
+        "type": {
+          "name": "Error|()",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "services": [],
+  "annotations": []
+}

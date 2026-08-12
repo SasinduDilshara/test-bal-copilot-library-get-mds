@@ -1,0 +1,249 @@
+// ============================================================
+// Library: ballerina/uuid
+// This module provides APIs to generate and inspect UUIDs (Universally Unique Identifiers).
+// ============================================================
+import ballerina/uuid;
+
+// --- README ---
+## Overview
+
+This module provides APIs to generate and inspect UUIDs (Universally Unique Identifiers).
+
+The UUIDs are generated based on the [RFC 4122](https://www.rfc-editor.org/rfc/rfc4122.html) standard. This module supports generating 4 versions of UUIDs.
+
+### Version 1
+
+Generated using the MAC address of the computer and the time of generation.
+
+### Version 3
+
+Cryptographic hashing and application-provided text strings are used to generate a UUID. MD5 hashing is used.
+
+### Version 4
+
+Uses a pseudo-random number generator to generate the UUID. Every bit of the string is randomly generated.
+
+### Version 5
+
+Similar to Version 3 but uses SHA-1 instead of MD5.
+
+Other operations include validating a given UUID string and getting the version of a UUID string.
+
+For information on the operations, which you can perform with the `uuid` module, see the below **Functions**.
+
+// --- END README ---
+
+// --- Types ---
+
+const string V1 = "V1";
+
+const string V3 = "V3";
+
+const string V4 = "V4";
+
+const string V5 = "V5";
+
+const string NAME_SPACE_DNS = "6ba7b810-9dad-11d1-80b4-00c04fd430c8";
+
+const string NAME_SPACE_URL = "6ba7b811-9dad-11d1-80b4-00c04fd430c8";
+
+const string NAME_SPACE_OID = "6ba7b812-9dad-11d1-80b4-00c04fd430c8";
+
+const string NAME_SPACE_X500 = "6ba7b814-9dad-11d1-80b4-00c04fd430c8";
+
+const string NAME_SPACE_NIL = "00000000-0000-0000-0000-000000000000";
+
+# Represents a UUID.
+# 
+
+type Uuid record {
+    # The low field of the timestamp
+    ballerina/lang.int:0.0.0:Unsigned32 timeLow;
+    # The middle field of the timestamp
+    ballerina/lang.int:0.0.0:Unsigned16 timeMid;
+    # The high field of the timestamp multiplexed with the version number
+    ballerina/lang.int:0.0.0:Unsigned16 timeHiAndVersion;
+    # The high field of the clock sequence multiplexed with the variant
+    ballerina/lang.int:0.0.0:Unsigned8 clockSeqHiAndReserved;
+    # The low field of the clock sequence
+    ballerina/lang.int:0.0.0:Unsigned8 clockSeqLo;
+    # The spatially unique node identifier
+    int node;
+    # Rest field
+    anydata & readonly ;
+};
+
+# Represents the UUID versions.
+# 
+enum Version {
+    V5,
+    V4,
+    V3,
+    V1
+}
+
+# Represents UUIDs strings of well known namespace IDs.
+# 
+enum NamespaceUUID {
+    NAME_SPACE_NIL,
+    NAME_SPACE_X500,
+    NAME_SPACE_OID,
+    NAME_SPACE_URL,
+    NAME_SPACE_DNS
+}
+
+// Unknown type: Error
+
+// --- Functions ---
+
+# Returns a UUID of type 1 as a string.
+# ```ballerina
+# string uuid1 = uuid:createType1AsString();
+# ```
+# 
+# + return - UUID of type 1 as a string
+function createType1AsString() returns string;
+
+# Returns a UUID of type 1 as a UUID record.
+# ```ballerina
+# uuid:Uuid uuid1 = check uuid:createType1AsRecord();
+# ```
+# 
+# + return - UUID of type 1 as a UUID record, or else a `uuid:Error`
+function createType1AsRecord() returns Uuid|Error;
+
+# Returns a UUID of type 3 as a string.
+# ```ballerina
+# string uuid3 = check uuid:createType3AsString(uuid:NAME_SPACE_DNS, “ballerina.io”);
+# ```
+# 
+# + namespace - String representation for a pre-defined namespace UUID
+# + name - A name within the namespace
+
+# + return - UUID of type 3 as a string, or else a `uuid:Error`
+function createType3AsString(NamespaceUUID namespace, string name) returns string|Error;
+
+# Returns a UUID of type 3 as a UUID record.
+# ```ballerina
+# uuid:Uuid uuid3 = check uuid:createType3AsRecord(uuid:NAME_SPACE_DNS, “ballerina.io”);
+# ```
+# 
+# + namespace - String representation for a pre-defined namespace UUID
+# + name - A name within the namespace
+
+# + return - UUID of type 3 as a UUID record, or else a `uuid:Error`
+function createType3AsRecord(NamespaceUUID namespace, string name) returns Uuid|Error;
+
+# Returns a UUID of type 4 as a string.
+# ```ballerina
+# string uuid4 = uuid:createType4AsString();
+# ```
+# 
+# + return - UUID of type 4 as a string
+function createType4AsString() returns string;
+
+# Returns a UUID of type 4 as a UUID record.
+# ```ballerina
+# uuid:Uuid uuid4 = check uuid:createType4AsRecord();
+# ```
+# 
+# + return - UUID of type 4 as a UUID record, or else a `uuid:Error`
+function createType4AsRecord() returns Uuid|Error;
+
+# Returns a UUID of type 5 as a string.
+# ```ballerina
+# string uuid5 = check uuid:createType5AsString(uuid:NAME_SPACE_DNS, “ballerina.io”);
+# ```
+# 
+# + namespace - String representation for a pre-defined namespace UUID
+# + name - A name within the namespace
+
+# + return - UUID of type 5 as a string, or else a `uuid:Error`
+function createType5AsString(NamespaceUUID namespace, string name) returns string|Error;
+
+# Returns a UUID of type 5 as a UUID record.
+# ```ballerina
+# uuid:Uuid uuid5 = check uuid:createType5AsRecord(uuid:NAME_SPACE_DNS, “ballerina.io”);
+# ```
+# 
+# + namespace - String representation for a pre-defined namespace UUID
+# + name - A name within the namespace
+
+# + return - UUID of type 5 as a UUID record, or else a `uuid:Error`
+function createType5AsRecord(NamespaceUUID namespace, string name) returns Uuid|Error;
+
+# Returns a UUID of type 4 as a string.
+# This function provides a convenient alias for 'createType4AsString()'.
+# ```ballerina
+# string newUUID = uuid:createRandomUuid();
+# ```
+# 
+# + return - UUID of type 4 as a string
+function createRandomUuid() returns string;
+
+# Returns a nil UUID as a string.
+# ```ballerina
+# string nilUUID = uuid:nilAsString();
+# ```
+# 
+# + return - nil UUID
+function nilAsString() returns string;
+
+# Returns a nil UUID as a UUID record.
+# ```ballerina
+# uuid:Uuid nilUUID = uuid:nilAsRecord();
+# ```
+# 
+# + return - nil UUID
+function nilAsRecord() returns Uuid;
+
+# Test a string to see if it is a valid UUID.
+# ```ballerina
+# boolean valid = uuid:validate("4397465e-35f9-11eb-adc1-0242ac120002");
+# ```
+# 
+# + uuid - UUID string to be validated
+
+# + return - true if a valied UUID, false if not
+function validate(string uuid) returns boolean;
+
+# Detect RFC version of a UUID. Returns an error if the UUID is invalid.
+# ```ballerina
+# uuid:Version v = check uuid:getVersion("4397465e-35f9-11eb-adc1-0242ac120002");
+# ```
+# 
+# + uuid - UUID string to be checked
+
+# + return - UUID version, or else a `uuid:Error`
+function getVersion(string uuid) returns "V5"|"V4"|"V3"|"V1"|Error;
+
+# Converts to an array of bytes. Returns an error if the UUID is invalid.
+# ```ballerina
+# byte[] b = check uuid:toBytes(“6ec0bd7f-11c0-43da-975e-2aesass0b”);
+# ```
+# 
+# + uuid - UUID to be converted
+
+# + return - UUID as bytes, or else a `uuid:Error`
+function toBytes(string|Uuid uuid) returns byte[]|Error;
+
+# Converts to a UUID string. Returns an error if the UUID is invalid.
+# ```ballerina
+# string s = check uuid:toString([5, 12, 16, 35]);
+# ```
+# 
+# + uuid - UUID to be converted
+
+# + return - UUID as string, or else a `uuid:Error`
+function toString(byte[]|Uuid uuid) returns string|error;
+
+# Converts to a UUID record. Returns an error if the UUID is invalid.
+# ```ballerina
+# uuid:Uuid r1 = check uuid:toRecord("4397465e-35f9-11eb-adc1-0242ac120002");
+# uuid:Uuid r2 = check uuid:toRecord([10, 20, 30]);
+# ```
+# 
+# + uuid - UUID to be converted
+
+# + return - UUID as record, or else a `uuid:Error`
+function toRecord(string|byte[] uuid) returns Uuid|Error;

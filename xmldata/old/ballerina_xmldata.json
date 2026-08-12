@@ -1,0 +1,303 @@
+{
+  "name": "ballerina/xmldata",
+  "description": "",
+  "readme": "\u003e**Deprecation Notice:** This library is deprecated and will no longer be maintained or updated. Instead, it is recommended to use the [`ballerina/data.xmldata`](https://central.ballerina.io/ballerina/data.xmldata/latest) library for continued support and updates. For more information, see the new [XML to Record conversion example](https://ballerina.io/learn/by-example/xml-to-record/) and [XML to record conversion with projection example](https://ballerina.io/learn/by-example/xml-to-record-with-projection/).\n\n## Overview\n\nThis module provides APIs to perform conversions between XML and JSON/Ballerina records. It provides APIs to get natural representations of data in XML from JSON and to get JSON or Ballerina records data from natural representations of data in XML.\n\nFor information on the operations, which you can perform with the `xmldata` module, see the below **Functions**.\n",
+  "typeDefs": [
+    {
+      "name": "Error",
+      "description": "Represents the error type of the ballerina/xmldata module. This error type represents any error that can occur\nduring the execution of xmldata APIs.",
+      "type": "Error"
+    },
+    {
+      "name": "NameConfig",
+      "description": "Defines the name of the XML element.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "value",
+          "description": "The name of the XML element",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "NamespaceConfig",
+      "description": "Defines the namespace of the XML element\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "prefix",
+          "description": "The value of the prefix of the namespace",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "uri",
+          "description": "The value of the URI of the namespace",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "JsonOptions",
+      "description": "Provides configurations for converting JSON to XML.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "attributePrefix",
+          "description": "The prefix of JSON elements\u0027 key which is to be treated as an attribute in the XML representation",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "arrayEntryTag",
+          "description": "The name of the XML elements that represent a converted JSON array entry",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "rootTag",
+          "description": "The name of the root element of the XML that will be created. If its value is (), and the converted XML\nis not in the valid format, it will create a root tag as `root`",
+          "type": {
+            "name": "string?"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "XmlOptions",
+      "description": "Provides configurations for converting XML to JSON.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "attributePrefix",
+          "description": "Attribute prefix used in the XML",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "preserveNamespaces",
+          "description": "Instructs whether to preserve the namespaces of the XML when converting",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    }
+  ],
+  "clients": [],
+  "functions": [
+    {
+      "name": "toXml",
+      "type": "Normal Function",
+      "description": "Converts a `Map` or `Record` representation to its XML representation.\nAdditionally, when converting from a record, the `xmldata:Namespace`, `xmldata:Name`, and `xmldata:Attribute`\nannotations can be used to add `namespaces`, `name of elements`, and `attributes` to XML representation.\n",
+      "parameters": [
+        {
+          "name": "mapValue",
+          "description": "The `Map` or `Record` representation source to be converted to XML",
+          "type": {
+            "name": "map\u003canydata\u003e"
+          }
+        }
+      ],
+      "return": {
+        "description": "XML representation of the given source if the source is\nsuccessfully converted or else an `xmldata:Error`",
+        "type": {
+          "name": "xml|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "fromJson",
+      "type": "Normal Function",
+      "description": "Converts a JSON object to an XML representation.\n```ballerina\njson data \u003d {\n    name: \"John\",\n    age: 30\n};\nxml? xmlValue \u003d check xmldata:fromJson(data);\n```\n",
+      "parameters": [
+        {
+          "name": "jsonValue",
+          "description": "The JSON source to be converted to XML",
+          "type": {
+            "name": "json"
+          }
+        },
+        {
+          "name": "options",
+          "description": "The `xmldata:JsonOptions` record for JSON to XML conversion properties",
+          "type": {
+            "name": "JsonOptions",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "JsonOptions"
+              }
+            ]
+          },
+          "optional": true,
+          "default": "{}"
+        }
+      ],
+      "return": {
+        "description": "XML representation of the given JSON if the JSON is\nsuccessfully converted or else an `xmldata:Error`. The `()` value is not returned",
+        "type": {
+          "name": "xml|()|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "toJson",
+      "type": "Normal Function",
+      "description": "Converts an XML object to its JSON representation.\n```ballerina\nxml xmlValue \u003d xml `\u003c!-- outer comment --\u003e` + xml `\u003cname\u003esupun\u003c/name\u003e`;\njson jsonValue \u003d check xmldata:toJson(xmlValue);\n```\n",
+      "parameters": [
+        {
+          "name": "xmlValue",
+          "description": "The XML source to be converted to JSON",
+          "type": {
+            "name": "xml"
+          }
+        },
+        {
+          "name": "options",
+          "description": "The `xmldata:XmlOptions` record consisting of the configurations for the conversion",
+          "type": {
+            "name": "XmlOptions",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "XmlOptions"
+              }
+            ]
+          },
+          "optional": true,
+          "default": "{}"
+        }
+      ],
+      "return": {
+        "description": "The JSON representation of the given XML on success, else returns an `xmldata:Error`",
+        "type": {
+          "name": "json|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "toRecord",
+      "type": "Normal Function",
+      "description": "Converts an XML to its Record representation.\n```ballerina\ntype Person record {\n    string name;\n};\nxml xmlValue \u003d xml `\u003c!-- outer comment --\u003e` + xml `\u003cname\u003eAlex\u003c/name\u003e`;\nPerson|xmldata:Error person \u003d xmldata:toRecord(xmlValue);\n```\n",
+      "parameters": [
+        {
+          "name": "xmlValue",
+          "description": "The XML source to be converted to a Record",
+          "type": {
+            "name": "xml"
+          }
+        },
+        {
+          "name": "preserveNamespaces",
+          "description": "Instructs whether to preserve the namespaces of the XML when converting",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true,
+          "default": "true"
+        },
+        {
+          "name": "returnType",
+          "description": "The `typedesc` of the record that should be returned as a result.\nThe optional value fields are not allowed in the record type.",
+          "type": {
+            "name": "record {|anydata...;|}"
+          },
+          "optional": true,
+          "default": "record {|anydata...;|}"
+        }
+      ],
+      "return": {
+        "description": "The Record representation of the given XML on success, else returns an `xmldata:Error`",
+        "type": {
+          "name": "returnType|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "returnType"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      },
+      "isDeprecated": true
+    },
+    {
+      "name": "fromXml",
+      "type": "Normal Function",
+      "description": "Converts an XML to its `Map` or `Record` representation.\nAdditionally, when converting to a record, XML `namespaces`, `name of elements` and `attributes` can be validated\nthrough `xmldata:Namespace`, `xmldata:Name` and `xmldata:Attribute` annotations.\n",
+      "parameters": [
+        {
+          "name": "xmlValue",
+          "description": "The XML source to be converted to a given target type. If the XML elements have a prefix,\nthe mapping field names of the record must also have the same prefix.",
+          "type": {
+            "name": "xml"
+          }
+        },
+        {
+          "name": "returnType",
+          "description": "The `typedesc` of the returned value. this should be either `map` or `record` type",
+          "type": {
+            "name": "map\u003canydata\u003e"
+          },
+          "optional": true,
+          "default": "map\u003canydata\u003e"
+        }
+      ],
+      "return": {
+        "description": "The given target type representation of the given XML on success,\nelse returns an `xmldata:Error`",
+        "type": {
+          "name": "returnType|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "returnType"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "services": [],
+  "annotations": []
+}

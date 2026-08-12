@@ -1,0 +1,989 @@
+{
+  "name": "ballerina/data.csv",
+  "description": "The Ballerina CSV Data Library is a comprehensive toolkit designed to facilitate the handling and manipulation of CSV data within Ballerina applications. It streamlines the process of converting CSV data to native Ballerina data types, enabling developers to work with CSV content seamlessly and efficiently.",
+  "readme": "# Ballerina CSV Data Library\n\nThe Ballerina CSV Data Library is a comprehensive toolkit designed to facilitate the handling and manipulation of CSV data within Ballerina applications. It streamlines the process of converting CSV data to native Ballerina data types, enabling developers to work with CSV content seamlessly and efficiently.\n\n## Features\n\n- **Versatile CSV Data Input**: Accept CSV data as a string, byte array, or a stream and convert it into a subtype of ballerina records or lists.\n- **CSV to anydata Value transformation**: Transform CSV data into expected type which is subtype of ballerina record arrays or anydata arrays.\n- **Projection Support**: Perform selective conversion of CSV data subsets into ballerina record array or anydata array values through projection.\n- **Memory-Efficient Streaming**: Process large CSV files incrementally using `parseToStream`, parsing one record at a time without loading the entire file into memory.\n- **Fail-Safe Error Handling**: Continue processing CSV data even when encountering row-level errors and logging errors to the console or file for error tracking and debugging.\n\n## Usage\n\n### Converting CSV string to a record array\n\nTo convert a CSV string into a record array value, you can use the `parseString` function from the library. The following example demonstrates how to transform a CSV document into an array of records.\n\n```ballerina\nimport ballerina/data.csv;\nimport ballerina/io;\n\ntype Book record {\n    string name;\n    string author;\n    int year;\n};\n\npublic function main() returns error? {\n    string csvString \u003d string `name,author,year\n                               Clean Code,Robert C. Martin,2008\n                               The Pragmatic Programmer,Andrew Hunt and David Thomas,1999`;\n\n    Book[] books \u003d check csv:parseString(csvString);\n    foreach var book in books {\n        io:println(book);\n    }\n}\n```\n\n### Converting external CSV document to a record value\n\nFor transforming CSV content from an external source into a record value, the `parseString`, `parseBytes` and `parseStream` functions can be used. This external source can be in the form of a string or a byte array/byte block stream that houses the CSV data. This is commonly extracted from files or network sockets. The example below demonstrates the conversion of an CSV value from an external source into a record value.\n\n```ballerina\nimport ballerina/data.csv;\nimport ballerina/io;\n\ntype Book record {\n    string name;\n    string author;\n    int year;\n};\n\npublic function main() returns error? {\n    // Read the CSV content as a string\n    string csvContent \u003d check io:fileReadString(\"path/to/file.csv\");\n    Book[] book \u003d check csv:parseString(csvContent);\n    io:println(book);\n\n    // Read the CSV content as a stream\n    stream\u003cbyte[], io:Error?\u003e csvStream \u003d check io:fileReadBlocksAsStream(\"path/to/file.csv\");\n    Book[] book2 \u003d check csv:parseStream(csvStream);\n    io:println(book2);\n}\n```\n\nMake sure to handle possible errors that may arise during the file reading or CSV to record/array conversion process. The `check` keyword is utilized to handle these errors, but more sophisticated error handling can be implemented as per your requirements.\n\n## CSV to record array/anydata array of array representation\n\nThe CSV Object can be represented as a value of type `record/map array` or `string array of array` in Ballerina, which facilitates a structured and type-safe approach to handling CSV data.\nThe conversion of CSV data to subtype of `record array` or `anydata array of array` representation is a fundamental feature of the library.\n\n```ballerina\nimport ballerina/data.csv;\nimport ballerina/io;\n\ntype Book record {\n    string name;\n    int year;\n};\n\npublic function main() returns error? {\n    string[][] bookArray \u003d [[\"Clean Code\",\"2008\"],[\"Clean Architecture\",\"2017\"]];\n    Book[] bookRecords \u003d [{name: \"Clean Code\", year: 2008}, {name: \"Clean Architecture\", year: 2017}];\n\n    // Parse and output a record array from a source of string array of arrays.\n    Book[] books \u003d check csv:parseList(bookArray, {customHeaders: [\"name\", \"year\"]});\n    io:println(books);\n\n    // Parse and output a tuple array from a source of string array of arrays.\n    [string, int][] books2 \u003d check csv:parseList(bookArray, {customHeaders: [\"name\", \"year\"]});\n    io:println(books2);\n\n    // Transform CSV records to a string array of arrays.\n    [string, int][] books3 \u003d check csv:transform(bookRecords);\n    io:println(books3);\n}\n```\n\n### Fail-safe CSV parsing with metadata error logging\n\n```ballerina\nimport ballerina/data.csv;\nimport ballerina/io;\n\ntype Book record {|\n    string name;\n    string author;\n    decimal price;\n    string publishDate;\n|};\n\npublic function main() returns error? {\n    string csvString \u003d string `name,author,price,publishDate\n                               Clean Code,Robert Martin,25.50,2008-08-01\n                               Design Patterns,Gang of Four,INVALID,1994-10-31`;\n    Book[] books \u003d check csv:parseString(csvString, {\n        failSafe: {\n            enableConsoleLogs: true,\n            fileOutputMode: {\n                filePath: \"./logs/book-errors.log\",\n                contentType: csv:METADATA,\n                fileWriteOption: csv:APPEND\n            }\n        }\n    });\n    io:println(books);\n}\n```\n\n### Fail-safe CSV parsing with raw data error logging\n\n```ballerina\nimport ballerina/data.csv;\nimport ballerina/io;\n\ntype Book record {|\n    string name;\n    string author;\n    decimal price;\n    string publishDate;\n|};\n\npublic function main() returns error? {\n    string csvString \u003d string `name,author,price,publishDate\n                               Clean Code,Robert Martin,25.50,2008-08-01\n                               Design Patterns,Gang of Four,INVALID,1994-10-31`;\n    Book[] books \u003d check csv:parseString(csvString, {\n        failSafe: {\n            fileOutputMode: {\n                filePath: \"./logs/book-errors.log\",\n                contentType: csv:RAW,\n                fileWriteOption: csv:OVERWRITE\n            }\n        }\n    });\n    io:println(books);\n}\n```\n\n### Fail-safe CSV parsing with combined logging and console output\n\n```ballerina\nimport ballerina/data.csv;\nimport ballerina/io;\n\ntype Book record {|\n    string name;\n    string author;\n    decimal price;\n    string publishDate;\n|};\n\npublic function main() returns error? {\n    string csvString \u003d string `name,author,price,publishDate\n                               Clean Code,Robert Martin,25.50,2008-08-01\n                               Design Patterns,Gang of Four,INVALID,1994-10-31`;\n\n    Book[] books \u003d check csv:parseString(csvString, {\n        failSafe: {\n            enableConsoleLogs: true,\n            fileOutputMode: {\n                filePath: \"./logs/book-errors.log\",\n                contentType: csv:RAW_AND_METADATA,\n                fileWriteOption: csv:APPEND\n            }\n        }\n    });\n    \n    io:println(books);\n}\n```\n\n### Memory-efficient streaming CSV parsing\n\nFor processing large CSV files without loading the entire content into memory, use the `parseToStream` function. This returns a stream that parses records one at a time, making it suitable for memory-constrained environments or very large files.\n\n```ballerina\nimport ballerina/data.csv;\nimport ballerina/io;\n\ntype Book record {\n    string name;\n    string author;\n    int year;\n};\n\npublic function main() returns error? {\n    stream\u003cbyte[], io:Error?\u003e csvByteStream \u003d check io:fileReadBlocksAsStream(\"path/to/large_file.csv\");\n\n    stream\u003cBook, csv:Error?\u003e bookStream \u003d check csv:parseToStream(csvByteStream);\n\n    check bookStream.forEach(function(Book book) {\n        io:println(\"Processing: \", book.name);\n    });\n}\n```\n\nThe streaming API supports:\n- Sub types of both `record {}` and `anydata[]` element types\n- All parse options available in `parseStream`\n- Fail-safe mode to skip malformed rows and continue processing\n\n### Controlling the CSV value to record array conversion\n\nThe library allows for selective conversion of CSV into closed record arrays. This is beneficial when the CSV data contains headers that are not necessary to be transformed into record fields.\n\n```ballerina\nimport ballerina/data.csv;\nimport ballerina/io;\n\ntype Book record {|\n    string name;\n    string author;\n|};\n\npublic function main() returns error? {\n    record {}[] csvContent \u003d [{\n        \"name\": \"Clean Code\",\n        \"author\": \"Robert C. Martin\",\n        \"year\": 2008,\n        \"publisher\": \"Prentice Hall\"\n    }, {\n        \"name\": \"The Pragmatic Programmer\",\n        \"author\": \"Andrew Hunt and David Thomas\",\n        \"year\": 1999,\n        \"publisher\": \"Addison-Wesley\"\n    }];\n\n    // The CSV data above contains publisher and year fields which are not \n    // required to be converted into a record field.\n    Book[] book \u003d check csv:transform(csvContent);\n    io:println(book);\n}\n```\n\nHowever, if the rest field is utilized (or if the record type is defined as an open record), all members in the CSV data will be transformed into record fields:\n\n```ballerina\ntype Book record {\n    string name;\n    string author;\n}\n```\n\nIn this instance, all other CSV header values, such as `year` and `publisher` will be transformed into `anydata-typed` fields with the corresponding CSV header as the key-value pair.\n\nThis behavior extends to arrays as well.\n\nThe process of projecting CSV data into a record supports various use cases, including the filtering out of unnecessary members. This functionality is anticipated to be enhanced in the future to accommodate more complex scenarios, such as filtering values based on regular expressions, among others.\n\n## Issues and projects\n\nIssues and Projects tabs are disabled for this repository as this is part of the Ballerina library. To report bugs, request new features, start new discussions, view project boards, etc. please visit Ballerina library [parent repository](https://github.com/ballerina-platform/ballerina-library).\n\nThis repository only contains the source code for the package.\n\n## Useful links\n\n* Chat live with us via our [Discord server](https://discord.gg/ballerinalang).\n* Post all technical questions on Stack Overflow with the [#ballerina](https://stackoverflow.com/questions/tagged/ballerina) tag.\n",
+  "typeDefs": [
+    {
+      "name": "METADATA",
+      "description": "Logs only the metadata (timestamp, location, message) without source data rows",
+      "type": "Constant",
+      "value": "METADATA",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "RAW",
+      "description": "Logs the source data rows",
+      "type": "Constant",
+      "value": "RAW",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "RAW_AND_METADATA",
+      "description": "Logs both source data rows and metadata along with error messages",
+      "type": "Constant",
+      "value": "RAW_AND_METADATA",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "APPEND",
+      "description": "If the file already exists, new logs will be appended to the existing file",
+      "type": "Constant",
+      "value": "APPEND",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "OVERWRITE",
+      "description": "When the error logging starts, if the file already exists, the file will be overwritten",
+      "type": "Constant",
+      "value": "OVERWRITE",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "LF",
+      "description": "Line Feed (LF) line terminator: `\\n`",
+      "type": "Constant",
+      "value": "\n",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "CRLF",
+      "description": "Carriage Return and Line Feed (CRLF) line terminator: `\\r\\n`",
+      "type": "Constant",
+      "value": "\r\n",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "NULL",
+      "description": "Represents a nil value as the string \"null\".",
+      "type": "Constant",
+      "value": "null",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "NOT_APPLICABLE",
+      "description": "Represents a nil value as \"N/A\".",
+      "type": "Constant",
+      "value": "N/A",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "EMPTY_STRING",
+      "description": "Represents an empty string as a nil value.",
+      "type": "Constant",
+      "value": "",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "NIL",
+      "description": "Represents a nil value as Ballerina nil value `()`.",
+      "type": "Constant",
+      "value": "()",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "Error",
+      "description": "Represents an error.",
+      "type": "Error"
+    },
+    {
+      "name": "NameConfig",
+      "description": "Defines the name of the JSON Object key.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "value",
+          "description": "The name of the JSON Object key",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Options",
+      "description": "Represents options for data projection.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "allowDataProjection",
+          "description": "Allows data projection with specific settings.\n\nThis configuration can be either a record or false. \nIf it is a record, it contains `nilAsOptionalField` and `absentAsNilableType` options.\nIf it is set to `false`, data projection is not allowed.",
+          "type": {
+            "name": "record {|boolean nilAsOptionalField; boolean absentAsNilableType; anydata...;|}|false"
+          },
+          "optional": true
+        },
+        {
+          "name": "skipLines",
+          "description": "Lines to skip during processing, specified either as an array of integers or a string.",
+          "type": {
+            "name": "int[]|string"
+          },
+          "optional": true
+        },
+        {
+          "name": "enableConstraintValidation",
+          "description": "If `true`, enables validation of constraints during processing.",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "outputWithHeaders",
+          "description": "If `true`, when the result is a list it will contain headers as the first row.",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "failSafe",
+          "description": "Specifies the fail-safe options for handling errors during processing.\nIf enabled, metadata is printed to console/files based on the output mode configuration.",
+          "type": {
+            "name": "FailSafeOptions",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "FailSafeOptions"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "FailSafeOptions",
+      "description": "Represents the options for fail-safe mechanism during parsing.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "enableConsoleLogs",
+          "description": "Specifies enabling logging errors to the console",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "includeSourceDataInConsole",
+          "description": "Includes logging source data to the console",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "fileOutputMode",
+          "description": "Specifies the output mode for logging errors encountered during parsing",
+          "type": {
+            "name": "FileOutputMode",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "FileOutputMode"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "FileOutputMode",
+      "description": "Represents the file output mode for logging errors.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "filePath",
+          "description": "The file path where errors will be logged",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "contentType",
+          "description": "Controls the level of detail included in the error logs.",
+          "type": {
+            "name": "ErrorLogContentType",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ErrorLogContentType"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "fileWriteOption",
+          "description": "Configuration for writing to the error file",
+          "type": {
+            "name": "FileWriteOption",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "FileWriteOption"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ErrorLogContentType",
+      "description": "Represents the content type for error logging.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "RAW_AND_METADATA",
+          "description": "Logs both source data rows and metadata along with error messages"
+        },
+        {
+          "name": "RAW",
+          "description": "Logs the source data rows"
+        },
+        {
+          "name": "METADATA",
+          "description": "Logs only the metadata (timestamp, location, message) without source data rows"
+        }
+      ]
+    },
+    {
+      "name": "FileWriteOption",
+      "description": "Represents the options for writing data.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "OVERWRITE",
+          "description": "When the error logging starts, if the file already exists, the file will be overwritten"
+        },
+        {
+          "name": "APPEND",
+          "description": "If the file already exists, new logs will be appended to the existing file"
+        }
+      ]
+    },
+    {
+      "name": "LogOutput",
+      "description": "Represents an error log entry.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "time",
+          "description": "The timestamp of the error occurrence",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "location",
+          "description": "The location where the error occurred",
+          "type": {
+            "name": "Location",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Location"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "message",
+          "description": "The error message",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "offendingRow",
+          "description": "The source data row related to the error",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Location",
+      "description": "Represents the location of an error.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "row",
+          "description": "The row number where the error occurred",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "column",
+          "description": "The column number where the error occurred",
+          "type": {
+            "name": "int"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ParseOptions",
+      "description": "Represents the options for parsing data.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "delimiter",
+          "description": "The delimiter character used for separating fields in the data.",
+          "type": {
+            "name": "ballerina/lang.string:0.0.0:Char"
+          },
+          "optional": true
+        },
+        {
+          "name": "encoding",
+          "description": "The character encoding of the data.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "locale",
+          "description": "The locale used for parsing.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "textEnclosure",
+          "description": "The character used to enclose text fields.",
+          "type": {
+            "name": "ballerina/lang.string:0.0.0:Char"
+          },
+          "optional": true
+        },
+        {
+          "name": "escapeChar",
+          "description": "The character used for escaping.",
+          "type": {
+            "name": "ballerina/lang.string:0.0.0:Char"
+          },
+          "optional": true
+        },
+        {
+          "name": "lineTerminator",
+          "description": "The line terminator(s) used in the data.",
+          "type": {
+            "name": "\"\r\n\"|\"\n\"|LineTerminator[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "LineTerminator"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "nilValue",
+          "description": "The value to represent nil.",
+          "type": {
+            "name": "ballerina/data.csv:0.10.0:NilValue?"
+          },
+          "optional": true
+        },
+        {
+          "name": "comment",
+          "description": "The character used to indicate comments in the data.",
+          "type": {
+            "name": "ballerina/lang.string:0.0.0:Char"
+          },
+          "optional": true
+        },
+        {
+          "name": "header",
+          "description": "Specifies whether the header is present and, if so, the number of header lines.",
+          "type": {
+            "name": "ballerina/lang.int:0.0.0:Unsigned32?"
+          },
+          "optional": true
+        },
+        {
+          "name": "customHeadersIfHeadersAbsent",
+          "description": "Custom headers for the data, if headers are absent.",
+          "type": {
+            "name": "string[]?"
+          },
+          "optional": true
+        },
+        {
+          "name": "allowDataProjection",
+          "description": "",
+          "type": {
+            "name": "record {|boolean nilAsOptionalField; boolean absentAsNilableType; anydata...;|}|false"
+          },
+          "optional": true
+        },
+        {
+          "name": "skipLines",
+          "description": "",
+          "type": {
+            "name": "int[]|string"
+          },
+          "optional": true
+        },
+        {
+          "name": "enableConstraintValidation",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "outputWithHeaders",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "failSafe",
+          "description": "",
+          "type": {
+            "name": "FailSafeOptions",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "FailSafeOptions"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "LineTerminator",
+      "description": "Enum representing possible line terminators.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "CRLF",
+          "description": "Carriage Return and Line Feed (CRLF) line terminator: `\\r\\n`"
+        },
+        {
+          "name": "LF",
+          "description": "Line Feed (LF) line terminator: `\\n`"
+        }
+      ]
+    },
+    {
+      "name": "NilValue",
+      "description": "Enum representing possible nil values.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "NIL",
+          "description": "Represents a nil value as Ballerina nil value `()`."
+        },
+        {
+          "name": "EMPTY_STRING",
+          "description": "Represents an empty string as a nil value."
+        },
+        {
+          "name": "NOT_APPLICABLE",
+          "description": "Represents a nil value as \"N/A\"."
+        },
+        {
+          "name": "NULL",
+          "description": "Represents a nil value as the string \"null\"."
+        }
+      ]
+    },
+    {
+      "name": "ParseListOptions",
+      "description": "Represents options for treating a list as a record.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "headerRows",
+          "description": "If `0`, all the source data will treat as data rows.\nOtherwise specify the header rows(Starts from 1) in the source data.",
+          "type": {
+            "name": "ballerina/lang.int:0.0.0:Unsigned32"
+          },
+          "optional": true
+        },
+        {
+          "name": "customHeaders",
+          "description": "Specify the header names of the source data.\nThis field will overwrite the header values in the header rows.\nThis will be mandatory if the header row parameter is larger than one.",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "allowDataProjection",
+          "description": "",
+          "type": {
+            "name": "record {|boolean nilAsOptionalField; boolean absentAsNilableType; anydata...;|}|false"
+          },
+          "optional": true
+        },
+        {
+          "name": "skipLines",
+          "description": "",
+          "type": {
+            "name": "int[]|string"
+          },
+          "optional": true
+        },
+        {
+          "name": "enableConstraintValidation",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "outputWithHeaders",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "failSafe",
+          "description": "",
+          "type": {
+            "name": "FailSafeOptions",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "FailSafeOptions"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "TransformOptions",
+      "description": "Represents options for treating a list as a record.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "headerOrder",
+          "description": "Specify the order of the headers in the source data.\nIf the expected type is a subset of `record {}[]` this parameter will be ignored.",
+          "type": {
+            "name": "string[]?"
+          },
+          "optional": true
+        },
+        {
+          "name": "allowDataProjection",
+          "description": "",
+          "type": {
+            "name": "record {|boolean nilAsOptionalField; boolean absentAsNilableType; anydata...;|}|false"
+          },
+          "optional": true
+        },
+        {
+          "name": "skipLines",
+          "description": "",
+          "type": {
+            "name": "int[]|string"
+          },
+          "optional": true
+        },
+        {
+          "name": "enableConstraintValidation",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "outputWithHeaders",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "failSafe",
+          "description": "",
+          "type": {
+            "name": "FailSafeOptions",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "FailSafeOptions"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    }
+  ],
+  "clients": [],
+  "functions": [
+    {
+      "name": "parseString",
+      "type": "Normal Function",
+      "description": "Parse a CSV string as a subtype of `record {}[]` or `anydata[][]`.\n\n```ballerina\nstring csvString \u003d string `id,name\n                           1,John\n                           3,Jane`;\nrecord {int id; string name;}[] csv1 \u003d check csv:parseString(csvString);\n[int, string][] csv2 \u003d check csv:parseString(csvString);\nrecord {|int id;|}[] csv3 \u003d check csv:parseString(csvString);\nrecord {int id;}[] csv4 \u003d check csv:parseString(csvString, {skipLines: [1]});\n```\n",
+      "parameters": [
+        {
+          "name": "csvString",
+          "description": "Source CSV string value",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "options",
+          "description": "Options to be used for filtering in the projection",
+          "type": {
+            "name": "ParseOptions",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ParseOptions"
+              }
+            ]
+          },
+          "optional": true,
+          "default": "{}"
+        },
+        {
+          "name": "t",
+          "description": "Target type",
+          "type": {
+            "name": "record {|anydata...;|}[]|anydata[][]"
+          },
+          "optional": true,
+          "default": "record {|anydata...;|}[]|anydata[][]"
+        }
+      ],
+      "return": {
+        "description": "On success, value belonging to the given target type, else returns an `csv:Error` value.",
+        "type": {
+          "name": "t|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "t"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "parseBytes",
+      "type": "Normal Function",
+      "description": "Parse a byte[] as a subtype of `record {}[]` or `anydata[][]`.\n\n```ballerina\nbyte[] csvBytes \u003d check io:fileReadBytes(\"example.csv\");\nrecord {int id; string name;}[] csv1 \u003d check csv:parseBytes(csvBytes);\n[int, string][] csv2 \u003d check csv:parseBytes(csvBytes);\nrecord {|int id;|}[] csv3 \u003d check csv:parseBytes(csvBytes);\nrecord {int id;}[] csv4 \u003d check csv:parseBytes(csvBytes, {skipLines: [1]});\n```\n",
+      "parameters": [
+        {
+          "name": "csvBytes",
+          "description": "Source CSV byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "options",
+          "description": "Options to be used for filtering in the projection",
+          "type": {
+            "name": "ParseOptions",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ParseOptions"
+              }
+            ]
+          },
+          "optional": true,
+          "default": "{}"
+        },
+        {
+          "name": "t",
+          "description": "Target type",
+          "type": {
+            "name": "record {|anydata...;|}[]|anydata[][]"
+          },
+          "optional": true,
+          "default": "record {|anydata...;|}[]|anydata[][]"
+        }
+      ],
+      "return": {
+        "description": "On success, value belonging to the given target type, else returns an `csv:Error` value.",
+        "type": {
+          "name": "t|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "t"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "parseStream",
+      "type": "Normal Function",
+      "description": "Parse a CSV byte block stream as a subtype of `record {}[]` or `anydata[][]`.\n\n```ballerina\nstream\u003cbyte[], io:Error?\u003e csvByteStream \u003d check io:fileReadBlocksAsStream(\"example.csv\");\nrecord {int id; string name;}[] csv1 \u003d check csv:parseStream(csvByteStream);\nstream\u003cbyte[], io:Error?\u003e csvByteStream2 \u003d check io:fileReadBlocksAsStream(\"example.csv\");\n[int, string][] csv2 \u003d check csv:parseStream(csvByteStream2);\nstream\u003cbyte[], io:Error?\u003e csvByteStream3 \u003d check io:fileReadBlocksAsStream(\"example.csv\");\nrecord {|int id;|}[] csv3 \u003d check csv:parseStream(csvByteStream3);\nstream\u003cbyte[], io:Error?\u003e csvByteStream4 \u003d check io:fileReadBlocksAsStream(\"example.csv\");\nrecord {int id;}[] csv4 \u003d check csv:parseStream(csvByteStream4, {skipLines: [1]});\n```\n",
+      "parameters": [
+        {
+          "name": "csvByteStream",
+          "description": "Source CSV byte block stream",
+          "type": {
+            "name": "stream\u003cbyte[], error?\u003e"
+          }
+        },
+        {
+          "name": "options",
+          "description": "Options to be used for filtering in the projection",
+          "type": {
+            "name": "ParseOptions",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ParseOptions"
+              }
+            ]
+          },
+          "optional": true,
+          "default": "{}"
+        },
+        {
+          "name": "t",
+          "description": "Target type",
+          "type": {
+            "name": "record {|anydata...;|}[]|anydata[][]"
+          },
+          "optional": true,
+          "default": "record {|anydata...;|}[]|anydata[][]"
+        }
+      ],
+      "return": {
+        "description": "On success, value belonging to the given target type, else returns an `csv:Error` value.",
+        "type": {
+          "name": "t|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "t"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "transform",
+      "type": "Normal Function",
+      "description": "Transform value of type record {}[] to subtype of `record {}[]` or `anydata[][]`.\n\n```ballerina\nrecord {int id; string name;}[] csvRecords \u003d [{id: 1, name: \"John\"}, {id: 2, name: \"Jane\"}];\n[int, string][] csv1 \u003d check csv:transform(csvRecords);\nrecord {|int id;|}[] csv2 \u003d check csv:transform(csvRecords);\nrecord {int id;}[] csv3 \u003d check csv:transform(csvRecords, {skipLines: [1]});\n```\n",
+      "parameters": [
+        {
+          "name": "csvRecords",
+          "description": "Source Ballerina record array value",
+          "type": {
+            "name": "record {|anydata...;|}[]"
+          }
+        },
+        {
+          "name": "options",
+          "description": "Options to be used for filtering in the projection",
+          "type": {
+            "name": "TransformOptions",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TransformOptions"
+              }
+            ]
+          },
+          "optional": true,
+          "default": "{}"
+        },
+        {
+          "name": "t",
+          "description": "Target type",
+          "type": {
+            "name": "record {|anydata...;|}[]|anydata[][]"
+          },
+          "optional": true,
+          "default": "record {|anydata...;|}[]|anydata[][]"
+        }
+      ],
+      "return": {
+        "description": "On success, returns value belonging to the given target type, else returns an `csv:Error` value.",
+        "type": {
+          "name": "t|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "t"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "parseList",
+      "type": "Normal Function",
+      "description": "Parse a string array of array as a subtype of `record {}[]` or `anydata[][]`.\n\n```ballerina\nstring[][] csvList \u003d [[\"1\", \"John\"], [\"2\", \"Jane\"]];\n[int, string][] csv1 \u003d check csv:parseList(csvList);\nrecord {|int id;|}[] csv2 \u003d check csv:parseList(csvList, {customHeaders: [\"id\", \"name\"]});\nrecord {int id;}[] csv3 \u003d check csv:parseList(csvList, {skipLines: [1], customHeaders: [\"id\", \"name\"]});\n```\n",
+      "parameters": [
+        {
+          "name": "csvList",
+          "description": "Source Ballerina string array of array value",
+          "type": {
+            "name": "string[][]"
+          }
+        },
+        {
+          "name": "options",
+          "description": "Options to be used for filtering in the projection",
+          "type": {
+            "name": "ParseListOptions",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ParseListOptions"
+              }
+            ]
+          },
+          "optional": true,
+          "default": "{}"
+        },
+        {
+          "name": "t",
+          "description": "Target type",
+          "type": {
+            "name": "record {|anydata...;|}[]|anydata[][]"
+          },
+          "optional": true,
+          "default": "record {|anydata...;|}[]|anydata[][]"
+        }
+      ],
+      "return": {
+        "description": "On success, returns value belonging to the given target type, else returns an `csv:Error` value.",
+        "type": {
+          "name": "t|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "t"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "parseToStream",
+      "type": "Normal Function",
+      "description": "Parse a CSV byte block stream as a stream of records or arrays.\nThis function processes the CSV data incrementally, yielding one record at a time,\nmaking it memory-efficient for large files.\n\n```ballerina\nstream\u003cbyte[], io:Error?\u003e csvByteStream \u003d check io:fileReadBlocksAsStream(\"example.csv\");\nstream\u003crecord {int id; string name;}, csv:Error?\u003e recordStream \u003d check csv:parseToStream(csvByteStream);\ncheck recordStream.forEach(function(record {int id; string name;} rec) {\n    io:println(rec);\n});\n```\n",
+      "parameters": [
+        {
+          "name": "csvByteStream",
+          "description": "Source CSV byte block stream",
+          "type": {
+            "name": "stream\u003cbyte[], error?\u003e"
+          }
+        },
+        {
+          "name": "options",
+          "description": "Options to be used for filtering in the projection",
+          "type": {
+            "name": "ParseOptions",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ParseOptions"
+              }
+            ]
+          },
+          "optional": true,
+          "default": "{}"
+        },
+        {
+          "name": "t",
+          "description": "Target type (must be a record type or anydata[])",
+          "type": {
+            "name": "record {|anydata...;|}|anydata[]"
+          },
+          "optional": true,
+          "default": "record {|anydata...;|}|anydata[]"
+        }
+      ],
+      "return": {
+        "description": "On success, a stream of values belonging to the given target type, else returns an `csv:Error` value.",
+        "type": {
+          "name": "stream\u003ct, ballerina/data.csv:0.10.0:Error?\u003e|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "services": [],
+  "annotations": []
+}

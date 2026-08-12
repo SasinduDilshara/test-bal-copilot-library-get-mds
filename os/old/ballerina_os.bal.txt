@@ -1,0 +1,102 @@
+// ============================================================
+// Library: ballerina/os
+// This module provides APIs to retrieve information about the environment variables and the current users of the Operating System.
+// ============================================================
+import ballerina/os;
+
+// --- README ---
+## Overview
+
+This module provides APIs to retrieve information about the environment variables and the current users of the Operating System.
+
+The APIs are platform-independent, i.e., uniform across all operating systems.
+
+For information on the operations, which you can perform with the `os` module, see the below **Functions**.
+
+// --- END README ---
+
+// --- Types ---
+
+
+type Command record {
+    string value;
+    string[] arguments?;
+};
+
+
+type EnvProperties record {
+    never command?;
+};
+
+// Unknown type: Error
+
+// Unknown type: ProcessExecError
+
+// Unknown type: Process
+
+// --- Functions ---
+
+# Returns the environment variable value associated with the provided name.
+# ```ballerina
+# string port = os:getEnv("HTTP_PORT");
+# ```
+# 
+# + name - Name of the environment variable
+# + return - Environment variable value if it exists or else, an empty string
+function getEnv(string name) returns string;
+
+# Returns the current user's name.
+# ```ballerina
+# string username = os:getUsername();
+# ```
+# 
+# + return - Current user's name if it can be determined or else, an empty string
+function getUsername() returns string;
+
+# Returns the current user's home directory path.
+# ```ballerina
+# string userHome = os:getUserHome();
+# ```
+# 
+# + return - Current user's home directory if it can be determined or else, an empty string
+function getUserHome() returns string;
+
+# Sets the value of the environment variable named by the key. 
+# Note that the parameter key cannot be an empty string or "==" sign.
+# ```ballerina
+# os:Error? err = os:setEnv("BALCONFIGFILE", "/path/to/Config.toml");
+# ```
+# 
+# + key - Key of the environment variable
+# + value - Value of the environment variable
+# + return - An `os:Error` if setting the environment variable fails, () otherwise
+function setEnv(string key, string value) returns Error|();
+
+# Removes a single environment variable from the system if it exists.
+# Note that the parameter key cannot be an empty string.
+# ```ballerina
+# os:Error? err = os:unsetEnv("BALCONFIGFILE");
+# ```
+# 
+# + key - Key of the environment variable
+# + return - An `os:Error` if unsetting the environment variable fails, () otherwise
+function unsetEnv(string key) returns Error|();
+
+# Returns a map of environment variables.
+# ```ballerina
+# map<string> envs = os:listEnv();
+# ```
+# 
+# + return - Map of environment variables
+function listEnv() returns map<string>;
+
+# Executes an operating system command as a subprocess of the current process.
+# ```ballerina
+# os:Process|os:Error result = os:exec({value: "bal", arguments: ["run", filepath]}, BAL_CONFIG_FILE = "/abc/Config.toml");
+# ```
+# 
+# + command - The command to be executed
+# + Additional Values - Capture key value pairs
+# + envProperties - The environment properties
+# + return - Process object in success, or an Error if a failure occurs
+function exec(Command command, anydata Additional Values, EnvProperties envProperties) returns Process|Error;

@@ -1,0 +1,144 @@
+// ============================================================
+// Library: ballerina/xmldata
+// ============================================================
+import ballerina/xmldata;
+
+// --- README ---
+>**Deprecation Notice:** This library is deprecated and will no longer be maintained or updated. Instead, it is recommended to use the [`ballerina/data.xmldata`](https://central.ballerina.io/ballerina/data.xmldata/latest) library for continued support and updates. For more information, see the new [XML to Record conversion example](https://ballerina.io/learn/by-example/xml-to-record/) and [XML to record conversion with projection example](https://ballerina.io/learn/by-example/xml-to-record-with-projection/).
+
+## Overview
+
+This module provides APIs to perform conversions between XML and JSON/Ballerina records. It provides APIs to get natural representations of data in XML from JSON and to get JSON or Ballerina records data from natural representations of data in XML.
+
+For information on the operations, which you can perform with the `xmldata` module, see the below **Functions**.
+
+// --- END README ---
+
+// --- Types ---
+
+# Represents the error type of the ballerina/xmldata module. This error type represents any error that can occur
+# during the execution of xmldata APIs.
+type Error error;
+
+# Defines the name of the XML element.
+# 
+
+type NameConfig record {
+    # The name of the XML element
+    string value;
+};
+
+# Defines the namespace of the XML element
+# 
+
+type NamespaceConfig record {
+    # The value of the prefix of the namespace
+    string prefix?;
+    # The value of the URI of the namespace
+    string uri;
+};
+
+# Provides configurations for converting JSON to XML.
+# 
+
+type JsonOptions record {
+    # The prefix of JSON elements' key which is to be treated as an attribute in the XML representation
+    string attributePrefix?;
+    # The name of the XML elements that represent a converted JSON array entry
+    string arrayEntryTag?;
+    # The name of the root element of the XML that will be created. If its value is (), and the converted XML
+is not in the valid format, it will create a root tag as `root`
+    string? rootTag?;
+};
+
+# Provides configurations for converting XML to JSON.
+# 
+
+type XmlOptions record {
+    # Attribute prefix used in the XML
+    string attributePrefix?;
+    # Instructs whether to preserve the namespaces of the XML when converting
+    boolean preserveNamespaces?;
+};
+
+// --- Functions ---
+
+# Converts a `Map` or `Record` representation to its XML representation.
+# Additionally, when converting from a record, the `xmldata:Namespace`, `xmldata:Name`, and `xmldata:Attribute`
+# annotations can be used to add `namespaces`, `name of elements`, and `attributes` to XML representation.
+# 
+# + mapValue - The `Map` or `Record` representation source to be converted to XML
+# + return - XML representation of the given source if the source is
+successfully converted or else an `xmldata:Error`
+function toXml(map<anydata> mapValue) returns xml|Error;
+
+# Converts a JSON object to an XML representation.
+# ```ballerina
+# json data = {
+#     name: "John",
+#     age: 30
+# };
+# xml? xmlValue = check xmldata:fromJson(data);
+# ```
+# 
+# + jsonValue - The JSON source to be converted to XML
+# + options - The `xmldata:JsonOptions` record for JSON to XML conversion properties
+# + return - XML representation of the given JSON if the JSON is
+successfully converted or else an `xmldata:Error`. The `()` value is not returned
+function fromJson(json jsonValue, JsonOptions options = {}) returns xml|()|Error;
+
+# Converts an XML object to its JSON representation.
+# ```ballerina
+# xml xmlValue = xml `<!-- outer comment -->` + xml `<name>supun</name>`;
+# json jsonValue = check xmldata:toJson(xmlValue);
+# ```
+# 
+# + xmlValue - The XML source to be converted to JSON
+# + options - The `xmldata:XmlOptions` record consisting of the configurations for the conversion
+# + return - The JSON representation of the given XML on success, else returns an `xmldata:Error`
+function toJson(xml xmlValue, XmlOptions options = {}) returns json|Error;
+
+# Converts an XML to its Record representation.
+# ```ballerina
+# type Person record {
+#     string name;
+# };
+# xml xmlValue = xml `<!-- outer comment -->` + xml `<name>Alex</name>`;
+# Person|xmldata:Error person = xmldata:toRecord(xmlValue);
+# ```
+# 
+# + xmlValue - The XML source to be converted to a Record
+# + preserveNamespaces - Instructs whether to preserve the namespaces of the XML when converting
+# + returnType - The `typedesc` of the record that should be returned as a result.
+The optional value fields are not allowed in the record type.
+# + return - The Record representation of the given XML on success, else returns an `xmldata:Error`
+@deprecated
+function toRecord(xml xmlValue, boolean preserveNamespaces = true, record {|anydata...;|} returnType = record {|anydata...;|}) returns returnType|Error;
+
+# Converts an XML to its `Map` or `Record` representation.
+# Additionally, when converting to a record, XML `namespaces`, `name of elements` and `attributes` can be validated
+# through `xmldata:Namespace`, `xmldata:Name` and `xmldata:Attribute` annotations.
+# 
+# + xmlValue - The XML source to be converted to a given target type. If the XML elements have a prefix,
+the mapping field names of the record must also have the same prefix.
+# + returnType - The `typedesc` of the returned value. this should be either `map` or `record` type
+# + return - The given target type representation of the given XML on success,
+else returns an `xmldata:Error`
+function fromXml(xml xmlValue, map<anydata> returnType = map<anydata>) returns returnType|Error;
+
+// --- Annotations ---
+
+# The annotation is used to specify the new name of the existing record name or field name according to the XML format.
+# In the XML-record conversion, this annotation can be used to override the default XML element name using the
+# `xmldata:toXML` API and validate the overridden XML element name with record field using the `xmldata:fromXml` API.
+public annotation NameConfig Name on type, record field;
+
+# The annotation is used to specify the namespace's prefix and URI of the XML element.
+# In the XML-record conversion, this annotation can be used to add XML namespace using the `xmldata:toXML` API and
+# validate the the XML namespace with record in the `xmldata:fromXml` API.
+public annotation NamespaceConfig Namespace on type;
+
+# The annotation is used to denote the field that is considered an attribute.
+# In the XML-record conversion, this annotation can be used to add XML attribute using the `xmldata:toXML` API and
+# validate the XML attribute with record fields in the `xmldata:fromXml` API.
+public annotation Attribute on record field;
