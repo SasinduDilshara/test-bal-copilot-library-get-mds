@@ -1,0 +1,988 @@
+// ============================================================
+// Library: ballerina/websocket
+// This module provides APIs for connecting and interacting with WebSocket endpoints. 
+// ============================================================
+import ballerina/websocket;
+
+// --- README ---
+## Overview
+
+This module provides APIs for connecting and interacting with WebSocket endpoints. 
+
+This module facilitates two types of network entry points as the `Client` and `Listener`. 
+
+### Client
+
+The `websocket:Client` can be used to read/write text/binary messages synchronously. 
+
+A simple client code to handle text messages as follows.
+```ballerina
+import ballerina/websocket;
+
+public function main() returns error? {
+   websocket:Client wsClient = check new("ws://echo.websocket.org");
+
+   check wsClient->writeMessage("Text message");
+
+   string textResp = check wsClient->readMessage();
+}
+```
+Similar to the above, `writeMessage` and `readMessage` can be used to handle binary messages as well. This module also has some low-level APIs to handle `text` and `binary` messages such as `writeTextMessage`, `readTextMessage`, `writeBinaryMessage` and `readBinaryMessage` functions.
+A callback service with the two `onPing` and `onPong` remote functions can be registered at the initialization of the client to receive the `ping/pong` control frames.
+```ballerina
+import ballerina/io;
+import ballerina/websocket;
+
+public function main() returns error? {
+   websocket:Client wsClient = check new("ws://echo.websocket.org", pingPongHandler = new clientPingPongCallbackService());
+   check wsClient->writeMessage("Hello World!");
+}
+
+service class clientPingPongCallbackService {
+    *websocket:PingPongService;
+    remote isolated function onPing(websocket:Caller caller, byte[] localData) returns byte[] {
+        io:println("Ping message received");
+        return localData;
+    }
+
+    remote isolated function onPong(websocket:Caller caller, byte[] localData) {
+        io:println("Pong message received");
+    }
+}
+```
+
+### Listener
+
+On the listener-side, an initial WebSocket upgrade service can be attached to the `websocket:Listener` to handle upgrade requests. It has a single `get` resource, which takes in an `http:Request` optionally. The `get` resource returns a `websocket:Service` to which incoming messages get dispatched after a successful WebSocket connection upgrade. This resource can be used to intercept the initial HTTP upgrade with custom headers or to cancel the WebSocket upgrade by returning an error.
+The returning `websocket:Service` has a fixed set of remote methods.
+
+```ballerina
+service /ws on new websocket:Listener(21003) {
+    resource function get .(http:Request req) returns websocket:Service|websocket:UpgradeError {
+        return new WsService();
+}
+        
+service class WsService {
+  *websocket:Service;
+  remote isolated function onMessage(websocket:Caller caller, string data) returns websocket:Error? {
+      check caller->writeTextMessage(data);
+  }
+}              
+```
+
+#### Remote methods associated with `websocket:Service`
+
+**onOpen**: As soon as the WebSocket handshake is completed and the connection is established, the `onOpen` remote method is dispatched.
+
+**onMessage**: This remote function accepts both types of text and binary messages. This function accepts `anydata` as the function parameter as this remote function supports data binding.
+
+**onTextMessage**: The received text messages are dispatched to this remote method. Users are not allowed to have this remote functions along with the `onMessage` remote function.
+
+**onBinaryMessage**: The received binary messages are dispatched to this remote method. Users are not allowed to have this remote functions along with the `onMessage` remote function.
+
+**onPing and onPong**: The received ping and pong messages are dispatched to these remote methods respectively.
+
+**onIdleTimeout**: This remote method is dispatched when the idle timeout is reached. The `idleTimeout` has to be configured either in the WebSocket service or the client configuration.
+
+**onClose**: This remote method is dispatched when a close frame with a `statusCode` and a reason is received.
+
+**onError**: This remote method is dispatched when an error occurs in the WebSocket connection. This will always be preceded by a connection closure with an appropriate close frame.
+
+### Control messages
+
+A WebSocket contains three types of control messages: `close`, `ping`, and `pong`. A WebSocket server or a client can send a `ping` message and the opposite side should respond with a corresponding `pong` message by returning the same payload sent with the `ping` message. These ping/pong sequences are used as a heartbeat mechanism to check if the connection is healthy. 
+
+You do not need to explicitly control these messages as they are handled automatically by the services and clients. However, if required, you can override the default implementations of the ping/pong messages by registering a `websocket:PingPongService` in the client side as given in the above client code sample and by including the `onPing` and `onPong` remote functions in the `websocket:Service` in the server side.
+
+```ballerina
+remote function onPing(websocket:Caller caller, byte[] data) returns error? {
+    io:println(string `Ping received with data: ${data.toBase64()}`);
+    check caller->pong(data);
+}
+ 
+remote function onPong(websocket:Caller caller, byte[] data) {
+    io:println(string `Pong received with data: ${data.toBase64()}`);
+}
+```
+
+A WebSocket server or a client can close the WebSocket connection by calling the `close` function. In the event of a connection closure, the service will be notified by invoking the `onClose` remote function. Also, on the client side, you will get a connection closure error if you try to read/write messages.
+
+```ballerina
+remote function onClose(websocket:Caller caller, int statusCode, string reason) {
+    io:println(string `Client closed connection with ${statusCode} because of ${reason}`);
+}
+```
+
+### WebSocket compression
+
+Per message compression extensions are supported by the Ballerina `websocket` module and this is enabled by default for both the WebSocket client and the server. Compression can be enabled or disabled by setting the `webSocketCompressionEnabled` to `true` or `false` in the `ClientConfiguration` and `ListenerConfiguration`. Once the compression is successfully negotiated, receiving compressed messages will be automatically decompressed when reading.
+
+### Origin considerations
+
+The `Origin` header can be used to differentiate between WebSocket connections from different hosts or between those made from a browser and some other kind of network client. It is recommended to validate this `Origin` header before accepting the WebSocket upgrade.
+```ballerina
+import ballerina/http;
+import ballerina/websocket;
+
+service /basic/ws on new websocket:Listener(9090) {
+   resource isolated function get .(http:Request httpRequest) returns websocket:Service|websocket:UpgradeError {
+       string|error header = httpRequest.getHeader("Origin");
+       if header is string {
+           // Implement validateOrigin function to validate the origin header.
+	       boolean validated = validateOrigin(header);
+           if validated {
+              return new WsService();
+           }
+       }
+       return error("Invalid upgrade request");
+   }
+}
+service class WsService {
+    *websocket:Service;
+    remote function onMessage(websocket:Caller caller, string text) {
+        
+    }
+}
+```
+
+### Using the TLS protocol to secure WebSocket communication
+
+It is strongly recommended to use the `wss://` protocol to protect against man-in-the-middle attacks. The Ballerina `websocket` module allows the use of TLS in communication to do this. This expects a secure socket to be set in the connection configuration as shown below.
+
+#### Configuring TLS in server side
+
+```ballerina
+listener websocket:Listener wssListener = new (9090, {
+    secureSocket: {
+        key: {
+            certFile: "../resource/path/to/public.crt",
+            keyFile: "../resource/path/to/private.key"
+        }
+    }
+});
+service /basic/ws on wssListener {
+    
+}
+```
+
+#### Configuring TLS in client side
+
+```ballerina
+websocket:Client wssClient = new ("wss://echo.websocket.org", {
+    secureSocket: {
+        cert: "../resource/path/to/public.crt"
+    }
+});
+```
+
+// --- END README ---
+
+// --- Types ---
+
+# Represents the Authorization header name.
+const string AUTH_HEADER = "Authorization";
+
+# The prefix used to denote the Basic authentication scheme.
+const string AUTH_SCHEME_BASIC = "Basic";
+
+# The prefix used to denote the Bearer authentication scheme.
+const string AUTH_SCHEME_BEARER = "Bearer";
+
+# Configurations for a WebSocket service.
+# 
+
+type WSServiceConfig record {
+    # Negotiable sub protocol by the service
+    string[] subProtocols?;
+    # Idle timeout for the client connection. Upon timeout, `onIdleTimeout` resource (if defined)
+in the server service will be triggered. Note that this overrides the `timeout` config
+in the `websocket:Listener`, which is applicable only for the initial HTTP upgrade request
+    decimal idleTimeout?;
+    # The maximum payload size of a WebSocket frame in bytes.
+If this is not set or is negative or zero, the default frame size, which is 65536 will be used
+    int maxFrameSize?;
+    # Listener authentication configurations
+    ListenerAuthConfig[] auth?;
+    # Enable/disable constraint validation
+    boolean validation?;
+    # The key which is going to be used for dispatching to custom remote functions.
+    string dispatcherKey?;
+    # The identifier used to distinguish between requests and their corresponding responses in a multiplexing scenario.
+    string dispatcherStreamId?;
+    # Time to wait (in seconds) for the close frame to be received from the remote endpoint 
+before closing the connection. If the timeout exceeds, then the connection is terminated even though a close frame is
+not received from the remote endpoint. If the value is -1, then the connection waits until a close frame is
+received, and any other negative value results in an error. If the WebSocket frame is received from the remote endpoint
+within the waiting period, the connection is terminated immediately.
+    decimal connectionClosureTimeout?;
+};
+
+# Represents the auth annotation for file user store configurations with scopes.
+# 
+
+type FileUserStoreConfigWithScopes record {
+    # File user store configurations for Basic Auth authentication
+    FileUserStoreConfig fileUserStoreConfig;
+    # Scopes allowed for authorization
+    string|string[] scopes?;
+};
+
+# Represents file user store configurations for Basic Auth authentication.
+
+type FileUserStoreConfig record {
+};
+
+# Represents the auth annotation for LDAP user store configurations with scopes.
+# 
+
+type LdapUserStoreConfigWithScopes record {
+    # LDAP user store configurations for Basic Auth authentication
+    LdapUserStoreConfig ldapUserStoreConfig;
+    # Scopes allowed for authorization
+    string|string[] scopes?;
+};
+
+# Represents LDAP user store configurations for Basic Auth authentication.
+
+type LdapUserStoreConfig record {
+    string domainName;
+    string connectionUrl;
+    string connectionName;
+    string connectionPassword;
+    string userSearchBase;
+    string userEntryObjectClass;
+    string userNameAttribute;
+    string userNameSearchFilter;
+    string userNameListFilter;
+    string[] groupSearchBase;
+    string groupEntryObjectClass;
+    string groupNameAttribute;
+    string groupNameSearchFilter;
+    string groupNameListFilter;
+    string membershipAttribute;
+    boolean userRolesCacheEnabled?;
+    boolean connectionPoolingEnabled?;
+    decimal connectionTimeout?;
+    decimal readTimeout?;
+    auth:SecureSocket secureSocket?; // Special Agent Note: SecureSocket FROM ballerina/auth package
+};
+
+# Represents the auth annotation for JWT validator configurations with scopes.
+# 
+
+type JwtValidatorConfigWithScopes record {
+    # JWT validator configurations for JWT authentication
+    JwtValidatorConfig jwtValidatorConfig;
+    # Scopes allowed for authorization
+    string|string[] scopes?;
+};
+
+# Represents JWT validator configurations for JWT authentication.
+# 
+
+type JwtValidatorConfig record {
+    # The key used to fetch the scopes
+    string scopeKey?;
+    string issuer?;
+    string username?;
+    string|string[] audience?;
+    string jwtId?;
+    string keyId?;
+    map<json> customClaims?;
+    decimal clockSkew?;
+    jwt:ValidatorSignatureConfig signatureConfig?; // Special Agent Note: ValidatorSignatureConfig FROM ballerina/jwt package
+    cache:CacheConfig cacheConfig?; // Special Agent Note: CacheConfig FROM ballerina/cache package
+};
+
+# Represents the auth annotation for OAuth2 introspection server configurations with scopes.
+# 
+
+type OAuth2IntrospectionConfigWithScopes record {
+    # OAuth2 introspection server configurations for OAuth2 authentication
+    OAuth2IntrospectionConfig oauth2IntrospectionConfig;
+    # Scopes allowed for authorization
+    string|string[] scopes?;
+};
+
+# Represents OAuth2 introspection server configurations for OAuth2 authentication.
+# 
+
+type OAuth2IntrospectionConfig record {
+    # The key used to fetch the scopes
+    string scopeKey?;
+    string url;
+    string tokenTypeHint?;
+    map<string> optionalParams?;
+    cache:CacheConfig cacheConfig?; // Special Agent Note: CacheConfig FROM ballerina/cache package
+    decimal defaultTokenExpTime?;
+    oauth2:ClientConfiguration clientConfig?; // Special Agent Note: ClientConfiguration FROM ballerina/oauth2 package
+};
+
+# Defines the authentication configurations for the WebSocket listener.
+type ListenerAuthConfig FileUserStoreConfigWithScopes|LdapUserStoreConfigWithScopes|JwtValidatorConfigWithScopes|OAuth2IntrospectionConfigWithScopes;
+
+# Configurations used to define dispatching rules for remote functions.
+# 
+
+type WsDispatcherConfig record {
+    # The dispatcher value which is going to be used for dispatching to custom remote functions.
+    string dispatcherValue;
+};
+
+# Represents credentials for Basic Auth authentication.
+
+type CredentialsConfig record {
+    string username;
+    string password;
+};
+
+# Represents token for Bearer token authentication.
+# 
+
+type BearerTokenConfig record {
+    # Bearer token for authentication
+    string token;
+};
+
+# Represents JWT issuer configurations for JWT authentication.
+
+type JwtIssuerConfig record {
+    string issuer?;
+    string username?;
+    string|string[] audience?;
+    string jwtId?;
+    string keyId?;
+    map<json> customClaims?;
+    decimal expTime?;
+    jwt:IssuerSignatureConfig signatureConfig?; // Special Agent Note: IssuerSignatureConfig FROM ballerina/jwt package
+};
+
+# Represents OAuth2 client credentials grant configurations for OAuth2 authentication.
+
+type OAuth2ClientCredentialsGrantConfig record {
+    string tokenUrl;
+    string clientId;
+    string clientSecret;
+    string|string[] scopes?;
+    decimal defaultTokenExpTime?;
+    decimal clockSkew?;
+    map<string> optionalParams?;
+    oauth2:CredentialBearer credentialBearer?; // Special Agent Note: CredentialBearer FROM ballerina/oauth2 package
+    oauth2:ClientConfiguration clientConfig?; // Special Agent Note: ClientConfiguration FROM ballerina/oauth2 package
+};
+
+# Represents OAuth2 password grant configurations for OAuth2 authentication.
+
+type OAuth2PasswordGrantConfig record {
+    string tokenUrl;
+    string username;
+    string password;
+    string clientId?;
+    string clientSecret?;
+    string|string[] scopes?;
+    oauth2:RefreshConfig|"INFER_REFRESH_CONFIG" refreshConfig?; // Special Agent Note: RefreshConfig FROM ballerina/oauth2 package
+    decimal defaultTokenExpTime?;
+    decimal clockSkew?;
+    map<string> optionalParams?;
+    oauth2:CredentialBearer credentialBearer?; // Special Agent Note: CredentialBearer FROM ballerina/oauth2 package
+    oauth2:ClientConfiguration clientConfig?; // Special Agent Note: ClientConfiguration FROM ballerina/oauth2 package
+};
+
+# Represents OAuth2 refresh token grant configurations for OAuth2 authentication.
+
+type OAuth2RefreshTokenGrantConfig record {
+    string refreshUrl;
+    string refreshToken;
+    string clientId;
+    string clientSecret;
+    string|string[] scopes?;
+    decimal defaultTokenExpTime?;
+    decimal clockSkew?;
+    map<string> optionalParams?;
+    oauth2:CredentialBearer credentialBearer?; // Special Agent Note: CredentialBearer FROM ballerina/oauth2 package
+    oauth2:ClientConfiguration clientConfig?; // Special Agent Note: ClientConfiguration FROM ballerina/oauth2 package
+};
+
+# Represents OAuth2 JWT bearer grant configurations for OAuth2 authentication.
+
+type OAuth2JwtBearerGrantConfig record {
+    string tokenUrl;
+    string assertion;
+    string clientId?;
+    string clientSecret?;
+    string|string[] scopes?;
+    decimal defaultTokenExpTime?;
+    decimal clockSkew?;
+    map<string> optionalParams?;
+    oauth2:CredentialBearer credentialBearer?; // Special Agent Note: CredentialBearer FROM ballerina/oauth2 package
+    oauth2:ClientConfiguration clientConfig?; // Special Agent Note: ClientConfiguration FROM ballerina/oauth2 package
+};
+
+# Represents OAuth2 grant configurations for OAuth2 authentication.
+type OAuth2GrantConfig OAuth2ClientCredentialsGrantConfig|OAuth2PasswordGrantConfig|OAuth2RefreshTokenGrantConfig|OAuth2JwtBearerGrantConfig;
+
+# Defines the authentication configurations for the WebSocket client.
+type ClientAuthConfig CredentialsConfig|BearerTokenConfig|JwtIssuerConfig|OAuth2ClientCredentialsGrantConfig|OAuth2PasswordGrantConfig|OAuth2RefreshTokenGrantConfig|OAuth2JwtBearerGrantConfig;
+
+
+type CustomCloseFrame record {
+    CustomCloseFrameType 'type?;
+    int status;
+    string reason?;
+};
+
+class CustomCloseFrameType {
+}
+
+
+type NormalClosure record {
+    PredefinedCloseFrameType 'type?;
+    1000 status?;
+    string reason?;
+};
+
+class PredefinedCloseFrameType {
+}
+
+
+type GoingAway record {
+    PredefinedCloseFrameType 'type?;
+    1001 status?;
+    string reason?;
+};
+
+
+type ProtocolError record {
+    PredefinedCloseFrameType 'type?;
+    1002 status?;
+    string reason?;
+};
+
+
+type UnsupportedData record {
+    PredefinedCloseFrameType 'type?;
+    1003 status?;
+    string reason?;
+};
+
+
+type InvalidPayload record {
+    PredefinedCloseFrameType 'type?;
+    1007 status?;
+    string reason?;
+};
+
+
+type PolicyViolation record {
+    PredefinedCloseFrameType 'type?;
+    1008 status?;
+    string reason?;
+};
+
+
+type MessageTooBig record {
+    PredefinedCloseFrameType 'type?;
+    1009 status?;
+    string reason?;
+};
+
+
+type InternalServerError record {
+    PredefinedCloseFrameType 'type?;
+    1011 status?;
+    string reason?;
+};
+
+type CloseFrame NormalClosure|GoingAway|ProtocolError|UnsupportedData|InvalidPayload|PolicyViolation|MessageTooBig|InternalServerError|CustomCloseFrame;
+
+# Provides a set of configurations for HTTP service endpoints.
+# 
+
+type ListenerConfiguration record {
+    # The host name/IP of the endpoint
+    string host?;
+    # Configurations related to HTTP/1.x protocol
+    ListenerHttp1Settings http1Settings?;
+    # The SSL configurations for the service endpoint. This needs to be configured in order to
+communicate through WSS
+    ListenerSecureSocket secureSocket?;
+    # Period of time in seconds that a connection waits for a read/write operation in the
+initial upgrade request. Use value 0 to disable timeout
+    decimal timeout?;
+    # The server name which should appear as a response header
+    string? server?;
+    # Enable support for compression in WebSocket
+    boolean webSocketCompressionEnabled?;
+    # Configurations associated with inbound request size limits
+    RequestLimitConfigs requestLimits?;
+};
+
+# Provides settings related to HTTP/1.x protocol.
+
+type ListenerHttp1Settings record {
+    http:KeepAlive keepAlive?; // Special Agent Note: KeepAlive FROM ballerina/http package
+    int maxPipelinedRequests?;
+};
+
+# Configures the SSL/TLS options to be used for WebSocket service.
+
+type ListenerSecureSocket record {
+    crypto:KeyStore|http:CertKey key; // Special Agent Note: KeyStore FROM ballerina/crypto package, CertKey FROM ballerina/http package
+    record {|http:VerifyClient verifyClient; crypto:TrustStore|string cert;|} mutualSsl?;
+    record {|http:Protocol name; string[] versions;|} protocol?;
+    record {|http:CertValidationType 'type; int cacheSize; int cacheValidityPeriod;|} certValidation?;
+    string[] ciphers?;
+    boolean shareSession?;
+    decimal handshakeTimeout?;
+    decimal sessionTimeout?;
+};
+
+# Provides inbound request URI, total header and entity body size threshold configurations.
+
+type RequestLimitConfigs record {
+    int maxUriLength?;
+    int maxHeaderSize?;
+    int maxEntityBodySize?;
+};
+
+# Represents any error related to the WebSocket module.
+type Error error;
+
+# Raised during the handshake when the WebSocket upgrade fails.
+type InvalidHandshakeError error;
+
+# Raised when receiving a frame with a payload exceeding the maximum size.
+type PayloadTooLargeError error;
+
+# Raised when the other side breaks the protocol.
+type CorruptedFrameError error;
+
+# Raised during connection failures.
+type ConnectionError error;
+
+# Raised during failures in connection closure.
+type ConnectionClosureError error;
+
+# Raised when an out of order/invalid continuation frame is received.
+type InvalidContinuationFrameError error;
+
+# Raised when the WebSocket upgrade is not accepted.
+type UpgradeError error;
+
+# Raised when the initial WebSocket handshake timed out.
+type HandshakeTimedOut error;
+
+# Raised when the client read time out reaches.
+type ReadTimedOutError error;
+
+# Defines the Auth error types that returned from the client.
+type AuthError error;
+
+# Defines the authentication error type that returned from the listener.
+type AuthnError error;
+
+# Defines the authorization error type that returned from the listener.
+type AuthzError error;
+
+# Raised when the SSL handshake fails.
+type SslError error;
+
+# Represents an error, which occurred due to payload binding.
+type PayloadBindingError error;
+
+# Represents an error, which occurred due to payload constraint validation.
+type PayloadValidationError error;
+
+# Common client configurations for WebSocket clients.
+# 
+
+type CommonClientConfiguration record {
+    # Negotiable sub protocols of the client
+    string[] subProtocols?;
+    # Custom headers, which should be sent to the server
+    map<string> customHeaders?;
+    # Read timeout (in seconds) of the client
+    decimal readTimeout?;
+    # Write timeout (in seconds) of the client
+    decimal writeTimeout?;
+    # SSL/TLS-related options
+    ClientSecureSocket|() secureSocket?;
+    # The maximum payload size of a WebSocket frame in bytes.
+If this is not set, is negative, or is zero, the default frame size of 65536 will be used
+    int maxFrameSize?;
+    # Enable support for compression in the WebSocket
+    boolean webSocketCompressionEnabled?;
+    # Time (in seconds) that a connection waits to get the response of
+the WebSocket handshake. If the timeout exceeds, then the connection is terminated with
+an error. If the value < 0, then the value sets to the default value(300)
+    decimal handShakeTimeout?;
+    # An Array of `http:Cookie`
+    http:Cookie[] cookies?; // Special Agent Note: Cookie FROM ballerina/http package
+    # Configurations related to client authentication
+    ClientAuthConfig auth?;
+    # A service to handle the ping/pong frames.
+Resources in this service gets called on the receipt of ping/pong frames from the server
+    PingPongService pingPongHandler?;
+    # Retry-related configurations
+    WebSocketRetryConfig|() retryConfig?;
+    # Enable/disable constraint validation
+    boolean validation?;
+};
+
+# Configures the SSL/TLS options to be used for WebSocket client.
+
+type ClientSecureSocket record {
+    boolean enable?;
+    crypto:TrustStore|string cert?; // Special Agent Note: TrustStore FROM ballerina/crypto package
+    crypto:KeyStore|http:CertKey key?; // Special Agent Note: KeyStore FROM ballerina/crypto package, CertKey FROM ballerina/http package
+    record {|http:Protocol name; string[] versions;|} protocol?;
+    record {|http:CertValidationType 'type; int cacheSize; int cacheValidityPeriod;|} certValidation?;
+    string[] ciphers?;
+    boolean verifyHostName?;
+    boolean shareSession?;
+    decimal handshakeTimeout?;
+    decimal sessionTimeout?;
+    string serverName?;
+};
+
+# The WebSocket service type to handle ping/pong frames.
+class PingPongService {
+}
+
+# Retry configurations for WebSocket.
+# 
+
+type WebSocketRetryConfig record {
+    # The maximum number of retry attempts. If the count is zero, the client will retry indefinitely
+    int maxCount?;
+    # The number of seconds to delay before attempting to reconnect
+    decimal interval?;
+    # The rate of increase of the reconnect delay. Allows reconnect attempts to back off when problems
+persist
+    float backOffFactor?;
+    # Maximum time of the retry interval in seconds
+    decimal maxWaitInterval?;
+};
+
+# Configurations for the WebSocket client.
+# The following fields are inherited from the other configuration records in addition to the client-specific configs.                    |
+
+type ClientConfiguration record {
+    string[] subProtocols?;
+    map<string> customHeaders?;
+    decimal readTimeout?;
+    decimal writeTimeout?;
+    ClientSecureSocket|() secureSocket?;
+    int maxFrameSize?;
+    boolean webSocketCompressionEnabled?;
+    decimal handShakeTimeout?;
+    http:Cookie[] cookies?; // Special Agent Note: Cookie FROM ballerina/http package
+    ClientAuthConfig auth?;
+    PingPongService pingPongHandler?;
+    WebSocketRetryConfig|() retryConfig?;
+    boolean validation?;
+};
+
+# The WebSocket service type.
+class Service {
+}
+
+# The WebSocket upgrade service type.
+class UpgradeService {
+}
+
+# Gets invoked during the module initialization to initialize the listener.
+# 
+class Listener {
+    function init(int|http:Listener 'listener, string host = "0.0.0.0", ListenerHttp1Settings http1Settings = {}, ListenerSecureSocket secureSocket = {'key: {path: "", password: ""}}, decimal timeout = 120, string|() server = (), boolean webSocketCompressionEnabled = true, RequestLimitConfigs requestLimits = {}, ListenerConfiguration config) returns Error?; // Special Agent Note: Listener FROM ballerina/http package
+
+    # Starts the registered service programmatically.
+    # 
+    function 'start() returns error?;
+
+    # Stops the service listener gracefully. Already-accepted requests will be served before connection closure.
+    # 
+    function gracefulStop() returns error?;
+
+    # Stops the service listener immediately. It is not implemented yet.
+    # 
+    function immediateStop() returns error?;
+
+    # Attaches a service to the listener.
+    # 
+    function attach(UpgradeService websocketService, string[]|string|() name = ()) returns error?;
+
+    # Detaches a WebSocket service from the listener. Note that detaching a WebSocket service would not affect
+    # The functionality of the existing connections.
+    # 
+    function detach(UpgradeService websocketService) returns error?;
+}
+
+// --- Client ---
+
+# Represents a WebSocket caller.
+client class Caller {
+    function init() returns ();
+
+    # Pushes text messages to the connection. If an error occurs while sending the text message to the connection, that message
+    # will be lost.
+    # 
+    remote function writeTextMessage(string data) returns Error|();
+
+    # Pushes binary data to the connection. If an error occurs while sending the binary message to the connection,
+    # that message will be lost.
+    # 
+    remote function writeBinaryMessage(byte[] data) returns Error|();
+
+    # Writes messages to the connection. If an error occurs while sending the message to the connection, that message
+    # will be lost.
+    # 
+    remote function writeMessage(anydata data) returns Error|();
+
+    # Pings the connection. If an error occurs while sending the ping frame to the server, that frame will be lost.
+    # 
+    remote function ping(byte[] data) returns Error|();
+
+    # Sends a pong message to the connection. If an error occurs while sending the pong frame to the connection, that
+    # the frame will be lost.
+    # 
+    remote function pong(byte[] data) returns Error|();
+
+    # Closes the connection.
+    # 
+    remote function close(int|() statusCode = (), string|() reason = (), decimal|() timeout = ()) returns Error|();
+
+    # Sets a connection related attribute.
+    # 
+    function setAttribute(string key, value:Cloneable value) returns ();
+
+    # Gets connection related attribute if any.
+    # 
+    function getAttribute(string key) returns Cloneable?;
+
+    # Removes connection related attribute if any.
+    # 
+    function removeAttribute(string key) returns Cloneable?;
+
+    # Gives the connection id associated with this connection.
+    # 
+    function getConnectionId() returns string;
+
+    # Gives the subprotocol if any that is negotiated with the client.
+    # 
+    function getNegotiatedSubProtocol() returns string?;
+
+    # Gives the secured status of the connection.
+    # 
+    function isSecure() returns boolean;
+
+    # Gives the open or closed status of the connection.
+    # 
+    function isOpen() returns boolean;
+}
+
+# Represents a WebSocket synchronous client endpoint.
+client class Client {
+    function init(string url, string[] subProtocols = [], map<string> customHeaders = {}, decimal readTimeout = 0.0d, decimal writeTimeout = 0.0d, ClientSecureSocket|() secureSocket = (), int maxFrameSize = 0, boolean webSocketCompressionEnabled = false, decimal handShakeTimeout = 0.0d, http:Cookie[] cookies = [], ClientAuthConfig auth = {username: "", password: ""}, PingPongService pingPongHandler = object {}, WebSocketRetryConfig|() retryConfig = (), boolean validation = false, ClientConfiguration config) returns Error?; // Special Agent Note: Cookie FROM ballerina/http package
+
+    function initEndpoint() returns Error|();
+
+    # Writes text messages to the connection. If an error occurs while sending the text message to the connection, that message
+    # will be lost.
+    # 
+    remote function writeTextMessage(string data) returns Error|();
+
+    # Writes binary data to the connection. If an error occurs while sending the binary message to the connection,
+    # that message will be lost.
+    # 
+    remote function writeBinaryMessage(byte[] data) returns Error|();
+
+    # Pings the connection. If an error occurs while sending the ping frame to the server, that frame will be lost.
+    # 
+    remote function ping(byte[] data) returns Error|();
+
+    # Sends a pong message to the connection. If an error occurs while sending the pong frame to the connection, that
+    # the frame will be lost.
+    # 
+    remote function pong(byte[] data) returns Error|();
+
+    # Closes the connection.
+    # 
+    remote function close(int|() statusCode = (), string|() reason = (), decimal timeout = 0.0d) returns Error|();
+
+    # Sets a connection-related attribute.
+    # 
+    function setAttribute(string key, string|int value) returns ();
+
+    # Gets connection-related attributes if any.
+    # 
+    function getAttribute(string key) returns string|int?;
+
+    # Removes connection related attribute if any.
+    # 
+    function removeAttribute(string key) returns string|int?;
+
+    # Gives the connection id associated with this connection.
+    # 
+    function getConnectionId() returns string;
+
+    # Gives the subprotocol if any that is negotiated with the client.
+    # 
+    function getNegotiatedSubProtocol() returns string?;
+
+    # Gives the secured status of the connection.
+    # 
+    function isSecure() returns boolean;
+
+    # Gives the open or closed status of the connection.
+    # 
+    function isOpen() returns boolean;
+
+    # Gives the HTTP response if any received for the client handshake request.
+    # 
+    function getHttpResponse() returns http:Response|(); // Special Agent Note: Response FROM ballerina/http package
+
+    # Reads text messages in a synchronous manner.
+    # 
+    remote function readTextMessage() returns string|Error;
+
+    # Reads binary data in a synchronous manner.
+    # 
+    remote function readBinaryMessage() returns byte[]|Error;
+
+    # Reads data from the WebSocket connection.
+    # 
+    remote function readMessage(anydata targetType = anydata) returns targetType|Error;
+
+    # Writes messages to the connection. If an error occurs while sending the message to the connection, that message
+    # will be lost.
+    # 
+    remote function writeMessage(anydata data) returns Error|();
+}
+
+// --- Functions ---
+
+# Uses for declarative auth design, where the authentication/authorization decision is taken
+# by reading the auth annotations provided in service/resource and the `Authorization` header of request.
+# 
+# + serviceRef - The service reference where the resource locates
+function authenticateResource(Service serviceRef) returns ();
+
+# Adds cookies to the custom header.
+# 
+# + config - Represents the cookies to be added
+function addCookies(ClientConfiguration config) returns ();
+
+// --- Service ---
+
+# The service identifier requires a base path, e.g. `/orders` — replace `/basePath`.
+# Optional: this service may carry the @websocket:ServiceConfig annotation. Replace {...} with its fields, which are those of websocket:WSServiceConfig.
+@websocket:ServiceConfig {...} // optional
+service websocket:UpgradeService /basePath on new websocket:Listener(int|http:Listener 'listener, websocket:ListenerConfiguration config = {}) {
+    # The only handler an upgrade service has. Runs on the initial HTTP request and decides whether to upgrade the connection. Return the service that will handle the resulting connection, or an UpgradeError to reject the upgrade.
+    # Resource: the accessor must be one of `get`; a path is required and is author-chosen — replace `pathSegment`.
+    # + request - The HTTP request that initiated the upgrade, inspect its headers here to authenticate or route before accepting.
+    # Required parameters: none — every parameter in the signature may be omitted.
+    # Optional parameters (may be omitted): request
+    resource function get pathSegment(http:Request request) returns websocket:Service|websocket:UpgradeError; // required
+}
+
+# onMessage and onTextMessage cannot coexist, onMessage already receives text frames.
+# onMessage and onBinaryMessage cannot coexist, onMessage already receives binary frames.
+// This service type is never attached to a listener — no listener in this library declares it.
+// Write it as a `service class` that includes the type, and return an instance of that class
+// wherever a `websocket:Service` is required.
+service class ServiceImpl {
+    *websocket:Service;
+
+    // This service type takes any number of remote handlers, and you choose each one's name.
+    // Declare as many as the requirement needs, each following one of these 2 shapes:
+    //
+    // Shape 1 of 2:
+    // A custom dispatched handler. When the service config sets a dispatcherKey, the value of that field in an inbound message picks the handler by name: the value is camel cased and prefixed with on, so an event of "heartbeat" reaches onHeartbeat. A DispatcherConfig annotation overrides that derivation with an explicit dispatcherValue. A message matching nothing falls back to onMessage, or is ignored when that is absent too.
+    // + caller - Handle for sending messages back over this connection.
+    // + message - The inbound message, bound to the declared type.
+    // Required parameters: message
+    // Optional parameters (may be omitted): caller
+    // A handler may carry @websocket:DispatcherConfig. Its fields are those of websocket:WsDispatcherConfig.
+    // @websocket:DispatcherConfig {} // optional
+    // remote function <handlerName>(websocket:Caller caller, anydata message) returns anydata|websocket:CloseFrame|error?;
+    //
+    // Shape 2 of 2:
+    // A custom error handler, paired to a dispatched handler by name: that handler's name plus Error, so onHeartbeat pairs with onHeartbeatError. It receives the binding failure for that message type. Without it the failure falls back to onError.
+    // + caller - Handle for sending messages back over this connection.
+    // + err - The failure that prevented the message from binding.
+    // Required parameters: err
+    // Optional parameters (may be omitted): caller
+    // remote function <handlerName>(websocket:Caller caller, error err) returns error?;
+
+    # Invoked once, after the handshake completes and the connection is established.
+    # + caller - Handle for sending messages back over this connection.
+    # Required parameters: none — every parameter in the signature may be omitted.
+    # Optional parameters (may be omitted): caller
+    remote function onOpen(websocket:Caller caller) returns error? { } // optional
+
+    # Invoked for every inbound message, text or binary alike. Declaring this handler rules out onTextMessage and onBinaryMessage, it already covers both. It is also the fallback for a custom message type that matched no dispatched handler.
+    # + caller - Handle for sending messages back over this connection.
+    # + data - The inbound message. A text frame deserializes straight to the declared type. A binary frame is read as bytes and then deserialized, unless the declared type is byte[]. A binding failure closes the connection with status 1003.
+    # Required parameters: data
+    # Optional parameters (may be omitted): caller
+    remote function onMessage(websocket:Caller caller, anydata data) returns anydata|websocket:CloseFrame|error? { } // optional
+
+    # Invoked for every inbound text frame.
+    # + caller - Handle for sending messages back over this connection.
+    # + text - The text frame's content.
+    # Required parameters: text
+    # Optional parameters (may be omitted): caller
+    remote function onTextMessage(websocket:Caller caller, string text) returns anydata|websocket:CloseFrame|error? { } // optional
+
+    # Invoked for every inbound binary frame.
+    # + caller - Handle for sending messages back over this connection.
+    # + data - The binary frame's content.
+    # Required parameters: data
+    # Optional parameters (may be omitted): caller
+    remote function onBinaryMessage(websocket:Caller caller, byte[] data) returns anydata|websocket:CloseFrame|error? { } // optional
+
+    # Invoked when the peer sends a ping frame. Declaring it makes replying your responsibility, without it the library sends the pong automatically.
+    # + caller - Handle for sending messages back over this connection.
+    # + data - The ping frame's application data.
+    # Required parameters: data
+    # Optional parameters (may be omitted): caller
+    remote function onPing(websocket:Caller caller, byte[] data) returns error? { } // optional
+
+    # Invoked when the peer sends a pong frame, normally in reply to a ping this service sent.
+    # + caller - Handle for sending messages back over this connection.
+    # + data - The pong frame's application data.
+    # Required parameters: data
+    # Optional parameters (may be omitted): caller
+    remote function onPong(websocket:Caller caller, byte[] data) { } // optional
+
+    # Invoked when no message has arrived for the idleTimeout set in the service config. The listener's own timeout does not trigger it, that one covers only the initial upgrade request.
+    # + caller - Handle for sending messages back over this connection.
+    # Required parameters: none — every parameter in the signature may be omitted.
+    # Optional parameters (may be omitted): caller
+    remote function onIdleTimeout(websocket:Caller caller) returns error? { } // optional
+
+    # Invoked when a close frame arrives from the peer.
+    # + caller - Handle for this connection, already closing, sends will not reach the peer.
+    # + statusCode - The WebSocket close status code the peer sent.
+    # + reason - The human-readable close reason the peer sent.
+    # Required parameters: statusCode, reason
+    # Optional parameters (may be omitted): caller
+    remote function onClose(websocket:Caller caller, int statusCode, string reason) { } // optional
+
+    # Invoked when the connection fails, always preceded by a connection closure with the matching close frame. Also the fallback for a binding failure when no matching custom error handler is declared.
+    # + caller - Handle for sending messages back over this connection.
+    # + err - The failure that interrupted the connection.
+    # Required parameters: err
+    # Optional parameters (may be omitted): caller
+    remote function onError(websocket:Caller caller, error err) returns error? { } // optional
+}
+
+// --- Annotations ---
+
+# The annotation which is used to configure a WebSocket service.
+public annotation WSServiceConfig ServiceConfig on service;
+
+# The annotation which is used to configure the dispatching rules for WebSocket remote functions.
+public annotation WsDispatcherConfig DispatcherConfig on function;

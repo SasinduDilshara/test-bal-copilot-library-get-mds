@@ -1,0 +1,695 @@
+// ============================================================
+// Library: ballerinax/rabbitmq
+// RabbitMQ is a widely used open-source message broker that implements the Advanced Message Queuing Protocol (AMQP). It provides a reliable and scalable platform for asynchronous messaging, enabling decoupled communication between different components of a distributed system. The RabbitMQ connector provides a comprehensive API to interact with RabbitMQ, allowing you to manage exchanges, queues, and bindings, and to produce and consume messages efficiently.
+// ============================================================
+import ballerinax/rabbitmq;
+
+// --- README ---
+## Overview
+
+RabbitMQ is a widely used open-source message broker that implements the Advanced Message Queuing Protocol (AMQP). It provides a reliable and scalable platform for asynchronous messaging, enabling decoupled communication between different components of a distributed system. The RabbitMQ connector provides a comprehensive API to interact with RabbitMQ, allowing you to manage exchanges, queues, and bindings, and to produce and consume messages efficiently.
+
+### Key Features
+
+- Comprehensive support for AMQP 0-9-1
+- Manage exchanges, queues, and bindings programmatically
+- Reliable message delivery with acknowledgments and persistent storage
+- Flexible routing with different exchange types (Direct, Fanout, Topic, Headers)
+- Support for message properties and headers
+- GraalVM compatible for native image builds
+
+### Basic usage
+
+#### Set up the connection
+
+First, you need to set up the connection with the RabbitMQ server. The following ways can be used to connect to a
+RabbitMQ server.
+
+1. Connect to a RabbitMQ node with the default host and port:
+```ballerina
+    rabbitmq:Client rabbitmqClient = check new(rabbitmq:DEFAULT_HOST, rabbitmq:DEFAULT_PORT);
+```
+
+2. Connect to a RabbitMQ node with a custom host and port:
+```ballerina
+    rabbitmq:Client rabbitmqClient = check new("localhost", 5672);
+```
+
+3. Connect to a RabbitMQ node with host, port, and additional configurations:
+```ballerina
+    rabbitmq:ConnectionConfiguration config = {
+        username: "ballerina",
+        password: "password"
+    };
+    rabbitmq:Client rabbitmqClient = check new("localhost", 5672, configs);
+```
+
+The `rabbitmq:Client` can now be used to send and receive messages as described in the subsequent sections.
+
+#### Exchanges and queues
+
+Client applications work with exchanges and queues, which are the high-level building blocks of the AMQP protocol. These must be declared before they can be used. The following code declares an exchange and a server-named queue and then binds them together.
+
+```ballerina
+    check rabbitmqClient->exchangeDeclare("MyExchange", rabbitmq:DIRECT_EXCHANGE);
+    check rabbitmqClient->queueDeclare("MyQueue");
+    check rabbitmqClient->queueBind("MyQueue", "MyExchange", "routing-key");
+```
+
+This sample code will declare,
+- a durable, non-auto-delete exchange of the type `rabbitmq:DIRECT_EXCHANGE`
+- a durable, non-exclusive, non-auto-delete queue with the given name
+
+Next, the `queueBind` function is called to bind the queue to the exchange with the given routing key.
+
+```ballerina
+    check rabbitmqClient->exchangeDeclare("MyExchange", rabbitmq:DIRECT_EXCHANGE);
+    check rabbitmqClient->queueDeclare("MyQueue", { durable: false,
+                                                   exclusive: true,
+                                                   autoDelete: true });
+    check rabbitmqClient->queueBind("MyQueue", "MyExchange", "routing-key");
+```
+
+This sample code will declare,
+- a durable, non-auto-delete exchange of the type `rabbitmq:DIRECT_EXCHANGE`
+- a transient, exclusive, auto-delete queue with a well-known name
+
+#### Delete entities and purge queues
+
+- Delete a queue:
+```ballerina
+    check rabbitmqClient->queueDelete("MyQueue");
+```
+- Delete a queue only if it is empty:
+```ballerina
+    check rabbitmqClient->queueDelete("MyQueue", false, true);
+```
+- Delete a queue only if it is unused (does not have any consumers):
+```ballerina
+    check rabbitmqClient->queueDelete("MyQueue", true, false);
+```
+- Delete an exchange:
+```ballerina
+    check rabbitmqClient->exchangeDelete("MyExchange");
+```
+- Purge a queue (delete all of its messages):
+```ballerina
+    check rabbitmqClient->queuePurge("MyQueue");
+```
+
+#### Publish messages
+
+To publish a message to an exchange, use the `publishMessage()` function as follows:
+
+```ballerina
+    string message = "Hello from Ballerina";
+    check rabbitmqClient->publishMessage({ content: message.toBytes(), routingKey: queueName });
+``` 
+Setting other properties of the message such as routing headers can be done by using the `BasicProperties` record with the appropriate values.
+
+```ballerina
+    rabbitmq:BasicProperties props = {
+       replyTo: "reply-queue"  
+    };
+    string message = "Hello from Ballerina";
+    check rabbitmqClient->publishMessage({ content: message.toBytes(), routingKey: queueName, properties: props });
+```
+
+#### Consume messages using consumer services
+
+The most efficient way to receive messages is to set up a subscription using a Ballerina RabbitMQ `rabbitmq:Listener` and any number of consumer services. The messages will then be delivered automatically as they arrive rather than having to be explicitly requested. Multiple consumer services can be bound to one Ballerina RabbitMQ `rabbitmq:Listener`. The queue to which the service is listening is configured in the `rabbitmq:ServiceConfig` annotation of the service or else as the name of the service.
+
+1. Listen to incoming messages with the `onMessage` remote method:
+
+```ballerina
+    listener rabbitmq:Listener channelListener= new(rabbitmq:DEFAULT_HOST, rabbitmq:DEFAULT_PORT);
+    
+    @rabbitmq:ServiceConfig {
+        queueName: "MyQueue"
+    }
+    service rabbitmq:Service on channelListener {
+        remote function onMessage(rabbitmq:AnydataMessage message) {
+        }
+    }
+```
+
+2. Listen to incoming messages and reply directly with the `onRequest` remote method:
+
+```ballerina
+    listener rabbitmq:Listener channelListener= new(rabbitmq:DEFAULT_HOST, rabbitmq:DEFAULT_PORT);
+    
+    @rabbitmq:ServiceConfig {
+        queueName: "MyQueue"
+    }
+    service rabbitmq:Service on channelListener {
+        remote function onRequest(rabbitmq:AnydataMessage message) returns string {
+            return "Hello Back!";
+        }
+    }
+```
+
+The `rabbitmq:AnydataMessage` record received can be used to retrieve its contents.
+
+### Advanced usage
+
+#### Client acknowledgements
+
+The message consuming is supported by mainly two types of acknowledgement modes, which are auto acknowledgements and client acknowledgements.
+Client acknowledgements can further be divided into two different types as positive and negative acknowledgements.
+The default acknowledgement mode is auto-ack (messages are acknowledged immediately after consuming). The following examples show the usage of positive and negative acknowledgements.
+> WARNING: To ensure the reliability of receiving messages, use the client-ack mode.
+
+1. Positive client acknowledgement:
+```ballerina
+    listener rabbitmq:Listener channelListener= new(rabbitmq:DEFAULT_HOST, rabbitmq:DEFAULT_PORT);
+    
+    @rabbitmq:ServiceConfig {
+        queueName: "MyQueue",
+        autoAck: false
+    }
+    service rabbitmq:Service on channelListener {
+        remote function onMessage(rabbitmq:BytesMessage message, rabbitmq:Caller caller) {
+            rabbitmq:Error? result = caller->basicAck();
+        }
+    }
+```
+
+2. Negative client acknowledgement:
+```ballerina
+    listener rabbitmq:Listener channelListener= new(rabbitmq:DEFAULT_HOST, rabbitmq:DEFAULT_PORT);
+    
+    @rabbitmq:ServiceConfig {
+        queueName: "MyQueue",
+        autoAck: false
+    }
+    service rabbitmq:Service on channelListener {
+        remote function onMessage(rabbitmq:BytesMessage message) {
+            rabbitmq:Error? result = caller->basicNack(true, requeue = false);
+        }
+    }
+```
+
+The negatively-acknowledged (rejected) messages can be re-queued by setting the `requeue` to `true`.
+
+// --- END README ---
+
+// --- Types ---
+
+# Constant for the default host.
+const string DEFAULT_HOST = "localhost";
+
+# Constant for the default port.
+const int DEFAULT_PORT = 5672;
+
+# Constant for the RabbitMQ Direct Exchange type.
+const string DIRECT_EXCHANGE = "direct";
+
+# Constant for the RabbitMQ Fan-out Exchange type.
+const string FANOUT_EXCHANGE = "fanout";
+
+# Constant for the RabbitMQ Topic Exchange type.
+const string TOPIC_EXCHANGE = "topic";
+
+const string SSL = "SSL";
+
+const string TLS = "TLS";
+
+const string DTLS = "DTLS";
+
+# Configurations required to create a subscription.
+# 
+
+type RabbitMQServiceConfig record {
+    # The name of the queue to be subscribed
+    string queueName;
+    # The configurations required to declare a queue
+    QueueConfig config?;
+    # The tag used to identify the consumer. If not specified or empty,
+an internally generated UUID will be assigned.
+    string consumerTag?;
+    # If false, should manually acknowledge
+    boolean autoAck?;
+};
+
+# Additional configurations used to declare a queue.
+# 
+
+type QueueConfig record {
+    # Set to true if declaring a durable queue
+    boolean durable?;
+    # Set to true if declaring an exclusive queue
+    boolean exclusive?;
+    # Set to true if declaring an auto-delete queue
+    boolean autoDelete?;
+    # Other properties (construction arguments) of the queue
+    map<anydata> arguments?;
+};
+
+# Represents the anydata message, which a RabbitMQ server sends to its subscribed services.
+# 
+
+type AnydataMessage record {
+    # The content of the message
+    anydata content;
+    # The routing key to which the message is sent
+    string routingKey;
+    # The exchange to which the message is sent. The default exchange is a direct exchange with no name (empty string) pre-declared by the broker.
+    string exchange?;
+    # The delivery tag of the message
+    int deliveryTag?;
+    # Basic properties of the message - routing headers etc.
+    BasicProperties properties?;
+};
+
+# Basic properties of the message - routing headers etc.
+# 
+
+type BasicProperties record {
+    # The queue name to which the reply should be sent
+    string replyTo?;
+    # The content type of the message
+    string contentType?;
+    # The content encoding of the message
+    string contentEncoding?;
+    # The client-specific ID that can be used to mark or identify messages between clients
+    string correlationId?;
+    # A map of additional arbitrary headers to be included in the message
+    map<anydata> headers?;
+};
+
+# Represents the subtype of `rabbitmq:AnydataMessage` record where the message content is a byte array.
+# 
+
+type BytesMessage record {
+    # Message content in bytes
+    byte[] content;
+    string routingKey;
+    string exchange?;
+    int deliveryTag?;
+    BasicProperties properties?;
+};
+
+# Represents the RabbitMQ store client configuration.
+
+type StoreClientConfiguration record {
+    # The RabbitMQ server host. Defaults to "localhost"
+    string host?;
+    # The RabbitMQ server port. Defaults to 5672
+    int port?;
+    # The RabbitMQ connection configuration
+    ConnectionConfiguration connectionData?;
+    # The RabbitMQ publish configuration
+    StoreClientPublishConfiguration publishConfig?;
+    # The RabbitMQ queue declaration configuration
+    StoreClientDeclareQueueConfiguration declareQueue?;
+};
+
+# Configurations related to initializing the RabbitMQ client and listener.
+# 
+
+type ConnectionConfiguration record {
+    # The username used for establishing the connection
+    string username?;
+    # The password used for establishing the connection
+    string password?;
+    # The virtual host to use when connecting to the broker
+    string virtualHost?;
+    # Connection TCP establishment timeout in seconds and zero for infinite
+    decimal connectionTimeout?;
+    # The AMQP 0-9-1 protocol handshake timeout in seconds
+    decimal handshakeTimeout?;
+    # Shutdown timeout in seconds, zero for infinite, and the default value is 10. If the consumers exceed
+this timeout, then any remaining queued deliveries (and other Consumer callbacks) will be lost
+    decimal shutdownTimeout?;
+    # The initially-requested heartbeat timeout in seconds and zero for none
+    decimal heartbeat?;
+    # Configuration related to constraint validation check
+    boolean validation?;
+    # Configurations for facilitating secure connections
+    SecureSocket secureSocket?;
+    # Configurations related to authentication
+    Credentials auth?;
+    # Additional RabbitMQ broker addresses for cluster and failover support. The primary `host` and
+`port` provided in `init()` are always tried first. If the primary connection fails, the addresses listed here are
+tried in order.
+    Address[]|() failoverAddresses?;
+};
+
+# Configurations for facilitating secure connections.
+# 
+
+type SecureSocket record {
+    # Configurations associated with `crypto:TrustStore` or single certificate file that the client trusts
+    crypto:TrustStore|string cert; // Special Agent Note: TrustStore FROM ballerina/crypto package
+    # Configurations associated with `crypto:KeyStore` or combination of certificate and private key of the client
+    crypto:KeyStore|CertKey key?; // Special Agent Note: KeyStore FROM ballerina/crypto package
+    # SSL/TLS protocol related options
+    record {|Protocol name;|} protocol?;
+    # Enable/disable host name verification
+    boolean verifyHostName?;
+};
+
+# Represents combination of certificate, private key and private key password if encrypted.
+# 
+
+type CertKey record {
+    # A file containing the certificate
+    string certFile;
+    # A file containing the private key in PKCS8 format
+    string keyFile;
+    # Password of the private key if it is encrypted
+    string keyPassword?;
+};
+
+# Represents protocol options.
+enum Protocol {
+    DTLS,
+    TLS,
+    SSL
+}
+
+# Configurations related to authentication.
+# 
+
+type Credentials record {
+    # Username to use for authentication
+    string username;
+    # Password/secret/token to use for authentication
+    string password;
+};
+
+# Represents a RabbitMQ broker address, used for cluster and failover configurations.
+# 
+
+type Address record {
+    # The hostname of the RabbitMQ broker
+    string host;
+    # The port of the RabbitMQ broker
+    int port;
+};
+
+# Represents a RabbitMQ store client configuration for publishing messages.
+
+type StoreClientPublishConfiguration record {
+    # The RabbitMQ exchange to publish messages to. Defaults to an empty string
+    string exchange?;
+    # The RabbitMQ delivery tag for the message. Optional
+    int deliveryTag?;
+    # The RabbitMQ message properties. Optional
+    BasicProperties properties?;
+};
+
+# Represents the RabbitMQ message queue declaration configuration.
+
+type StoreClientDeclareQueueConfiguration record {
+    # Enable or disable the queue declaration. Defaults to true
+    boolean enabled?;
+    # Additional queue configuration to match the RabbitMQ queue declaration
+    QueueConfig queueConfig?;
+};
+
+# Types of exchanges supported by the Ballerina RabbitMQ Connector.
+type ExchangeType "direct"|"fanout"|"topic"|"headers";
+
+# Additional configurations used to declare an exchange.
+# 
+
+type ExchangeConfig record {
+    # Set to `true` if a durable exchange is declared
+    boolean durable?;
+    # Set to `true` if an auto-delete exchange is declared
+    boolean autoDelete?;
+    # Other properties (construction arguments) for the queue
+    map<anydata> arguments?;
+};
+
+# QoS settings to limit the number of unacknowledged
+# messages on a channel.
+# 
+
+type QosSettings record {
+    # The maximum number of messages that the server will deliver.
+Give the value as 0 if unlimited
+    int prefetchCount;
+    # The maximum amount of content (measured in octets)
+that the server will deliver and 0 if unlimited
+    int prefetchSize?;
+    # `true` if the settings should be shared among all the consumers
+    boolean global?;
+};
+
+# Defines the Payload remote function parameter.
+
+type RabbitmqPayload record {
+};
+
+# Represents the RabbitMQ module related errors.
+type Error error;
+
+# Represents an error, which occurred due to payload binding.
+type PayloadBindingError error;
+
+# Represents an error, which occurred due to payload constraint validation.
+type PayloadValidationError error;
+
+# The RabbitMQ service type.
+class Service {
+}
+
+# Initializes a Listener object with the given connection configuration. Sets the global QoS settings,
+# which will be applied to the entire `rabbitmq:Listener`.
+# ```ballerina
+# rabbitmq:Listener rabbitmqListener = check new(rabbitmq:DEFAULT_HOST, rabbitmq:DEFAULT_PORT);
+# ```
+# 
+class Listener {
+    function init(string host, int port, QosSettings|() qosSettings = (), string username = "", string password = "", string virtualHost = "", decimal connectionTimeout = 0.0d, decimal handshakeTimeout = 0.0d, decimal shutdownTimeout = 0.0d, decimal heartbeat = 0.0d, boolean validation = true, SecureSocket secureSocket = {cert: {path: "", password: ""}}, Credentials auth = {username: "", password: ""}, Address[]|() failoverAddresses = (), ConnectionConfiguration connectionData) returns Error?;
+
+    # Attaches the service to the `rabbitmq:Listener` endpoint.
+    # ```ballerina
+    # check rabbitmqListener.attach(service, "serviceName");
+    # ```
+    # 
+    function attach(Service s, string[]|string|() name = ()) returns error?;
+
+    # Starts consuming the messages on all the attached services.
+    # ```ballerina
+    # check rabbitmqListener.'start();
+    # ```
+    # 
+    function 'start() returns error?;
+
+    # Stops consuming messages and detaches the service from the `rabbitmq:Listener` endpoint.
+    # ```ballerina
+    # check rabbitmqListener.detach(service);
+    # ```
+    # 
+    function detach(Service s) returns error?;
+
+    # Stops consuming messages through all consumer services by terminating the connection and all its channels.
+    # ```ballerina
+    # check rabbitmqListener.gracefulStop();
+    # ```
+    # 
+    function gracefulStop() returns error?;
+
+    # Stops consuming messages through all the consumer services and terminates the connection
+    # with the server.
+    # ```ballerina
+    # check rabbitmqListener.immediateStop();
+    # ```
+    # 
+    function immediateStop() returns error?;
+}
+
+// --- Client ---
+
+# Provides the functionality to manipulate the messages received by the consumer services.
+client class Caller {
+
+    # Acknowledges one or several received messages.
+    # ```ballerina
+    # check caller->basicAck(true);
+    # ```
+    # 
+    remote function basicAck(boolean multiple = false) returns Error|();
+
+    # Rejects one or several received messages.
+    # ```ballerina
+    # check caller->basicNack(true, requeue = false);
+    # ```
+    # 
+    remote function basicNack(boolean multiple = false, boolean requeue = false) returns Error|();
+}
+
+# The Ballerina interface to provide AMQP Channel related functionality.
+client class Client {
+    function init(string host, int port, string username = "", string password = "", string virtualHost = "", decimal connectionTimeout = 0.0d, decimal handshakeTimeout = 0.0d, decimal shutdownTimeout = 0.0d, decimal heartbeat = 0.0d, boolean validation = true, SecureSocket secureSocket = {cert: {path: "", password: ""}}, Credentials auth = {username: "", password: ""}, Address[]|() failoverAddresses = (), ConnectionConfiguration connectionData) returns Error?;
+
+    # Declares a non-exclusive, non-auto-delete, and durable queue with the given configurations.
+    # ```ballerina
+    # check rabbitmqClient->queueDeclare("MyQueue");
+    # ```
+    # 
+    remote function queueDeclare(string name, QueueConfig|() config = ()) returns Error|();
+
+    # Declares a queue with a server-generated name.
+    # ```ballerina
+    # string queueName = check rabbitmqClient->queueAutoGenerate();
+    # ```
+    # 
+    remote function queueAutoGenerate() returns string|Error;
+
+    # Declares a non-auto-delete, durable exchange with no extra arguments.
+    # If the arguments are specified, then the exchange is declared accordingly.
+    # ```ballerina
+    # check rabbitmqClient->exchangeDeclare("MyExchange", rabbitmq:DIRECT_EXCHANGE);
+    # ```
+    # 
+    remote function exchangeDeclare(string name, ExchangeType exchangeType = "direct", ExchangeConfig|() config = ()) returns Error|();
+
+    # Binds a queue to an exchange with the given binding key.
+    # ```ballerina
+    # check rabbitmqClient->queueBind("MyQueue", "MyExchange", "routing-key");
+    # ```
+    # 
+    remote function queueBind(string queueName, string exchangeName, string bindingKey) returns Error|();
+
+    # Publishes a message. Publishing to a non-existent exchange will result in a channel-level
+    # protocol error, which closes the channel.
+    # ```ballerina
+    # check rabbitmqClient->publishMessage(messageInBytes, "MyQueue");
+    # ```
+    # 
+    remote function publishMessage(AnydataMessage message) returns Error|();
+
+    # Retrieves a message synchronously from the given queue providing direct access to the messages in the queue.
+    # ```ballerina
+    # rabbitmq:AnydataMessage message = check rabbitmqClient->consumeMessage("MyQueue");
+    # ```
+    # 
+    remote function consumeMessage(string queueName, boolean autoAck = false, AnydataMessage T = rabbitmq:AnydataMessage) returns T|Error;
+
+    # Retrieves the payload synchronously from the given queue.
+    # ```ballerina
+    # string message = check rabbitmqClient->consumePayload("MyQueue");
+    # ```
+    # 
+    remote function consumePayload(string queueName, boolean autoAck = false, anydata T = anydata) returns T|Error;
+
+    # Acknowledges one or several received messages.
+    # ```ballerina
+    # check rabbitmqClient->basicAck(<message|deliveryTag>);
+    # ```
+    # 
+    remote function basicAck(AnydataMessage|int ackTarget, boolean multiple = false) returns Error|();
+
+    # Rejects one or several received messages.
+    # ```ballerina
+    # check rabbitmqClient->basicNack(<message|deliveryTag>);
+    # ```
+    # 
+    remote function basicNack(AnydataMessage|int ackTarget, boolean multiple = false, boolean requeue = false) returns Error|();
+
+    # Deletes the queue with the given name although it is in use or has messages in it.
+    # If the `ifUnused` or `ifEmpty` parameters are given, the queue is checked before deleting.
+    # ```ballerina
+    # check rabbitmqClient->queueDelete("MyQueue");
+    # ```
+    # 
+    remote function queueDelete(string queueName, boolean ifUnused = false, boolean ifEmpty = false) returns Error|();
+
+    # Deletes the exchange with the given name.
+    # ```ballerina
+    # check rabbitmqClient->exchangeDelete("MyExchange");
+    # ```
+    # 
+    remote function exchangeDelete(string exchangeName) returns Error|();
+
+    # Purges the content of the given queue.
+    # ```ballerina
+    # check rabbitmqClient->queuePurge("MyQueue");
+    # ```
+    # 
+    remote function queuePurge(string queueName) returns Error|();
+
+    # Closes the `rabbitmq:Client`.
+    # ```ballerina
+    # check rabbitmqClient->close();
+    # ```
+    # 
+    remote function close(int|() closeCode = (), string|() closeMessage = ()) returns Error|();
+
+    # Aborts the RabbitMQ `rabbitmq:Client`. Forces the `rabbitmq:Client` to close and waits for all the close operations
+    # to complete. Any encountered exceptions in the close operations are discarded silently.
+    # ```ballerina
+    # check rabbitmqClient->'abort(320, "Client Aborted");
+    # ```
+    # 
+    remote function 'abort(int|() closeCode = (), string|() closeMessage = ()) returns Error|();
+}
+
+# Represents a RabbitMQ message store implementation.
+client class MessageStore {
+    function init(string queueName, string host = localhost, int port = 5672, ConnectionConfiguration connectionData = {}, StoreClientPublishConfiguration publishConfig = {}, StoreClientDeclareQueueConfiguration declareQueue = {}, StoreClientConfiguration clientConfig) returns error?;
+
+    # Stores a message in the RabbitMQ message store.
+    # 
+    remote function store(anydata payload) returns error?;
+
+    # Retrieves the top message from the RabbitMQ message store without removing it. Retrieving
+    # concurrently without acknowledgment will return the next message in the queue if the previous one
+    # is not acknowledged.
+    # 
+    remote function retrieve() returns messaging:Message|error|(); // Special Agent Note: Message FROM ballerina/messaging package
+
+    # Acknowledges the processing of a message. When acknowledged with success, the message is
+    # removed from the store.
+    # 
+    remote function acknowledge(string id, boolean success = false) returns error?;
+}
+
+// --- Service ---
+
+# The service identifier accepts a quoted string literal, e.g. `"orders"`; it may be omitted.
+# A RabbitMQ consumer needs its queue name from exactly one source: @rabbitmq:ServiceConfig { queueName } or the service identifier.
+# Prefer the `queueName` field of @rabbitmq:ServiceConfig unless the requirement says otherwise.
+# A RabbitMQ service must implement exactly one of onMessage or onRequest.
+# Optional: this service may carry the @rabbitmq:ServiceConfig annotation. Replace {...} with its fields, which are those of rabbitmq:RabbitMQServiceConfig.
+@rabbitmq:ServiceConfig {...} // optional
+service rabbitmq:Service on new rabbitmq:Listener(string host, int port, rabbitmq:QosSettings|() qosSettings = (), rabbitmq:ConnectionConfiguration connectionData = {}) {
+    # Invoked once per message delivered from the subscribed queue. Use this for consume-only workloads; use onRequest instead when the publisher expects a reply.
+    # + message - The delivered message. Declare a narrower type to project the payload, see the messagePayload data-binding rule.
+    # + caller - Handle for explicitly acknowledging or rejecting the message. Needed only under client acknowledgement.
+    # `message` may also be: rabbitmq:BytesMessage
+    # `message` may bind directly to: anydata — but never rabbitmq:AnydataMessage
+    # `message` may bind to a record that includes `*rabbitmq:AnydataMessage;` and overrides only `content`
+    # The `message` parameter may carry @rabbitmq:Payload, written `@rabbitmq:Payload {}` before its type. Its fields are those of rabbitmq:RabbitmqPayload.
+    # Required parameters: message
+    # Optional parameters (may be omitted): caller
+    remote function onMessage(rabbitmq:AnydataMessage message, rabbitmq:Caller caller) returns error?; // optional
+
+    # Invoked once per message delivered from the subscribed queue, for RPC-style consumers. Whatever the handler returns is published back to the message's reply-to queue, which is why it returns anydata rather than ().
+    # + message - The delivered request message. Declare a narrower type to project the payload, see the messagePayload data-binding rule.
+    # + caller - Handle for explicitly acknowledging or rejecting the message. Needed only under client acknowledgement.
+    # `message` may also be: rabbitmq:BytesMessage
+    # `message` may bind directly to: anydata — but never rabbitmq:AnydataMessage
+    # `message` may bind to a record that includes `*rabbitmq:AnydataMessage;` and overrides only `content`
+    # The `message` parameter may carry @rabbitmq:Payload, written `@rabbitmq:Payload {}` before its type. Its fields are those of rabbitmq:RabbitmqPayload.
+    # Required parameters: message
+    # Optional parameters (may be omitted): caller
+    remote function onRequest(rabbitmq:AnydataMessage message, rabbitmq:Caller caller) returns anydata|error; // optional
+
+    # Invoked when a delivered message cannot be dispatched, most commonly when its payload fails to bind to the declared parameter type.
+    # + message - The message that could not be dispatched, in its unprojected form.
+    # + err - The failure that prevented dispatch.
+    remote function onError(rabbitmq:AnydataMessage message, rabbitmq:Error err) returns error?; // optional
+}
+
+// --- Annotations ---
+
+# The annotation, which is used to configure the subscription.
+public annotation RabbitMQServiceConfig ServiceConfig on service, class;
+
+# The annotation which is used to define the payload parameter in the `onMessage` service method.
+public annotation RabbitmqPayload Payload on parameter;

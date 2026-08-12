@@ -1,0 +1,673 @@
+// ============================================================
+// Library: ballerinax/hubspot.marketing.campaigns
+// [HubSpot](https://www.hubspot.com) is an AI-powered customer relationship management (CRM) platform.
+// ============================================================
+import ballerinax/hubspot.marketing.campaigns;
+
+// --- README ---
+## Overview
+
+[HubSpot](https://www.hubspot.com) is an AI-powered customer relationship management (CRM) platform.
+
+The HubSpot connector offers APIs to connect and interact with the [HubSpot Marketing Campaigns API](https://developers.hubspot.com/docs/guides/api/marketing/campaigns) endpoints, specifically based on the [HubSpot REST API](https://developers.hubspot.com/docs/reference/api/overview)
+
+### Key Features
+
+- Retrieve and list marketing campaigns from HubSpot
+- Access campaign performance metrics and details
+- Monitor campaign status and engagement data
+- Search campaigns with filtering support
+
+## Setup guide
+
+To use the HubSpot Marketing Campaigns connector, you must have access to the HubSpot API through a HubSpot developer account and a HubSpot App under it. Therefore you need to register for a developer account at HubSpot if you don't have one already.
+
+### Step 1: Create/Login to a HubSpot Developer Account
+
+If you have an account already, go to the [HubSpot developer portal](https://developers.hubspot.com/)
+
+If you don't have a HubSpot Developer Account you can sign up to a free account [here](https://developers.hubspot.com/get-started)
+
+### Step 2 (Optional): Create a Developer Test Account
+Within app developer accounts, you can create a [developer test account](https://developers.hubspot.com/docs/getting-started/account-types#developer-test-accounts) under your account to test apps and integrations without affecting any real HubSpot data.
+
+> **Note**: These accounts are only for development and testing purposes. In production you should not use Developer Test Accounts.
+
+   1. Go to Test accounts section from the left sidebar.
+
+![Test Account](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.marketing.campaigns/main/docs/setup/resources/testAccount.png)
+
+   2. Click on the Create developer test account button on the top right corner.
+
+![Development Test Account](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.marketing.campaigns/main/docs/setup/resources/developmentTestAccount.png)
+
+   3. In the pop-up window, provide a name for the test account and click on the Create button.
+
+![Create Account](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.marketing.campaigns/main/docs/setup/resources/createAccount.png)
+
+   4. You will see the newly created test account in the list of test accounts.
+
+![Test Account Portal](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.marketing.campaigns/main/docs/setup/resources/testAccountPortal.png)
+
+### Step 3: Create a HubSpot App
+
+   1. Navigate to the Apps section from the left sidebar and click on the Create app button on the top right corner.
+
+![App Section](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.marketing.campaigns/main/docs/setup/resources/appSection.png)
+
+   2. Provide a public app name and description for your app.
+
+![Naming the App](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.marketing.campaigns/main/docs/setup/resources/namingApp.png)
+
+### Step 4: Setup Authentication
+
+   1. Move to the Auth tab.
+
+![Auth Section](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.marketing.campaigns/main/docs/setup/resources/auth.png)
+
+   2. In the Scopes section, add the following scopes for your app using the Add new scopes button.
+        - `marketing.campaigns.read`
+        - `marketing.campaigns.revenue.read`
+        - `marketing.campaigns.write`
+
+![Marketing Scopes](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.marketing.campaigns/main/docs/setup/resources/marketingScopes.png)
+
+   3. In the Redirect URL section, add the redirect URL for your app. This is the URL where the user will be redirected after the authentication process. You can use `localhost` for testing purposes. Then click the "Create App" button.
+
+![Redirect URL](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.marketing.campaigns/main/docs/setup/resources/redirectURL.png)
+
+### Step 5: Get the Client ID and Client Secret
+
+Navigate to the Auth tab and you will see the `Client ID`, and `Client Secret` for your app. Make sure to save these values.
+
+![Client ID and Client Secret](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.marketing.campaigns/main/docs/setup/resources/clientId_secretId.png)
+
+### Step 6: Setup Authentication Flow
+
+Before proceeding with the Quickstart, ensure you have obtained the Access Token using the following steps:
+
+   1. Create an authorization URL using the following format:
+
+      ```
+      https://app.hubspot.com/oauth/authorize?client_id=<YOUR_CLIENT_ID>&scope=<YOUR_SCOPES>&redirect_uri=<YOUR_REDIRECT_URI>
+      ```
+   Replace the `<YOUR_CLIENT_ID>`, `<YOUR_REDIRECT_URI>`, and `<YOUR_SCOPES>` with your specific value.
+
+   2. Paste it in the browser and select your developer test account to intall the app when prompted.
+
+   ![Account Select](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.marketing.campaigns/main/docs/setup/resources/accountSelect.png)
+
+   3. A code will be displayed in the browser. Copy the code.
+
+   4. Run the following curl command. Replace the `<YOUR_CLIENT_ID>`, `<YOUR_REDIRECT_URI>`, and `<YOUR_CLIENT_SECRET>` with your specific value. Use the code you received in the above step 3 as the CODE below
+
+   - Linux/macOS
+   ```bash
+   curl --request POST \
+--url https://api.hubapi.com/oauth/v1/token \
+--header 'content-type: application/x-www-form-urlencoded' \
+--data 'grant_type=authorization_code&code=<CODE>&redirect_uri=<YOUR_REDIRECT_URI>&client_id=<YOUR_CLIENT_ID>&client_secret=<YOUR_CLIENT_SECRET>'
+   ```
+
+   - Windows
+   ```bash
+curl --request POST ^
+--url https://api.hubapi.com/oauth/v1/token ^
+--header 'content-type: application/x-www-form-urlencoded' ^
+--data 'grant_type=authorization_code&code=<CODE>&redirect_uri=<YOUR_REDIRECT_URI>&client_id=<YOUR_CLIENT_ID>&client_secret=<YOUR_CLIENT_SECRET>'
+   ```
+
+This command will return the access token necessary for API calls.
+
+```json
+{
+  "token_type": "bearer",
+  "refresh_token": "<Refresh Token>",
+  "access_token": "<Access Token>",
+  "expires_in": 1800
+}
+```
+
+   5. Store the access token securely for use in your application.
+
+
+## Quickstart
+
+To use the HubSpot Marketing Campaigns connector in your Ballerina application, update the `.bal` file as follows:
+
+### Step 1: Import the module
+
+Import the `ballerinax/hubspot.marketing.campaigns` module and `ballerina/oauth2` module.
+
+```ballerina
+import ballerinax/hubspot.marketing.campaigns as hsmcampaigns;
+import ballerina/oauth2;
+```
+
+### Step 2: Instantiate a new connector
+
+   1. Create a `Config.toml` file and, configure the obtained credentials in the above steps as follows:
+
+```toml
+ clientId = <Client Id>
+ clientSecret = <Client Secret>
+ refreshToken = <Refresh Token>
+```
+
+   2. Instantiate a `hsmcampaigns:ConnectionConfig` with the obtained credentials and initialize the connector with it.
+
+```ballerina
+configurable string clientId = ?;
+configurable string clientSecret = ?;
+configurable string refreshToken = ?;
+
+final hsmcampaigns:ConnectionConfig hsmcampaignsConfig = {
+    auth : {
+        clientId,
+        clientSecret,
+        refreshToken,
+        credentialBearer: oauth2:POST_BODY_BEARER
+    }
+};
+
+final hsmcampaigns:Client hsmCampaignsClient = check new (hsmcampaignsConfig);
+```
+
+### Step 3: Invoke the connector operation
+
+Now, utilize the available connector operations. A sample usecase is shown below.
+
+Retrieve a Marketing Campaign
+
+```ballerina
+public function main() returns error? {
+    hsmcampaigns:CollectionResponseWithTotalPublicCampaignForwardPaging campaigns = check hsmCampaignsClient->/marketing/v3/campaigns.get();
+}
+```
+
+
+## Examples
+
+The `HubSpot Marketing Campaigns ` connector provides practical examples illustrating usage in various scenarios. Explore these [examples](https://github.com/ballerina-platform/module-ballerinax-hubspot.marketing.campaigns/tree/main/examples), covering the following use cases:
+
+1. [Batch of Campaigns](https://github.com/ballerina-platform/module-ballerinax-hubspot.marketing.campaigns/tree/main/examples/batch_of_campaigns) - Fully manage a batch of campaigns
+2. [Campaign Lifecycle with Assets](https://github.com/ballerina-platform/module-ballerinax-hubspot.marketing.campaigns/tree/main/examples/campaign_lifecycle_with_assets) - Full life cycle of a campaign associated with assets such as forms
+
+// --- END README ---
+
+// --- Types ---
+
+
+type StandardError record {
+    record {|anydata...;|} subCategory?;
+    record {|string[]...;|} context;
+    record {|string...;|} links;
+    string id?;
+    string category;
+    string message;
+    ErrorDetail[] errors;
+    string status;
+};
+
+
+type ErrorDetail record {
+    # A specific category that contains more specific detail about the error
+    string subCategory?;
+    # The status code associated with the error detail
+    string code?;
+    # The name of the field or parameter in which the error was found
+    string 'in?;
+    # Context about the error condition
+    record {|string[]...;|} context?;
+    # A human readable message describing the error along with remediation steps where appropriate
+    string message;
+};
+
+
+type PublicCampaignBatchUpdateItem record {
+    string id;
+    record {|string...;|} properties;
+};
+
+
+type CollectionResponsePublicCampaignAssetForwardPaging record {
+    ForwardPaging paging?;
+    PublicCampaignAsset[] results;
+};
+
+
+type ForwardPaging record {
+    NextPage next?;
+};
+
+
+type NextPage record {
+    string link?;
+    string after;
+};
+
+
+type PublicCampaignAsset record {
+    string name?;
+    string id;
+    record {||} metrics?;
+};
+
+# Represents the Queries record for the operation: get-/marketing/v3/campaigns/{campaignGuid}/reports/revenue
+
+type GetMarketingV3CampaignsCampaignGuidReportsRevenueQueries record {
+    # Allowed values: LINEAR, FIRST_INTERACTION, LAST_INTERACTION, FULL_PATH, U_SHAPED, W_SHAPED, TIME_DECAY, J_SHAPED, INVERSE_J_SHAPED
+Default value: LINEAR
+    string attributionModel?;
+    # End date for the report data, formatted as YYYY-MM-DD.
+Default value: Current date
+    string endDate?;
+    # The start date for the report data, formatted as YYYY-MM-DD.
+Default value: 2006-01-01
+    string startDate?;
+};
+
+
+type PublicCampaignReadInput record {
+    string id;
+};
+
+# Represents the Queries record for the operation: get-/marketing/v3/campaigns/{campaignGuid}/reports/metrics
+
+type GetMarketingV3CampaignsCampaignGuidReportsMetricsQueries record {
+    # End date for the report data, formatted as YYYY-MM-DD.
+Default value: Current date
+    string endDate?;
+    # The start date for the report data, formatted as YYYY-MM-DD.
+Default value: 2006-01-01
+    string startDate?;
+};
+
+
+type BatchResponsePublicCampaignWithAssetsWithErrors record {
+    string completedAt;
+    int:Signed32 numErrors?;
+    string requestedAt?;
+    string startedAt;
+    record {|string...;|} links?;
+    PublicCampaignWithAssets[] results;
+    StandardError[] errors?;
+    "PENDING"|"PROCESSING"|"CANCELED"|"COMPLETE" status;
+};
+
+
+type PublicCampaignWithAssets record {
+    string createdAt;
+    record {|CollectionResponsePublicCampaignAsset...;|} assets;
+    string id;
+    record {|string...;|} properties;
+    string updatedAt;
+};
+
+
+type CollectionResponsePublicCampaignAsset record {
+    Paging paging?;
+    PublicCampaignAsset[] results;
+};
+
+
+type Paging record {
+    NextPage next?;
+    PreviousPage prev?;
+};
+
+
+type PreviousPage record {
+    string before;
+    string link?;
+};
+
+
+type BatchInputPublicCampaignReadInput record {
+    PublicCampaignReadInput[] inputs;
+};
+
+
+type BatchResponsePublicCampaignWithAssets record {
+    string completedAt;
+    string requestedAt?;
+    string startedAt;
+    record {|string...;|} links?;
+    PublicCampaignWithAssets[] results;
+    "PENDING"|"PROCESSING"|"CANCELED"|"COMPLETE" status;
+};
+
+
+type BatchResponsePublicCampaignWithErrors record {
+    string completedAt;
+    int:Signed32 numErrors?;
+    string requestedAt?;
+    string startedAt;
+    record {|string...;|} links?;
+    PublicCampaign[] results;
+    StandardError[] errors?;
+    "PENDING"|"PROCESSING"|"CANCELED"|"COMPLETE" status;
+};
+
+
+type PublicCampaign record {
+    string createdAt;
+    string id;
+    record {|string...;|} properties;
+    string updatedAt;
+};
+
+# Represents the Queries record for the operation: post-/marketing/v3/campaigns/batch/read
+
+type PostMarketingV3CampaignsBatchReadQueries record {
+    # End date to fetch asset metrics, formatted as YYYY-MM-DD. This date is used to fetch the metrics associated with the assets for a specified period. If not provided, no asset metrics will be fetched
+    string endDate?;
+    # Start date to fetch asset metrics, formatted as YYYY-MM-DD. This date is used to fetch the metrics associated with the assets for a specified period. If not provided, no asset metrics will be fetched
+    string startDate?;
+    # A comma-separated list of the properties to be returned in the response. If any of the specified properties has empty value on the requested object(s), they will be ignored and not returned in response. If this parameter is empty, the response will include an empty properties map
+    string[] properties?;
+};
+
+
+type PublicSpendItem record {
+    int:Signed32 createdAt;
+    decimal amount;
+    string name;
+    string description?;
+    string id;
+    int:Signed32 'order;
+    int:Signed32 updatedAt;
+};
+
+
+type BatchResponsePublicCampaign record {
+    string completedAt;
+    string requestedAt?;
+    string startedAt;
+    record {|string...;|} links?;
+    PublicCampaign[] results;
+    "PENDING"|"PROCESSING"|"CANCELED"|"COMPLETE" status;
+};
+
+# OAuth2 Refresh Token Grant Configs
+
+type OAuth2RefreshTokenGrantConfig record {
+    # Refresh URL
+    string refreshUrl?;
+    string refreshToken;
+    string clientId;
+    string clientSecret;
+    string|string[] scopes?;
+    decimal defaultTokenExpTime?;
+    decimal clockSkew?;
+    map<string> optionalParams?;
+    oauth2:CredentialBearer credentialBearer?; // Special Agent Note: CredentialBearer FROM ballerina/oauth2 package
+    oauth2:ClientConfiguration clientConfig?; // Special Agent Note: ClientConfiguration FROM ballerina/oauth2 package
+};
+
+# Provides a set of configurations for controlling the behaviours when communicating with a remote HTTP endpoint.
+
+@display {label: "Connection Config"}
+type ConnectionConfig record {
+    # Provides Auth configurations needed when communicating with a remote HTTP endpoint.
+    http:BearerTokenConfig|OAuth2RefreshTokenGrantConfig|ApiKeysConfig auth; // Special Agent Note: BearerTokenConfig FROM ballerina/http package
+    # The HTTP version understood by the client
+    http:HttpVersion httpVersion?; // Special Agent Note: HttpVersion FROM ballerina/http package
+    # Configurations related to HTTP/1.x protocol
+    http:ClientHttp1Settings http1Settings?; // Special Agent Note: ClientHttp1Settings FROM ballerina/http package
+    # Configurations related to HTTP/2 protocol
+    http:ClientHttp2Settings http2Settings?; // Special Agent Note: ClientHttp2Settings FROM ballerina/http package
+    # The maximum time to wait (in seconds) for a response before closing the connection
+    decimal timeout?;
+    # The choice of setting `forwarded`/`x-forwarded` header
+    string forwarded?;
+    # Configurations associated with Redirection
+    http:FollowRedirects followRedirects?; // Special Agent Note: FollowRedirects FROM ballerina/http package
+    # Configurations associated with request pooling
+    http:PoolConfiguration poolConfig?; // Special Agent Note: PoolConfiguration FROM ballerina/http package
+    # HTTP caching related configurations
+    http:CacheConfig cache?; // Special Agent Note: CacheConfig FROM ballerina/http package
+    # Specifies the way of handling compression (`accept-encoding`) header
+    http:Compression compression?; // Special Agent Note: Compression FROM ballerina/http package
+    # Configurations associated with the behaviour of the Circuit Breaker
+    http:CircuitBreakerConfig circuitBreaker?; // Special Agent Note: CircuitBreakerConfig FROM ballerina/http package
+    # Configurations associated with retrying
+    http:RetryConfig retryConfig?; // Special Agent Note: RetryConfig FROM ballerina/http package
+    # Configurations associated with cookies
+    http:CookieConfig cookieConfig?; // Special Agent Note: CookieConfig FROM ballerina/http package
+    # Configurations associated with inbound response size limits
+    http:ResponseLimitConfigs responseLimits?; // Special Agent Note: ResponseLimitConfigs FROM ballerina/http package
+    # SSL/TLS-related options
+    http:ClientSecureSocket secureSocket?; // Special Agent Note: ClientSecureSocket FROM ballerina/http package
+    # Proxy server related options
+    http:ProxyConfig proxy?; // Special Agent Note: ProxyConfig FROM ballerina/http package
+    # Provides settings related to client socket configuration
+    http:ClientSocketConfig socketConfig?; // Special Agent Note: ClientSocketConfig FROM ballerina/http package
+    # Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default
+    boolean validation?;
+    # Enables relaxed data binding on the client side. When enabled, `nil` values are treated as optional, 
+and absent fields are handled as `nilable` types. Enabled by default.
+    boolean laxDataBinding?;
+};
+
+# Provides API key configurations needed when communicating with a remote HTTP endpoint.
+
+type ApiKeysConfig record {
+    string privateApp;
+};
+
+
+type PublicBudgetTotals record {
+    PublicSpendItem[] spendItems;
+    decimal budgetTotal?;
+    decimal remainingBudget?;
+    decimal spendTotal?;
+    "AED"|"AFN"|"ALL"|"AMD"|"ANG"|"AOA"|"ARS"|"AUD"|"AWG"|"AZN"|"BAM"|"BBD"|"BDT"|"BGN"|"BHD"|"BIF"|"BMD"|"BND"|"BOB"|"BOV"|"BRL"|"BSD"|"BTN"|"BWP"|"BYN"|"BZD"|"CAD"|"CDF"|"CHE"|"CHF"|"CHW"|"CLF"|"CLP"|"CNY"|"COP"|"COU"|"CRC"|"CUC"|"CUP"|"CVE"|"CZK"|"DJF"|"DKK"|"DOP"|"DZD"|"EGP"|"ERN"|"ETB"|"EUR"|"FJD"|"FKP"|"GBP"|"GEL"|"GHS"|"GIP"|"GMD"|"GNF"|"GTQ"|"GYD"|"HKD"|"HNL"|"HRK"|"HTG"|"HUF"|"IDR"|"ILS"|"INR"|"IQD"|"IRR"|"ISK"|"JMD"|"JOD"|"JPY"|"KES"|"KGS"|"KHR"|"KMF"|"KPW"|"KRW"|"KWD"|"KYD"|"KZT"|"LAK"|"LBP"|"LKR"|"LRD"|"LSL"|"LYD"|"MAD"|"MDL"|"MGA"|"MKD"|"MMK"|"MNT"|"MOP"|"MRU"|"MUR"|"MVR"|"MWK"|"MXN"|"MXV"|"MYR"|"MZN"|"NAD"|"NGN"|"NIO"|"NOK"|"NPR"|"NZD"|"OMR"|"PAB"|"PEN"|"PGK"|"PHP"|"PKR"|"PLN"|"PYG"|"QAR"|"RON"|"RSD"|"RUB"|"RWF"|"SAR"|"SBD"|"SCR"|"SDG"|"SEK"|"SGD"|"SHP"|"SLL"|"SOS"|"SRD"|"SSP"|"STN"|"SVC"|"SYP"|"SZL"|"THB"|"TJS"|"TMT"|"TND"|"TOP"|"TRY"|"TTD"|"TWD"|"TZS"|"UAH"|"UGX"|"USD"|"USN"|"UYI"|"UYU"|"UZS"|"VEF"|"VND"|"VUV"|"WST"|"XAF"|"XAG"|"XAU"|"XBA"|"XBB"|"XBC"|"XBD"|"XCD"|"XDR"|"XOF"|"XPD"|"XPF"|"XPT"|"XSU"|"XUA"|"YER"|"ZAR"|"ZMW"|"ZWL" currencyCode;
+    PublicBudgetItem[] budgetItems;
+};
+
+
+type PublicBudgetItem record {
+    int:Signed32 createdAt;
+    decimal amount;
+    string name;
+    string description?;
+    string id;
+    int:Signed32 'order;
+    int:Signed32 updatedAt;
+};
+
+
+type PublicCampaignDeleteInput record {
+    string id;
+};
+
+
+type BatchInputPublicCampaignDeleteInput record {
+    PublicCampaignDeleteInput[] inputs;
+};
+
+
+type PublicCampaignInput record {
+    record {|string...;|} properties;
+};
+
+
+type MetricsCounters record {
+    int:Signed32 sessions;
+    int:Signed32 newContactsFirstTouch;
+    int:Signed32 influencedContacts;
+    int:Signed32 newContactsLastTouch;
+};
+
+# Represents the Queries record for the operation: get-/marketing/v3/campaigns/{campaignGuid}/reports/contacts/{contactType}
+
+type GetMarketingV3CampaignsCampaignGuidReportsContactsContactTypeQueries record {
+    # End date for the report data, formatted as YYYY-MM-DD.
+Default value: Current date
+    string endDate?;
+    # Limit for the number of contacts to fetch
+Default: 100
+    int:Signed32 'limit?;
+    # A cursor for pagination. If provided, the results will start after the given cursor.
+Example: NTI1Cg%3D%3D
+    string after?;
+    # The start date for the report data, formatted as YYYY-MM-DD.
+Default value: 2006-01-01
+    string startDate?;
+};
+
+
+type CollectionResponseWithTotalPublicCampaignForwardPaging record {
+    int:Signed32 total;
+    ForwardPaging paging?;
+    PublicCampaign[] results;
+};
+
+
+type BatchInputPublicCampaignInput record {
+    PublicCampaignInput[] inputs;
+};
+
+# Represents the Queries record for the operation: get-/marketing/v3/campaigns/{campaignGuid}
+
+type GetMarketingV3CampaignsCampaignGuidQueries record {
+    # End date to fetch asset metrics, formatted as YYYY-MM-DD. This date is used to fetch the metrics associated with the assets for a specified period.
+If not provided, no asset metrics will be fetched
+    string endDate?;
+    # Start date to fetch asset metrics, formatted as YYYY-MM-DD. This date is used to fetch the metrics associated with the assets for a specified period.
+If not provided, no asset metrics will be fetched
+    string startDate?;
+    # A comma-separated list of the properties to be returned in the response. If any of the specified properties has empty value on the requested object, they will be ignored and not returned in response. If this parameter is empty, the response will include an empty properties map
+    string[] properties?;
+};
+
+# Represents the Queries record for the operation: get-/marketing/v3/campaigns/{campaignGuid}/assets/{assetType}
+
+type GetMarketingV3CampaignsCampaignGuidAssetsAssetTypeQueries record {
+    # End date to fetch asset metrics, formatted as YYYY-MM-DD. This date is used to fetch the metrics associated with the assets for a specified period.
+If not provided, no asset metrics will be fetched
+    string endDate?;
+    # The maximum number of results to return.
+Default: 10
+    string 'limit?;
+    # A cursor for pagination. If provided, the results will start after the given cursor.
+Example: NTI1Cg%3D%3D
+    string after?;
+    # Start date to fetch asset metrics, formatted as YYYY-MM-DD. This date is used to fetch the metrics associated with the assets for a specified period.
+If not provided, no asset metrics will be fetched
+    string startDate?;
+};
+
+
+type CollectionResponseContactReferenceForwardPaging record {
+    ForwardPaging paging?;
+    ContactReference[] results;
+};
+
+
+type ContactReference record {
+    string id;
+};
+
+
+type RevenueAttributionAggregate record {
+    int:Signed32 contactsNumber?;
+    decimal dealAmount?;
+    int:Signed32 dealsNumber?;
+    decimal revenueAmount?;
+    "AED"|"AFN"|"ALL"|"AMD"|"ANG"|"AOA"|"ARS"|"AUD"|"AWG"|"AZN"|"BAM"|"BBD"|"BDT"|"BGN"|"BHD"|"BIF"|"BMD"|"BND"|"BOB"|"BOV"|"BRL"|"BSD"|"BTN"|"BWP"|"BYN"|"BZD"|"CAD"|"CDF"|"CHE"|"CHF"|"CHW"|"CLF"|"CLP"|"CNY"|"COP"|"COU"|"CRC"|"CUC"|"CUP"|"CVE"|"CZK"|"DJF"|"DKK"|"DOP"|"DZD"|"EGP"|"ERN"|"ETB"|"EUR"|"FJD"|"FKP"|"GBP"|"GEL"|"GHS"|"GIP"|"GMD"|"GNF"|"GTQ"|"GYD"|"HKD"|"HNL"|"HRK"|"HTG"|"HUF"|"IDR"|"ILS"|"INR"|"IQD"|"IRR"|"ISK"|"JMD"|"JOD"|"JPY"|"KES"|"KGS"|"KHR"|"KMF"|"KPW"|"KRW"|"KWD"|"KYD"|"KZT"|"LAK"|"LBP"|"LKR"|"LRD"|"LSL"|"LYD"|"MAD"|"MDL"|"MGA"|"MKD"|"MMK"|"MNT"|"MOP"|"MRU"|"MUR"|"MVR"|"MWK"|"MXN"|"MXV"|"MYR"|"MZN"|"NAD"|"NGN"|"NIO"|"NOK"|"NPR"|"NZD"|"OMR"|"PAB"|"PEN"|"PGK"|"PHP"|"PKR"|"PLN"|"PYG"|"QAR"|"RON"|"RSD"|"RUB"|"RWF"|"SAR"|"SBD"|"SCR"|"SDG"|"SEK"|"SGD"|"SHP"|"SLL"|"SOS"|"SRD"|"SSP"|"STN"|"SVC"|"SYP"|"SZL"|"THB"|"TJS"|"TMT"|"TND"|"TOP"|"TRY"|"TTD"|"TWD"|"TZS"|"UAH"|"UGX"|"USD"|"USN"|"UYI"|"UYU"|"UZS"|"VEF"|"VND"|"VUV"|"WST"|"XAF"|"XAG"|"XAU"|"XBA"|"XBB"|"XBC"|"XBD"|"XCD"|"XDR"|"XOF"|"XPD"|"XPF"|"XPT"|"XSU"|"XUA"|"YER"|"ZAR"|"ZMW"|"ZWL" currencyCode?;
+};
+
+
+type BatchInputPublicCampaignBatchUpdateItem record {
+    PublicCampaignBatchUpdateItem[] inputs;
+};
+
+# Represents the Queries record for the operation: get-/marketing/v3/campaigns/
+
+type GetMarketingV3CampaignsQueries record {
+    # The maximum number of results to return. Allowed values range from 1 to 100
+Default: 50
+    int:Signed32 'limit?;
+    # A filter to return campaigns whose names contain the specified substring. This allows partial matching of campaign names, returning all campaigns that include the given substring in their name. If this parameter is not provided, the search will return all campaigns
+    string name?;
+    # The field by which to sort the results. Allowed values are hs_name, createdAt, updatedAt. An optional '-' before the property name can denote descending order
+Default: hs_name
+    string sort?;
+    # A cursor for pagination. If provided, the results will start after the given cursor.
+Example: NTI1Cg%3D%3D
+    string after?;
+    # A comma-separated list of the properties to be returned in the response. If any of the specified properties has empty value on the requested object(s), they will be ignored and not returned in response. If this parameter is empty, the response will include an empty properties map
+    string[] properties?;
+};
+
+// --- Client ---
+
+client class Client {
+    function init(ConnectionConfig config, string serviceUrl = "https://api.hubapi.com/marketing/v3/campaigns") returns error?;
+
+    # Campaign search
+    # 
+    resource function get (map<string|string[]> headers = {}, int:Signed32 limit = 0, string name = "", string sort = "", string after = "", string[] properties = [], GetMarketingV3CampaignsQueries queries) returns CollectionResponseWithTotalPublicCampaignForwardPaging|error;
+
+    # Create a campaign
+    # 
+    resource function post (PublicCampaignInput payload, map<string|string[]> headers = {}) returns PublicCampaign|error;
+
+    # Read a batch of campaigns
+    # 
+    resource function post batch/read(BatchInputPublicCampaignReadInput payload, map<string|string[]> headers = {}, string endDate = "", string startDate = "", string[] properties = [], PostMarketingV3CampaignsBatchReadQueries queries) returns BatchResponsePublicCampaignWithAssets|BatchResponsePublicCampaignWithAssetsWithErrors|error;
+
+    # Update a batch of campaigns
+    # 
+    resource function post batch/update(BatchInputPublicCampaignBatchUpdateItem payload, map<string|string[]> headers = {}) returns BatchResponsePublicCampaign|BatchResponsePublicCampaignWithErrors|error;
+
+    # Get Campaign Metrics
+    # 
+    resource function get [string campaignGuid]/reports/metrics(map<string|string[]> headers = {}, string endDate = "", string startDate = "", GetMarketingV3CampaignsCampaignGuidReportsMetricsQueries queries) returns MetricsCounters|error;
+
+    # List assets
+    # 
+    resource function get [string campaignGuid]/assets/[string assetType](map<string|string[]> headers = {}, string endDate = "", string limit = "", string after = "", string startDate = "", GetMarketingV3CampaignsCampaignGuidAssetsAssetTypeQueries queries) returns CollectionResponsePublicCampaignAssetForwardPaging|error;
+
+    # Delete a batch of campaigns
+    # 
+    resource function post batch/archive(BatchInputPublicCampaignDeleteInput payload, map<string|string[]> headers = {}) returns error?;
+
+    # Add asset association
+    # 
+    resource function put [string campaignGuid]/assets/[string assetType]/[string assetId](map<string|string[]> headers = {}) returns error?;
+
+    # Remove asset association
+    # 
+    resource function delete [string campaignGuid]/assets/[string assetType]/[string assetId](map<string|string[]> headers = {}) returns error?;
+
+    # Fetch revenue
+    # 
+    resource function get [string campaignGuid]/reports/revenue(map<string|string[]> headers = {}, string attributionModel = "", string endDate = "", string startDate = "", GetMarketingV3CampaignsCampaignGuidReportsRevenueQueries queries) returns RevenueAttributionAggregate|error;
+
+    # Create a batch of campaigns
+    # 
+    resource function post batch/create(BatchInputPublicCampaignInput payload, map<string|string[]> headers = {}) returns BatchResponsePublicCampaign|BatchResponsePublicCampaignWithErrors|error;
+
+    # Read budget
+    # 
+    resource function get [string campaignGuid]/budget/totals(map<string|string[]> headers = {}) returns PublicBudgetTotals|error;
+
+    # Read a campaign
+    # 
+    resource function get [string campaignGuid](map<string|string[]> headers = {}, string endDate = "", string startDate = "", string[] properties = [], GetMarketingV3CampaignsCampaignGuidQueries queries) returns PublicCampaignWithAssets|error;
+
+    # Delete campaign 
+    # 
+    resource function delete [string campaignGuid](map<string|string[]> headers = {}) returns error?;
+
+    # Update campaign
+    # 
+    resource function patch [string campaignGuid](PublicCampaignInput payload, map<string|string[]> headers = {}) returns PublicCampaign|error;
+
+    # Fetch contact IDs
+    # 
+    resource function get [string campaignGuid]/reports/contacts/[string contactType](map<string|string[]> headers = {}, string endDate = "", int:Signed32 limit = 0, string after = "", string startDate = "", GetMarketingV3CampaignsCampaignGuidReportsContactsContactTypeQueries queries) returns CollectionResponseContactReferenceForwardPaging|error;
+}

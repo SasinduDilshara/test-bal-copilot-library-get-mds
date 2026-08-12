@@ -1,0 +1,507 @@
+// ============================================================
+// Library: ballerinax/sap.s4hana.api_sd_incoterms_srv
+// [S/4HANA](https://www.sap.com/india/products/erp/s4hana.html) is a robust enterprise resource planning (ERP) solution,
+// ============================================================
+import ballerinax/sap.s4hana.api_sd_incoterms_srv;
+
+// --- README ---
+## Overview
+
+[S/4HANA](https://www.sap.com/india/products/erp/s4hana.html) is a robust enterprise resource planning (ERP) solution,
+designed for large-scale enterprises by SAP SE.
+
+The SAP S/4HANA Sales connector provides APIs that enable seamless integration with the [Incoterm - Read (A2X) v1.0.0](https://api.sap.com/api/API_SD_INCOTERMS_SRV/overview). The service allows users to read incoterms defined in the system.
+
+### Key Features
+
+- Read incoterms defined in SAP S/4HANA
+- Seamless integration with the Incoterm - Read (A2X) API v1.0.0
+- Support for basic and OAuth 2.0 authentication
+- Operations for querying incoterm master data
+
+## Setup guide
+
+1. Sign in to your S/4HANA dashboard.
+
+2. Under the `Communication Management` section, click on the `Display Communications Scenario` title.
+
+   ![Display Scenarios](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-sap/main/docs/setup/3-1-display-scenarios.png)
+
+3. In the search bar, type `Sales Master Data Integration` and select the corresponding scenario from the results.
+
+   ![Search Sales Order](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-sap/main/docs/setup/3-2-search-sales-order.png)
+
+4. In the top right corner of the screen, click on `Create Communication Arrangement`.
+
+   ![Click Create Arrangement](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-sap/main/docs/setup/3-3-click-create-arrangement.png)
+
+5. Enter a unique name for the arrangement.
+
+   ![Give Arrangement Name](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-sap/main/docs/setup/3-4-give-arrangement-name.png)
+
+6. Choose an existing `Communication System` from the dropdown menu and save your arrangement.
+
+   ![Select Existing Communication Arrangement](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-sap/main/docs/setup/3-5-select-communication-system.png)
+
+7. The hostname (`<unique id>-api.s4hana.cloud.sap`) will be displayed in the top right corner of the screen.
+
+   ![View Hostname](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-sap/main/docs/setup/3-6-view-hostname.png)
+
+## Quickstart
+
+To use the `sap.s4hana.api_sd_incoterms_srv` connector in your Ballerina application, modify the `.bal` file as follows:
+
+### Step 1: Import the module
+
+Import the `sap.s4hana.api_sd_incoterms_srv` module.
+
+```ballerina
+import ballerinax/sap.s4hana.api_sd_incoterms_srv as incoterms;
+```
+
+### Step 2: Instantiate a new connector
+
+Use the hostname and credentials to initiate a client
+
+```ballerina
+configurable string hostname = ?;
+configurable string username = ?;
+configurable string password = ?;
+
+incoterms:Client incotermsClient = check new (
+    {
+      auth: {
+        username,
+        password
+      }
+    },
+    hostname
+);
+```
+
+### Step 3: Invoke the connector operation
+
+Now, utilize the available connector operations.
+
+```ballerina
+incoterms:CollectionOfA_IncotermsClassificationWrapper listIncoTerms = check incotermsClient->listA_IncotermsClassifications();
+```
+
+### Step 4: Run the Ballerina application
+
+```bash
+bal run
+```
+
+## Examples
+
+The S/4 HANA Sales and Distribution Ballerina connectors provide practical examples illustrating usage in various
+scenarios. Explore
+these [examples](https://github.com/ballerina-platform/module-ballerinax-sap.s4hana.sales/tree/main/examples), covering
+use cases like accessing S/4HANA Sales Order (A2X) API.
+
+1. [Salesforce to S/4HANA Integration](https://github.com/ballerina-platform/module-ballerinax-sap.s4hana.sales/tree/main/examples/salesforce-to-sap) -
+   Demonstrates leveraging the `sap.s4hana.api_sales_order_srv:Client` in Ballerina for S/4HANA API interactions. It
+   specifically showcases how to respond to a Salesforce Opportunity Close Event by automatically generating a Sales
+   Order in the S/4HANA SD module.
+
+2. [Shopify to S/4HANA Integration](https://github.com/ballerina-platform/module-ballerinax-sap.s4hana.sales/tree/main/examples/shopify-to-sap) -
+   Details the integration process between [Shopify](https://admin.shopify.com/), a leading e-commerce platform,
+   and [SAP S/4HANA](https://www.sap.com/products/erp/s4hana.html), a comprehensive ERP system. The objective is to
+   automate SAP sales order creation for new orders placed on Shopify, enhancing efficiency and accuracy in order
+   management.
+
+// --- END README ---
+
+// --- Types ---
+
+type A_IncotermsClassificationTextOrderByOptions ("IncotermsClassification"|"IncotermsClassification desc"|"Language"|"Language desc"|"IncotermsClassificationName"|"IncotermsClassificationName desc")[];
+
+
+type CollectionOfA_IncotermsVersionText record {
+    count __count?;
+    A_IncotermsVersionText[] results?;
+};
+
+# The number of entities in the collection. Available when using the [$inlinecount](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=67) query option.
+type count string;
+
+
+type A_IncotermsVersionText record {
+    @constraint:String {maxLength: 4}
+    string IncotermsVersion?;
+    @constraint:String {maxLength: 2}
+    string Language?;
+    string? IncotermsVersionName?;
+};
+
+
+type A_IncotermsClassificationText record {
+    # Incoterms (Part 1)
+    @constraint:String {maxLength: 3}
+    string IncotermsClassification?;
+    @constraint:String {maxLength: 2}
+    string Language?;
+    string? IncotermsClassificationName?;
+};
+
+# Represents the Queries record for the operation: listIncotermsClassificationTextsOfA_IncotermsClassification
+
+type ListIncotermsClassificationTextsOfA_IncotermsClassificationQueries record {
+    # Skip the first n items, see [Paging - Skip](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=65)
+    int \$skip?;
+    # Show only the first n items, see [Paging - Top](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=66)
+    int \$top?;
+    # Filter items by property values, see [Filtering](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=64)
+    string \$filter?;
+    # Order items by property values, see [Sorting](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=65)
+    IncotermsClassificationTextOfA_IncotermsClassificationOrderByOptions \$orderby?;
+    # Include count of items, see [Inlinecount](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=67)
+    "allpages"|"none" \$inlinecount?;
+    # Select properties to be returned, see [Select](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=68)
+    IncotermsClassificationTextOfA_IncotermsClassificationSelectOptions \$select?;
+};
+
+type IncotermsClassificationTextOfA_IncotermsClassificationOrderByOptions ("IncotermsClassification"|"IncotermsClassification desc"|"Language"|"Language desc"|"IncotermsClassificationName"|"IncotermsClassificationName desc")[];
+
+type IncotermsClassificationTextOfA_IncotermsClassificationSelectOptions ("IncotermsClassification"|"Language"|"IncotermsClassificationName")[];
+
+# Represents the Queries record for the operation: getA_IncotermsClassificationText
+
+type GetA_IncotermsClassificationTextQueries record {
+    # Select properties to be returned, see [Select](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=68)
+    A_IncotermsClassificationTextSelectOptions \$select?;
+};
+
+type A_IncotermsClassificationTextSelectOptions ("IncotermsClassification"|"Language"|"IncotermsClassificationName")[];
+
+type A_IncotermsVersionTextOrderByOptions ("IncotermsVersion"|"IncotermsVersion desc"|"Language"|"Language desc"|"IncotermsVersionName"|"IncotermsVersionName desc")[];
+
+type A_IncotermsVersionExpandOptions "to_IncotermsVersionText"[];
+
+
+type CollectionOfA_IncotermsVersionWrapper record {
+    CollectionOfA_IncotermsVersion d?;
+};
+
+
+type CollectionOfA_IncotermsVersion record {
+    count __count?;
+    A_IncotermsVersion[] results?;
+};
+
+
+type A_IncotermsVersion record {
+    @constraint:String {maxLength: 4}
+    string IncotermsVersion?;
+    A_IncotermsVersion_to_IncotermsVersionText to_IncotermsVersionText?;
+};
+
+
+type A_IncotermsVersion_to_IncotermsVersionText record {
+    A_IncotermsVersionText[] results?;
+};
+
+type A_IncotermsClassificationExpandOptions "to_IncotermsClassificationText"[];
+
+# Represents the Queries record for the operation: listA_IncotermsVersionTexts
+
+type ListA_IncotermsVersionTextsQueries record {
+    # Skip the first n items, see [Paging - Skip](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=65)
+    int \$skip?;
+    # Show only the first n items, see [Paging - Top](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=66)
+    int \$top?;
+    # Filter items by property values, see [Filtering](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=64)
+    string \$filter?;
+    # Order items by property values, see [Sorting](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=65)
+    A_IncotermsVersionTextOrderByOptions \$orderby?;
+    # Include count of items, see [Inlinecount](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=67)
+    "allpages"|"none" \$inlinecount?;
+    # Select properties to be returned, see [Select](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=68)
+    A_IncotermsVersionTextSelectOptions \$select?;
+};
+
+type A_IncotermsVersionTextSelectOptions ("IncotermsVersion"|"Language"|"IncotermsVersionName")[];
+
+
+type CollectionOfA_IncotermsClassification record {
+    count __count?;
+    A_IncotermsClassification[] results?;
+};
+
+
+type A_IncotermsClassification record {
+    # Incoterms (Part 1)
+    @constraint:String {maxLength: 3}
+    string IncotermsClassification?;
+    # Location is mandatory
+    boolean? LocationIsMandatory?;
+    A_IncotermsClassification_to_IncotermsClassificationText to_IncotermsClassificationText?;
+};
+
+
+type A_IncotermsClassification_to_IncotermsClassificationText record {
+    A_IncotermsClassificationText[] results?;
+};
+
+# Represents the Queries record for the operation: listIncotermsVersionTextsOfA_IncotermsVersion
+
+type ListIncotermsVersionTextsOfA_IncotermsVersionQueries record {
+    # Skip the first n items, see [Paging - Skip](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=65)
+    int \$skip?;
+    # Show only the first n items, see [Paging - Top](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=66)
+    int \$top?;
+    # Filter items by property values, see [Filtering](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=64)
+    string \$filter?;
+    # Order items by property values, see [Sorting](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=65)
+    IncotermsVersionTextOfA_IncotermsVersionOrderByOptions \$orderby?;
+    # Include count of items, see [Inlinecount](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=67)
+    "allpages"|"none" \$inlinecount?;
+    # Select properties to be returned, see [Select](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=68)
+    IncotermsVersionTextOfA_IncotermsVersionSelectOptions \$select?;
+};
+
+type IncotermsVersionTextOfA_IncotermsVersionOrderByOptions ("IncotermsVersion"|"IncotermsVersion desc"|"Language"|"Language desc"|"IncotermsVersionName"|"IncotermsVersionName desc")[];
+
+type IncotermsVersionTextOfA_IncotermsVersionSelectOptions ("IncotermsVersion"|"Language"|"IncotermsVersionName")[];
+
+type A_IncotermsVersionOrderByOptions ("IncotermsVersion"|"IncotermsVersion desc")[];
+
+type A_IncotermsVersionSelectOptions ("IncotermsVersion"|"to_IncotermsVersionText")[];
+
+
+type A_IncotermsVersionTextWrapper record {
+    A_IncotermsVersionText d?;
+};
+
+# Provides a set of configurations for controlling the behaviours when communicating with a remote HTTP endpoint.
+
+@display {label: "Connection Config"}
+type ConnectionConfig record {
+    # Configurations related to client authentication
+    http:CredentialsConfig auth; // Special Agent Note: CredentialsConfig FROM ballerina/http package
+    # The HTTP version understood by the client
+    http:HttpVersion httpVersion?; // Special Agent Note: HttpVersion FROM ballerina/http package
+    # Configurations related to HTTP/1.x protocol
+    ClientHttp1Settings http1Settings?;
+    # Configurations related to HTTP/2 protocol
+    http:ClientHttp2Settings http2Settings?; // Special Agent Note: ClientHttp2Settings FROM ballerina/http package
+    # The maximum time to wait (in seconds) for a response before closing the connection
+    decimal timeout?;
+    # The choice of setting `forwarded`/`x-forwarded` header
+    string forwarded?;
+    # Configurations associated with request pooling
+    http:PoolConfiguration poolConfig?; // Special Agent Note: PoolConfiguration FROM ballerina/http package
+    # HTTP caching related configurations
+    http:CacheConfig cache?; // Special Agent Note: CacheConfig FROM ballerina/http package
+    # Specifies the way of handling compression (`accept-encoding`) header
+    http:Compression compression?; // Special Agent Note: Compression FROM ballerina/http package
+    # Configurations associated with the behaviour of the Circuit Breaker
+    http:CircuitBreakerConfig circuitBreaker?; // Special Agent Note: CircuitBreakerConfig FROM ballerina/http package
+    # Configurations associated with retrying
+    http:RetryConfig retryConfig?; // Special Agent Note: RetryConfig FROM ballerina/http package
+    # Configurations associated with inbound response size limits
+    http:ResponseLimitConfigs responseLimits?; // Special Agent Note: ResponseLimitConfigs FROM ballerina/http package
+    # SSL/TLS-related options
+    http:ClientSecureSocket secureSocket?; // Special Agent Note: ClientSecureSocket FROM ballerina/http package
+    # Proxy server related options
+    http:ProxyConfig proxy?; // Special Agent Note: ProxyConfig FROM ballerina/http package
+    # Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default
+    boolean validation?;
+};
+
+# Provides settings related to HTTP/1.x protocol.
+
+type ClientHttp1Settings record {
+    # Specifies whether to reuse a connection for multiple requests
+    http:KeepAlive keepAlive?; // Special Agent Note: KeepAlive FROM ballerina/http package
+    # The chunking behaviour of the request
+    http:Chunking chunking?; // Special Agent Note: Chunking FROM ballerina/http package
+    # Proxy server related options
+    ProxyConfig proxy?;
+};
+
+# Proxy server configurations to be used with the HTTP client endpoint.
+
+type ProxyConfig record {
+    # Host name of the proxy server
+    string host?;
+    # Proxy server port
+    int port?;
+    # Proxy server username
+    string userName?;
+    # Proxy server password
+    @display {label: "", kind: "password"}
+    string password?;
+};
+
+
+type CollectionOfA_IncotermsClassificationTextWrapper record {
+    CollectionOfA_IncotermsClassificationText d?;
+};
+
+
+type CollectionOfA_IncotermsClassificationText record {
+    count __count?;
+    A_IncotermsClassificationText[] results?;
+};
+
+# Represents the Queries record for the operation: listA_IncotermsClassifications
+
+type ListA_IncotermsClassificationsQueries record {
+    # Skip the first n items, see [Paging - Skip](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=65)
+    int \$skip?;
+    # Show only the first n items, see [Paging - Top](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=66)
+    int \$top?;
+    # Filter items by property values, see [Filtering](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=64)
+    string \$filter?;
+    # Order items by property values, see [Sorting](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=65)
+    A_IncotermsClassificationOrderByOptions \$orderby?;
+    # Expand related entities, see [Expand](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=63)
+    A_IncotermsClassificationExpandOptions \$expand?;
+    # Include count of items, see [Inlinecount](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=67)
+    "allpages"|"none" \$inlinecount?;
+    # Select properties to be returned, see [Select](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=68)
+    A_IncotermsClassificationSelectOptions \$select?;
+};
+
+type A_IncotermsClassificationOrderByOptions ("IncotermsClassification"|"IncotermsClassification desc"|"LocationIsMandatory"|"LocationIsMandatory desc")[];
+
+type A_IncotermsClassificationSelectOptions ("IncotermsClassification"|"LocationIsMandatory"|"to_IncotermsClassificationText")[];
+
+
+type CollectionOfA_IncotermsClassificationWrapper record {
+    CollectionOfA_IncotermsClassification d?;
+};
+
+
+type CollectionOfA_IncotermsVersionTextWrapper record {
+    CollectionOfA_IncotermsVersionText d?;
+};
+
+# Represents the Queries record for the operation: getA_IncotermsClassification
+
+type GetA_IncotermsClassificationQueries record {
+    # Expand related entities, see [Expand](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=63)
+    A_IncotermsClassificationExpandOptions \$expand?;
+    # Select properties to be returned, see [Select](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=68)
+    A_IncotermsClassificationSelectOptions \$select?;
+};
+
+# Represents the Queries record for the operation: getA_IncotermsVersionText
+
+type GetA_IncotermsVersionTextQueries record {
+    # Select properties to be returned, see [Select](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=68)
+    A_IncotermsVersionTextSelectOptions \$select?;
+};
+
+# Represents the Queries record for the operation: listA_IncotermsClassificationTexts
+
+type ListA_IncotermsClassificationTextsQueries record {
+    # Skip the first n items, see [Paging - Skip](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=65)
+    int \$skip?;
+    # Show only the first n items, see [Paging - Top](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=66)
+    int \$top?;
+    # Filter items by property values, see [Filtering](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=64)
+    string \$filter?;
+    # Order items by property values, see [Sorting](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=65)
+    A_IncotermsClassificationTextOrderByOptions \$orderby?;
+    # Include count of items, see [Inlinecount](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=67)
+    "allpages"|"none" \$inlinecount?;
+    # Select properties to be returned, see [Select](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=68)
+    A_IncotermsClassificationTextSelectOptions \$select?;
+};
+
+
+type A_IncotermsVersionWrapper record {
+    A_IncotermsVersion d?;
+};
+
+# Represents the Queries record for the operation: listA_IncotermsVersions
+
+type ListA_IncotermsVersionsQueries record {
+    # Skip the first n items, see [Paging - Skip](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=65)
+    int \$skip?;
+    # Show only the first n items, see [Paging - Top](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=66)
+    int \$top?;
+    # Filter items by property values, see [Filtering](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=64)
+    string \$filter?;
+    # Order items by property values, see [Sorting](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=65)
+    A_IncotermsVersionOrderByOptions \$orderby?;
+    # Expand related entities, see [Expand](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=63)
+    A_IncotermsVersionExpandOptions \$expand?;
+    # Include count of items, see [Inlinecount](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=67)
+    "allpages"|"none" \$inlinecount?;
+    # Select properties to be returned, see [Select](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=68)
+    A_IncotermsVersionSelectOptions \$select?;
+};
+
+# Represents the Queries record for the operation: getA_IncotermsVersion
+
+type GetA_IncotermsVersionQueries record {
+    # Expand related entities, see [Expand](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=63)
+    A_IncotermsVersionExpandOptions \$expand?;
+    # Select properties to be returned, see [Select](https://help.sap.com/doc/5890d27be418427993fafa6722cdc03b/Cloud/en-US/OdataV2.pdf#page=68)
+    A_IncotermsVersionSelectOptions \$select?;
+};
+
+
+type A_IncotermsClassificationTextWrapper record {
+    A_IncotermsClassificationText d?;
+};
+
+
+type A_IncotermsClassificationWrapper record {
+    A_IncotermsClassification d?;
+};
+
+// --- Client ---
+
+# The OData service enables external systems and other consumers to retrieve Incoterms data in your system. Retrievable details include Incoterms and Incoterms versions.
+client class Client {
+    function init(ConnectionConfig config, string hostname, int port = 443) returns error?;
+
+    # Reads the ID and description of a specific Incoterm.
+    # 
+    remote function getA_IncotermsClassification(string IncotermsClassification, map<string|string[]> headers = {}, A_IncotermsClassificationExpandOptions \$expand = [], A_IncotermsClassificationSelectOptions \$select = [], GetA_IncotermsClassificationQueries queries) returns A_IncotermsClassificationWrapper|error;
+
+    # Reads the description of a specific Incoterm in a specific language.
+    # 
+    remote function getA_IncotermsClassificationText(string IncotermsClassification, string Language, map<string|string[]> headers = {}, A_IncotermsClassificationTextSelectOptions \$select = [], GetA_IncotermsClassificationTextQueries queries) returns A_IncotermsClassificationTextWrapper|error;
+
+    # Reads the ID and description of a specific Incoterms version.
+    # 
+    remote function getA_IncotermsVersion(string IncotermsVersion, map<string|string[]> headers = {}, A_IncotermsVersionExpandOptions \$expand = [], A_IncotermsVersionSelectOptions \$select = [], GetA_IncotermsVersionQueries queries) returns A_IncotermsVersionWrapper|error;
+
+    # Reads the description of a specific Incoterms version in a specific language.
+    # 
+    remote function getA_IncotermsVersionText(string IncotermsVersion, string Language, map<string|string[]> headers = {}, A_IncotermsVersionTextSelectOptions \$select = [], GetA_IncotermsVersionTextQueries queries) returns A_IncotermsVersionTextWrapper|error;
+
+    # Reads the descriptions of all Incoterms.
+    # 
+    remote function listA_IncotermsClassificationTexts(map<string|string[]> headers = {}, int \$skip = 0, int \$top = 0, string \$filter = "", A_IncotermsClassificationTextOrderByOptions \$orderby = [], "allpages"|"none" \$inlinecount = "allpages", A_IncotermsClassificationTextSelectOptions \$select = [], ListA_IncotermsClassificationTextsQueries queries) returns CollectionOfA_IncotermsClassificationTextWrapper|error;
+
+    # Reads the IDs and descriptions of all Incoterms.
+    # 
+    remote function listA_IncotermsClassifications(map<string|string[]> headers = {}, int \$skip = 0, int \$top = 0, string \$filter = "", A_IncotermsClassificationOrderByOptions \$orderby = [], A_IncotermsClassificationExpandOptions \$expand = [], "allpages"|"none" \$inlinecount = "allpages", A_IncotermsClassificationSelectOptions \$select = [], ListA_IncotermsClassificationsQueries queries) returns CollectionOfA_IncotermsClassificationWrapper|error;
+
+    # Reads the descriptions of all Incoterms versions.
+    # 
+    remote function listA_IncotermsVersionTexts(map<string|string[]> headers = {}, int \$skip = 0, int \$top = 0, string \$filter = "", A_IncotermsVersionTextOrderByOptions \$orderby = [], "allpages"|"none" \$inlinecount = "allpages", A_IncotermsVersionTextSelectOptions \$select = [], ListA_IncotermsVersionTextsQueries queries) returns CollectionOfA_IncotermsVersionTextWrapper|error;
+
+    # Reads the IDs and descriptions of all Incoterms versions.
+    # 
+    remote function listA_IncotermsVersions(map<string|string[]> headers = {}, int \$skip = 0, int \$top = 0, string \$filter = "", A_IncotermsVersionOrderByOptions \$orderby = [], A_IncotermsVersionExpandOptions \$expand = [], "allpages"|"none" \$inlinecount = "allpages", A_IncotermsVersionSelectOptions \$select = [], ListA_IncotermsVersionsQueries queries) returns CollectionOfA_IncotermsVersionWrapper|error;
+
+    # Reads the description of a specific Incoterm.
+    # 
+    remote function listIncotermsClassificationTextsOfA_IncotermsClassification(string IncotermsClassification, map<string|string[]> headers = {}, int \$skip = 0, int \$top = 0, string \$filter = "", IncotermsClassificationTextOfA_IncotermsClassificationOrderByOptions \$orderby = [], "allpages"|"none" \$inlinecount = "allpages", IncotermsClassificationTextOfA_IncotermsClassificationSelectOptions \$select = [], ListIncotermsClassificationTextsOfA_IncotermsClassificationQueries queries) returns CollectionOfA_IncotermsClassificationTextWrapper|error;
+
+    # Reads the description of a specific Incoterms version.
+    # 
+    remote function listIncotermsVersionTextsOfA_IncotermsVersion(string IncotermsVersion, map<string|string[]> headers = {}, int \$skip = 0, int \$top = 0, string \$filter = "", IncotermsVersionTextOfA_IncotermsVersionOrderByOptions \$orderby = [], "allpages"|"none" \$inlinecount = "allpages", IncotermsVersionTextOfA_IncotermsVersionSelectOptions \$select = [], ListIncotermsVersionTextsOfA_IncotermsVersionQueries queries) returns CollectionOfA_IncotermsVersionTextWrapper|error;
+
+    # Send a group of requests
+    # 
+    remote function performBatchOperation(http:Request request, map<string|string[]> headers = {}) returns http:Response|error; // Special Agent Note: Request, Response FROM ballerina/http package
+}

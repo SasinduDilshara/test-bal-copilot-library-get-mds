@@ -1,0 +1,2557 @@
+{
+  "name": "ballerinax/hubspot.crm.commerce.carts",
+  "description": "[HubSpot](https://www.hubspot.com) is an AI-powered customer relationship management (CRM) platform.",
+  "readme": "## Overview\n\n[HubSpot](https://www.hubspot.com) is an AI-powered customer relationship management (CRM) platform.\n\nThe HubSpot connector offers APIs to connect and interact with [HubSpot CRM Commerce Carts API](https://developers.hubspot.com/docs/reference/api/crm/commerce/carts) endpoints, specifically based on [HubSpot REST API](https://developers.hubspot.com/docs/reference/api).\n\n\u003e **Note:** This package may be changed in the future based on the HubSpot API changes, since it is currently under development and is subject to change based on testing and feedback. By using this package, you are agreeing to accept any future changes that might occur and understand the risk associated with testing an unstable API. Refer to the [HubSpot Developer Terms](https://legal.hubspot.com/developer-terms) \u0026 [Developer Beta Terms](https://legal.hubspot.com/developerbetaterms) for more information.\n\n### Key Features\n\n- Create, read, update, and delete cart records in HubSpot CRM\n- Batch operations for bulk cart management\n- Search carts with filtering support\n- Manage cart associations with other CRM objects\n\n## Setup guide\n\nTo use the HubSpot Carts connector, you must have access to the HubSpot API through a HubSpot developer account and a HubSpot App under it. Therefore you need to register for a developer account at HubSpot if you don\u0027t have one already.\n\n### Step 1: Create/Login to a HubSpot Developer Account\n\nIf you have an account already, go to the [HubSpot developer portal](https://app.hubspot.com/)\n\nIf you don\u0027t have a HubSpot Developer Account you can sign up to a free account [here](https://developers.hubspot.com/get-started)\n\n### Step 2 (Optional): Create a Developer Test Account\n\nWithin app developer accounts, you can create a [developer test account](https://developers.hubspot.com/beta-docs/getting-started/account-types#developer-test-accounts) under your account to test apps and integrations without affecting any real HubSpot data.\n\n\u003e **Note:** These accounts are only for development and testing purposes. In production you should not use Developer Test Accounts.\n\n1. Go to Test accounts section from the left sidebar.\n\n   ![Test Account](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.commerce.carts/main/docs/setup/resources/test-account.png)\n\n2. Click on the `Create developer test account` button on the top right corner.\n\n   ![Test Account](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.commerce.carts/main/docs/setup/resources/create-test-account.png)\n\n3. In the pop-up window, provide a name for the test account and click on the `Create` button.\n\n   ![Test Account](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.commerce.carts/main/docs/setup/resources/create-account.png)\n\n4. You will see the newly created test account in the list of test accounts.\n\n   ![Test Account](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.commerce.carts/main/docs/setup/resources/test-account-portal.png)\n\n### Step 3: Create a HubSpot App\n\n1. Now navigate to the `Apps` section from the left sidebar and click on the `Create app` button on the top right corner.\n\n   ![Test Account](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.commerce.carts/main/docs/setup/resources/create-app.png)\n\n2. Provide a public app name and description for your app.\n\n   ![Test Account](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.commerce.carts/main/docs/setup/resources/app-name-desc.png)\n\n### Step 4: Setup Authentication\n\n1. Move to the `Auth` tab.\n\n   ![Test Account](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.commerce.carts/main/docs/setup/resources/config-auth.png)\n\n2. In the `Scopes` section, add the following scopes for your app using the `Add new scopes` button.\n   - `crm.objects.carts.read`\n   - `crm.objects.carts.write`\n\n   ![Test Account](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.commerce.carts/main/docs/setup/resources/add-scopes.png)\n\n3. In the `Redirect URL` section, add the redirect URL for your app. This is the URL where the user will be redirected after the authentication process. You can use localhost for testing purposes. Then hit the `Create App` button.\n\n   ![Test Account](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.commerce.carts/main/docs/setup/resources/redirect-url.png)\n\n### Step 5: Get the Client ID and Client Secret\n\nNavigate to the `Auth` tab and you will see the `Client ID` and `Client Secret` for your app. Make sure to save these values.\n\n![Test Account](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.commerce.carts/main/docs/setup/resources/client-id-secret.png)\n\n### Step 6: Setup Authentication Flow\n\nBefore proceeding with the Quickstart, ensure you have obtained the Access Token using the following steps:\n\n1. Create an authorization URL using the following format:\n\n   ```\n   https://app.hubspot.com/oauth/authorize?client_id\u003d\u003cYOUR_CLIENT_ID\u003e\u0026scope\u003d\u003cYOUR_SCOPES\u003e\u0026redirect_uri\u003d\u003cYOUR_REDIRECT_URI\u003e\n   ```\n\n   Replace the `\u003cYOUR_CLIENT_ID\u003e`, `\u003cYOUR_REDIRECT_URI\u003e`, and `\u003cYOUR_SCOPES\u003e` with your specific value.\n\n2. Paste it in the browser and select your developer test account to intall the app when prompted.\n\n   ![Test Account](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.commerce.carts/main/docs/setup/resources/hubspot-oauth-consent-screen.png)\n\n3. A code will be displayed in the browser. Copy the code.\n\n4. Run the following curl command. Replace the `\u003cYOUR_CLIENT_ID\u003e`, `\u003cYOUR_REDIRECT_URI\u003e`, and `\u003cYOUR_CLIENT_SECRET\u003e` with your specific value. Use the code you received in the above step 3 as the `\u003cCODE\u003e`.\n\n   - Linux/macOS\n\n     ```bash\n     curl --request POST \\\n     --url https://api.hubapi.com/oauth/v1/token \\\n     --header \u0027content-type: application/x-www-form-urlencoded\u0027 \\\n     --data \u0027grant_type\u003dauthorization_code\u0026code\u003d\u003cCODE\u003e\u0026redirect_uri\u003d\u003cYOUR_REDIRECT_URI\u003e\u0026client_id\u003d\u003cYOUR_CLIENT_ID\u003e\u0026client_secret\u003d\u003cYOUR_CLIENT_SECRET\u003e\u0027\n     ```\n   - Windows\n\n     ```bash\n     curl --request POST ^\n     --url https://api.hubapi.com/oauth/v1/token ^\n     --header \u0027content-type: application/x-www-form-urlencoded\u0027 ^\n     --data \u0027grant_type\u003dauthorization_code\u0026code\u003d\u003cCODE\u003e\u0026redirect_uri\u003d\u003cYOUR_REDIRECT_URI\u003e\u0026client_id\u003d\u003cYOUR_CLIENT_ID\u003e\u0026client_secret\u003d\u003cYOUR_CLIENT_SECRET\u003e\u0027\n     ```\n\n   This command will return the access token necessary for API calls.\n\n   ```json\n   {\n     \"token_type\": \"bearer\",\n     \"refresh_token\": \"\u003cRefresh Token\u003e\",\n     \"access_token\": \"\u003cAccess Token\u003e\",\n     \"expires_in\": 1800\n   }\n   ```\n\n5. Store the access token securely for use in your application.\n\n## Quickstart\n\nTo use the `HubSpot CRM Commerce Carts` connector in your Ballerina application, update the `.bal` file as follows:\n\n### Step 1: Import the module\n\nImport the `hubspot.crm.commerce.carts` module and `oauth2` module.\n\n```ballerina\nimport ballerinax/hubspot.crm.commerce.carts as hscarts;\nimport ballerina/oauth2;\n```\n\n### Step 2: Instantiate a new connector\n\n1. Instantiate a `hscarts:ConnectionConfig` with the obtained credentials and initialize the connector with it.\n\n    ```ballerina\n    configurable string clientId \u003d ?;\n    configurable string clientSecret \u003d ?;\n    configurable string refreshToken \u003d ?;\n\n    final hscarts:ConnectionConfig config \u003d {\n        auth : {\n            clientId,\n            clientSecret,\n            refreshToken,\n            credentialBearer: oauth2:POST_BODY_BEARER\n        }\n    };\n\n    final hscarts:Client hubspot \u003d check new (config);\n    ```\n\n2. Create a `Config.toml` file and, configure the obtained credentials in the above steps as follows:\n\n   ```toml\n    clientId \u003d \u003cClient Id\u003e\n    clientSecret \u003d \u003cClient Secret\u003e\n    refreshToken \u003d \u003cRefresh Token\u003e\n   ```\n\n### Step 3: Invoke the connector operation\n\nNow, utilize the available connector operations. A sample use case is shown below.\n\n#### Create a new Cart\n\n```ballerina\npublic function main() returns error? {\n   hscarts:SimplePublicObjectInputForCreate payload \u003d {\n      \"properties\": {\n        \"hs_source_store\": \"Dog Cafe - Italy\",\n        \"hs_total_price\": \"500\",\n        \"hs_currency_code\": \"USD\",\n        \"hs_tax\": \"36.25\",\n        \"hs_tags\": \"donuts, bagels\"\n      }\n    };\n\n    hscarts:SimplePublicObject response \u003d  check hubspot-\u003e/carts.post(payload \u003d payload);\n}\n```\n\n## Examples\n\nThe `HubSpot CRM Commerce Carts` connector provides practical examples illustrating usage in various scenarios. Explore these [examples](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.commerce.carts/tree/main/examples/), covering the following use cases:\n\n1. [Single Cart Management](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.commerce.carts/tree/main/examples/carts/) - Create, retrieve, update, search, and delete a single cart for a customer.\n2. [Batch of Carts Management](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.commerce.carts/tree/main/examples/batch-of-carts) - Create, retrieve, update, and archive a batch of carts for customers.\n",
+  "typeDefs": [
+    {
+      "name": "StandardError",
+      "description": "Standard error response structure returned when an API request fails",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "subCategory",
+          "description": "Optional sub-category providing additional error classification detail",
+          "type": {
+            "name": "record {|anydata...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "context",
+          "description": "Key-value map of contextual metadata associated with the error",
+          "type": {
+            "name": "record {|string[]...;|}"
+          }
+        },
+        {
+          "name": "links",
+          "description": "Map of relevant links related to the error for further reference",
+          "type": {
+            "name": "record {|string...;|}"
+          }
+        },
+        {
+          "name": "id",
+          "description": "Unique identifier for the error instance",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "category",
+          "description": "High-level category classifying the type of error",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "message",
+          "description": "Human-readable message describing the error",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "errors",
+          "description": "List of detailed error objects providing granular failure information",
+          "type": {
+            "name": "ErrorDetail[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ErrorDetail"
+              }
+            ]
+          }
+        },
+        {
+          "name": "status",
+          "description": "HTTP status code or status string associated with the error",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ErrorDetail",
+      "description": "Detailed information about a specific error encountered during a request",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "subCategory",
+          "description": "A specific category that contains more specific detail about the error",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "code",
+          "description": "The status code associated with the error detail",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "\u0027in",
+          "description": "The name of the field or parameter in which the error was found",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "context",
+          "description": "Context about the error condition",
+          "type": {
+            "name": "record {|string[]...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "message",
+          "description": "A human readable message describing the error along with remediation steps where appropriate",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "CollectionResponseAssociatedId",
+      "description": "Paginated collection of associated object IDs returned from an association query",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "paging",
+          "description": "Pagination metadata containing cursors for navigating to the next or previous page",
+          "type": {
+            "name": "Paging",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Paging"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "results",
+          "description": "Array of associated IDs returned in the current page of results",
+          "type": {
+            "name": "AssociatedId[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AssociatedId"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Paging",
+      "description": "Pagination metadata containing cursors for navigating to the next or previous page",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "next",
+          "description": "",
+          "type": {
+            "name": "NextPage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "NextPage"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "prev",
+          "description": "Pagination cursor details for navigating to the previous page of results",
+          "type": {
+            "name": "PreviousPage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PreviousPage"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "NextPage",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "link",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "after",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "PreviousPage",
+      "description": "Pagination cursor details for navigating to the previous page of results",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "before",
+          "description": "Cursor token representing the start of the previous page",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "link",
+          "description": "URL link to the previous page of results",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "AssociatedId",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "id",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "\u0027type",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "PublicAssociationsForObject",
+      "description": "Defines the target object and association types for a cart association request",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "types",
+          "description": "List of association type specifications defining the relationship kind",
+          "type": {
+            "name": "AssociationSpec[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AssociationSpec"
+              }
+            ]
+          }
+        },
+        {
+          "name": "to",
+          "description": "Represents a public object identifier containing a unique ID string",
+          "type": {
+            "name": "PublicObjectId",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PublicObjectId"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "AssociationSpec",
+      "description": "Defines the category and type identifier for an association between objects",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "associationCategory",
+          "description": "The category of the association: HubSpot-defined, user-defined, or integrator-defined",
+          "type": {
+            "name": "\"HUBSPOT_DEFINED\"|\"USER_DEFINED\"|\"INTEGRATOR_DEFINED\""
+          }
+        },
+        {
+          "name": "associationTypeId",
+          "description": "Numeric ID identifying the specific association type",
+          "type": {
+            "name": "int:Signed32"
+          }
+        }
+      ]
+    },
+    {
+      "name": "PublicObjectId",
+      "description": "Represents a public object identifier containing a unique ID string",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "id",
+          "description": "Unique identifier of the public object",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "BatchResponseSimplePublicObject",
+      "description": "Batch operation response containing status, timing, and resulting cart objects",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "completedAt",
+          "description": "Timestamp indicating when the batch operation completed",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "requestedAt",
+          "description": "Timestamp indicating when the batch operation was requested",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "startedAt",
+          "description": "Timestamp indicating when the batch operation began processing",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "links",
+          "description": "Map of supplementary links related to the batch operation response",
+          "type": {
+            "name": "record {|string...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "results",
+          "description": "List of cart objects returned from the batch operation",
+          "type": {
+            "name": "SimplePublicObject[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SimplePublicObject"
+              }
+            ]
+          }
+        },
+        {
+          "name": "status",
+          "description": "Current processing status of the batch request",
+          "type": {
+            "name": "\"PENDING\"|\"PROCESSING\"|\"CANCELED\"|\"COMPLETE\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "SimplePublicObject",
+      "description": "Represents a cart object with its properties, metadata, and change history",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "createdAt",
+          "description": "Timestamp indicating when the cart object was created",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "archived",
+          "description": "Indicates whether the cart object has been archived",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "archivedAt",
+          "description": "Timestamp indicating when the cart object was archived",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "propertiesWithHistory",
+          "description": "Map of property names to their historical values with timestamps",
+          "type": {
+            "name": "record {|ValueWithTimestamp[]...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "id",
+          "description": "Unique identifier of the cart object",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "properties",
+          "description": "Map of cart property names to their current values",
+          "type": {
+            "name": "record {|string?...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "updatedAt",
+          "description": "Timestamp indicating when the cart object was last updated",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ValueWithTimestamp",
+      "description": "Represents a property value paired with its source metadata and the timestamp of the last update",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "sourceId",
+          "description": "Identifier of the source that set the property value",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "sourceType",
+          "description": "Type of source that originated the property value",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "sourceLabel",
+          "description": "Human-readable label describing the source of the value",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "updatedByUserId",
+          "description": "ID of the user who last updated the property value",
+          "type": {
+            "name": "int:Signed32"
+          },
+          "optional": true
+        },
+        {
+          "name": "value",
+          "description": "The property value associated with the cart record",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "timestamp",
+          "description": "Timestamp indicating when the property value was last updated",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "FilterGroup",
+      "description": "A logical grouping of filters applied together when searching cart records",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "filters",
+          "description": "List of filter conditions within this group",
+          "type": {
+            "name": "Filter[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Filter"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Filter",
+      "description": "Defines a filter condition using a property, operator, and comparison value(s)",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "highValue",
+          "description": "The upper bound value used with the BETWEEN operator",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "propertyName",
+          "description": "The name of the cart property to evaluate in the filter condition",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "values",
+          "description": "List of values used with multi-value operators such as IN or NOT_IN",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "value",
+          "description": "The filter value to match against",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "operator",
+          "description": "The comparison operator used to evaluate the filter condition against the property value",
+          "type": {
+            "name": "\"EQ\"|\"NEQ\"|\"LT\"|\"LTE\"|\"GT\"|\"GTE\"|\"BETWEEN\"|\"IN\"|\"NOT_IN\"|\"HAS_PROPERTY\"|\"NOT_HAS_PROPERTY\"|\"CONTAINS_TOKEN\"|\"NOT_CONTAINS_TOKEN\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "ForwardPaging",
+      "description": "Pagination metadata for forward-only cursor-based result traversal",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "next",
+          "description": "",
+          "type": {
+            "name": "NextPage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "NextPage"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "SimplePublicObjectId",
+      "description": "A simple object containing the unique identifier of a public resource",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "id",
+          "description": "The unique identifier of the object",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "BatchResponseSimplePublicUpsertObjectWithErrors",
+      "description": "Batch upsert response containing results, errors, and status for each processed cart object",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "completedAt",
+          "description": "Timestamp indicating when the batch operation completed",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "numErrors",
+          "description": "Total number of errors encountered during the batch operation",
+          "type": {
+            "name": "int:Signed32"
+          },
+          "optional": true
+        },
+        {
+          "name": "requestedAt",
+          "description": "Timestamp indicating when the batch request was received",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "startedAt",
+          "description": "Timestamp indicating when the batch operation began processing",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "links",
+          "description": "Map of relevant hyperlinks associated with the batch response",
+          "type": {
+            "name": "record {|string...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "results",
+          "description": "List of successfully upserted cart objects from the batch operation",
+          "type": {
+            "name": "SimplePublicUpsertObject[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SimplePublicUpsertObject"
+              }
+            ]
+          }
+        },
+        {
+          "name": "errors",
+          "description": "List of errors encountered for individual records during the batch operation",
+          "type": {
+            "name": "StandardError[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "StandardError"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "status",
+          "description": "Current processing status of the batch upsert request",
+          "type": {
+            "name": "\"PENDING\"|\"PROCESSING\"|\"CANCELED\"|\"COMPLETE\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "SimplePublicUpsertObject",
+      "description": "Represents a cart object returned after an upsert operation, indicating whether it was newly created or updated",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "createdAt",
+          "description": "Timestamp when the cart object was created",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "archived",
+          "description": "Indicates whether the cart object is archived",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "archivedAt",
+          "description": "Timestamp when the cart object was archived",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "\u0027new",
+          "description": "Indicates whether the object was newly created by the upsert",
+          "type": {
+            "name": "boolean"
+          }
+        },
+        {
+          "name": "propertiesWithHistory",
+          "description": "Map of property names to their historical values with timestamps",
+          "type": {
+            "name": "record {|ValueWithTimestamp[]...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "id",
+          "description": "The unique identifier of the cart object",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "properties",
+          "description": "Map of property names to their current string values",
+          "type": {
+            "name": "record {|string...;|}"
+          }
+        },
+        {
+          "name": "updatedAt",
+          "description": "Timestamp when the cart object was last updated",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "BatchReadInputSimplePublicObjectId",
+      "description": "Input payload for batch reading cart objects by their unique identifiers",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "propertiesWithHistory",
+          "description": "List of properties for which historical values should be returned",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "idProperty",
+          "description": "The name of a property whose values are unique for this object",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "inputs",
+          "description": "List of cart object IDs to retrieve in the batch",
+          "type": {
+            "name": "SimplePublicObjectId[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SimplePublicObjectId"
+              }
+            ]
+          }
+        },
+        {
+          "name": "properties",
+          "description": "List of property names to include in the response for each cart",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "BatchResponseSimplePublicUpsertObject",
+      "description": "Response object containing the results, status, and timing details for a batch upsert operation on cart records",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "completedAt",
+          "description": "Timestamp indicating when the batch operation completed",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "requestedAt",
+          "description": "Timestamp indicating when the batch operation was requested",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "startedAt",
+          "description": "Timestamp indicating when the batch operation began processing",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "links",
+          "description": "Map of relevant hyperlinks associated with the batch operation response",
+          "type": {
+            "name": "record {|string...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "results",
+          "description": "List of upserted cart objects returned by the batch operation",
+          "type": {
+            "name": "SimplePublicUpsertObject[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SimplePublicUpsertObject"
+              }
+            ]
+          }
+        },
+        {
+          "name": "status",
+          "description": "Current processing status of the batch operation",
+          "type": {
+            "name": "\"PENDING\"|\"PROCESSING\"|\"CANCELED\"|\"COMPLETE\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "BatchInputSimplePublicObjectId",
+      "description": "Input payload containing a list of cart object IDs for a batch operation",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "inputs",
+          "description": "List of cart object IDs to process in the batch request",
+          "type": {
+            "name": "SimplePublicObjectId[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SimplePublicObjectId"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "OAuth2RefreshTokenGrantConfig",
+      "description": "OAuth2 Refresh Token Grant Configs",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "refreshUrl",
+          "description": "Refresh URL",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "refreshToken",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "clientId",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "clientSecret",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "scopes",
+          "description": "",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "defaultTokenExpTime",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "clockSkew",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "optionalParams",
+          "description": "",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "credentialBearer",
+          "description": "",
+          "type": {
+            "name": "CredentialBearer",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CredentialBearer",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "clientConfig",
+          "description": "",
+          "type": {
+            "name": "ClientConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientConfiguration",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "PatchCrmV3ObjectsCartsCartIdQueries",
+      "description": "Represents the Queries record for the operation: patch-/crm/v3/objects/carts/{cartId}",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "idProperty",
+          "description": "The name of a property whose values are unique for this object type",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "GetCrmV3ObjectsCartsQueries",
+      "description": "Represents the Queries record for the operation: get-/crm/v3/objects/carts",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "associations",
+          "description": "A comma separated list of object types to retrieve associated IDs for. If any of the specified associations do not exist, they will be ignored",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "archived",
+          "description": "Whether to return only results that have been archived",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "propertiesWithHistory",
+          "description": "A comma separated list of the properties to be returned along with their history of previous values. If any of the specified properties are not present on the requested object(s), they will be ignored. Usage of this parameter will reduce the maximum number of objects that can be read by a single request",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "\u0027limit",
+          "description": "The maximum number of results to display per page",
+          "type": {
+            "name": "int:Signed32"
+          },
+          "optional": true
+        },
+        {
+          "name": "after",
+          "description": "The paging cursor token of the last successfully read resource will be returned as the `paging.next.after` JSON property of a paged response containing more results",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "properties",
+          "description": "A comma separated list of the properties to be returned in the response. If any of the specified properties are not present on the requested object(s), they will be ignored",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "BatchInputSimplePublicObjectBatchInputUpsert",
+      "description": "Input payload containing a list of cart objects to create or update in a batch upsert operation",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "inputs",
+          "description": "List of cart objects to upsert in the batch operation",
+          "type": {
+            "name": "SimplePublicObjectBatchInputUpsert[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SimplePublicObjectBatchInputUpsert"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SimplePublicObjectBatchInputUpsert",
+      "description": "Input object for a batch upsert operation, containing the record identifier and cart property values to create or update",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "idProperty",
+          "description": "The name of a property whose values are unique for this object",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "objectWriteTraceId",
+          "description": "Trace identifier for tracking the write operation",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "id",
+          "description": "Unique identifier of the cart record to upsert",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "properties",
+          "description": "Map of cart property names to their values for the upsert",
+          "type": {
+            "name": "record {|string...;|}"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "CollectionResponseWithTotalSimplePublicObjectForwardPaging",
+      "description": "Paginated collection of cart objects with a total count and forward paging cursor",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "total",
+          "description": "Total number of cart objects matching the request",
+          "type": {
+            "name": "int:Signed32"
+          }
+        },
+        {
+          "name": "paging",
+          "description": "Pagination metadata for forward-only cursor-based result traversal",
+          "type": {
+            "name": "ForwardPaging",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ForwardPaging"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "results",
+          "description": "Array of cart objects returned in the current page",
+          "type": {
+            "name": "SimplePublicObject[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SimplePublicObject"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "ConnectionConfig",
+      "description": "Provides a set of configurations for controlling the behaviours when communicating with a remote HTTP endpoint",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "auth",
+          "description": "Provides Auth configurations needed when communicating with a remote HTTP endpoint",
+          "type": {
+            "name": "BearerTokenConfig|OAuth2RefreshTokenGrantConfig|ApiKeysConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "BearerTokenConfig",
+                "libraryName": "ballerina/http"
+              },
+              {
+                "category": "internal",
+                "recordName": "OAuth2RefreshTokenGrantConfig"
+              },
+              {
+                "category": "internal",
+                "recordName": "ApiKeysConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "httpVersion",
+          "description": "The HTTP version understood by the client",
+          "type": {
+            "name": "HttpVersion",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "HttpVersion",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "http1Settings",
+          "description": "Configurations related to HTTP/1.x protocol",
+          "type": {
+            "name": "ClientHttp1Settings",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientHttp1Settings",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "http2Settings",
+          "description": "Configurations related to HTTP/2 protocol",
+          "type": {
+            "name": "ClientHttp2Settings",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientHttp2Settings",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "timeout",
+          "description": "The maximum time to wait (in seconds) for a response before closing the connection",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "forwarded",
+          "description": "The choice of setting `forwarded`/`x-forwarded` header",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "followRedirects",
+          "description": "Configurations associated with Redirection",
+          "type": {
+            "name": "FollowRedirects",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "FollowRedirects",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "poolConfig",
+          "description": "Configurations associated with request pooling",
+          "type": {
+            "name": "PoolConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "PoolConfiguration",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "cache",
+          "description": "HTTP caching related configurations",
+          "type": {
+            "name": "CacheConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CacheConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "compression",
+          "description": "Specifies the way of handling compression (`accept-encoding`) header",
+          "type": {
+            "name": "Compression",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Compression",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "circuitBreaker",
+          "description": "Configurations associated with the behaviour of the Circuit Breaker",
+          "type": {
+            "name": "CircuitBreakerConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CircuitBreakerConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "retryConfig",
+          "description": "Configurations associated with retrying",
+          "type": {
+            "name": "RetryConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "RetryConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "cookieConfig",
+          "description": "Configurations associated with cookies",
+          "type": {
+            "name": "CookieConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CookieConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "responseLimits",
+          "description": "Configurations associated with inbound response size limits",
+          "type": {
+            "name": "ResponseLimitConfigs",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ResponseLimitConfigs",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "SSL/TLS-related options",
+          "type": {
+            "name": "ClientSecureSocket",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientSecureSocket",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "proxy",
+          "description": "Proxy server related options",
+          "type": {
+            "name": "ProxyConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ProxyConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "socketConfig",
+          "description": "Provides settings related to client socket configuration",
+          "type": {
+            "name": "ClientSocketConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientSocketConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "validation",
+          "description": "Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "laxDataBinding",
+          "description": "Enables relaxed data binding on the client side. When enabled, `nil` values are treated as optional, \nand absent fields are handled as `nilable` types. Enabled by default",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ],
+      "annotations": [
+        {
+          "name": "display",
+          "value": "{label: \"Connection Config\"}"
+        }
+      ]
+    },
+    {
+      "name": "ApiKeysConfig",
+      "description": "Provides API key configurations needed when communicating with a remote HTTP endpoint",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "privateAppLegacy",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "privateApp",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "PostCrmV3ObjectsCartsBatchReadQueries",
+      "description": "Represents the Queries record for the operation: post-/crm/v3/objects/carts/batch/read",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "archived",
+          "description": "Whether to return only results that have been archived",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "PublicObjectSearchRequest",
+      "description": "Request payload for searching cart objects with filters, sorting, and pagination",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "query",
+          "description": "Full-text search query string to match against cart properties",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "\u0027limit",
+          "description": "Maximum number of cart objects to return per page",
+          "type": {
+            "name": "int:Signed32"
+          },
+          "optional": true
+        },
+        {
+          "name": "after",
+          "description": "Cursor token for retrieving the next page of results",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "sorts",
+          "description": "List of sort criteria to order the search results",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "properties",
+          "description": "List of cart property names to include in the response",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "filterGroups",
+          "description": "Groups of filters used to narrow search results",
+          "type": {
+            "name": "FilterGroup[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "FilterGroup"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "BatchResponseSimplePublicObjectWithErrors",
+      "description": "Batch operation response containing processed cart records, status, timestamps, and any errors encountered during processing",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "completedAt",
+          "description": "Timestamp indicating when the batch operation completed",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "numErrors",
+          "description": "Total number of errors encountered during the batch operation",
+          "type": {
+            "name": "int:Signed32"
+          },
+          "optional": true
+        },
+        {
+          "name": "requestedAt",
+          "description": "Timestamp indicating when the batch operation was requested",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "startedAt",
+          "description": "Timestamp indicating when the batch operation began processing",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "links",
+          "description": "Map of relevant link names to associated URIs for the batch response",
+          "type": {
+            "name": "record {|string...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "results",
+          "description": "Array of successfully processed cart objects from the batch operation",
+          "type": {
+            "name": "SimplePublicObject[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SimplePublicObject"
+              }
+            ]
+          }
+        },
+        {
+          "name": "errors",
+          "description": "Array of errors for records that failed during batch processing",
+          "type": {
+            "name": "StandardError[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "StandardError"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "status",
+          "description": "Current processing status of the batch operation",
+          "type": {
+            "name": "\"PENDING\"|\"PROCESSING\"|\"CANCELED\"|\"COMPLETE\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "SimplePublicObjectInput",
+      "description": "Input object for creating or updating a cart, containing property values and optional association definitions",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "objectWriteTraceId",
+          "description": "Trace identifier for tracking the write operation",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "properties",
+          "description": "Key-value pairs of cart properties to set, e.g. name, currency, and external cart ID",
+          "type": {
+            "name": "record {|string...;|}"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "CollectionResponseSimplePublicObjectWithAssociationsForwardPaging",
+      "description": "A paginated collection of cart objects, each including their associated records",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "paging",
+          "description": "Pagination metadata for forward-only cursor-based result traversal",
+          "type": {
+            "name": "ForwardPaging",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ForwardPaging"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "results",
+          "description": "Array of cart objects returned in the current page, each with associations",
+          "type": {
+            "name": "SimplePublicObjectWithAssociations[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SimplePublicObjectWithAssociations"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SimplePublicObjectWithAssociations",
+      "description": "A cart object including its properties, timestamps, and any associated records",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "associations",
+          "description": "Map of associated object collections, keyed by association type",
+          "type": {
+            "name": "record {|CollectionResponseAssociatedId...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "createdAt",
+          "description": "Timestamp indicating when the cart record was created",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "archived",
+          "description": "Indicates whether the cart record has been archived",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "archivedAt",
+          "description": "Timestamp indicating when the cart record was archived",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "propertiesWithHistory",
+          "description": "Map of property names to their historical values with timestamps",
+          "type": {
+            "name": "record {|ValueWithTimestamp[]...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "id",
+          "description": "The unique identifier of the cart record",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "properties",
+          "description": "Key-value pairs of cart property names and their current values",
+          "type": {
+            "name": "record {|string?...;|}"
+          }
+        },
+        {
+          "name": "updatedAt",
+          "description": "Timestamp indicating when the cart record was last updated",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "BatchInputSimplePublicObjectInputForCreate",
+      "description": "A batch input wrapper containing an array of cart creation objects to process in a single request",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "inputs",
+          "description": "Array of cart creation input objects to process in batch",
+          "type": {
+            "name": "SimplePublicObjectInputForCreate[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SimplePublicObjectInputForCreate"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SimplePublicObjectInputForCreate",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "associations",
+          "description": "",
+          "type": {
+            "name": "PublicAssociationsForObject[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PublicAssociationsForObject"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "objectWriteTraceId",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "properties",
+          "description": "",
+          "type": {
+            "name": "record {|string...;|}"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "BatchInputSimplePublicObjectBatchInput",
+      "description": "A batch input wrapper containing an array of cart update objects to process in a single request",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "inputs",
+          "description": "Array of cart update input objects to process in batch",
+          "type": {
+            "name": "SimplePublicObjectBatchInput[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SimplePublicObjectBatchInput"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SimplePublicObjectBatchInput",
+      "description": "Represents a single cart update input, identified by an object ID or unique property value, with properties to update",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "idProperty",
+          "description": "The name of a property whose values are unique for this object",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "objectWriteTraceId",
+          "description": "Trace identifier for tracking the write operation",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "id",
+          "description": "The id to be updated. This can be the object id, or the unique property value of the idProperty property",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "properties",
+          "description": "Map of cart property names to their updated values",
+          "type": {
+            "name": "record {|string...;|}"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "GetCrmV3ObjectsCartsCartIdQueries",
+      "description": "Represents the Queries record for the operation: get-/crm/v3/objects/carts/{cartId}",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "associations",
+          "description": "A comma separated list of object types to retrieve associated IDs for. If any of the specified associations do not exist, they will be ignored",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "archived",
+          "description": "Whether to return only results that have been archived",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "propertiesWithHistory",
+          "description": "A comma separated list of the properties to be returned along with their history of previous values. If any of the specified properties are not present on the requested object(s), they will be ignored",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "idProperty",
+          "description": "The name of a property whose values are unique for this object type",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "properties",
+          "description": "A comma separated list of the properties to be returned in the response. If any of the specified properties are not present on the requested object(s), they will be ignored",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "name": "Client",
+      "description": "",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Gets invoked to initialize the `connector`\n",
+          "parameters": [
+            {
+              "name": "config",
+              "description": "The configurations to be used when initializing the `connector` ",
+              "type": {
+                "name": "ConnectionConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ConnectionConfig"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "serviceUrl",
+              "description": "URL of the target service ",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"https://api.hubapi.com/crm/v3/objects\""
+            }
+          ],
+          "return": {
+            "description": "An error if connector initialization failed ",
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Read a batch of carts by internal ID, or unique property values\n",
+          "accessor": "post",
+          "paths": [
+            "carts",
+            "batch",
+            "read"
+          ],
+          "parameters": [
+            {
+              "name": "payload",
+              "type": {
+                "name": "BatchReadInputSimplePublicObjectId",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "BatchReadInputSimplePublicObjectId"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "archived",
+              "description": "Whether to return only results that have been archived",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "queries",
+              "description": "Queries to be sent with the request ",
+              "type": {
+                "name": "PostCrmV3ObjectsCartsBatchReadQueries",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "PostCrmV3ObjectsCartsBatchReadQueries"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "BatchResponseSimplePublicObject|BatchResponseSimplePublicObjectWithErrors|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "BatchResponseSimplePublicObject"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "BatchResponseSimplePublicObjectWithErrors"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Retrieve a cart by ID\n",
+          "accessor": "get",
+          "paths": [
+            "carts",
+            {
+              "name": "cartId",
+              "type": "string"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "cartId",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "associations",
+              "description": "A comma separated list of object types to retrieve associated IDs for. If any of the specified associations do not exist, they will be ignored",
+              "type": {
+                "name": "string[]"
+              },
+              "optional": true,
+              "default": "[]"
+            },
+            {
+              "name": "archived",
+              "description": "Whether to return only results that have been archived",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "propertiesWithHistory",
+              "description": "A comma separated list of the properties to be returned along with their history of previous values. If any of the specified properties are not present on the requested object(s), they will be ignored",
+              "type": {
+                "name": "string[]"
+              },
+              "optional": true,
+              "default": "[]"
+            },
+            {
+              "name": "idProperty",
+              "description": "The name of a property whose values are unique for this object type",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "properties",
+              "description": "A comma separated list of the properties to be returned in the response. If any of the specified properties are not present on the requested object(s), they will be ignored",
+              "type": {
+                "name": "string[]"
+              },
+              "optional": true,
+              "default": "[]"
+            },
+            {
+              "name": "queries",
+              "description": "Queries to be sent with the request ",
+              "type": {
+                "name": "GetCrmV3ObjectsCartsCartIdQueries",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "GetCrmV3ObjectsCartsCartIdQueries"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "SimplePublicObjectWithAssociations|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "SimplePublicObjectWithAssociations"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Archive a cart by ID\n",
+          "accessor": "delete",
+          "paths": [
+            "carts",
+            {
+              "name": "cartId",
+              "type": "string"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "cartId",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Update a cart by ID\n",
+          "accessor": "patch",
+          "paths": [
+            "carts",
+            {
+              "name": "cartId",
+              "type": "string"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "cartId",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "payload",
+              "type": {
+                "name": "SimplePublicObjectInput",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "SimplePublicObjectInput"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "idProperty",
+              "description": "The name of a property whose values are unique for this object type",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "queries",
+              "description": "Queries to be sent with the request ",
+              "type": {
+                "name": "PatchCrmV3ObjectsCartsCartIdQueries",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "PatchCrmV3ObjectsCartsCartIdQueries"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "SimplePublicObject|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "SimplePublicObject"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Archive a batch of carts by ID\n",
+          "accessor": "post",
+          "paths": [
+            "carts",
+            "batch",
+            "archive"
+          ],
+          "parameters": [
+            {
+              "name": "payload",
+              "type": {
+                "name": "BatchInputSimplePublicObjectId",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "BatchInputSimplePublicObjectId"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Create a batch of carts\n",
+          "accessor": "post",
+          "paths": [
+            "carts",
+            "batch",
+            "create"
+          ],
+          "parameters": [
+            {
+              "name": "payload",
+              "type": {
+                "name": "BatchInputSimplePublicObjectInputForCreate",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "BatchInputSimplePublicObjectInputForCreate"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "BatchResponseSimplePublicObject|BatchResponseSimplePublicObjectWithErrors|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "BatchResponseSimplePublicObject"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "BatchResponseSimplePublicObjectWithErrors"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Update a batch of carts\n",
+          "accessor": "post",
+          "paths": [
+            "carts",
+            "batch",
+            "update"
+          ],
+          "parameters": [
+            {
+              "name": "payload",
+              "type": {
+                "name": "BatchInputSimplePublicObjectBatchInput",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "BatchInputSimplePublicObjectBatchInput"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "BatchResponseSimplePublicObject|BatchResponseSimplePublicObjectWithErrors|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "BatchResponseSimplePublicObject"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "BatchResponseSimplePublicObjectWithErrors"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Retrieve a page of carts\n",
+          "accessor": "get",
+          "paths": [
+            "carts"
+          ],
+          "parameters": [
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "associations",
+              "description": "A comma separated list of object types to retrieve associated IDs for. If any of the specified associations do not exist, they will be ignored",
+              "type": {
+                "name": "string[]"
+              },
+              "optional": true,
+              "default": "[]"
+            },
+            {
+              "name": "archived",
+              "description": "Whether to return only results that have been archived",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "propertiesWithHistory",
+              "description": "A comma separated list of the properties to be returned along with their history of previous values. If any of the specified properties are not present on the requested object(s), they will be ignored. Usage of this parameter will reduce the maximum number of objects that can be read by a single request",
+              "type": {
+                "name": "string[]"
+              },
+              "optional": true,
+              "default": "[]"
+            },
+            {
+              "name": "limit",
+              "description": "The maximum number of results to display per page",
+              "type": {
+                "name": "int:Signed32"
+              },
+              "optional": true,
+              "default": "0"
+            },
+            {
+              "name": "after",
+              "description": "The paging cursor token of the last successfully read resource will be returned as the `paging.next.after` JSON property of a paged response containing more results",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "properties",
+              "description": "A comma separated list of the properties to be returned in the response. If any of the specified properties are not present on the requested object(s), they will be ignored",
+              "type": {
+                "name": "string[]"
+              },
+              "optional": true,
+              "default": "[]"
+            },
+            {
+              "name": "queries",
+              "description": "Queries to be sent with the request ",
+              "type": {
+                "name": "GetCrmV3ObjectsCartsQueries",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "GetCrmV3ObjectsCartsQueries"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "CollectionResponseSimplePublicObjectWithAssociationsForwardPaging|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "CollectionResponseSimplePublicObjectWithAssociationsForwardPaging"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Create a new cart\n",
+          "accessor": "post",
+          "paths": [
+            "carts"
+          ],
+          "parameters": [
+            {
+              "name": "payload",
+              "type": {
+                "name": "SimplePublicObjectInputForCreate",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "SimplePublicObjectInputForCreate"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "SimplePublicObject|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "SimplePublicObject"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Batch upsert carts by property\n",
+          "accessor": "post",
+          "paths": [
+            "carts",
+            "batch",
+            "upsert"
+          ],
+          "parameters": [
+            {
+              "name": "payload",
+              "type": {
+                "name": "BatchInputSimplePublicObjectBatchInputUpsert",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "BatchInputSimplePublicObjectBatchInputUpsert"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "BatchResponseSimplePublicUpsertObject|BatchResponseSimplePublicUpsertObjectWithErrors|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "BatchResponseSimplePublicUpsertObject"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "BatchResponseSimplePublicUpsertObjectWithErrors"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Search carts\n",
+          "accessor": "post",
+          "paths": [
+            "carts",
+            "search"
+          ],
+          "parameters": [
+            {
+              "name": "payload",
+              "type": {
+                "name": "PublicObjectSearchRequest",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "PublicObjectSearchRequest"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "CollectionResponseWithTotalSimplePublicObjectForwardPaging|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "CollectionResponseWithTotalSimplePublicObjectForwardPaging"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "functions": [],
+  "services": [],
+  "annotations": []
+}

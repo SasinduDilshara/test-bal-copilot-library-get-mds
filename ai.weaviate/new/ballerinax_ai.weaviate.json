@@ -1,0 +1,430 @@
+{
+  "name": "ballerinax/ai.weaviate",
+  "description": "Weaviate is an open-source vector database that allows you to store data objects and vector embeddings from your favorite ML-models. The Weaviate connector enables seamless interaction with Weaviate instances, supporting complex vector searches and data management.",
+  "readme": "## Overview\r\n\r\nWeaviate is an open-source vector database that allows you to store data objects and vector embeddings from your favorite ML-models. The Weaviate connector enables seamless interaction with Weaviate instances, supporting complex vector searches and data management.\r\n\r\n### Key Features\r\n\r\n- Seamless storage of data objects and vector embeddings\r\n- High-performance vector search and semantic search\r\n- Support for modular vectorizers and ML-model integration\r\n- Efficient management of schemas and classes\r\n- Secure communication with authentication support\r\n- GraalVM compatible for native image builds\r\n\r\n## Set up guide\r\n\r\nBefore using the Ballerina Weaviate vector store module, you need to set up a Weaviate instance and obtain the necessary credentials.\r\n\r\n### Step 1: Create a Weaviate account\r\n\r\nYou can create an account for free if you don\u0027t already have one.\r\n\r\n1. Visit [weaviate.io](https://weaviate.io/) and click **Try Now** to sign up for a free account\r\n\r\n   \u003cimg src\u003d\"https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-ai.weaviate/main/resources/sign-up-page.png\" alt\u003d\"Sign Up\" width\u003d\"60%\"\u003e\r\n\r\n2. Complete the registration process and verify your email address if required\r\n3. Log in to your new Weaviate account\r\n\r\nFor more details, refer to the official documentation on [creating a new account](https://docs.weaviate.io/cloud/platform/create-account).\r\n\r\n\r\n### Step 2: Set up a Weaviate cluster\r\n\r\n1. Access the Weaviate Console and click **Create Cluster** to create a new Weaviate instance.\r\n\r\n   \u003cimg src\u003d\"https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-ai.weaviate/main/resources/getting-started-page.png\" alt\u003d\"Create Cluster\" width\u003d\"60%\"\u003e\r\n\r\n2. Provide the required details (e.g., Cluster name) and preferred configuration options and confirm.\r\n\r\n   \u003cimg src\u003d\"https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-ai.weaviate/main/resources/create-cluster.png\" alt\u003d\"Create Cluster\" width\u003d\"60%\"\u003e\r\n\r\n3. Click **Create** and wait for the cluster to be provisioned (this typically takes 2-3 minutes)\r\n\r\n4. Once the cluster is ready, locate and copy the REST endpoint URL from your cluster dashboard. You\u0027ll use this URL as the `serviceUrl` in your `weaviate:Client` configuration\r\n\r\nFor more details, refer to the official documentation on [creating clusters](https://docs.weaviate.io/cloud/manage-clusters/create).\r\n\r\n### Step 3: Generate API credentials\r\n\r\n1. In the Weaviate Console, navigate to your cluster dashboard and go to the API Keys section\r\n2. Click **Create API Key** and provide a name for the key and create the API key.\r\n\r\n   \u003cimg src\u003d\"https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-ai.weaviate/main/resources/create-api-key.png\" alt\u003d\"Create Cluster\" width\u003d\"60%\"\u003e\r\n\r\n3. Securely save the generated API key, which you\u0027ll use as the `token` in your `weaviate:Client` configuration.\r\n\r\nFor more details, refer to the official documentation on [authentication](https://docs.weaviate.io/cloud/manage-clusters/authentication).\r\n\r\n## Quick Start\r\n\r\n### Step 1: Import the module\r\n\r\n```ballerina\r\nimport ballerina/ai;\r\nimport ballerinax/ai.weaviate;\r\n```\r\n\r\n### Step 2: Initialize the Weaviate vector store\r\n\r\n```ballerina\r\nai:VectorStore vectorStore \u003d check new weaviate:VectorStore(\r\n    serviceUrl \u003d \"add-weaviate-service-url\", \r\n    config \u003d {\r\n        collectionName: \"add-collection-name\"\r\n    }, \r\n    apiKey \u003d \"mock-token\"\r\n);\r\n```\r\n\r\n### Step 3: Add vectors\r\n\r\n```ballerina\r\nai:Error? result \u003d vectorStore.add(\r\n    [\r\n        {\r\n            id: \"1\",\r\n            embedding: [1.0, 2.0, 3.0],\r\n            chunk: {\r\n                \u0027type: \"text\", \r\n                content: \"This is a chunk\"\r\n            }\r\n        }\r\n    ]\r\n);\r\n```\r\n\r\n## Examples\r\n\r\nThe Ballerina Weaviate vector store module provides practical examples illustrating usage in various scenarios. Explore these [examples](https://github.com/ballerina-platform/module-ballerinax-ai.weaviate/tree/main/examples).\r\n\r\n1. [Book recommendation system](https://github.com/ballerina-platform/module-ballerinax-ai.weaviate/tree/main/examples/book-recommendation-system)\r\n   This example shows how to use Weaviate vector store APIs to implement a book recommendation system that stores book embeddings and queries them to find similar books based on vector similarity and metadata filtering.\r\n",
+  "typeDefs": [
+    {
+      "name": "Configuration",
+      "description": "Configuration for the Weaviate vector store.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "collectionName",
+          "description": "The name of the collection to use",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "chunkFieldName",
+          "description": "The name of the field to contain the chunk details",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ConnectionConfig",
+      "description": "Configuration for the Weaviate connection.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "auth",
+          "description": "Configurations related to client authentication",
+          "type": {
+            "name": "BearerTokenConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "BearerTokenConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "httpVersion",
+          "description": "The HTTP version understood by the client",
+          "type": {
+            "name": "HttpVersion",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "HttpVersion",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "http1Settings",
+          "description": "Configurations related to HTTP/1.x protocol",
+          "type": {
+            "name": "ClientHttp1Settings",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientHttp1Settings",
+                "libraryName": "ballerinax/weaviate"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "http2Settings",
+          "description": "Configurations related to HTTP/2 protocol",
+          "type": {
+            "name": "ClientHttp2Settings",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientHttp2Settings",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "timeout",
+          "description": "The maximum time to wait (in seconds) for a response before closing the connection",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "forwarded",
+          "description": "The choice of setting `forwarded`/`x-forwarded` header",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "poolConfig",
+          "description": "Configurations associated with request pooling",
+          "type": {
+            "name": "PoolConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "PoolConfiguration",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "cache",
+          "description": "HTTP caching related configurations",
+          "type": {
+            "name": "CacheConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CacheConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "compression",
+          "description": "Specifies the way of handling compression (`accept-encoding`) header",
+          "type": {
+            "name": "Compression",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Compression",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "circuitBreaker",
+          "description": "Configurations associated with the behaviour of the Circuit Breaker",
+          "type": {
+            "name": "CircuitBreakerConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CircuitBreakerConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "retryConfig",
+          "description": "Configurations associated with retrying",
+          "type": {
+            "name": "RetryConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "RetryConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "responseLimits",
+          "description": "Configurations associated with inbound response size limits",
+          "type": {
+            "name": "ResponseLimitConfigs",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ResponseLimitConfigs",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "SSL/TLS-related options",
+          "type": {
+            "name": "ClientSecureSocket",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientSecureSocket",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "proxy",
+          "description": "Proxy server related options",
+          "type": {
+            "name": "ProxyConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ProxyConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "validation",
+          "description": "Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "VectorStore",
+      "description": "Initializes the Weaviate vector store with the given configuration.\n",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes the Weaviate vector store with the given configuration.\n",
+          "parameters": [
+            {
+              "name": "serviceUrl",
+              "description": "The URL of the Weaviate service",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Service URL\"}"
+                }
+              ]
+            },
+            {
+              "name": "apiKey",
+              "description": "The API key for the Weaviate service",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"API Key\"}"
+                }
+              ]
+            },
+            {
+              "name": "config",
+              "description": "The configurations containing collection name, topK, and chunk field name",
+              "type": {
+                "name": "Configuration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Configuration"
+                  }
+                ]
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Weaviate Configuration\"}"
+                }
+              ]
+            },
+            {
+              "name": "httpConfig",
+              "description": "The HTTP configuration for the Weaviate client connection",
+              "type": {
+                "name": "ConnectionConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ConnectionConfig"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}",
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"HTTP Configuration\"}"
+                }
+              ]
+            }
+          ],
+          "return": {
+            "description": "An `ai:Error` if the initialization fails, otherwise returns `()`",
+            "type": {
+              "name": "ai:Error?"
+            }
+          }
+        },
+        {
+          "name": "add",
+          "type": "Normal Function",
+          "description": "Adds a list of vector entries to the Weaviate vector store.\n",
+          "parameters": [
+            {
+              "name": "entries",
+              "description": "The list of vector entries to add",
+              "type": {
+                "name": "VectorEntry[]",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "VectorEntry",
+                    "libraryName": "ballerina/ai"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "An `ai:Error` if the addition fails, otherwise returns `()`",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/ai"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "delete",
+          "type": "Normal Function",
+          "description": "Deletes a vector entry from the Weaviate vector store.\n",
+          "parameters": [
+            {
+              "name": "ids",
+              "description": "One or more identifiers of the vector entries to delete",
+              "type": {
+                "name": "string|string[]"
+              }
+            }
+          ],
+          "return": {
+            "description": "An `ai:Error` if the deletion fails, otherwise returns `()`",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/ai"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "query",
+          "type": "Normal Function",
+          "description": "Queries the Weaviate vector store for vector entries.\n",
+          "parameters": [
+            {
+              "name": "query",
+              "description": "The query containing the embedding, filters, and other search parameters",
+              "type": {
+                "name": "VectorStoreQuery",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "VectorStoreQuery",
+                    "libraryName": "ballerina/ai"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "A list of `ai:VectorMatch` objects if the query is successful, otherwise returns an `ai:Error`",
+            "type": {
+              "name": "VectorMatch[]|Error",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "VectorMatch",
+                  "libraryName": "ballerina/ai"
+                },
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/ai"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "clients": [],
+  "functions": [],
+  "services": [],
+  "annotations": []
+}

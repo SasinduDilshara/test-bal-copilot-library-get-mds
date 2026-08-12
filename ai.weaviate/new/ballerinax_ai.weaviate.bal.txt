@@ -1,0 +1,176 @@
+// ============================================================
+// Library: ballerinax/ai.weaviate
+// Weaviate is an open-source vector database that allows you to store data objects and vector embeddings from your favorite ML-models. The Weaviate connector enables seamless interaction with Weaviate instances, supporting complex vector searches and data management.
+// ============================================================
+import ballerinax/ai.weaviate;
+
+// --- README ---
+## Overview
+
+Weaviate is an open-source vector database that allows you to store data objects and vector embeddings from your favorite ML-models. The Weaviate connector enables seamless interaction with Weaviate instances, supporting complex vector searches and data management.
+
+### Key Features
+
+- Seamless storage of data objects and vector embeddings
+- High-performance vector search and semantic search
+- Support for modular vectorizers and ML-model integration
+- Efficient management of schemas and classes
+- Secure communication with authentication support
+- GraalVM compatible for native image builds
+
+## Set up guide
+
+Before using the Ballerina Weaviate vector store module, you need to set up a Weaviate instance and obtain the necessary credentials.
+
+### Step 1: Create a Weaviate account
+
+You can create an account for free if you don't already have one.
+
+1. Visit [weaviate.io](https://weaviate.io/) and click **Try Now** to sign up for a free account
+
+   <img src="https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-ai.weaviate/main/resources/sign-up-page.png" alt="Sign Up" width="60%">
+
+2. Complete the registration process and verify your email address if required
+3. Log in to your new Weaviate account
+
+For more details, refer to the official documentation on [creating a new account](https://docs.weaviate.io/cloud/platform/create-account).
+
+
+### Step 2: Set up a Weaviate cluster
+
+1. Access the Weaviate Console and click **Create Cluster** to create a new Weaviate instance.
+
+   <img src="https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-ai.weaviate/main/resources/getting-started-page.png" alt="Create Cluster" width="60%">
+
+2. Provide the required details (e.g., Cluster name) and preferred configuration options and confirm.
+
+   <img src="https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-ai.weaviate/main/resources/create-cluster.png" alt="Create Cluster" width="60%">
+
+3. Click **Create** and wait for the cluster to be provisioned (this typically takes 2-3 minutes)
+
+4. Once the cluster is ready, locate and copy the REST endpoint URL from your cluster dashboard. You'll use this URL as the `serviceUrl` in your `weaviate:Client` configuration
+
+For more details, refer to the official documentation on [creating clusters](https://docs.weaviate.io/cloud/manage-clusters/create).
+
+### Step 3: Generate API credentials
+
+1. In the Weaviate Console, navigate to your cluster dashboard and go to the API Keys section
+2. Click **Create API Key** and provide a name for the key and create the API key.
+
+   <img src="https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-ai.weaviate/main/resources/create-api-key.png" alt="Create Cluster" width="60%">
+
+3. Securely save the generated API key, which you'll use as the `token` in your `weaviate:Client` configuration.
+
+For more details, refer to the official documentation on [authentication](https://docs.weaviate.io/cloud/manage-clusters/authentication).
+
+## Quick Start
+
+### Step 1: Import the module
+
+```ballerina
+import ballerina/ai;
+import ballerinax/ai.weaviate;
+```
+
+### Step 2: Initialize the Weaviate vector store
+
+```ballerina
+ai:VectorStore vectorStore = check new weaviate:VectorStore(
+    serviceUrl = "add-weaviate-service-url", 
+    config = {
+        collectionName: "add-collection-name"
+    }, 
+    apiKey = "mock-token"
+);
+```
+
+### Step 3: Add vectors
+
+```ballerina
+ai:Error? result = vectorStore.add(
+    [
+        {
+            id: "1",
+            embedding: [1.0, 2.0, 3.0],
+            chunk: {
+                'type: "text", 
+                content: "This is a chunk"
+            }
+        }
+    ]
+);
+```
+
+## Examples
+
+The Ballerina Weaviate vector store module provides practical examples illustrating usage in various scenarios. Explore these [examples](https://github.com/ballerina-platform/module-ballerinax-ai.weaviate/tree/main/examples).
+
+1. [Book recommendation system](https://github.com/ballerina-platform/module-ballerinax-ai.weaviate/tree/main/examples/book-recommendation-system)
+   This example shows how to use Weaviate vector store APIs to implement a book recommendation system that stores book embeddings and queries them to find similar books based on vector similarity and metadata filtering.
+
+// --- END README ---
+
+// --- Types ---
+
+# Configuration for the Weaviate vector store.
+# 
+
+type Configuration record {
+    # The name of the collection to use
+    string collectionName;
+    # The name of the field to contain the chunk details
+    string chunkFieldName?;
+};
+
+# Configuration for the Weaviate connection.
+
+type ConnectionConfig record {
+    # Configurations related to client authentication
+    http:BearerTokenConfig auth?; // Special Agent Note: BearerTokenConfig FROM ballerina/http package
+    # The HTTP version understood by the client
+    http:HttpVersion httpVersion?; // Special Agent Note: HttpVersion FROM ballerina/http package
+    # Configurations related to HTTP/1.x protocol
+    weaviate:ClientHttp1Settings http1Settings?; // Special Agent Note: ClientHttp1Settings FROM ballerinax/weaviate package
+    # Configurations related to HTTP/2 protocol
+    http:ClientHttp2Settings http2Settings?; // Special Agent Note: ClientHttp2Settings FROM ballerina/http package
+    # The maximum time to wait (in seconds) for a response before closing the connection
+    decimal timeout?;
+    # The choice of setting `forwarded`/`x-forwarded` header
+    string forwarded?;
+    # Configurations associated with request pooling
+    http:PoolConfiguration poolConfig?; // Special Agent Note: PoolConfiguration FROM ballerina/http package
+    # HTTP caching related configurations
+    http:CacheConfig cache?; // Special Agent Note: CacheConfig FROM ballerina/http package
+    # Specifies the way of handling compression (`accept-encoding`) header
+    http:Compression compression?; // Special Agent Note: Compression FROM ballerina/http package
+    # Configurations associated with the behaviour of the Circuit Breaker
+    http:CircuitBreakerConfig circuitBreaker?; // Special Agent Note: CircuitBreakerConfig FROM ballerina/http package
+    # Configurations associated with retrying
+    http:RetryConfig retryConfig?; // Special Agent Note: RetryConfig FROM ballerina/http package
+    # Configurations associated with inbound response size limits
+    http:ResponseLimitConfigs responseLimits?; // Special Agent Note: ResponseLimitConfigs FROM ballerina/http package
+    # SSL/TLS-related options
+    http:ClientSecureSocket secureSocket?; // Special Agent Note: ClientSecureSocket FROM ballerina/http package
+    # Proxy server related options
+    http:ProxyConfig proxy?; // Special Agent Note: ProxyConfig FROM ballerina/http package
+    # Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default
+    boolean validation?;
+};
+
+# Initializes the Weaviate vector store with the given configuration.
+# 
+class VectorStore {
+    function init(@display {label: "Service URL"} string serviceUrl, @display {label: "API Key"} string apiKey, @display {label: "Weaviate Configuration"} Configuration config, @display {label: "HTTP Configuration"} ConnectionConfig httpConfig = {}) returns ai:Error?;
+
+    # Adds a list of vector entries to the Weaviate vector store.
+    # 
+    function add(ai:VectorEntry[] entries) returns ai:Error|(); // Special Agent Note: VectorEntry, Error FROM ballerina/ai package
+
+    # Deletes a vector entry from the Weaviate vector store.
+    # 
+    function delete(string|string[] ids) returns ai:Error|(); // Special Agent Note: Error FROM ballerina/ai package
+
+    # Queries the Weaviate vector store for vector entries.
+    # 
+    function query(ai:VectorStoreQuery query) returns ai:VectorMatch[]|ai:Error; // Special Agent Note: VectorStoreQuery, VectorMatch, Error FROM ballerina/ai package
+}

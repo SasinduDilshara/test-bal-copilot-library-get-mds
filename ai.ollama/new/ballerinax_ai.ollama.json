@@ -1,0 +1,1058 @@
+{
+  "name": "ballerinax/ai.ollama",
+  "description": "Ollama allows you to run open-source large language models (LLMs), such as Llama 3, Mistral, and Gemma, locally.",
+  "readme": "## Overview\n\nOllama allows you to run open-source large language models (LLMs), such as Llama 3, Mistral, and Gemma, locally.\n\nThe Ollama connector offers APIs for connecting with locally running Ollama models, enabling the integration of advanced conversational AI and language processing capabilities into applications.\n\n### Key Features\n\n- Connect and interact with local Ollama Large Language Models (LLMs)\n- Support for Llama 3, Mistral, Gemma, and other open-source models\n- Efficient handling of local model prompts and completions\n- Streamlined integration with local AI infrastructure\n\n## Prerequisites\n\nEnsure that your Ollama server is running locally before using this module in your Ballerina application.\n\n## Quickstart\n\nTo use the `ai.ollama` module in your Ballerina application, update the `.bal` file as follows:\n\n### Step 1: Import the module\n\nImport the `ai.ollama` module.\n\n```ballerina\nimport ballerinax/ai.ollama;\n```\n\n### Step 2: Intialize the Model Provider\n\nHere\u0027s how to initialize the Model Provider:\n\n```ballerina\nimport ballerina/ai;\nimport ballerinax/ai.ollama;\n\nfinal ai:ModelProvider ollamaModel \u003d check new ollama:ModelProvider(\"ollamaModelName\");\n```\n\n### Step 4: Invoke chat completion\n\n```ballerina\nai:ChatMessage[] chatMessages \u003d [{role: \"user\", content: \"hi\"}];\nai:ChatAssistantMessage response \u003d check ollamaModel-\u003echat(chatMessages, tools \u003d []);\n\nchatMessages.push(response);\n```\n",
+  "typeDefs": [
+    {
+      "name": "ConnectionConfig",
+      "description": "Configurations for controlling the behaviours when communicating with a remote HTTP endpoint.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "httpVersion",
+          "description": "The HTTP version understood by the client",
+          "type": {
+            "name": "HttpVersion",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "HttpVersion",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"HTTP Version\"}"
+            }
+          ]
+        },
+        {
+          "name": "http1Settings",
+          "description": "Configurations related to HTTP/1.x protocol",
+          "type": {
+            "name": "ClientHttp1Settings",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientHttp1Settings",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"HTTP1 Settings\"}"
+            }
+          ]
+        },
+        {
+          "name": "http2Settings",
+          "description": "Configurations related to HTTP/2 protocol",
+          "type": {
+            "name": "ClientHttp2Settings",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientHttp2Settings",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"HTTP2 Settings\"}"
+            }
+          ]
+        },
+        {
+          "name": "timeout",
+          "description": "The maximum time to wait (in seconds) for a response before closing the connection",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Timeout\"}"
+            }
+          ]
+        },
+        {
+          "name": "forwarded",
+          "description": "The choice of setting `forwarded`/`x-forwarded` header",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Forwarded\"}"
+            }
+          ]
+        },
+        {
+          "name": "poolConfig",
+          "description": "Configurations associated with request pooling",
+          "type": {
+            "name": "PoolConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "PoolConfiguration",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Pool Configuration\"}"
+            }
+          ]
+        },
+        {
+          "name": "cache",
+          "description": "HTTP caching related configurations",
+          "type": {
+            "name": "CacheConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CacheConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Cache Configuration\"}"
+            }
+          ]
+        },
+        {
+          "name": "compression",
+          "description": "Specifies the way of handling compression (`accept-encoding`) header",
+          "type": {
+            "name": "Compression",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Compression",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Compression\"}"
+            }
+          ]
+        },
+        {
+          "name": "circuitBreaker",
+          "description": "Configurations associated with the behaviour of the Circuit Breaker",
+          "type": {
+            "name": "CircuitBreakerConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CircuitBreakerConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Circuit Breaker Configuration\"}"
+            }
+          ]
+        },
+        {
+          "name": "retryConfig",
+          "description": "Configurations associated with retrying",
+          "type": {
+            "name": "RetryConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "RetryConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Retry Configuration\"}"
+            }
+          ]
+        },
+        {
+          "name": "responseLimits",
+          "description": "Configurations associated with inbound response size limits",
+          "type": {
+            "name": "ResponseLimitConfigs",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ResponseLimitConfigs",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Response Limit Configuration\"}"
+            }
+          ]
+        },
+        {
+          "name": "secureSocket",
+          "description": "SSL/TLS-related options",
+          "type": {
+            "name": "ClientSecureSocket",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientSecureSocket",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Secure Socket Configuration\"}"
+            }
+          ]
+        },
+        {
+          "name": "proxy",
+          "description": "Proxy server related options",
+          "type": {
+            "name": "ProxyConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ProxyConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Proxy Configuration\"}"
+            }
+          ]
+        },
+        {
+          "name": "validation",
+          "description": "Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Payload Validation\"}"
+            }
+          ]
+        }
+      ],
+      "annotations": [
+        {
+          "name": "display",
+          "value": "{label: \"Connection Configuration\"}"
+        }
+      ]
+    },
+    {
+      "name": "OllamaModelParameters",
+      "description": "Represents the model parameters for Ollama text generation.\nThese parameters control the behavior and output of the model.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "mirostat",
+          "description": "Enable Mirostat sampling for controlling perplexity.  \n- `0` \u003d disabled  \n- `1` \u003d Mirostat  \n- `2` \u003d Mirostat 2.0  ",
+          "type": {
+            "name": "0|1|2"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Mirostat Sampling\"}"
+            }
+          ]
+        },
+        {
+          "name": "mirostatEta",
+          "description": "Influences how quickly the algorithm responds to feedback from the generated text.  \nA lower value results in slower adjustments, while a higher value makes the model more responsive.  ",
+          "type": {
+            "name": "float"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "Name",
+              "module": "ballerina/data.jsondata",
+              "value": "{value: \"mirostat_eta\"}"
+            },
+            {
+              "name": "display",
+              "value": "{label: \"Mirostat eta\"}"
+            }
+          ]
+        },
+        {
+          "name": "mirostatTau",
+          "description": "Controls the balance between coherence and diversity of the output.  \nA lower value results in more focused and coherent text.  ",
+          "type": {
+            "name": "float"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "Name",
+              "module": "ballerina/data.jsondata",
+              "value": "{value: \"mirostat_tau\"}"
+            },
+            {
+              "name": "display",
+              "value": "{label: \"Mirostat tau\"}"
+            }
+          ]
+        },
+        {
+          "name": "numCtx",
+          "description": "Sets the size of the context window used to generate the next token.  ",
+          "type": {
+            "name": "int"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "Name",
+              "module": "ballerina/data.jsondata",
+              "value": "{value: \"num_ctx\"}"
+            },
+            {
+              "name": "display",
+              "value": "{label: \"Context Window Size\"}"
+            }
+          ]
+        },
+        {
+          "name": "repeatLastN",
+          "description": "Sets how far back the model should look to prevent repetition.  \n- `0` \u003d disabled  \n- `-1` \u003d num_ctx  ",
+          "type": {
+            "name": "int"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "Name",
+              "module": "ballerina/data.jsondata",
+              "value": "{value: \"repeat_last_n\"}"
+            },
+            {
+              "name": "display",
+              "value": "{label: \"Repeat Last N\"}"
+            }
+          ]
+        },
+        {
+          "name": "repeatPenalty",
+          "description": "Sets how strongly to penalize repetitions.  \nA higher value (e.g., `1.5`) will penalize repetitions more strongly,  \nwhile a lower value (e.g., `0.9`) will be more lenient.  ",
+          "type": {
+            "name": "float"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "Name",
+              "module": "ballerina/data.jsondata",
+              "value": "{value: \"repeat_penalty\"}"
+            },
+            {
+              "name": "display",
+              "value": "{label: \"Repeat Penalty\"}"
+            }
+          ]
+        },
+        {
+          "name": "temperature",
+          "description": "Controls the creativity of the model\u0027s responses.  \nA higher value makes the output more diverse, while a lower value makes it more focused.  ",
+          "type": {
+            "name": "float"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Temperature\"}"
+            }
+          ]
+        },
+        {
+          "name": "seed",
+          "description": "Sets the random number seed for deterministic text generation.  \nA specific value ensures the same output for identical prompts.  ",
+          "type": {
+            "name": "int"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Seed\"}"
+            }
+          ]
+        },
+        {
+          "name": "numPredict",
+          "description": "Maximum number of tokens to generate.  \n`-1` allows infinite generation.  ",
+          "type": {
+            "name": "int"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "Name",
+              "module": "ballerina/data.jsondata",
+              "value": "{value: \"num_predict\"}"
+            },
+            {
+              "name": "display",
+              "value": "{label: \"Number of Tokens to Predict\"}"
+            }
+          ]
+        },
+        {
+          "name": "topK",
+          "description": "Controls randomness by selecting the top-k most likely next words.  \nA higher value (e.g., `100`) increases diversity,  \nwhile a lower value (e.g., `10`) makes responses more conservative.  ",
+          "type": {
+            "name": "int"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "Name",
+              "module": "ballerina/data.jsondata",
+              "value": "{value: \"top_k\"}"
+            },
+            {
+              "name": "display",
+              "value": "{label: \"Top K\"}"
+            }
+          ]
+        },
+        {
+          "name": "topP",
+          "description": "Controls randomness by considering the cumulative probability of choices.  \nA higher value (e.g., `0.95`) increases diversity,  \nwhile a lower value (e.g., `0.5`) makes responses more conservative.  ",
+          "type": {
+            "name": "float"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "Name",
+              "module": "ballerina/data.jsondata",
+              "value": "{value: \"top_p\"}"
+            },
+            {
+              "name": "display",
+              "value": "{label: \"Top P\"}"
+            }
+          ]
+        },
+        {
+          "name": "minP",
+          "description": "Ensures a balance between quality and variety.  \nFilters out low-probability tokens relative to the highest probability token.  ",
+          "type": {
+            "name": "float"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "Name",
+              "module": "ballerina/data.jsondata",
+              "value": "{value: \"min_p\"}"
+            },
+            {
+              "name": "display",
+              "value": "{label: \"Min P\"}"
+            }
+          ]
+        }
+      ],
+      "annotations": [
+        {
+          "name": "display",
+          "value": "{label: \"Ollama Model Parameters\"}"
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "name": "ModelProvider",
+      "description": "Provider represents a client for interacting with an Ollama language models.",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes the client with the given connection configuration and model configuration.\n",
+          "parameters": [
+            {
+              "name": "modelType",
+              "description": "The Ollama model name",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Model Type\"}"
+                }
+              ]
+            },
+            {
+              "name": "serviceUrl",
+              "description": "The base URL for the Ollama API endpoint",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "http://localhost:11434",
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Service URL\"}"
+                }
+              ]
+            },
+            {
+              "name": "mirostat",
+              "description": "Enable Mirostat sampling for controlling perplexity.  \n- `0` \u003d disabled  \n- `1` \u003d Mirostat  \n- `2` \u003d Mirostat 2.0  ",
+              "type": {
+                "name": "0|1|2"
+              },
+              "optional": true,
+              "default": "0"
+            },
+            {
+              "name": "mirostatEta",
+              "description": "Influences how quickly the algorithm responds to feedback from the generated text.  \nA lower value results in slower adjustments, while a higher value makes the model more responsive.  ",
+              "type": {
+                "name": "float"
+              },
+              "optional": true,
+              "default": "0.1"
+            },
+            {
+              "name": "mirostatTau",
+              "description": "Controls the balance between coherence and diversity of the output.  \nA lower value results in more focused and coherent text.  ",
+              "type": {
+                "name": "float"
+              },
+              "optional": true,
+              "default": "5.0"
+            },
+            {
+              "name": "numCtx",
+              "description": "Sets the size of the context window used to generate the next token.  ",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "2048"
+            },
+            {
+              "name": "repeatLastN",
+              "description": "Sets how far back the model should look to prevent repetition.  \n- `0` \u003d disabled  \n- `-1` \u003d num_ctx  ",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "64"
+            },
+            {
+              "name": "repeatPenalty",
+              "description": "Sets how strongly to penalize repetitions.  \nA higher value (e.g., `1.5`) will penalize repetitions more strongly,  \nwhile a lower value (e.g., `0.9`) will be more lenient.  ",
+              "type": {
+                "name": "float"
+              },
+              "optional": true,
+              "default": "1.1"
+            },
+            {
+              "name": "temperature",
+              "description": "Controls the creativity of the model\u0027s responses.  \nA higher value makes the output more diverse, while a lower value makes it more focused.  ",
+              "type": {
+                "name": "float"
+              },
+              "optional": true,
+              "default": "0.8"
+            },
+            {
+              "name": "seed",
+              "description": "Sets the random number seed for deterministic text generation.  \nA specific value ensures the same output for identical prompts.  ",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "0"
+            },
+            {
+              "name": "numPredict",
+              "description": "Maximum number of tokens to generate.  \n`-1` allows infinite generation.  ",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "-1"
+            },
+            {
+              "name": "topK",
+              "description": "Controls randomness by selecting the top-k most likely next words.  \nA higher value (e.g., `100`) increases diversity,  \nwhile a lower value (e.g., `10`) makes responses more conservative.  ",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "40"
+            },
+            {
+              "name": "topP",
+              "description": "Controls randomness by considering the cumulative probability of choices.  \nA higher value (e.g., `0.95`) increases diversity,  \nwhile a lower value (e.g., `0.5`) makes responses more conservative.  ",
+              "type": {
+                "name": "float"
+              },
+              "optional": true,
+              "default": "0.9"
+            },
+            {
+              "name": "minP",
+              "description": "Ensures a balance between quality and variety.  \nFilters out low-probability tokens relative to the highest probability token.  ",
+              "type": {
+                "name": "float"
+              },
+              "optional": true,
+              "default": "0.0"
+            },
+            {
+              "name": "modleParameters",
+              "description": "Additional model parameters",
+              "type": {
+                "name": "OllamaModelParameters",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "OllamaModelParameters"
+                  }
+                ]
+              },
+              "optional": true,
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Ollama Model Parameters\"}"
+                }
+              ]
+            },
+            {
+              "name": "httpVersion",
+              "description": "The HTTP version understood by the client",
+              "type": {
+                "name": "HttpVersion",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "HttpVersion",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "http:HTTP_2_0"
+            },
+            {
+              "name": "http1Settings",
+              "description": "Configurations related to HTTP/1.x protocol",
+              "type": {
+                "name": "ClientHttp1Settings",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ClientHttp1Settings",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "http2Settings",
+              "description": "Configurations related to HTTP/2 protocol",
+              "type": {
+                "name": "ClientHttp2Settings",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ClientHttp2Settings",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "timeout",
+              "description": "The maximum time to wait (in seconds) for a response before closing the connection",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "60"
+            },
+            {
+              "name": "forwarded",
+              "description": "The choice of setting `forwarded`/`x-forwarded` header",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"disable\""
+            },
+            {
+              "name": "poolConfig",
+              "description": "Configurations associated with request pooling",
+              "type": {
+                "name": "PoolConfiguration",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "PoolConfiguration",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "cache",
+              "description": "HTTP caching related configurations",
+              "type": {
+                "name": "CacheConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "CacheConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "compression",
+              "description": "Specifies the way of handling compression (`accept-encoding`) header",
+              "type": {
+                "name": "Compression",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "Compression",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "AUTO"
+            },
+            {
+              "name": "circuitBreaker",
+              "description": "Configurations associated with the behaviour of the Circuit Breaker",
+              "type": {
+                "name": "CircuitBreakerConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "CircuitBreakerConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "retryConfig",
+              "description": "Configurations associated with retrying",
+              "type": {
+                "name": "RetryConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "RetryConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "responseLimits",
+              "description": "Configurations associated with inbound response size limits",
+              "type": {
+                "name": "ResponseLimitConfigs",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ResponseLimitConfigs",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "secureSocket",
+              "description": "SSL/TLS-related options",
+              "type": {
+                "name": "ClientSecureSocket",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ClientSecureSocket",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "proxy",
+              "description": "Proxy server related options",
+              "type": {
+                "name": "ProxyConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ProxyConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "validation",
+              "description": "Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "true"
+            },
+            {
+              "name": "connectionConfig",
+              "description": "Additional connection configuration",
+              "type": {
+                "name": "ConnectionConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ConnectionConfig"
+                  }
+                ]
+              },
+              "optional": true,
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Connection Configuration\"}"
+                }
+              ]
+            }
+          ],
+          "return": {
+            "description": "`nil` on success, otherwise an `ai:Error`. ",
+            "type": {
+              "name": "ai:Error?"
+            }
+          }
+        },
+        {
+          "name": "chat",
+          "type": "Remote Function",
+          "description": "Sends a chat request to the Ollama model with the given messages and tools.\n",
+          "parameters": [
+            {
+              "name": "messages",
+              "description": "List of chat messages or user message",
+              "type": {
+                "name": "ChatMessage[]|ChatUserMessage",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ChatMessage",
+                    "libraryName": "ballerina/ai"
+                  },
+                  {
+                    "category": "external",
+                    "recordName": "ChatUserMessage",
+                    "libraryName": "ballerina/ai"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "tools",
+              "description": "Tool definitions to be used for the tool call",
+              "type": {
+                "name": "ChatCompletionFunctions[]",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ChatCompletionFunctions",
+                    "libraryName": "ballerina/ai"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "[]"
+            },
+            {
+              "name": "stop",
+              "description": "Stop sequence to stop the completion",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "Function to be called, chat response or an error in-case of failures",
+            "type": {
+              "name": "ChatAssistantMessage|Error",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "ChatAssistantMessage",
+                  "libraryName": "ballerina/ai"
+                },
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/ai"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "generate",
+          "type": "Remote Function",
+          "description": "Sends a chat request to the model and generates a value that belongs to the type\ncorresponding to the type descriptor argument.\n",
+          "parameters": [
+            {
+              "name": "prompt",
+              "description": "The prompt to use in the chat messages",
+              "type": {
+                "name": "Prompt",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "Prompt",
+                    "libraryName": "ballerina/ai"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "td",
+              "description": "Type descriptor specifying the expected return type format",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata",
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Expected type\"}"
+                }
+              ]
+            }
+          ],
+          "return": {
+            "description": "Generates a value that belongs to the type, or an error if generation fails",
+            "type": {
+              "name": "td|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "td"
+                },
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/ai"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "annotations": [
+        {
+          "name": "display",
+          "value": "{label: \"Ollama Model Provider\"}"
+        }
+      ]
+    }
+  ],
+  "functions": [],
+  "services": [],
+  "annotations": [
+    {
+      "name": "JsonSchema",
+      "attachmentPoint": "TYPE",
+      "typeConstraint": {
+        "name": "map\u003cjson\u003e"
+      }
+    }
+  ]
+}

@@ -1,0 +1,1839 @@
+{
+  "name": "ballerina/email",
+  "description": "This module provides APIs to perform email operations such as sending and reading emails using the SMTP, POP3, and IMAP4 protocols.",
+  "readme": "## Overview\n\nThis module provides APIs to perform email operations such as sending and reading emails using the SMTP, POP3, and IMAP4 protocols.\n\n### Client\n\nThis module supports the following three client types.\n\n**email:SmtpClient**: The client, which supports sending an email using the SMTP protocol.\n\n**email:PopClient**: The client, which supports receiving an email using the POP3 protocol.\n\n**email:ImapClient**: The client, which supports receiving an email using the IMAP4 protocol.\n\n#### SMTP client\n\nTo send an email using the SMTP protocol, you must first create an `email:SmtpClient` object. The code for creating an `email:SmtpClient` can be found\nbelow.\n\n##### Create a client\n\nThe following code creates an SMTP client, which connects to the default port (i.e. 465) and enables SSL.\n\n```ballerina\nemail:SmtpClient smtpClient \u003d check new (\"smtp.email.com\", \"sender@email.com\", \"pass123\");\n```\n\nThe port number of the server can be configured by passing the following configurations.\n\n```ballerina\nemail:SmtpConfiguration smtpConfig \u003d {\n    port: 465\n};\n\nemail:SmtpClient smtpClient \u003d check new (\"smtp.email.com\", \"sender@email.com\", \"pass123\", smtpConfig);\n```\n\n##### OAuth2 authentication\n\nThe SMTP client supports OAuth2 authentication (XOAUTH2 SASL mechanism) via the `auth` field in `SmtpConfiguration`. Tokens are managed by the `ballerina/oauth2` module, which handles caching and refresh automatically.\n\n**Direct access token**: Pass a pre-obtained token as a `string`. You are responsible for its lifecycle.\n\n```ballerina\nemail:SmtpConfiguration smtpConfig \u003d {\n    port: 587,\n    security: email:START_TLS_AUTO,\n    auth: \"ya29.access-token-value\"\n};\n\nemail:SmtpClient smtpClient \u003d check new (\"smtp.gmail.com\", \"sender@gmail.com\", clientConfig \u003d smtpConfig);\n```\n\n**Client Credentials Grant**: The library fetches and refreshes the token automatically.\n\n```ballerina\nimport ballerina/oauth2;\n\noauth2:ClientCredentialsGrantConfig grantConfig \u003d {\n    tokenUrl: \"https://oauth2.example.com/token\",\n    clientId: \"my-client-id\",\n    clientSecret: \"my-client-secret\"\n};\n\nemail:SmtpConfiguration smtpConfig \u003d {\n    port: 587,\n    security: email:START_TLS_AUTO,\n    auth: grantConfig\n};\n\nemail:SmtpClient smtpClient \u003d check new (\"smtp.example.com\", \"sender@example.com\", clientConfig \u003d smtpConfig);\n```\n\n**Resource Owner Password Credentials Grant**:\n\n```ballerina\nimport ballerina/oauth2;\n\noauth2:PasswordGrantConfig grantConfig \u003d {\n    tokenUrl: \"https://oauth2.example.com/token\",\n    username: \"resource-owner@example.com\",\n    password: \"resource-owner-password\",\n    clientId: \"my-client-id\",\n    clientSecret: \"my-client-secret\"\n};\n\nemail:SmtpConfiguration smtpConfig \u003d {\n    port: 587,\n    security: email:START_TLS_AUTO,\n    auth: grantConfig\n};\n\nemail:SmtpClient smtpClient \u003d check new (\"smtp.example.com\", \"sender@example.com\", clientConfig \u003d smtpConfig);\n```\n\n##### Send an email\n\nOnce the `email:SmtpClient` is created, an email can be sent using the SMTP protocol through that client.\nSamples for this operation can be found below.\n\n```ballerina\nemail:Message email \u003d {\n    to: [\"receiver1@email.com\", \"receiver2@email.com\"],\n    cc: [\"receiver3@email.com\", \"receiver4@email.com\"],\n    bcc: [\"receiver5@email.com\"],\n    subject: \"Sample Email\",\n    body: \"This is a sample email.\",\n    \u0027from: \"author@email.com\",\n    sender: \"sender@email.com\",\n    replyTo: [\"replyTo1@email.com\", \"replyTo2@email.com\"]\n};\n\ncheck smtpClient-\u003esendMessage(email);\n```\n\nAn email can be sent directly by calling the client specifying optional parameters as named parameters as well.\nSamples for this operation can be found below.\n\n```ballerina\nemail:Error? response \u003d smtpClient-\u003esend(\n    [\"receiver1@email.com\", \"receiver2@email.com\"],\n    \"Sample Email\",\n    \"author@email.com\",\n    body\u003d\"This is a sample email.\",\n    cc\u003d[\"receiver3@email.com\", \"receiver4@email.com\"],\n    bcc\u003d[\"receiver5@email.com\"],\n    sender\u003d\"sender@email.com\",\n    replyTo\u003d[\"replyTo1@email.com\", \"replyTo2@email.com\"]\n);\n```\n\n#### POP3 client\n\nTo receive an email using the POP3 protocol, you must first create an `email:PopClient` object. The code for creating an\n`email:PopClient` can be found below.\n\n##### Create a client\n\nThe following code creates a POP3 client, which connects to the default port (i.e. 995) and enables SSL.\n\n```ballerina\nemail:PopClient popClient \u003d check new (\"pop.email.com\", \"reader@email.com\", \"pass456\");\n```\n\nThe port number of the server can be configured by passing the following configurations.\n\n```ballerina\nemail:PopConfiguration popConfig \u003d {\n    port: 995\n};\n\nemail:PopClient popClient \u003d check new (\"pop.email.com\", \"reader@email.com\", \"pass456\", popConfig);\n```\n\n##### Receive an email\n\nOnce the `email:PopClient` is created, emails can be received using the POP3 protocol through that client.\nSamples for this operation can be found below.\n\n```ballerina\nemail:Message? emailResponse \u003d check popClient-\u003ereceiveMessage();\n```\n\n#### IMAP4 client\n\nTo receive an email using the IMAP4 protocol, you must first create an `email:ImapClient` object. The code for creating an\n`email:ImapClient` can be found below.\n\n##### Create a client\n\nThe following code creates an IMAP4 client, which connects to the default port (i.e. 993) and enables SSL.\n\n```ballerina\nemail:ImapClient imapClient \u003d check new (\"imap.email.com\", \"reader@email.com\", \"pass456\");\n```\n\nThe port number of the server can be configured by passing the following configuration.\n\n```ballerina\nemail:ImapConfiguration imapConfig \u003d {\n    port: 993\n};\n\nemail:ImapClient imapClient \u003d check new (\"imap.email.com\", \"reader@email.com\", \"pass456\", imapConfig);\n```\n\n##### Receive an email\n\nOnce the `email:ImapClient` is created, emails can be received using the IMAP4 protocol through that client.\nSamples for this operation can be found below.\n\n```ballerina\nemail:Message? emailResponse \u003d check imapClient-\u003ereceiveMessage();\n```\n\n#### POP3 and IMAP listeners\n\nAs POP3 and IMAP4 protocols are similar in the listener use cases, POP3 is considered in the examples below.\nIn order to receive emails one-by-one from a POP3 server, you must first create an `email:PopListener` object.\nThe code for creating an `email:PopListener` can be found below.\n\n```ballerina\nlistener email:PopListener emailListener \u003d check new ({\n    host: \"pop.email.com\",\n    username: \"reader@email.com\",\n    password: \"pass456\",\n    pollingInterval: 2,\n    port: 995\n});\n```\n\nOnce initialized, a `service` can listen to the new emails as follows. New emails get received at the `onMessage`\nmethod and when errors happen, the `onError` method gets called.\n\n```ballerina\nservice \"emailObserver\" on emailListener {\n\n    remote function onMessage(email:Message emailMessage) {\n        io:println(\"Email Subject: \", emailMessage.subject);\n        io:println(\"Email Body: \", emailMessage.body);\n    }\n\n    remote function onError(email:Error emailError) {\n        io:println(\"Error while polling for the emails: \" + emailError.message());\n    }\n\n}\n```\n\n### Security and authentication\n\nThe `email` module supports both the TLS/SSL and STARTTLS as transport-level security protocols.\n\nTransport-level security for all SMTP, POP3, and IMAP clients/listeners can be configured with the `secureSocket` field.\n\n```ballerina\nsecureSocket: {\n    cert: \"path/to/certfile.crt\",\n    protocol: {\n        name: TLS,\n        versions: [\"TLSv1.2\", \"TLSv1.1\"]\n    },\n    ciphers: [\"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA\"],\n    verifyHostName: true\n}\n```\n\nTransport-level security for the SMTP client configuration can be defined as follows.\n\n```ballerina\nemail:SmtpConfiguration smtpConfig \u003d {\n    port: 465,\n    secureSocket: {\n        // Transport level configuration\n    }\n};\n```\n\nTransport-level security for the POP3 client configuration can be defined as follows.\n\n```ballerina\nemail:PopConfiguration popConfig \u003d {\n     port: 995,\n     secureSocket: {\n         // Transport level configuration\n     }\n};\n```\n\nTransport-level security for the IMAP client configuration can be defined as follows.\n\n```ballerina\nemail:ImapConfiguration imapConfig \u003d {\n     port: 993,\n     secureSocket: {\n         // Transport level configuration\n     }\n};\n```\n\nTransport-level security for the POP3 listener configuration can be defined as follows.\n\n```ballerina\nemail:PopListenerConfiguration popListenerConfig \u003d {\n    host: \"127.0.0.1\",\n    username: \"hascode\",\n    password: \"abcdef123\",\n    pollingInterval: 2,\n    port: 995,\n    secureSocket: {\n        // Transport level configuration\n    }\n};\n```\n\nTransport-level security for the IMAP listener configuration can be defined as follows.\n\n```ballerina\nemail:ImapListenerConfiguration imapListenerConfig \u003d {\n    host: \"127.0.0.1\",\n    username: \"hascode\",\n    password: \"abcdef123\",\n    pollingInterval: 2,\n    port: 993,\n    secureSocket: {\n        // Transport level configuration\n    }\n};\n```\n\nBy default, TLS/SSL is enabled as the default transport-level security protocol, and the certificate verification is set as required.\nThis optional protocol definition can be configured with the `security` `enum` field in each of the configuration types described above.\n\nThe options available with the `security` field are as follows.\n\n**SSL**: As same as the default TLS/SSL protocol\n\n**START_TLS_NEVER**: Disables both TLS/SSL and STARTTLS protocols and allows only the unencrypted transport-level communication\n\n**START_TLS_ALWAYS**: Makes it mandatory to use the secure STARTTLS protocol\n\n**START_TLS_AUTO**: Enables the STARTTLS protocol, which would switch to the unsecured communication mode if the secure STARTTLS mode is not available in the server\n\nThe following is an example of using the `security` field in the SMTP client with the `START_TLS_AUTO` mode.\n\n```ballerina\nemail:SmtpConfiguration smtpConfig \u003d {\n    port: 587,\n    secureSocket: {\n        // Transport level configuration\n    },\n    security: START_TLS_AUTO\n};\n```\n\nSimilarly, other client/listener configuration types can also be defined with the `security` field.\n\n**Note**: Make sure the port number is changed accordingly depending on the protocol used.\n\nStandard port numbers used for each of the protocol for each type of transport security are as given below.\n\n| Protocol/Security | SSL | STARTTLS | Unsecure |\n| ----------------- | --- | -------- | -------- |\n| **SMTP**          | 465 | 587      | 25, 587  |\n| **POP3**          | 995 | 995      | 110      |\n| **IMAP4**         | 993 | 143, 993 | 143      |\n\nAll the username/password authentications are based on the credentials passed to the `email:SmtpClient` initializer.\n\n\u003e **Note:** When the `\u0027from` field is not provided in an `email:Message`, the `username` field of the initialization argument of the `email:SmtpClient` is set as the `from` address of an email to be sent with SMTP.\n\n#### OAuth2 authentication for SMTP\n\nIn addition to username/password credentials, the SMTP client supports OAuth2 authentication via the XOAUTH2 SASL mechanism. Pass any `oauth2:GrantConfig` through the `auth` field of `SmtpConfiguration`:\n\n```ballerina\nimport ballerina/oauth2;\n\noauth2:ClientCredentialsGrantConfig grantConfig \u003d {\n    tokenUrl: \"https://oauth2.provider.com/token\",\n    clientId: \"your-client-id\",\n    clientSecret: \"your-client-secret\",\n    scopes: [\"https://mail.google.com/\"]\n};\n\nemail:SmtpConfiguration smtpConfig \u003d {\n    port: 587,\n    security: email:START_TLS_ALWAYS,\n    auth: grantConfig\n};\n\nemail:SmtpClient smtpClient \u003d check new (\"smtp.gmail.com\", \"sender@gmail.com\", clientConfig \u003d smtpConfig);\n```\n\nWith `OAuth2GrantConfig`, the initial token is fetched at `SmtpClient` initialization — if the token endpoint is unreachable or rejects the credentials, the `check new (...)` call will fail immediately. The token is then cached and refreshed automatically on expiry for subsequent sends. For direct `string` tokens, the caller is fully responsible for token lifecycle. The `username` (sender address) is still required; the `password` parameter must be omitted when `auth` is provided.\n\n### Message content and structure\n\nAn `email:Message` prepared to be sent can have the text body content, `body`, and/or HTML body content (`htmlBody`).\nWhen emails are received with POP3 or IMAP, the text email bodies and HTML bodies of the email are captured by the `body` and `htmlBody` fields of the `email:Message` respectively.\n\nWhen sending emails with SMTP, there are four options to specify the email `attachments` in the `email:Message`.\n\n1. With the `email:Attachment` type, which points to an attachment file along with its content-type\n2. With an array of the `email:Attachment` type\n3. With the `mime:Entity` type\n4. With an array of the `mime:Entity` type\n\nOption 1 and 2 are designed for ordinary users to attach files from the local machine along with its content-type.\nOption 3 and 4 are designed for advanced users who have programming knowledge to define complex MIME typed data attachments.\n\nThe following is an example of attaching a PDF file to an email with option 1.\n\n```ballerina\nemail:Attachment pdfAttachment \u003d {filePath: \"path/to/application.pdf\", contentType: \"application/pdf\"};\n\nemail:Message email \u003d {\n    // Other fields\n    attachments: pdfAttachment\n};\n```\n\nThe following is an example of attaching a JPG file to an email with option 3.\n\n```ballerina\nmime:Entity imageAttachment \u003d new;\nmime:ContentDisposition disposition \u003d new;\ndisposition.fileName \u003d \"profilePic.jpg\";\ndisposition.disposition \u003d \"attachment\";\ndisposition.name \u003d \"profilePic\";\nimageAttachment.setContentDisposition(disposition);\nimageAttachment.setContentId(\"ImageAttachment\");\nimageAttachment.setFileAsEntityBody(\"path/to/profilePic.jpg\", mime:IMAGE_JPEG);\n\nemail:Message email \u003d {\n    // Other fields\n    attachments: imageAttachment\n};\n```\n",
+  "typeDefs": [
+    {
+      "name": "START_TLS_AUTO",
+      "description": "",
+      "type": "Constant",
+      "value": "START_TLS_AUTO",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "START_TLS_ALWAYS",
+      "description": "",
+      "type": "Constant",
+      "value": "START_TLS_ALWAYS",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "START_TLS_NEVER",
+      "description": "",
+      "type": "Constant",
+      "value": "START_TLS_NEVER",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "SSL",
+      "description": "",
+      "type": "Constant",
+      "value": "SSL",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "TLS",
+      "description": "",
+      "type": "Constant",
+      "value": "TLS",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "DEFAULT_FOLDER",
+      "description": "Default folder to read emails.",
+      "type": "Constant",
+      "value": "INBOX",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "Message",
+      "description": "Email message properties.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "to",
+          "description": "TO address list",
+          "type": {
+            "name": "string|string[]"
+          }
+        },
+        {
+          "name": "subject",
+          "description": "Subject of email",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "\u0027from",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "body",
+          "description": "Text typed body of the email message",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "htmlBody",
+          "description": "HTML typed body of the email message",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "cc",
+          "description": "CC address list",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "bcc",
+          "description": "BCC address list",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "replyTo",
+          "description": "Reply To addresses",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "contentType",
+          "description": "Content Type of the Body",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "headers",
+          "description": "Header list",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "sender",
+          "description": "Sender\u0027s address",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "attachments",
+          "description": "Email attachements",
+          "type": {
+            "name": "Entity|Attachment|Entity|Attachment[]",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Entity",
+                "libraryName": "ballerina/mime"
+              },
+              {
+                "category": "internal",
+                "recordName": "Attachment"
+              },
+              {
+                "category": "external",
+                "recordName": "Entity",
+                "libraryName": "ballerina/mime"
+              },
+              {
+                "category": "internal",
+                "recordName": "Attachment"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Attachment",
+      "description": "Email attachment.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "filePath",
+          "description": "File path of the attachment",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "contentType",
+          "description": "Content Type of the attachment",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Options",
+      "description": "Optional parameters for an Email message.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "htmlBody",
+          "description": "HTML typed body of the email message",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "contentType",
+          "description": "Content Type of the Body",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "headers",
+          "description": "Header list",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "cc",
+          "description": "CC address list",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "bcc",
+          "description": "BCC address list",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "replyTo",
+          "description": "Reply To addresses",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "sender",
+          "description": "Sender\u0027s address",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "attachments",
+          "description": "Email attachements",
+          "type": {
+            "name": "Entity|Attachment|Entity|Attachment[]",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Entity",
+                "libraryName": "ballerina/mime"
+              },
+              {
+                "category": "internal",
+                "recordName": "Attachment"
+              },
+              {
+                "category": "external",
+                "recordName": "Entity",
+                "libraryName": "ballerina/mime"
+              },
+              {
+                "category": "internal",
+                "recordName": "Attachment"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Protocol",
+      "description": "Represents protocol options.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "TLS",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "SecureSocket",
+      "description": "Secure Socket configuration.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "cert",
+          "description": "Server certificate path",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "protocol",
+          "description": "SSL or TLS protocol",
+          "type": {
+            "name": "record {|Protocol name; string[] versions;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "ciphers",
+          "description": "Ciper used",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "verifyHostName",
+          "description": "Enable hostname verification",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Security",
+      "description": "Security type.\n",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "SSL",
+          "description": ""
+        },
+        {
+          "name": "START_TLS_NEVER",
+          "description": ""
+        },
+        {
+          "name": "START_TLS_ALWAYS",
+          "description": ""
+        },
+        {
+          "name": "START_TLS_AUTO",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "OAuth2ClientCredentialsGrantConfig",
+      "description": "OAuth2 Client Credentials Grant configuration for SMTP authentication.\nAlias for `oauth2:ClientCredentialsGrantConfig`.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "tokenUrl",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "clientId",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "clientSecret",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "scopes",
+          "description": "",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "defaultTokenExpTime",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "clockSkew",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "optionalParams",
+          "description": "",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "credentialBearer",
+          "description": "",
+          "type": {
+            "name": "CredentialBearer",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CredentialBearer",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "clientConfig",
+          "description": "",
+          "type": {
+            "name": "ClientConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientConfiguration",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "OAuth2PasswordGrantConfig",
+      "description": "OAuth2 Resource Owner Password Credentials Grant configuration for SMTP authentication.\nAlias for `oauth2:PasswordGrantConfig`.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "tokenUrl",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "username",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "password",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "clientId",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "clientSecret",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "scopes",
+          "description": "",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "refreshConfig",
+          "description": "",
+          "type": {
+            "name": "RefreshConfig|\"INFER_REFRESH_CONFIG\"",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "RefreshConfig",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "defaultTokenExpTime",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "clockSkew",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "optionalParams",
+          "description": "",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "credentialBearer",
+          "description": "",
+          "type": {
+            "name": "CredentialBearer",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CredentialBearer",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "clientConfig",
+          "description": "",
+          "type": {
+            "name": "ClientConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientConfiguration",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "OAuth2GrantConfig",
+      "description": "OAuth2 grant configuration for SMTP authentication.\nCan be either `OAuth2ClientCredentialsGrantConfig` or `OAuth2PasswordGrantConfig`.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "OAuth2ClientCredentialsGrantConfig",
+          "type": {
+            "name": "OAuth2ClientCredentialsGrantConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OAuth2ClientCredentialsGrantConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "OAuth2PasswordGrantConfig",
+          "type": {
+            "name": "OAuth2PasswordGrantConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OAuth2PasswordGrantConfig"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Service",
+      "description": "Represents a Email service.",
+      "type": "Class"
+    },
+    {
+      "name": "Error",
+      "description": "Defines the common error type for the module.",
+      "type": "Error",
+      "baseType": "error"
+    },
+    {
+      "name": "ImapConfiguration",
+      "description": "Configuration of the IMAP Endpoint.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "port",
+          "description": "Port number of the IMAP server",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "security",
+          "description": "Type of security channel",
+          "type": {
+            "name": "Security",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Security"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "Secure socket configuration",
+          "type": {
+            "name": "SecureSocket",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SecureSocket"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ImapListenerConfiguration",
+      "description": "Configuration for Email listener endpoint.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "host",
+          "description": "Email server host",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "username",
+          "description": "Email server access username",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "password",
+          "description": "Email server access password",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "pollingInterval",
+          "description": "Periodic time interval (in seconds) to check new update",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "port",
+          "description": "Port number of the IMAP server",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "security",
+          "description": "Type of security channel",
+          "type": {
+            "name": "Security",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Security"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "Secure socket configuration",
+          "type": {
+            "name": "SecureSocket",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SecureSocket"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "PopConfiguration",
+      "description": "Configuration of the POP Endpoint.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "port",
+          "description": "Port number of the POP server",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "security",
+          "description": "Type of security channel",
+          "type": {
+            "name": "Security",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Security"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "Secure socket configuration",
+          "type": {
+            "name": "SecureSocket",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SecureSocket"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "PopListenerConfiguration",
+      "description": "Configuration for Email listener endpoint.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "host",
+          "description": "Email server host",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "username",
+          "description": "Email server access username",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "password",
+          "description": "Email server access password",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "pollingInterval",
+          "description": "Periodic time interval (in seconds) to check new update",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "port",
+          "description": "Port number of the POP server",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "security",
+          "description": "Type of security channel",
+          "type": {
+            "name": "Security",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Security"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "Secure socket configuration",
+          "type": {
+            "name": "SecureSocket",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SecureSocket"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "SmtpConfiguration",
+      "description": "Configuration of the SMTP Endpoint.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "port",
+          "description": "Port number of the SMTP server",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "security",
+          "description": "Type of security channel",
+          "type": {
+            "name": "Security",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Security"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "Secure socket configuration",
+          "type": {
+            "name": "SecureSocket",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SecureSocket"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "auth",
+          "description": "Authentication configuration: a direct access token (`string`) for XOAUTH2, or an\n`OAuth2GrantConfig` to fetch a token from an authorization server",
+          "type": {
+            "name": "OAuth2ClientCredentialsGrantConfig|OAuth2PasswordGrantConfig|string",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OAuth2ClientCredentialsGrantConfig"
+              },
+              {
+                "category": "internal",
+                "recordName": "OAuth2PasswordGrantConfig"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ImapListener",
+      "description": "Gets invoked during the `email:ImapListener` initialization.\n",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Gets invoked during the `email:ImapListener` initialization.\n",
+          "parameters": [
+            {
+              "name": "listenerConfig",
+              "type": {
+                "name": "ImapListenerConfiguration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ImapListenerConfiguration"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "`()` or else an `email:Error` upon failure to\ninitialize the listener",
+            "type": {
+              "name": "Error?"
+            }
+          }
+        },
+        {
+          "name": "\u0027start",
+          "type": "Normal Function",
+          "description": "Starts the `email:ImapListener`.\n```ballerina\nemail:Error? result \u003d emailListener.start();\n```\n",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "name": "attach",
+          "type": "Normal Function",
+          "description": "Binds a service to the `email:ImapListener`.\n```ballerina\nemail:Error? result \u003d emailListener.attach(helloService, hello);\n```\n",
+          "parameters": [
+            {
+              "name": "s",
+              "description": "Type descriptor of the service",
+              "type": {
+                "name": "Service",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Service"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "name",
+              "description": "Name of the service",
+              "type": {
+                "name": "string[]|string|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "`()` or else a `email:Error` upon failure to register the listener",
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "name": "detach",
+          "type": "Normal Function",
+          "description": "Stops consuming messages and detaches the service from the `email:ImapListener`.\n```ballerina\nemail:Error? result \u003d emailListener.detach(helloService);\n```\n",
+          "parameters": [
+            {
+              "name": "s",
+              "description": "Type descriptor of the service",
+              "type": {
+                "name": "Service",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Service"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "`()` or else a `email:Error` upon failure to detach the service",
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "name": "immediateStop",
+          "type": "Normal Function",
+          "description": "Stops the `email:ImapListener` forcefully.\n```ballerina\nemail:Error? result \u003d emailListener.immediateStop();\n```\n",
+          "parameters": [],
+          "return": {
+            "description": "`()` or else a `email:Error` upon failure to stop the listener",
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "name": "gracefulStop",
+          "type": "Normal Function",
+          "description": "Stops the `email:ImapListener` gracefully.\n```ballerina\nemail:Error? result \u003d emailListener.gracefulStop();\n```\n",
+          "parameters": [],
+          "return": {
+            "description": "() or else error upon failure to stop the listener",
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "name": "register",
+          "type": "Normal Function",
+          "description": "Registers for the Email service.\n```ballerina\nemailListener.register(helloService, hello);\n```\n",
+          "parameters": [
+            {
+              "name": "emailService",
+              "description": "Type descriptor of the service",
+              "type": {
+                "name": "Service",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Service"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "name",
+              "description": "Service name",
+              "type": {
+                "name": "string|()"
+              }
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "PopListener",
+      "description": "Gets invoked during the `email:PopListener` initialization.\n",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Gets invoked during the `email:PopListener` initialization.\n",
+          "parameters": [
+            {
+              "name": "listenerConfig",
+              "type": {
+                "name": "PopListenerConfiguration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "PopListenerConfiguration"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "`()` or else an `email:Error` upon failure to\ninitialize the listener",
+            "type": {
+              "name": "Error?"
+            }
+          }
+        },
+        {
+          "name": "\u0027start",
+          "type": "Normal Function",
+          "description": "Starts the `email:PopListener`.\n```ballerina\nemail:Error? result \u003d emailListener.start();\n```\n",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "name": "attach",
+          "type": "Normal Function",
+          "description": "Binds a service to the `email:PopListener`.\n```ballerina\nemail:Error? result \u003d emailListener.attach(helloService, hello);\n```\n",
+          "parameters": [
+            {
+              "name": "s",
+              "description": "Type descriptor of the service",
+              "type": {
+                "name": "Service",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Service"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "name",
+              "description": "Name of the service",
+              "type": {
+                "name": "string[]|string|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "`()` or else a `email:Error` upon failure to register the listener",
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "name": "detach",
+          "type": "Normal Function",
+          "description": "Stops consuming messages and detaches the service from the `email:PopListener`.\n```ballerina\nemail:Error? result \u003d emailListener.detach(helloService);\n```\n",
+          "parameters": [
+            {
+              "name": "s",
+              "description": "Type descriptor of the service",
+              "type": {
+                "name": "Service",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Service"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "`()` or else a `email:Error` upon failure to detach the service",
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "name": "immediateStop",
+          "type": "Normal Function",
+          "description": "Stops the `email:PopListener` forcefully.\n```ballerina\nemail:Error? result \u003d emailListener.immediateStop();\n```\n",
+          "parameters": [],
+          "return": {
+            "description": "`()` or else a `email:Error` upon failure to stop the listener",
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "name": "gracefulStop",
+          "type": "Normal Function",
+          "description": "Stops the `email:PopListener` gracefully.\n```ballerina\nemail:Error? result \u003d emailListener.gracefulStop();\n```\n",
+          "parameters": [],
+          "return": {
+            "description": "() or else error upon failure to stop the listener",
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "name": "register",
+          "type": "Normal Function",
+          "description": "Registers for the Email service.\n```ballerina\nemailListener.register(helloService, hello);\n```\n",
+          "parameters": [
+            {
+              "name": "emailService",
+              "description": "Type descriptor of the service",
+              "type": {
+                "name": "Service",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Service"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "name",
+              "description": "Service name",
+              "type": {
+                "name": "string|()"
+              }
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "name": "ImapClient",
+      "description": "Represents an IMAP Client, which interacts with an IMAP Server.",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Gets invoked during the `email:ImapClient` initialization.\n",
+          "parameters": [
+            {
+              "name": "host",
+              "description": "Host of the IMAP Client",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "username",
+              "description": "Username of the IMAP Client",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "password",
+              "description": "Password of the IMAP Client",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "port",
+              "description": "Port number of the IMAP server",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "993"
+            },
+            {
+              "name": "security",
+              "description": "Type of security channel",
+              "type": {
+                "name": "Security",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Security"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "SSL"
+            },
+            {
+              "name": "secureSocket",
+              "description": "Secure socket configuration",
+              "type": {
+                "name": "SecureSocket",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "SecureSocket"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{cert: \"\"}"
+            },
+            {
+              "name": "clientConfig",
+              "description": "Configurations for the IMAP Client",
+              "type": {
+                "name": "ImapConfiguration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ImapConfiguration"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "An `email:Error` if failed while creating the client or else `()`",
+            "type": {
+              "name": "Error?"
+            }
+          }
+        },
+        {
+          "name": "receiveMessage",
+          "type": "Remote Function",
+          "description": "Reads a message.\n```ballerina\nemail:Message|email:Error emailResponse \u003d imapClient-\u003ereceiveMessage();\n```\n",
+          "parameters": [
+            {
+              "name": "folder",
+              "description": "Folder to read emails. The default value is `INBOX`",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "timeout",
+              "description": "Polling timeout period in seconds.",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "0.0d"
+            }
+          ],
+          "return": {
+            "description": "An `email:Message` if reading the message is successful, `()` if there are no emails in the specified\nfolder, or else an `email:Error` if the recipient failed to receive the message",
+            "type": {
+              "name": "Message|Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Message"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "close",
+          "type": "Remote Function",
+          "description": "Close the client.\n```ballerina\nemail:Error? closeResponse \u003d imapClient-\u003eclose();\n```\n",
+          "parameters": [],
+          "return": {
+            "description": "An `email:Error` if the recipient failed to close the client or else `()`",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "PopClient",
+      "description": "Represents a POP Client, which interacts with a POP Server.",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Gets invoked during the `email:PopClient` initialization.\n",
+          "parameters": [
+            {
+              "name": "host",
+              "description": "Host of the POP Client",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "username",
+              "description": "Username of the POP Client",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "password",
+              "description": "Password of the POP Client",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "port",
+              "description": "Port number of the POP server",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "995"
+            },
+            {
+              "name": "security",
+              "description": "Type of security channel",
+              "type": {
+                "name": "Security",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Security"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "SSL"
+            },
+            {
+              "name": "secureSocket",
+              "description": "Secure socket configuration",
+              "type": {
+                "name": "SecureSocket",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "SecureSocket"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{cert: \"\"}"
+            },
+            {
+              "name": "clientConfig",
+              "description": "Configurations for the POP Client",
+              "type": {
+                "name": "PopConfiguration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "PopConfiguration"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "An `email:Error` if creating the client failed or else `()`",
+            "type": {
+              "name": "Error?"
+            }
+          }
+        },
+        {
+          "name": "receiveMessage",
+          "type": "Remote Function",
+          "description": "Reads a message.\n```ballerina\nemail:Message|email:Error? emailResponse \u003d popClient-\u003ereceiveMessage();\n```\n",
+          "parameters": [
+            {
+              "name": "folder",
+              "description": "Folder to read the emails. The default value is `INBOX`",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "timeout",
+              "description": "Polling timeout period in seconds",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "0.0d"
+            }
+          ],
+          "return": {
+            "description": "An `email:Message` if reading the message is successful,\n`()` if there are no emails in the specified folder,\nor else an `email:Error` if the recipient failed to receive the message",
+            "type": {
+              "name": "Message|Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Message"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "close",
+          "type": "Remote Function",
+          "description": "Close the client.\n```ballerina\nemail:Error? closeResponse \u003d popClient-\u003eclose();\n```\n",
+          "parameters": [],
+          "return": {
+            "description": "An `email:Error` if the recipient failed to close the client or else `()`",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "SmtpClient",
+      "description": "Represents an SMTP Client, which interacts with an SMTP Server.",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Gets invoked during the `email:SmtpClient` initialization.\n",
+          "parameters": [
+            {
+              "name": "host",
+              "description": "Host of the SMTP Client",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "username",
+              "description": "Username of the SMTP Client if authentication is required",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "password",
+              "description": "Password of the SMTP Client if basic authentication is used",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "port",
+              "description": "Port number of the SMTP server",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "465"
+            },
+            {
+              "name": "security",
+              "description": "Type of security channel",
+              "type": {
+                "name": "Security",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Security"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "SSL"
+            },
+            {
+              "name": "secureSocket",
+              "description": "Secure socket configuration",
+              "type": {
+                "name": "SecureSocket",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "SecureSocket"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{cert: \"\"}"
+            },
+            {
+              "name": "auth",
+              "description": "Authentication configuration: a direct access token (`string`) for XOAUTH2, or an\n`OAuth2GrantConfig` to fetch a token from an authorization server",
+              "type": {
+                "name": "OAuth2ClientCredentialsGrantConfig|OAuth2PasswordGrantConfig|string",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "OAuth2ClientCredentialsGrantConfig"
+                  },
+                  {
+                    "category": "internal",
+                    "recordName": "OAuth2PasswordGrantConfig"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{tokenUrl: \"\", clientId: \"\", clientSecret: \"\"}"
+            },
+            {
+              "name": "clientConfig",
+              "description": "Configurations for SMTP Client",
+              "type": {
+                "name": "SmtpConfiguration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "SmtpConfiguration"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "An `email:Error` if failed to initialize or else `()`",
+            "type": {
+              "name": "Error?"
+            }
+          }
+        },
+        {
+          "name": "sendMessage",
+          "type": "Remote Function",
+          "description": "Sends an email message.\n```ballerina\nemail:Error? response \u003d smtpClient-\u003esendMessage(email);\n```\n",
+          "parameters": [
+            {
+              "name": "email",
+              "description": "An `email:Message` message, which needs to be sent to the recipient",
+              "type": {
+                "name": "Message",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Message"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "An `email:Error` if failed to send the message to the recipient or else `()`",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "send",
+          "type": "Remote Function",
+          "description": "Sends an email message with optional parameters.\n```ballerina\nemail:Error? response \u003d smtpClient-\u003esend(toAddress, subject, fromAddress,\n  emailBody, sender\u003d\"eve@abc.com\");\n```\n",
+          "parameters": [
+            {
+              "name": "to",
+              "description": "TO address list",
+              "type": {
+                "name": "string|string[]"
+              }
+            },
+            {
+              "name": "subject",
+              "description": "Subject of email",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "\u0027from",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "body",
+              "description": "Text body of the email",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "htmlBody",
+              "description": "HTML typed body of the email message",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "contentType",
+              "description": "Content Type of the Body",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "headers",
+              "description": "Header list",
+              "type": {
+                "name": "map\u003cstring\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "cc",
+              "description": "CC address list",
+              "type": {
+                "name": "string|string[]"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "bcc",
+              "description": "BCC address list",
+              "type": {
+                "name": "string|string[]"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "replyTo",
+              "description": "Reply To addresses",
+              "type": {
+                "name": "string|string[]"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "sender",
+              "description": "Sender\u0027s address",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "attachments",
+              "description": "Email attachements",
+              "type": {
+                "name": "Entity|Attachment|Entity|Attachment[]",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "Entity",
+                    "libraryName": "ballerina/mime"
+                  },
+                  {
+                    "category": "internal",
+                    "recordName": "Attachment"
+                  },
+                  {
+                    "category": "external",
+                    "recordName": "Entity",
+                    "libraryName": "ballerina/mime"
+                  },
+                  {
+                    "category": "internal",
+                    "recordName": "Attachment"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "new ()"
+            },
+            {
+              "name": "options",
+              "description": "Optional parameters of the email",
+              "type": {
+                "name": "Options",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Options"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "An `email:Error` if failed to send the message to the recipient or else `()`",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "functions": [],
+  "services": [],
+  "annotations": []
+}

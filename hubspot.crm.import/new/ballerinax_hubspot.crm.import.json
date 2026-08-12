@@ -1,0 +1,1491 @@
+{
+  "name": "ballerinax/hubspot.crm.import",
+  "description": "[HubSpot](https://www.hubspot.com/our-story) is an AI-powered customer relationship management (CRM) platform.",
+  "readme": "## Overview\n\n[HubSpot](https://www.hubspot.com/our-story) is an AI-powered customer relationship management (CRM) platform.\n\nThe HubSpot connector offers APIs to connect and interact with the [HubSpot CRM Imports API](https://developers.hubspot.com/docs/api/crm/imports) endpoints, specifically based on the [HubSpot CRM Imports REST API](https://developers.hubspot.com/docs/reference/api/crm/imports)\n\n### Key Features\n\n- Import CRM records from external data sources\n- Monitor import job status and progress\n- Cancel active import operations\n- Retrieve import error details for troubleshooting\n\n## Setup guide\n\nTo use the HubSpot CRM imports connector, you must have access to the HubSpot API through a HubSpot developer account and a HubSpot App under it. Therefore you need to register for a developer account at HubSpot if you don\u0027t have one already.\n\n### Step 1: Create/Login to a HubSpot Developer Account\n\nIf you have an account already, go to the [HubSpot developer portal](https://app.hubspot.com/)\n\nIf you don\u0027t have a HubSpot Developer Account you can sign up to a free account [here](https://developers.hubspot.com/get-started)\n\n### Step 2 (Optional): Create a Developer Test Account\n\nWithin app developer accounts, you can create a [developer test account](https://developers.hubspot.com/beta-docs/getting-started/account-types#developer-test-accounts) under your account to test apps and integrations without affecting any real HubSpot data.\n\n\u003e **Note:**These accounts are only for development and testing purposes. In production you should not use Developer Test Accounts.\n\n1. Go to Test Account section from the left sidebar.\n\n   ![Hubspot developer portal](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.import/main/docs/setup/resources/test_acc_1.png)\n\n2. Click Create developer test account.\n\n   ![Hubspot developer test account](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.import/main/docs/setup/resources/test_acc_2.png)\n\n3. In the dialogue box, give a name to your test account and click create.\n\n   ![Create Hubspot developer test account](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.import/main/docs/setup/resources/test_acc_3.png)\n\n### Step 3: Create a HubSpot App under your account\n\n1. In your developer account, navigate to the \"Apps\" section. Click on \"Create App\"\n\n   ![Hubspot apps](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.import/main/docs/setup/resources/create_app_1.png)\n\n2. Provide the necessary details, including the app name and description.\n\n### Step 4: Configure the Authentication Flow\n\n1. Move to the \"Auth\" Tab.\n\n   ![Hubspot app auth tab](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.import/main/docs/setup/resources/create_app_2.png)\n\n2. In the Scopes section, add the following scopes for your app using the \"Add new scope\" button.\n\n   - `crm.objects.import`\n\n   ![Add new scope](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.import/main/docs/setup/resources/scope_set.png)\n\n3. Add your Redirect URI in the relevant section. You can also use localhost addresses for local development purposes. Click Create App.\n\n   ![Create app](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.import/main/docs/setup/resources/create_app_final.png)\n\n### Step 5: Get your Client ID and Client Secret\n\n- Navigate to the Auth section of your app. Make sure to save the provided Client ID and Client Secret.\n\n   ![Auth settings](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.import/main/docs/setup/resources/get_credentials.png)\n\n### Step 6: Setup Authentication Flow\n\nBefore proceeding with the Quickstart, ensure you have obtained the Access Token using the following steps:\n\n1. Create an authorization URL using the following format:\n\n   ```\n   https://app.hubspot.com/oauth/authorize?client_id\u003d\u003cYOUR_CLIENT_ID\u003e\u0026scope\u003d\u003cYOUR_SCOPES\u003e\u0026redirect_uri\u003d\u003cYOUR_REDIRECT_URI\u003e\n   ```\n\n   Replace the `\u003cYOUR_CLIENT_ID\u003e`, `\u003cYOUR_REDIRECT_URI\u003e`, and `\u003cYOUR_SCOPES\u003e` with your specific value.\n\n2. Paste it in the browser and select your developer test account to install the app when prompted.\n\n   ![Choose account](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.import/main/docs/setup/resources/install_app.png)\n\n3. A code will be displayed in the browser. Copy the code.\n\n4. Run the following curl command. Replace the `\u003cYOUR_CLIENT_ID\u003e`, `\u003cYOUR_REDIRECT_URI\u003e`, and `\u003cYOUR_CLIENT_SECRET\u003e` with your specific value. Use the code you received in the above step 3 as the `\u003cCODE\u003e`.\n\n   - Linux/macOS\n\n     ```bash\n     curl --request POST \\\n     --url https://api.hubapi.com/oauth/v1/token \\\n     --header \u0027content-type: application/x-www-form-urlencoded\u0027 \\\n     --data \u0027grant_type\u003dauthorization_code\u0026code\u003d\u003cCODE\u003e\u0026redirect_uri\u003d\u003cYOUR_REDIRECT_URI\u003e\u0026client_id\u003d\u003cYOUR_CLIENT_ID\u003e\u0026client_secret\u003d\u003cYOUR_CLIENT_SECRET\u003e\u0027\n     ```\n\n   - Windows\n\n     ```bash\n     curl --request POST ^\n     --url https://api.hubapi.com/oauth/v1/token ^\n     --header \u0027content-type: application/x-www-form-urlencoded\u0027 ^\n     --data \u0027grant_type\u003dauthorization_code\u0026code\u003d\u003cCODE\u003e\u0026redirect_uri\u003d\u003cYOUR_REDIRECT_URI\u003e\u0026client_id\u003d\u003cYOUR_CLIENT_ID\u003e\u0026client_secret\u003d\u003cYOUR_CLIENT_SECRET\u003e\u0027\n     ```\n\n   This command will return the access token necessary for API calls.\n\n   ```json\n   {\n     \"token_type\": \"bearer\",\n     \"refresh_token\": \"\u003cRefresh Token\u003e\",\n     \"access_token\": \"\u003cAccess Token\u003e\",\n     \"expires_in\": 1800\n   }\n   ```\n\n5. Store the access token securely for use in your application.\n\n## Quickstart\n\nTo use the `HubSpot CRM Imports` connector in your Ballerina application, update the `.bal` file as follows:\n\n### Step 1: Import the module\n\nImport the `hubspot.crm.import` module and `oauth2` module.\n\n```ballerina\nimport ballerina/oauth2;\nimport ballerinax/hubspot.crm.\u0027import as crmImport;\n```\n\n### Step 2: Instantiate a new connector\n\n1. Create a `Config.toml` file and, configure the obtained credentials in the above steps as follows:\n\n   ```toml\n    clientId \u003d \"\u003cClient Id\u003e\"\n    clientSecret \u003d \"\u003cClient Secret\u003e\"\n    refreshToken \u003d \"\u003cRefresh Token\u003e\"\n   ```\n\n2. Instantiate a `crmImport:ConnectionConfig` with the obtained credentials and initialize the connector with it.\n\n    ```ballerina\n    configurable string clientId \u003d ?;\n    configurable string clientSecret \u003d ?;\n    configurable string refreshToken \u003d ?;\n\n    final crmImport:ConnectionConfig config \u003d {\n        auth : {\n            clientId,\n            clientSecret,\n            refreshToken,\n            credentialBearer: oauth2:POST_BODY_BEARER\n        }\n    };\n\n    final crmImport:Client baseClient \u003d check new(config);\n    ```\n\n### Step 3: Invoke the connector operation\n\nNow, utilize the available connector operations. A sample use case is shown below.\n\n#### Get a paged list of active imports\n\n```ballerina\npublic function main() returns error? {\n    crmImport:CollectionResponsePublicImportResponse response \u003d check baseClient-\u003e/.get({});\n}\n```\n\n## Examples\n\nThe `HubSpot.crm.imports` connector provides practical examples illustrating usage in various scenarios. Explore these [examples](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.import/main/examples), covering the following use cases:\n\n1. [Creating a contact import](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.import/tree/main/examples/handle-import) - Integrate `hubspot.crm.import` API to create and manage a contact data import\n",
+  "typeDefs": [
+    {
+      "name": "CollectionResponsePublicImportResponse",
+      "description": "Paginated collection of CRM import response records",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "paging",
+          "description": "Pagination cursor references for next and previous pages",
+          "type": {
+            "name": "Paging",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Paging"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "results",
+          "description": "Array of import response objects returned in this page",
+          "type": {
+            "name": "PublicImportResponse[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PublicImportResponse"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Paging",
+      "description": "Pagination cursor references for next and previous pages",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "next",
+          "description": "Pagination cursor and link for retrieving the next page of results",
+          "type": {
+            "name": "NextPage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "NextPage"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "prev",
+          "description": "Pagination object containing a cursor and link referencing the previous page of results",
+          "type": {
+            "name": "PreviousPage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PreviousPage"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "NextPage",
+      "description": "Pagination cursor and link for retrieving the next page of results",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "link",
+          "description": "URL link to the next page of results",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "after",
+          "description": "Cursor token used to fetch the next page of results",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "PreviousPage",
+      "description": "Pagination object containing a cursor and link referencing the previous page of results",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "before",
+          "description": "Cursor token representing the start of the previous page",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "link",
+          "description": "URL link to the previous page of results",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "PublicImportResponse",
+      "description": "Represents the full state and metadata of a CRM import, including status, source, mapped object types, and processing outcomes",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "importTemplate",
+          "description": "Defines the template used to guide an import, including the template type and its unique identifier",
+          "type": {
+            "name": "ImportTemplate",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ImportTemplate"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "createdAt",
+          "description": "Timestamp when the import was created",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "metadata",
+          "description": "Metadata summarizing the outcomes, file IDs, and object lists associated with a CRM import operation",
+          "type": {
+            "name": "PublicImportMetadata",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PublicImportMetadata"
+              }
+            ]
+          }
+        },
+        {
+          "name": "importRequestJson",
+          "description": "The raw JSON request payload submitted for the import",
+          "type": {
+            "name": "record {|anydata...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "importSource",
+          "description": "The platform or channel through which the import was initiated",
+          "type": {
+            "name": "\"API\"|\"CRM_UI\"|\"IMPORT\"|\"MOBILE_ANDROID\"|\"MOBILE_IOS\"|\"SALESFORCE\""
+          },
+          "optional": true
+        },
+        {
+          "name": "importName",
+          "description": "The user-defined name assigned to the import",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "state",
+          "description": "The status of the import",
+          "type": {
+            "name": "\"STARTED\"|\"PROCESSING\"|\"DONE\"|\"FAILED\"|\"CANCELED\"|\"DEFERRED\"|\"REVERTED\""
+          }
+        },
+        {
+          "name": "id",
+          "description": "Unique identifier for the import",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "optOutImport",
+          "description": "Whether or not the import is a list of people disqualified from receiving emails",
+          "type": {
+            "name": "boolean"
+          }
+        },
+        {
+          "name": "mappedObjectTypeIds",
+          "description": "List of object type IDs mapped during the import",
+          "type": {
+            "name": "string[]"
+          }
+        },
+        {
+          "name": "updatedAt",
+          "description": "Timestamp when the import was last updated",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ImportTemplate",
+      "description": "Defines the template used to guide an import, including the template type and its unique identifier",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "templateType",
+          "description": "The source type of the template: admin-defined, previous import, or user file",
+          "type": {
+            "name": "\"admin_defined\"|\"previous_import\"|\"user_file\""
+          }
+        },
+        {
+          "name": "templateId",
+          "description": "The unique identifier of the import template",
+          "type": {
+            "name": "int:Signed32"
+          }
+        }
+      ]
+    },
+    {
+      "name": "PublicImportMetadata",
+      "description": "Metadata summarizing the outcomes, file IDs, and object lists associated with a CRM import operation",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "counters",
+          "description": "Summarized outcomes of each row a developer attempted to import into HubSpot",
+          "type": {
+            "name": "record {|int:Signed32...;|}"
+          }
+        },
+        {
+          "name": "fileIds",
+          "description": "The IDs of files uploaded in the File Manager API",
+          "type": {
+            "name": "string[]"
+          }
+        },
+        {
+          "name": "objectLists",
+          "description": "The lists containing the imported objects",
+          "type": {
+            "name": "PublicObjectListRecord[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PublicObjectListRecord"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PublicObjectListRecord",
+      "description": "Identifies a list and object type for imported CRM records",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "listId",
+          "description": "The ID of the list containing the imported objects",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "objectType",
+          "description": "The type of object contained in the list",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "PropertyValue",
+      "description": "Full property value record including source, sensitivity, and audit metadata",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "sourceId",
+          "description": "Identifier of the specific source that set this value",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "selectedByUser",
+          "description": "Indicates whether a user explicitly selected this value",
+          "type": {
+            "name": "boolean"
+          }
+        },
+        {
+          "name": "sourceLabel",
+          "description": "Human-readable label describing the value\u0027s source",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "\u0027source",
+          "description": "System or integration that originated this property value",
+          "type": {
+            "name": "\"UNKNOWN\"|\"IMPORT\"|\"API\"|\"FORM\"|\"ANALYTICS\"|\"MIGRATION\"|\"SALESFORCE\"|\"INTEGRATION\"|\"CONTACTS_WEB\"|\"WAL_INCREMENTAL\"|\"TASK\"|\"EMAIL\"|\"WORKFLOWS\"|\"CALCULATED\"|\"SOCIAL\"|\"BATCH_UPDATE\"|\"SIGNALS\"|\"BIDEN\"|\"DEFAULT\"|\"COMPANIES\"|\"DEALS\"|\"ASSISTS\"|\"PRESENTATIONS\"|\"TALLY\"|\"SIDEKICK\"|\"CRM_UI\"|\"MERGE_CONTACTS\"|\"PORTAL_USER_ASSOCIATOR\"|\"INTEGRATIONS_PLATFORM\"|\"BCC_TO_CRM\"|\"FORWARD_TO_CRM\"|\"ENGAGEMENTS\"|\"SALES\"|\"HEISENBERG\"|\"LEADIN\"|\"GMAIL_INTEGRATION\"|\"ACADEMY\"|\"SALES_MESSAGES\"|\"AVATARS_SERVICE\"|\"MERGE_COMPANIES\"|\"SEQUENCES\"|\"COMPANY_FAMILIES\"|\"MOBILE_IOS\"|\"MOBILE_ANDROID\"|\"CONTACTS\"|\"ASSOCIATIONS\"|\"EXTENSION\"|\"SUCCESS\"|\"BOT\"|\"INTEGRATIONS_SYNC\"|\"AUTOMATION_PLATFORM\"|\"CONVERSATIONS\"|\"EMAIL_INTEGRATION\"|\"CONTENT_MEMBERSHIP\"|\"QUOTES\"|\"BET_ASSIGNMENT\"|\"QUOTAS\"|\"BET_CRM_CONNECTOR\"|\"MEETINGS\"|\"MERGE_OBJECTS\"|\"RECYCLING_BIN\"|\"ADS\"|\"AI_GROUP\"|\"COMMUNICATOR\"|\"SETTINGS\"|\"PROPERTY_SETTINGS\"|\"PIPELINE_SETTINGS\"|\"COMPANY_INSIGHTS\"|\"BEHAVIORAL_EVENTS\"|\"PAYMENTS\"|\"GOALS\"|\"PORTAL_OBJECT_SYNC\"|\"APPROVALS\"|\"FILE_MANAGER\"|\"MARKETPLACE\"|\"INTERNAL_PROCESSING\"|\"FORECASTING\"|\"SLACK_INTEGRATION\"|\"CRM_UI_BULK_ACTION\"|\"WORKFLOW_CONTACT_DELETE_ACTION\"|\"ACCEPTANCE_TEST\"|\"PLAYBOOKS\"|\"CHATSPOT\"|\"FLYWHEEL_PRODUCT_DATA_SYNC\"|\"HELP_DESK\"|\"BILLING\"|\"DATA_ENRICHMENT\"|\"AUTOMATION_JOURNEY\"|\"MICROAPPS\"|\"INTENT\"|\"PROSPECTING_AGENT\""
+          }
+        },
+        {
+          "name": "updatedByUserId",
+          "description": "ID of the user who last updated this property value",
+          "type": {
+            "name": "int:Signed32"
+          }
+        },
+        {
+          "name": "persistenceTimestamp",
+          "description": "Timestamp (ms) used to determine value persistence ordering",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "sourceMetadata",
+          "description": "Additional metadata string describing the value\u0027s source context",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "dataSensitivity",
+          "description": "Sensitivity classification of the property value: none, standard, or high",
+          "type": {
+            "name": "\"none\"|\"standard\"|\"high\""
+          }
+        },
+        {
+          "name": "sourceVid",
+          "description": "List of source object IDs associated with this property value",
+          "type": {
+            "name": "int[]"
+          }
+        },
+        {
+          "name": "unit",
+          "description": "Unit of measurement associated with this property value",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "requestId",
+          "description": "Identifier of the request that produced this property value",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "isEncrypted",
+          "description": "Indicates whether the property value is encrypted",
+          "type": {
+            "name": "boolean"
+          }
+        },
+        {
+          "name": "name",
+          "description": "The name of the property",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "useTimestampAsPersistenceTimestamp",
+          "description": "Whether to use the provided timestamp as the persistence timestamp",
+          "type": {
+            "name": "boolean"
+          }
+        },
+        {
+          "name": "value",
+          "description": "The value assigned to the property",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "selectedByUserTimestamp",
+          "description": "Unix timestamp (ms) when the value was selected by the user",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "timestamp",
+          "description": "Unix timestamp (ms) associated with the property value",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "isLargeValue",
+          "description": "Indicates whether the property value exceeds standard size limits",
+          "type": {
+            "name": "boolean"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ImportRowCore",
+      "description": "Represents a single row of data from an import file, including raw row content, line number, file reference, and encryption status",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "rowData",
+          "description": "Array of string values representing the raw data in the import row",
+          "type": {
+            "name": "string[]"
+          }
+        },
+        {
+          "name": "containsEncryptedProperties",
+          "description": "Indicates whether the row contains encrypted property values",
+          "type": {
+            "name": "boolean"
+          }
+        },
+        {
+          "name": "lineNumber",
+          "description": "The line number of this row within the import file",
+          "type": {
+            "name": "int:Signed32"
+          }
+        },
+        {
+          "name": "pageName",
+          "description": "The name of the sheet or page containing this row",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "fileId",
+          "description": "The unique identifier of the import file this row belongs to",
+          "type": {
+            "name": "int:Signed32"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ActionResponse",
+      "description": "Represents the status and lifecycle timestamps of an asynchronous action, including start, completion, and current processing state",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "completedAt",
+          "description": "The datetime when the action completed",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "requestedAt",
+          "description": "The datetime when the action was requested",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "startedAt",
+          "description": "The datetime when the action began processing",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "links",
+          "description": "Map of related resource links associated with the action response",
+          "type": {
+            "name": "record {|string...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "status",
+          "description": "Current processing status of the action",
+          "type": {
+            "name": "\"PENDING\"|\"PROCESSING\"|\"CANCELED\"|\"COMPLETE\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "GetGetPageQueries",
+      "description": "Represents the Queries record for the operation: get-/_getPage",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "before",
+          "description": "A cursor token to retrieve results appearing before this value in the paginated list",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "\u0027limit",
+          "description": "The maximum number of results to display per page",
+          "type": {
+            "name": "int:Signed32"
+          },
+          "optional": true
+        },
+        {
+          "name": "after",
+          "description": "The paging cursor token of the last successfully read resource will be returned as the `paging.next.after` JSON property of a paged response containing more results",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ForwardPaging",
+      "description": "Pagination object containing a reference to the next page of results",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "next",
+          "description": "Pagination cursor and link for retrieving the next page of results",
+          "type": {
+            "name": "NextPage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "NextPage"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "GetImportIdErrorsGetErrorsQueries",
+      "description": "Represents the Queries record for the operation: get-/{importId}/errors_getErrors",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "includeRowData",
+          "description": "Set to True to receive the data values for the errored row",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "\u0027limit",
+          "description": "The maximum number of results to display per page",
+          "type": {
+            "name": "int:Signed32"
+          },
+          "optional": true
+        },
+        {
+          "name": "after",
+          "description": "The paging cursor token of the last successfully read resource will be returned as the `paging.next.after` JSON property of a paged response containing more results",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "includeErrorMessage",
+          "description": "Set to True to receive a message explaining the error",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "PublicImportError",
+      "description": "Represents a single error encountered during a CRM import, including error type, source row data, and the invalid value",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "createdAt",
+          "description": "Unix timestamp (int32) when the import error was recorded",
+          "type": {
+            "name": "int:Signed32"
+          }
+        },
+        {
+          "name": "extraContext",
+          "description": "Additional contextual detail about the import error",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "objectTypeId",
+          "description": "Identifier of the object type involved in the import error",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "errorType",
+          "description": "Enumerated category classifying the specific type of import error",
+          "type": {
+            "name": "\"INCORRECT_NUMBER_OF_COLUMNS\"|\"INVALID_OBJECT_ID\"|\"INVALID_ASSOCIATION_IDENTIFIER\"|\"NO_OBJECT_ID_FROM_ASSOCIATION_IDENTIFIER\"|\"MULTIPLE_COMPANIES_WITH_THIS_DOMAIN\"|\"PROPERTY_DEFINITION_NOT_FOUND\"|\"PROPERTY_VALUE_NOT_FOUND\"|\"COULD_NOT_FIND_OWNER\"|\"MULTIPLE_OWNERS_FOUND\"|\"COULD_NOT_FIND_BUSINESS_UNIT\"|\"COULD_NOT_PARSE_NUMBER\"|\"COULD_NOT_PARSE_DATE\"|\"COULD_NOT_PARSE_TERM\"|\"OUTSIDE_VALID_TIME_RANGE\"|\"OUTSIDE_VALID_TERM_RANGE\"|\"COULD_NOT_PARSE_ROW\"|\"INVALID_ENUMERATION_OPTION\"|\"AMBIGUOUS_ENUMERATION_OPTION\"|\"FAILED_VALIDATION\"|\"FAILED_TO_CREATE_ASSOCIATION\"|\"ASSOCIATION_LIMIT_EXCEEDED\"|\"FILE_NOT_FOUND\"|\"INVALID_COLUMN_CONFIGURATION\"|\"INVALID_FILE_TYPE\"|\"INVALID_SPREADSHEET\"|\"INVALID_SHEET_COUNT\"|\"FAILED_TO_PROCESS_OBJECT_WITH_EMPTY_PROPERTY_VALUES\"|\"UNKNOWN_BAD_REQUEST\"|\"GDPR_BLACKLISTED_EMAIL\"|\"DUPLICATE_ASSOCIATION_ID\"|\"LIMIT_EXCEEDED\"|\"PORTAL_WIDE_CUSTOM_OBJECT_LIMIT_EXCEEDED\"|\"INVALID_ALTERNATE_ID\"|\"INVALID_EMAIL\"|\"SECONDARY_EMAIL_WRITE_FAILURE\"|\"INVALID_DOMAIN\"|\"DUPLICATE_ROW_CONTENT\"|\"INVALID_NUMBER_SIZE\"|\"UNKNOWN_ERROR\"|\"FAILED_TO_OPT_OUT_CONTACT\"|\"INVALID_REQUIRED_PROPERTY\"|\"MISSING_REQUIRED_PROPERTY\"|\"DUPLICATE_ALTERNATE_ID\"|\"DUPLICATE_OBJECT_ID\"|\"DUPLICATE_UNIQUE_PROPERTY_VALUE\"|\"UNKNOWN_ASSOCIATION_RECORD_ID\"|\"INVALID_RECORD_ID\"|\"DUPLICATE_RECORD_ID\"|\"INVALID_CUSTOM_PROPERTY_VALIDATION\"|\"CREATE_ONLY_IMPORT\"|\"UPDATE_ONLY_IMPORT\"|\"COLUMN_TOO_LARGE\"|\"ROW_DATA_TOO_LARGE\"|\"MISSING_EVENT_TIMESTAMP\"|\"INVALID_EVENT_TIMESTAMP\"|\"INVALID_EVENT\"|\"DUPLICATE_EVENT\"|\"MISSING_EVENT_DEFINITION\"|\"INVALID_ASSOCIATION_KEY\"|\"ASSOCIATION_RECORD_NOT_FOUND\"|\"MISSING_OBJECT_DEFINITION\"|\"ASSOCIATION_LABEL_NOT_FOUND\"|\"MANY_ERRORS_IN_ROW\""
+          }
+        },
+        {
+          "name": "invalidPropertyValue",
+          "description": "Full property value record including source, sensitivity, and audit metadata",
+          "type": {
+            "name": "PropertyValue",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PropertyValue"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "errorMessage",
+          "description": "Human-readable description of the import error",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "knownColumnNumber",
+          "description": "Column number in the import file where the error was detected",
+          "type": {
+            "name": "int:Signed32"
+          },
+          "optional": true
+        },
+        {
+          "name": "invalidValueToDisplay",
+          "description": "Formatted representation of the invalid value for display purposes",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "id",
+          "description": "Unique identifier for the import error record",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "sourceData",
+          "description": "Represents a single row of data from an import file, including raw row content, line number, file reference, and encryption status",
+          "type": {
+            "name": "ImportRowCore",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ImportRowCore"
+              }
+            ]
+          }
+        },
+        {
+          "name": "objectType",
+          "description": "The CRM object type targeted by the import that produced the error",
+          "type": {
+            "name": "\"CONTACT\"|\"COMPANY\"|\"DEAL\"|\"ENGAGEMENT\"|\"TICKET\"|\"OWNER\"|\"PRODUCT\"|\"LINE_ITEM\"|\"BET_DELIVERABLE_SERVICE\"|\"CONTENT\"|\"CONVERSATION\"|\"BET_ALERT\"|\"PORTAL\"|\"QUOTE\"|\"FORM_SUBMISSION_INBOUNDDB\"|\"QUOTA\"|\"UNSUBSCRIBE\"|\"COMMUNICATION\"|\"FEEDBACK_SUBMISSION\"|\"ATTRIBUTION\"|\"SALESFORCE_SYNC_ERROR\"|\"RESTORABLE_CRM_OBJECT\"|\"HUB\"|\"LANDING_PAGE\"|\"PRODUCT_OR_FOLDER\"|\"TASK\"|\"FORM\"|\"MARKETING_EMAIL\"|\"AD_ACCOUNT\"|\"AD_CAMPAIGN\"|\"AD_GROUP\"|\"AD\"|\"KEYWORD\"|\"CAMPAIGN\"|\"SOCIAL_CHANNEL\"|\"SOCIAL_POST\"|\"SITE_PAGE\"|\"BLOG_POST\"|\"IMPORT\"|\"EXPORT\"|\"CTA\"|\"TASK_TEMPLATE\"|\"AUTOMATION_PLATFORM_FLOW\"|\"OBJECT_LIST\"|\"NOTE\"|\"MEETING_EVENT\"|\"CALL\"|\"EMAIL\"|\"PUBLISHING_TASK\"|\"CONVERSATION_SESSION\"|\"CONTACT_CREATE_ATTRIBUTION\"|\"INVOICE\"|\"MARKETING_EVENT\"|\"CONVERSATION_INBOX\"|\"CHATFLOW\"|\"MEDIA_BRIDGE\"|\"SEQUENCE\"|\"SEQUENCE_STEP\"|\"FORECAST\"|\"SNIPPET\"|\"TEMPLATE\"|\"DEAL_CREATE_ATTRIBUTION\"|\"QUOTE_TEMPLATE\"|\"QUOTE_MODULE\"|\"QUOTE_MODULE_FIELD\"|\"QUOTE_FIELD\"|\"SEQUENCE_ENROLLMENT\"|\"SUBSCRIPTION\"|\"ACCEPTANCE_TEST\"|\"SOCIAL_BROADCAST\"|\"DEAL_SPLIT\"|\"DEAL_REGISTRATION\"|\"GOAL_TARGET\"|\"GOAL_TARGET_GROUP\"|\"PORTAL_OBJECT_SYNC_MESSAGE\"|\"FILE_MANAGER_FILE\"|\"FILE_MANAGER_FOLDER\"|\"SEQUENCE_STEP_ENROLLMENT\"|\"APPROVAL\"|\"APPROVAL_STEP\"|\"CTA_VARIANT\"|\"SALES_DOCUMENT\"|\"DISCOUNT\"|\"FEE\"|\"TAX\"|\"MARKETING_CALENDAR\"|\"PERMISSIONS_TESTING\"|\"PRIVACY_SCANNER_COOKIE\"|\"DATA_SYNC_STATE\"|\"WEB_INTERACTIVE\"|\"PLAYBOOK\"|\"FOLDER\"|\"PLAYBOOK_QUESTION\"|\"PLAYBOOK_SUBMISSION\"|\"PLAYBOOK_SUBMISSION_ANSWER\"|\"COMMERCE_PAYMENT\"|\"GSC_PROPERTY\"|\"SOX_PROTECTED_DUMMY_TYPE\"|\"BLOG_LISTING_PAGE\"|\"QUARANTINED_SUBMISSION\"|\"PAYMENT_SCHEDULE\"|\"PAYMENT_SCHEDULE_INSTALLMENT\"|\"MARKETING_CAMPAIGN_UTM\"|\"DISCOUNT_TEMPLATE\"|\"DISCOUNT_CODE\"|\"FEEDBACK_SURVEY\"|\"CMS_URL\"|\"SALES_TASK\"|\"SALES_WORKLOAD\"|\"USER\"|\"POSTAL_MAIL\"|\"SCHEMAS_BACKEND_TEST\"|\"PAYMENT_LINK\"|\"SUBMISSION_TAG\"|\"CAMPAIGN_STEP\"|\"SCHEDULING_PAGE\"|\"SOX_PROTECTED_TEST_TYPE\"|\"ORDER\"|\"MARKETING_SMS\"|\"PARTNER_ACCOUNT\"|\"CAMPAIGN_TEMPLATE\"|\"CAMPAIGN_TEMPLATE_STEP\"|\"PLAYLIST\"|\"CLIP\"|\"CAMPAIGN_BUDGET_ITEM\"|\"CAMPAIGN_SPEND_ITEM\"|\"MIC\"|\"CONTENT_AUDIT\"|\"CONTENT_AUDIT_PAGE\"|\"PLAYLIST_FOLDER\"|\"LEAD\"|\"ABANDONED_CART\"|\"EXTERNAL_WEB_URL\"|\"VIEW\"|\"VIEW_BLOCK\"|\"ROSTER\"|\"CART\"|\"AUTOMATION_PLATFORM_FLOW_ACTION\"|\"SOCIAL_PROFILE\"|\"PARTNER_CLIENT\"|\"ROSTER_MEMBER\"|\"MARKETING_EVENT_ATTENDANCE\"|\"ALL_PAGES\"|\"AI_FORECAST\"|\"CRM_PIPELINES_DUMMY_TYPE\"|\"KNOWLEDGE_ARTICLE\"|\"PROPERTY_INFO\"|\"DATA_PRIVACY_CONSENT\"|\"GOAL_TEMPLATE\"|\"SCORE_CONFIGURATION\"|\"AUDIENCE\"|\"PARTNER_CLIENT_REVENUE\"|\"AUTOMATION_JOURNEY\"|\"COMBO_EVENT_CONFIGURATION\"|\"CRM_OBJECTS_DUMMY_TYPE\"|\"CASE_STUDY\"|\"SERVICE\"|\"PODCAST_EPISODE\"|\"PARTNER_SERVICE\"|\"PROSPECTING_AGENT_CONTACT_ASSIGNMENT\"|\"UNKNOWN\""
+          },
+          "optional": true
+        },
+        {
+          "name": "invalidValue",
+          "description": "The raw value that failed validation during the import",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "OAuth2RefreshTokenGrantConfig",
+      "description": "OAuth2 Refresh Token Grant Configs",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "refreshUrl",
+          "description": "Refresh URL",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "refreshToken",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "clientId",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "clientSecret",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "scopes",
+          "description": "",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "defaultTokenExpTime",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "clockSkew",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "optionalParams",
+          "description": "",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "credentialBearer",
+          "description": "",
+          "type": {
+            "name": "CredentialBearer",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CredentialBearer",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "clientConfig",
+          "description": "",
+          "type": {
+            "name": "ClientConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientConfiguration",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "CollectionResponsePublicImportErrorForwardPaging",
+      "description": "A paginated collection of import errors encountered during a CRM import, with forward paging support",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "paging",
+          "description": "Pagination object containing a reference to the next page of results",
+          "type": {
+            "name": "ForwardPaging",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ForwardPaging"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "results",
+          "description": "Array of import errors encountered during the import",
+          "type": {
+            "name": "PublicImportError[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PublicImportError"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Body",
+      "description": "Multipart request body containing the import file and import configuration",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "files",
+          "description": "Binary file content to be uploaded for import",
+          "type": {
+            "name": "record {|byte[] fileContent; string fileName; anydata...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "importRequest",
+          "description": "The serialized import request payload containing import configuration details",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ApiKeysConfig",
+      "description": "Provides API key configurations needed when communicating with a remote HTTP endpoint",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "privateAppLegacy",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ConnectionConfig",
+      "description": "Provides a set of configurations for controlling the behaviours when communicating with a remote HTTP endpoint",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "auth",
+          "description": "Provides Auth configurations needed when communicating with a remote HTTP endpoint",
+          "type": {
+            "name": "BearerTokenConfig|OAuth2RefreshTokenGrantConfig|ApiKeysConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "BearerTokenConfig",
+                "libraryName": "ballerina/http"
+              },
+              {
+                "category": "internal",
+                "recordName": "OAuth2RefreshTokenGrantConfig"
+              },
+              {
+                "category": "internal",
+                "recordName": "ApiKeysConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "httpVersion",
+          "description": "The HTTP version understood by the client",
+          "type": {
+            "name": "HttpVersion",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "HttpVersion",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "http1Settings",
+          "description": "Configurations related to HTTP/1.x protocol",
+          "type": {
+            "name": "ClientHttp1Settings",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientHttp1Settings",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "http2Settings",
+          "description": "Configurations related to HTTP/2 protocol",
+          "type": {
+            "name": "ClientHttp2Settings",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientHttp2Settings",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "timeout",
+          "description": "The maximum time to wait (in seconds) for a response before closing the connection",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "forwarded",
+          "description": "The choice of setting `forwarded`/`x-forwarded` header",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "followRedirects",
+          "description": "Configurations associated with Redirection",
+          "type": {
+            "name": "FollowRedirects",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "FollowRedirects",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "poolConfig",
+          "description": "Configurations associated with request pooling",
+          "type": {
+            "name": "PoolConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "PoolConfiguration",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "cache",
+          "description": "HTTP caching related configurations",
+          "type": {
+            "name": "CacheConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CacheConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "compression",
+          "description": "Specifies the way of handling compression (`accept-encoding`) header",
+          "type": {
+            "name": "Compression",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Compression",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "circuitBreaker",
+          "description": "Configurations associated with the behaviour of the Circuit Breaker",
+          "type": {
+            "name": "CircuitBreakerConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CircuitBreakerConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "retryConfig",
+          "description": "Configurations associated with retrying",
+          "type": {
+            "name": "RetryConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "RetryConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "cookieConfig",
+          "description": "Configurations associated with cookies",
+          "type": {
+            "name": "CookieConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CookieConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "responseLimits",
+          "description": "Configurations associated with inbound response size limits",
+          "type": {
+            "name": "ResponseLimitConfigs",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ResponseLimitConfigs",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "SSL/TLS-related options",
+          "type": {
+            "name": "ClientSecureSocket",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientSecureSocket",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "proxy",
+          "description": "Proxy server related options",
+          "type": {
+            "name": "ProxyConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ProxyConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "socketConfig",
+          "description": "Provides settings related to client socket configuration",
+          "type": {
+            "name": "ClientSocketConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientSocketConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "validation",
+          "description": "Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "laxDataBinding",
+          "description": "Enables relaxed data binding on the client side. When enabled, `nil` values are treated as optional, \nand absent fields are handled as `nilable` types. Enabled by default",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ],
+      "annotations": [
+        {
+          "name": "display",
+          "value": "{label: \"Connection Config\"}"
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "name": "Client",
+      "description": "",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Gets invoked to initialize the `connector`\n",
+          "parameters": [
+            {
+              "name": "config",
+              "description": "The configurations to be used when initializing the `connector` ",
+              "type": {
+                "name": "ConnectionConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ConnectionConfig"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "serviceUrl",
+              "description": "URL of the target service ",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"https://api.hubapi.com/crm/v3/imports\""
+            }
+          ],
+          "return": {
+            "description": "An error if connector initialization failed ",
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Cancel an active import\n",
+          "accessor": "post",
+          "paths": [
+            {
+              "name": "importId",
+              "type": "int"
+            },
+            "cancel"
+          ],
+          "parameters": [
+            {
+              "name": "importId",
+              "description": "The unique numeric identifier of the import to cancel",
+              "type": {
+                "name": "int"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "ActionResponse|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "ActionResponse"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Get the information on any import\n",
+          "accessor": "get",
+          "paths": [
+            {
+              "name": "importId",
+              "type": "int"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "importId",
+              "description": "The unique numeric identifier of the import to retrieve",
+              "type": {
+                "name": "int"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "PublicImportResponse|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "PublicImportResponse"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Retrieve errors for an import\n",
+          "accessor": "get",
+          "paths": [
+            {
+              "name": "importId",
+              "type": "int"
+            },
+            "errors"
+          ],
+          "parameters": [
+            {
+              "name": "importId",
+              "description": "The unique numeric identifier of the import whose errors are to be retrieved",
+              "type": {
+                "name": "int"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "includeRowData",
+              "description": "Set to True to receive the data values for the errored row",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "limit",
+              "description": "The maximum number of results to display per page",
+              "type": {
+                "name": "int:Signed32"
+              },
+              "optional": true,
+              "default": "0"
+            },
+            {
+              "name": "after",
+              "description": "The paging cursor token of the last successfully read resource will be returned as the `paging.next.after` JSON property of a paged response containing more results",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "includeErrorMessage",
+              "description": "Set to True to receive a message explaining the error",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "queries",
+              "description": "Queries to be sent with the request ",
+              "type": {
+                "name": "GetImportIdErrorsGetErrorsQueries",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "GetImportIdErrorsGetErrorsQueries"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "CollectionResponsePublicImportErrorForwardPaging|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "CollectionResponsePublicImportErrorForwardPaging"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Get active imports\n",
+          "accessor": "get",
+          "paths": [],
+          "parameters": [
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "before",
+              "description": "A cursor token to retrieve results appearing before this value in the paginated list",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "limit",
+              "description": "The maximum number of results to display per page",
+              "type": {
+                "name": "int:Signed32"
+              },
+              "optional": true,
+              "default": "0"
+            },
+            {
+              "name": "after",
+              "description": "The paging cursor token of the last successfully read resource will be returned as the `paging.next.after` JSON property of a paged response containing more results",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "queries",
+              "description": "Queries to be sent with the request ",
+              "type": {
+                "name": "GetGetPageQueries",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "GetGetPageQueries"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "CollectionResponsePublicImportResponse|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "CollectionResponsePublicImportResponse"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Start a new import\n",
+          "accessor": "post",
+          "paths": [],
+          "parameters": [
+            {
+              "name": "payload",
+              "type": {
+                "name": "Body",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Body"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "PublicImportResponse|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "PublicImportResponse"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "functions": [],
+  "services": [],
+  "annotations": []
+}

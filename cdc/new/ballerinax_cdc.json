@@ -1,0 +1,4765 @@
+{
+  "name": "ballerinax/cdc",
+  "description": "The Change Data Capture (CDC) connector provides APIs to capture and process database change events in real-time. It enables developers to define services that handle change capture events such as inserts, updates, and deletes. Built on top of the Debezium framework, it supports popular databases like MySQL, Microsoft SQL Server, PostgreSQL, and Oracle.",
+  "readme": "## Overview\n\nThe Change Data Capture (CDC) connector provides APIs to capture and process database change events in real-time. It enables developers to define services that handle change capture events such as inserts, updates, and deletes. Built on top of the Debezium framework, it supports popular databases like MySQL, Microsoft SQL Server, PostgreSQL, and Oracle.\n\n### Key Features\n\n- Capture real-time change events (create, read, update, delete) from databases\n- Support for multiple database systems including MySQL, MSSQL, PostgreSQL, and Oracle\n- Event-driven service model with dedicated handlers for each operation type\n- Built on the Debezium framework for reliable change data capture\n\n## Quickstart\n\n### Step 1: Import Required Modules\n\nAdd the following imports to your Ballerina program:\n\n- `ballerinax/cdc`: Core module that provides APIs to capture and process database change events.\n- `ballerinax/mysql`: Provides MySQL-specific listener and types for CDC. Replace with the corresponding module for your database if needed.\n- `ballerinax/mysql.cdc.driver as _`: Debezium-based driver for MySQL CDC. Use the appropriate driver for your database (e.g., `mssql.cdc.driver`, `postgresql.cdc.driver`, or `oracledb.cdc.driver`).\n\n```ballerina\nimport ballerinax/cdc;\nimport ballerinax/mysql;\nimport ballerinax/mysql.cdc.driver as _;\n```\n\n### Step 2: Configure the CDC Listener\n\nCreate a CDC listener for your MySQL database by specifying the connection details:\n\n```ballerina\nlistener mysql:CdcListener mysqlListener \u003d new ({\n    database: {\n        hostname: \"localhost\",\n        port: 3306,\n        username: \"username\",\n        password: \"password\",\n        includedDatabases: [\"inventory\"]\n    }\n});\n```\n\n### Step 3: Define the CDC Service\n\nImplement a `cdc:Service` to handle database change events:\n\n```ballerina\nservice on mysqlListener {\n\n    remote function onRead(record {} after) returns cdc:Error? {\n        // Handle the read event\n        log:printInfo(`Record read: ${after}`);\n    }\n\n    remote function onCreate(record {} after) returns cdc:Error? {\n        // Handle the create event\n        log:printInfo(`Record created: ${after}`);\n    }\n\n    remote function onUpdate(record {} before, record {} after) returns cdc:Error? {\n        // Handle the update event\n        log:printInfo(`Record updated from: ${before}, to ${after}`);\n    }\n\n    remote function onDelete(record {} before) returns cdc:Error? {\n        // Handle the delete event\n        log:printInfo(`Record deleted: ${before}`);\n    }\n}\n```\n\n### Step 4: Run the Application\n\nRun your Ballerina application:\n\n```bash\nbal run\n```\n\n## Examples\n\nThe `cdc` module provides practical examples illustrating its usage in various real-world scenarios. Explore these [examples](https://github.com/ballerina-platform/module-ballerinax-cdc/tree/main/examples) to understand how to capture and process database change events effectively.\n\n1. [Fraud Detection](https://github.com/ballerina-platform/module-ballerinax-cdc/tree/main/examples/fraud-detection) - Detect suspicious transactions in a financial database and send fraud alerts via email. This example showcases how to integrate the CDC module with the Gmail connector to notify stakeholders of potential fraud.\n\n2. [Cache Management](https://github.com/ballerina-platform/module-ballerinax-cdc/tree/main/examples/cache-management) - Synchronize a Redis cache with changes in a MySQL database. It listens to changes in the `products`, `vendors`, and `product_reviews` tables and updates the Redis cache accordingly.\n\n3. [Connection Retries](https://github.com/ballerina-platform/module-ballerinax-cdc/tree/main/examples/connection-retries) - Monitor an orders database with automatic reconnection on failures. This example configures exponential backoff retry logic so the service recovers gracefully from temporary database downtime.\n\n4. [Heartbeat with Liveness](https://github.com/ballerina-platform/module-ballerinax-cdc/tree/main/examples/heartbeat-liveness) - Monitor a financial transactions table with heartbeat and liveness checking enabled. The heartbeat keeps the database connection alive during idle periods, and the liveness check ensures the CDC listener remains active.\n\n5. [Kafka Offset and Schema Storage](https://github.com/ballerina-platform/module-ballerinax-cdc/tree/main/examples/kafka-offset-schema) - Synchronize inventory changes using Apache Kafka for both offset storage and schema history. This enables reliable distributed state management where the service can resume processing after a restart without missing or duplicating events.\n\n6. [S3 Schema History](https://github.com/ballerina-platform/module-ballerinax-cdc/tree/main/examples/s3-schema-history) - Capture audit log changes with Amazon S3-backed schema history storage. This cloud-native approach stores database schema evolution in S3, removing the need for self-hosted schema history infrastructure.\n",
+  "typeDefs": [
+    {
+      "name": "DISABLED",
+      "description": "",
+      "type": "Constant",
+      "value": "disabled",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "PREFERRED",
+      "description": "",
+      "type": "Constant",
+      "value": "preferred",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "REQUIRED",
+      "description": "",
+      "type": "Constant",
+      "value": "required",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "VERIFY_CA",
+      "description": "",
+      "type": "Constant",
+      "value": "verify_ca",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "VERIFY_IDENTITY",
+      "description": "",
+      "type": "Constant",
+      "value": "verify_identity",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "FAIL",
+      "description": "",
+      "type": "Constant",
+      "value": "fail",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "WARN",
+      "description": "",
+      "type": "Constant",
+      "value": "warn",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "SKIP",
+      "description": "",
+      "type": "Constant",
+      "value": "skip",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "ALWAYS",
+      "description": "",
+      "type": "Constant",
+      "value": "always",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "INITIAL",
+      "description": "",
+      "type": "Constant",
+      "value": "initial",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "INITIAL_ONLY",
+      "description": "",
+      "type": "Constant",
+      "value": "initial_only",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "SCHEMA_ONLY",
+      "description": "",
+      "type": "Constant",
+      "value": "schema_only",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "NO_DATA",
+      "description": "",
+      "type": "Constant",
+      "value": "no_data",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "RECOVERY",
+      "description": "",
+      "type": "Constant",
+      "value": "recovery",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "WHEN_NEEDED",
+      "description": "",
+      "type": "Constant",
+      "value": "when_needed",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "CONFIGURATION_BASED",
+      "description": "",
+      "type": "Constant",
+      "value": "configuration_based",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "CUSTOM",
+      "description": "",
+      "type": "Constant",
+      "value": "custom",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "CREATE",
+      "description": "",
+      "type": "Constant",
+      "value": "c",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "UPDATE",
+      "description": "",
+      "type": "Constant",
+      "value": "u",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "DELETE",
+      "description": "",
+      "type": "Constant",
+      "value": "d",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "TRUNCATE",
+      "description": "",
+      "type": "Constant",
+      "value": "t",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "NONE",
+      "description": "",
+      "type": "Constant",
+      "value": "none",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "PRECISE",
+      "description": "",
+      "type": "Constant",
+      "value": "precise",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "DOUBLE",
+      "description": "",
+      "type": "Constant",
+      "value": "double",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "STRING",
+      "description": "",
+      "type": "Constant",
+      "value": "string",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "SERIALIZABLE",
+      "description": "",
+      "type": "Constant",
+      "value": "serializable",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "REPEATABLE_READ",
+      "description": "",
+      "type": "Constant",
+      "value": "repeatable_read",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "READ_COMMITTED",
+      "description": "",
+      "type": "Constant",
+      "value": "read_committed",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "READ_UNCOMMITTED",
+      "description": "",
+      "type": "Constant",
+      "value": "read_uncommitted",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "EXCLUSIVE",
+      "description": "",
+      "type": "Constant",
+      "value": "exclusive",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "SHARED",
+      "description": "",
+      "type": "Constant",
+      "value": "shared",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "MINIMAL",
+      "description": "",
+      "type": "Constant",
+      "value": "minimal",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "EXTENDED",
+      "description": "",
+      "type": "Constant",
+      "value": "extended",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "SELECT_ALL",
+      "description": "",
+      "type": "Constant",
+      "value": "select_all",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "INSERT_INSERT",
+      "description": "",
+      "type": "Constant",
+      "value": "insert_insert",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "INSERT_DELETE",
+      "description": "",
+      "type": "Constant",
+      "value": "insert_delete",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "BYTES",
+      "description": "",
+      "type": "Constant",
+      "value": "bytes",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "BASE64",
+      "description": "",
+      "type": "Constant",
+      "value": "base64",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "BASE64_URL_SAFE",
+      "description": "",
+      "type": "Constant",
+      "value": "base64-url-safe",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "HEX",
+      "description": "",
+      "type": "Constant",
+      "value": "hex",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "ADAPTIVE",
+      "description": "",
+      "type": "Constant",
+      "value": "adaptive",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "ADAPTIVE_TIME_MICROSECONDS",
+      "description": "",
+      "type": "Constant",
+      "value": "adaptive_time_microseconds",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "CONNECT",
+      "description": "",
+      "type": "Constant",
+      "value": "connect",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "ISOSTRING",
+      "description": "",
+      "type": "Constant",
+      "value": "isostring",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "MICROSECONDS",
+      "description": "",
+      "type": "Constant",
+      "value": "microseconds",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "NANOSECONDS",
+      "description": "",
+      "type": "Constant",
+      "value": "nanoseconds",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "AUTH_SASL_PLAIN",
+      "description": "",
+      "type": "Constant",
+      "value": "PLAIN",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "AUTH_SASL_SCRAM_SHA_256",
+      "description": "",
+      "type": "Constant",
+      "value": "SCRAM-SHA-256",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "AUTH_SASL_SCRAM_SHA_512",
+      "description": "",
+      "type": "Constant",
+      "value": "SCRAM-SHA-512",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "PROTOCOL_PLAINTEXT",
+      "description": "",
+      "type": "Constant",
+      "value": "PLAINTEXT",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "PROTOCOL_SSL",
+      "description": "",
+      "type": "Constant",
+      "value": "SSL",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "PROTOCOL_SASL_PLAINTEXT",
+      "description": "",
+      "type": "Constant",
+      "value": "SASL_PLAINTEXT",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "PROTOCOL_SASL_SSL",
+      "description": "",
+      "type": "Constant",
+      "value": "SASL_SSL",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "HASH_V1",
+      "description": "",
+      "type": "Constant",
+      "value": "HASH_V1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "HASH_V2",
+      "description": "",
+      "type": "Constant",
+      "value": "HASH_V2",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "SSL",
+      "description": "",
+      "type": "Constant",
+      "value": "SSL",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "TLS",
+      "description": "",
+      "type": "Constant",
+      "value": "TLS",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "DTLS",
+      "description": "",
+      "type": "Constant",
+      "value": "DTLS",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "CdcServiceConfig",
+      "description": "Provides a set of configurations for the CDC service.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "tables",
+          "description": "The name of the table or an array of table names to capture events from",
+          "type": {
+            "name": "string|string[]"
+          }
+        }
+      ]
+    },
+    {
+      "name": "EventProcessingErrorDetail",
+      "description": "Represents the details of an error that occurred during event processing.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "payload",
+          "description": "The JSON payload associated with the error",
+          "type": {
+            "name": "json"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Error",
+      "description": "Defines the common error type for the CDC module.",
+      "type": "Error",
+      "baseType": "error"
+    },
+    {
+      "name": "EventProcessingError",
+      "description": "Represents an error that occurred during event processing.",
+      "type": "Error",
+      "baseType": "error\u003crecord {|json payload; anydata...;|}\u003e"
+    },
+    {
+      "name": "PayloadBindingError",
+      "description": "Represents an error that occurred due to payload binding issues.",
+      "type": "Error",
+      "baseType": "error\u003crecord {|json payload; anydata...;|}\u003e"
+    },
+    {
+      "name": "OperationNotPermittedError",
+      "description": "Represents an error that occurred due to an operation not being permitted.",
+      "type": "Error",
+      "baseType": "error"
+    },
+    {
+      "name": "Listener",
+      "description": "Represents a Ballerina CDC MySQL Listener.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "attach",
+          "type": "Normal Function",
+          "description": "Attaches a CDC service to the listener.\n",
+          "parameters": [
+            {
+              "name": "s",
+              "description": "The CDC service to attach",
+              "type": {
+                "name": "Service",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Service"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "name",
+              "description": "Attachment points",
+              "type": {
+                "name": "string[]|string|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "An error if the service cannot be attached, or `()` if successful",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "\u0027start",
+          "type": "Normal Function",
+          "description": "Starts the CDC listener.\n",
+          "parameters": [],
+          "return": {
+            "description": "An error if the listener cannot be started, or `()` if successful",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "detach",
+          "type": "Normal Function",
+          "description": "Detaches a CDC service from the listener.\n",
+          "parameters": [
+            {
+              "name": "s",
+              "description": "The CDC service to detach",
+              "type": {
+                "name": "Service",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Service"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "An error if the service cannot be detached, or `()` if successful",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "gracefulStop",
+          "type": "Normal Function",
+          "description": "Stops the listener gracefully.\n",
+          "parameters": [],
+          "return": {
+            "description": "An error if the listener cannot be stopped, or `()` if successful",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "immediateStop",
+          "type": "Normal Function",
+          "description": "Stops the listener immediately.\n",
+          "parameters": [],
+          "return": {
+            "description": "An error if the listener cannot be stopped, or `()` if successful",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Service",
+      "description": "Represents a CDC service in Ballerina.\n\nA CDC service is a distinct service object that defines remote methods to handle\ndatabase change events such as `onRead`, `onCreate`, `onUpdate`, `onDelete`, and `onError`.\nThese methods are invoked by the CDC listener when corresponding events occur in the database.\n\nExample:\n```ballerina\nservice cdc:Service on new mysql:CdcListener() {\n    remote function onRead(record{} after) returns error? {\n        // Handle the create event\n    }\n    remote function onCreate(record{} after) returns error? {\n        // Handle the create event\n    }\n    remote function onUpdate(record{} before, record{} after) returns error? {\n        // Handle the update event\n    }\n    remote function onDelete(record{} before) returns error? {\n        // Handle the update event\n    }\n}\n```",
+      "type": "Class"
+    },
+    {
+      "name": "SslMode",
+      "description": "Represents the SSL modes for secure database connections.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "VERIFY_IDENTITY",
+          "description": ""
+        },
+        {
+          "name": "VERIFY_CA",
+          "description": ""
+        },
+        {
+          "name": "REQUIRED",
+          "description": ""
+        },
+        {
+          "name": "PREFERRED",
+          "description": ""
+        },
+        {
+          "name": "DISABLED",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "EventProcessingFailureHandlingMode",
+      "description": "Defines the modes for handling event processing failures.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "SKIP",
+          "description": ""
+        },
+        {
+          "name": "WARN",
+          "description": ""
+        },
+        {
+          "name": "FAIL",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "SnapshotMode",
+      "description": "Represents the snapshot modes for capturing database states.\n",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "CUSTOM",
+          "description": ""
+        },
+        {
+          "name": "CONFIGURATION_BASED",
+          "description": ""
+        },
+        {
+          "name": "WHEN_NEEDED",
+          "description": ""
+        },
+        {
+          "name": "RECOVERY",
+          "description": ""
+        },
+        {
+          "name": "NO_DATA",
+          "description": ""
+        },
+        {
+          "name": "SCHEMA_ONLY",
+          "description": ""
+        },
+        {
+          "name": "INITIAL_ONLY",
+          "description": ""
+        },
+        {
+          "name": "INITIAL",
+          "description": ""
+        },
+        {
+          "name": "ALWAYS",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "Operation",
+      "description": "Represents the types of database operations.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "NONE",
+          "description": ""
+        },
+        {
+          "name": "TRUNCATE",
+          "description": ""
+        },
+        {
+          "name": "DELETE",
+          "description": ""
+        },
+        {
+          "name": "UPDATE",
+          "description": ""
+        },
+        {
+          "name": "CREATE",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "DecimalHandlingMode",
+      "description": "Represents the modes for handling decimal values from the database.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "STRING",
+          "description": ""
+        },
+        {
+          "name": "DOUBLE",
+          "description": ""
+        },
+        {
+          "name": "PRECISE",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "SnapshotIsolationMode",
+      "description": "Represents snapshot isolation modes for transactions.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "READ_UNCOMMITTED",
+          "description": ""
+        },
+        {
+          "name": "READ_COMMITTED",
+          "description": ""
+        },
+        {
+          "name": "REPEATABLE_READ",
+          "description": ""
+        },
+        {
+          "name": "SERIALIZABLE",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "SnapshotLockingMode",
+      "description": "Represents snapshot locking modes (used by MySQL, PostgreSQL, SQL Server).",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "CUSTOM",
+          "description": ""
+        },
+        {
+          "name": "NONE",
+          "description": ""
+        },
+        {
+          "name": "EXTENDED",
+          "description": ""
+        },
+        {
+          "name": "MINIMAL",
+          "description": ""
+        },
+        {
+          "name": "SHARED",
+          "description": ""
+        },
+        {
+          "name": "EXCLUSIVE",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "SnapshotQueryMode",
+      "description": "Represents snapshot query modes.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "CUSTOM",
+          "description": ""
+        },
+        {
+          "name": "SELECT_ALL",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "IncrementalSnapshotWatermarkingStrategy",
+      "description": "Represents incremental snapshot watermarking strategies.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "INSERT_DELETE",
+          "description": ""
+        },
+        {
+          "name": "INSERT_INSERT",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "BinaryHandlingMode",
+      "description": "Represents binary data handling modes.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "HEX",
+          "description": ""
+        },
+        {
+          "name": "BASE64_URL_SAFE",
+          "description": ""
+        },
+        {
+          "name": "BASE64",
+          "description": ""
+        },
+        {
+          "name": "BYTES",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "TimePrecisionMode",
+      "description": "Represents time precision modes.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "NANOSECONDS",
+          "description": ""
+        },
+        {
+          "name": "MICROSECONDS",
+          "description": ""
+        },
+        {
+          "name": "ISOSTRING",
+          "description": ""
+        },
+        {
+          "name": "CONNECT",
+          "description": ""
+        },
+        {
+          "name": "ADAPTIVE_TIME_MICROSECONDS",
+          "description": ""
+        },
+        {
+          "name": "ADAPTIVE",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "KafkaAuthenticationMechanism",
+      "description": "Represents the authentication mechanisms for Kafka connections.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "AUTH_SASL_SCRAM_SHA_512",
+          "description": ""
+        },
+        {
+          "name": "AUTH_SASL_SCRAM_SHA_256",
+          "description": ""
+        },
+        {
+          "name": "AUTH_SASL_PLAIN",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "KafkaAuthenticationConfiguration",
+      "description": "Configurations related to Kafka authentication mechanisms.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "mechanism",
+          "description": "Type of the authentication mechanism. Currently `SASL_PLAIN`, `SASL_SCRAM_256` \u0026 `SASL_SCRAM_512`\nis supported",
+          "type": {
+            "name": "KafkaAuthenticationMechanism",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "KafkaAuthenticationMechanism"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "username",
+          "description": "The username to authenticate the Kafka producer/consumer",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "password",
+          "description": "The password to authenticate the Kafka producer/consumer",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "KafkaSecurityProtocol",
+      "description": "The security protocols for Kafka connections.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "PROTOCOL_SASL_SSL",
+          "description": ""
+        },
+        {
+          "name": "PROTOCOL_SASL_PLAINTEXT",
+          "description": ""
+        },
+        {
+          "name": "PROTOCOL_SSL",
+          "description": ""
+        },
+        {
+          "name": "PROTOCOL_PLAINTEXT",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "HashMaskVersion",
+      "description": "Hash masking version",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "HASH_V2",
+          "description": ""
+        },
+        {
+          "name": "HASH_V1",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "KafkaSecureSocketCertKey",
+      "description": "A combination of certificate, private key, and private key password if encrypted.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "certFile",
+          "description": "A file containing the certificate",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "keyFile",
+          "description": "A file containing the private key in PKCS8 format",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "keyPassword",
+          "description": "Password of the private key if it is encrypted",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "KafkaSecureSocketProtocol",
+      "description": "Protocol options for secure Kafka connections, allowing specification of SSL/TLS protocol versions.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "DTLS",
+          "description": ""
+        },
+        {
+          "name": "TLS",
+          "description": ""
+        },
+        {
+          "name": "SSL",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "KafkaSecureSocket",
+      "description": "Configurations for secure communication with the Kafka server.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "cert",
+          "description": "Configurations associated with crypto:TrustStore or single certificate file that the client trusts",
+          "type": {
+            "name": "TrustStore|string",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "TrustStore",
+                "libraryName": "ballerina/crypto"
+              }
+            ]
+          }
+        },
+        {
+          "name": "key",
+          "description": "Configurations associated with crypto:KeyStore or combination of certificate and private key of the client",
+          "type": {
+            "name": "record {|crypto:KeyStore keyStore; string keyPassword?;|}|KafkaSecureSocketCertKey",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "KafkaSecureSocketCertKey"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "protocol",
+          "description": "SSL/TLS protocol related options",
+          "type": {
+            "name": "record {|KafkaSecureSocketProtocol name; string[] versions?;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "ciphers",
+          "description": "List of ciphers to be used. By default, all the available cipher suites are supported",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "provider",
+          "description": "Name of the security provider used for SSL connections. The default value is the default security provider\nof the JVM",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "SecureDatabaseConnection",
+      "description": "SSL/TLS configuration for database connections.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "sslMode",
+          "description": "SSL mode controlling the connection security level",
+          "type": {
+            "name": "SslMode",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SslMode"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "keyStore",
+          "description": "Client keystore for mutual TLS authentication",
+          "type": {
+            "name": "KeyStore",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "KeyStore",
+                "libraryName": "ballerina/crypto"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "trustStore",
+          "description": "Truststore for verifying the server certificate",
+          "type": {
+            "name": "TrustStore",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "TrustStore",
+                "libraryName": "ballerina/crypto"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "RedisSecureSocket",
+      "description": "SSL/TLS configuration for secure Redis connections.\nThe presence of this configuration indicates that SSL is enabled for the Redis connection.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "cert",
+          "description": "Truststore configuration or certificate file path for server verification",
+          "type": {
+            "name": "TrustStore|string",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "TrustStore",
+                "libraryName": "ballerina/crypto"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "key",
+          "description": "Keystore configuration for client certificate authentication (mTLS)",
+          "type": {
+            "name": "KeyStore",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "KeyStore",
+                "libraryName": "ballerina/crypto"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "verifyHostName",
+          "description": "Whether to verify the Redis server\u0027s hostname against the certificate",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "RedisRetryConfiguration",
+      "description": "Retry configuration for Redis connections.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "initialDelay",
+          "description": "Initial delay in seconds before the first retry",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxDelay",
+          "description": "Maximum delay in seconds between retries",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxAttempts",
+          "description": "Maximum number of retry attempts",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "RedisWaitConfiguration",
+      "description": "Wait configuration for Redis replication acknowledgement.\nThe presence of this configuration enables the wait; its absence disables it.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "timeout",
+          "description": "Timeout in seconds for replication wait",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "retryDelay",
+          "description": "Delay in seconds between replication wait retries. If not set, the wait will not be retried and will fail immediately on timeout.",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "JdbcRetryConfiguration",
+      "description": "Retry configuration for JDBC connections.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "retryDelay",
+          "description": "Delay in seconds between connection retry attempts",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxAttempts",
+          "description": "Maximum number of retry attempts",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "FileInternalSchemaStorage",
+      "description": "File-based schema history storage configuration.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "className",
+          "description": "Fully-qualified class name of the file schema history implementation",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "fileName",
+          "description": "Path to the schema history file",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "topicPrefix",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "KafkaInternalSchemaStorage",
+      "description": "Kafka-based schema history storage configuration.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "className",
+          "description": "Fully-qualified class name of the Kafka schema history implementation",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "topicName",
+          "description": "Kafka topic for storing schema history",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "bootstrapServers",
+          "description": "Kafka bootstrap servers",
+          "type": {
+            "name": "string|string[]"
+          }
+        },
+        {
+          "name": "recoveryPollInterval",
+          "description": "Interval in seconds between recovery polls",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "recoveryAttempts",
+          "description": "Maximum poll attempts during schema history recovery",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "queryTimeout",
+          "description": "Timeout in seconds for Kafka queries",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "createTimeout",
+          "description": "Timeout in seconds for topic creation",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "securityProtocol",
+          "description": "Kafka security protocol (PLAINTEXT, SSL, SASL_PLAINTEXT, SASL_SSL)",
+          "type": {
+            "name": "KafkaSecurityProtocol",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "KafkaSecurityProtocol"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "auth",
+          "description": "SASL authentication credentials; required for SASL_PLAINTEXT and SASL_SSL",
+          "type": {
+            "name": "KafkaAuthenticationConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "KafkaAuthenticationConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "SSL/TLS configuration with truststore and optional keystore for mTLS",
+          "type": {
+            "name": "KafkaSecureSocket",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "KafkaSecureSocket"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "topicPrefix",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "MemoryInternalSchemaStorage",
+      "description": "In-memory schema history storage configuration (data is lost on restart).\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "className",
+          "description": "Fully-qualified class name of the memory schema history implementation",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "topicPrefix",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "JdbcInternalSchemaStorage",
+      "description": "JDBC-based schema history storage configuration.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "className",
+          "description": "Fully-qualified class name of the JDBC schema history implementation",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "url",
+          "description": "Full JDBC connection URL (e.g., `jdbc:mysql://localhost:3306/dbname`)",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "username",
+          "description": "Database username",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "password",
+          "description": "Database password",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "retryConfig",
+          "description": "Retry configuration for JDBC connection attempts",
+          "type": {
+            "name": "JdbcRetryConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "JdbcRetryConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "tableName",
+          "description": "Schema history table name",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "tableDdl",
+          "description": "DDL for creating the schema history table",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "tableSelect",
+          "description": "SELECT query for reading schema history",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "tableInsert",
+          "description": "INSERT query for writing schema history entries",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "tableDelete",
+          "description": "DELETE query for removing schema history entries",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "topicPrefix",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "RedisInternalSchemaStorage",
+      "description": "Redis-based schema history storage configuration.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "className",
+          "description": "Fully-qualified class name of the Redis schema history implementation",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "key",
+          "description": "Redis key for storing the schema history",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "address",
+          "description": "Redis server address (host:port)",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "username",
+          "description": "Redis username for authentication",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "password",
+          "description": "Redis password for authentication",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "dbIndex",
+          "description": "Redis database index",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "SSL/TLS configuration; if present, SSL is enabled for the connection",
+          "type": {
+            "name": "RedisSecureSocket",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RedisSecureSocket"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "connectTimeout",
+          "description": "Connection timeout in seconds",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "socketTimeout",
+          "description": "Socket read/write timeout in seconds",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "retryConfig",
+          "description": "Retry configuration for Redis connection attempts",
+          "type": {
+            "name": "RedisRetryConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RedisRetryConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "waitConfig",
+          "description": "Wait configuration for Redis replication acknowledgement; if present, replication wait is enabled",
+          "type": {
+            "name": "RedisWaitConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RedisWaitConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "clusterEnabled",
+          "description": "Whether Redis cluster mode is enabled",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "topicPrefix",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "AmazonS3InternalSchemaStorage",
+      "description": "Amazon S3-based schema history storage configuration.\nUsing this storage backend requires importing the `ballerinax/cdc.schema.aws.s3.driver` module.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "className",
+          "description": "Fully-qualified class name of the S3 schema history implementation",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "accessKeyId",
+          "description": "AWS access key ID for authentication",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "secretAccessKey",
+          "description": "AWS secret access key for authentication",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "region",
+          "description": "AWS region of the S3 bucket",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "bucketName",
+          "description": "S3 bucket name for schema history",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "objectName",
+          "description": "S3 object (file) name within the bucket",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "endpoint",
+          "description": "Custom S3-compatible endpoint URL; uses the AWS endpoint if not set",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "forcePathStyle",
+          "description": "Uses path-style S3 URLs, required by local S3-compatible endpoints such as MinIO",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "topicPrefix",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "AzureBlobInternalSchemaStorage",
+      "description": "Azure Blob Storage-based schema history storage configuration.\nUsing this storage backend requires importing the `ballerinax/cdc.schema.azure.blob.driver` module.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "className",
+          "description": "Fully-qualified class name of the Azure Blob schema history implementation",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "connectionString",
+          "description": "Azure Storage connection string",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "accountName",
+          "description": "Azure Storage account name",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "containerName",
+          "description": "Azure Blob container name for schema history",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "blobName",
+          "description": "Blob (file) name within the container",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "topicPrefix",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "RocketMQInternalSchemaStorage",
+      "description": "RocketMQ-based schema history storage configuration.\nUsing this storage backend requires importing the `ballerinax/cdc.schema.rocketmq.driver` module.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "className",
+          "description": "Fully-qualified class name of the RocketMQ schema history implementation",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "topicName",
+          "description": "RocketMQ topic for schema history",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "nameServerAddress",
+          "description": "RocketMQ name server address",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "aclEnabled",
+          "description": "Whether ACL authentication is enabled",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "accessKey",
+          "description": "Access key for ACL authentication",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "secretKey",
+          "description": "Secret key for ACL authentication",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "recoveryAttempts",
+          "description": "Maximum recovery attempts when reading schema history",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "recoveryPollInterval",
+          "description": "Interval in seconds between recovery poll attempts",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "storeRecordTimeout",
+          "description": "Timeout in seconds for storing schema history records",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "topicPrefix",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "FileOffsetStorage",
+      "description": "File-based offset storage configuration.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "className",
+          "description": "Fully-qualified class name of the file offset storage implementation",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "fileName",
+          "description": "Path to the offset storage file",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "flushInterval",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "flushTimeout",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "KafkaOffsetStorage",
+      "description": "Kafka-based offset storage configuration.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "className",
+          "description": "Fully-qualified class name of the Kafka offset storage implementation",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "bootstrapServers",
+          "description": "Kafka bootstrap servers",
+          "type": {
+            "name": "string|string[]"
+          }
+        },
+        {
+          "name": "topicName",
+          "description": "Kafka topic for storing offsets",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "partitions",
+          "description": "Number of partitions for the offset topic",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "replicationFactor",
+          "description": "Replication factor for the offset topic",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "securityProtocol",
+          "description": "Kafka security protocol (PLAINTEXT, SSL, SASL_PLAINTEXT, SASL_SSL)",
+          "type": {
+            "name": "KafkaSecurityProtocol",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "KafkaSecurityProtocol"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "auth",
+          "description": "SASL authentication credentials; required for SASL_PLAINTEXT and SASL_SSL",
+          "type": {
+            "name": "KafkaAuthenticationConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "KafkaAuthenticationConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "SSL/TLS configuration with truststore and optional keystore for mTLS",
+          "type": {
+            "name": "KafkaSecureSocket",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "KafkaSecureSocket"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "flushInterval",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "flushTimeout",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "MemoryOffsetStorage",
+      "description": "In-memory offset storage configuration (data is lost on restart).\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "className",
+          "description": "Fully-qualified class name of the memory offset storage implementation",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "flushInterval",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "flushTimeout",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "RedisOffsetStorage",
+      "description": "Redis-based offset storage configuration.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "className",
+          "description": "Fully-qualified class name of the Redis offset storage implementation",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "key",
+          "description": "Redis key for storing offsets",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "address",
+          "description": "Redis server address (host:port)",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "username",
+          "description": "Redis username for authentication",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "password",
+          "description": "Redis password for authentication",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "dbIndex",
+          "description": "Redis database index",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "SSL/TLS configuration; if present, SSL is enabled for the connection",
+          "type": {
+            "name": "RedisSecureSocket",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RedisSecureSocket"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "connectTimeout",
+          "description": "Connection timeout in seconds",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "socketTimeout",
+          "description": "Socket read/write timeout in seconds",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "retryConfig",
+          "description": "Retry configuration for Redis connection attempts",
+          "type": {
+            "name": "RedisRetryConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RedisRetryConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "waitConfig",
+          "description": "Wait configuration for Redis replication acknowledgement; if present, replication wait is enabled",
+          "type": {
+            "name": "RedisWaitConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RedisWaitConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "clusterEnabled",
+          "description": "Whether Redis cluster mode is enabled",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "flushInterval",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "flushTimeout",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "JdbcOffsetStorage",
+      "description": "JDBC-based offset storage configuration.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "className",
+          "description": "Fully-qualified class name of the JDBC offset storage implementation",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "url",
+          "description": "Full JDBC connection URL (e.g., `jdbc:mysql://localhost:3306/dbname`)",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "username",
+          "description": "Database username",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "password",
+          "description": "Database password",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "retryConfig",
+          "description": "Retry configuration for JDBC connection attempts",
+          "type": {
+            "name": "JdbcRetryConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "JdbcRetryConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "tableName",
+          "description": "Offset storage table name",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "tableDdl",
+          "description": "DDL for creating the offset storage table",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "tableSelect",
+          "description": "SELECT query for reading offsets",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "tableInsert",
+          "description": "INSERT query for creating new offsets",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "tableDelete",
+          "description": "DELETE query for removing offsets",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "flushInterval",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "flushTimeout",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "HeartbeatConfiguration",
+      "description": "Heartbeat configuration for detecting idle or stale connections.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "interval",
+          "description": "Interval in seconds between heartbeats",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "RelationalHeartbeatConfiguration",
+      "description": "Heartbeat configuration for relational database connectors.\nExtends the base heartbeat configuration with an optional SQL action query.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "actionQuery",
+          "description": "SQL query executed by Debezium with each heartbeat to keep the replication slot or binlog position\nactive. Applicable only to relational databases (MySQL, PostgreSQL, MSSQL).",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "interval",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "SourceSignalConfiguration",
+      "description": "Source (database table) signal channel configuration.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "dataCollectionTable",
+          "description": "Fully-qualified table name (e.g., \"mydb.debezium_signal\")",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "KafkaSignalConfiguration",
+      "description": "Kafka-based signal configuration.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "topicName",
+          "description": "Kafka topic for signal messages",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "bootstrapServers",
+          "description": "Kafka bootstrap servers for the signal consumer",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "groupId",
+          "description": "Consumer group ID for reading signal messages",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "securityProtocol",
+          "description": "Kafka security protocol (PLAINTEXT, SSL, SASL_PLAINTEXT, SASL_SSL)",
+          "type": {
+            "name": "KafkaSecurityProtocol",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "KafkaSecurityProtocol"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "auth",
+          "description": "SASL authentication configuration for the signal consumer",
+          "type": {
+            "name": "KafkaAuthenticationConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "KafkaAuthenticationConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "SSL/TLS configuration for the signal consumer",
+          "type": {
+            "name": "KafkaSecureSocket",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "KafkaSecureSocket"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "pollTimeout",
+          "description": "Timeout in seconds for polling signal messages from Kafka",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "FileSignalConfiguration",
+      "description": "File-based signal channel configuration.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "fileName",
+          "description": "Path to the signal file monitored for changes",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "JmxSignalConfiguration",
+      "description": "JMX-based signal channel configuration.",
+      "type": "Record",
+      "fields": []
+    },
+    {
+      "name": "SignalConfiguration",
+      "description": "All supported signal channel configurations for ad-hoc control of the CDC connector.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "\u0027source",
+          "description": "",
+          "type": {
+            "name": "SourceSignalConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SourceSignalConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "kafka",
+          "description": "Configuration for a signal channel implemented using Kafka topics",
+          "type": {
+            "name": "KafkaSignalConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "KafkaSignalConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "file",
+          "description": "Configuration for a signal channel implemented using file monitoring",
+          "type": {
+            "name": "FileSignalConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "FileSignalConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "jmx",
+          "description": "Configuration for a signal channel implemented using JMX",
+          "type": {
+            "name": "JmxSignalConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "JmxSignalConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "IncrementalSnapshotConfiguration",
+      "description": "Incremental (non-blocking) snapshot configuration.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "chunkSize",
+          "description": "Number of rows per snapshot chunk",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "watermarkingStrategy",
+          "description": "Strategy for marking chunk boundaries",
+          "type": {
+            "name": "IncrementalSnapshotWatermarkingStrategy",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "IncrementalSnapshotWatermarkingStrategy"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "allowSchemaChanges",
+          "description": "Whether DDL changes are allowed during incremental snapshot",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ExtendedSnapshotConfiguration",
+      "description": "Extended snapshot configuration for fine-tuning snapshot behavior.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "delay",
+          "description": "Delay in seconds before starting the snapshot",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "fetchSize",
+          "description": "Number of rows fetched per database round trip during snapshot",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxThreads",
+          "description": "Maximum threads for parallel snapshot operations",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "includeCollectionList",
+          "description": "Regex patterns for tables/collections to include in the snapshot",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "incrementalConfig",
+          "description": "Incremental snapshot configuration",
+          "type": {
+            "name": "IncrementalSnapshotConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "IncrementalSnapshotConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "RelationalExtendedSnapshotConfiguration",
+      "description": "Extended snapshot configuration for relational databases.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "lockingMode",
+          "description": "Table locking strategy during snapshot",
+          "type": {
+            "name": "SnapshotLockingMode",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SnapshotLockingMode"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "selectStatementOverrides",
+          "description": "Custom SELECT statements per table for filtering snapshot data",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "queryMode",
+          "description": "Query strategy for snapshot execution",
+          "type": {
+            "name": "SnapshotQueryMode",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SnapshotQueryMode"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "delay",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "fetchSize",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxThreads",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "includeCollectionList",
+          "description": "",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "incrementalConfig",
+          "description": "",
+          "type": {
+            "name": "IncrementalSnapshotConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "IncrementalSnapshotConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "MessageKeyColumns",
+      "description": "A list of expressions that specify the columns to be included in the message key for change events. \nEach entry specifies a table and the columns from that table to include in the message key.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "tableName",
+          "description": "The fully qualified name of the table (including database name if necessary) for which to specify message key columns",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "columns",
+          "description": "A list of column names from the specified table to include in the message key",
+          "type": {
+            "name": "string[]"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TransactionMetadataConfiguration",
+      "description": "Transaction boundary event configuration. \nThe presence of this configuration enables the emission of transaction metadata events at the start and end of transactions.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "topicName",
+          "description": "Topic name suffix for transaction metadata events (full topic: `\u003cprefix\u003e.\u003ctopicName\u003e`). In embedded mode, this is essentially a logical identifier.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ColumnHashMask",
+      "description": "Hash-based column masking configuration for irreversibly hashing sensitive column values.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "algorithm",
+          "description": "Hash algorithm (e.g., SHA-256, MD5)",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "salt",
+          "description": "Salt added to the hash for extra security",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "version",
+          "description": "Version of the hashing algorithm to use (affects how the hash is computed and formatted)",
+          "type": {
+            "name": "HashMaskVersion",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "HashMaskVersion"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "regexPatterns",
+          "description": "Fully-qualified column name patterns to hash",
+          "type": {
+            "name": "string|string[]"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ColumnCharMask",
+      "description": "Character-based column masking configuration.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "length",
+          "description": "Number of mask characters replacing the original value. Use 0 to replace with an empty string.",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "regexPatterns",
+          "description": "Fully-qualified column name patterns to mask",
+          "type": {
+            "name": "string|string[]"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ColumnTruncate",
+      "description": "Column truncation configuration.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "length",
+          "description": "Maximum character length after truncation",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "regexPatterns",
+          "description": "Fully-qualified column name patterns to truncate",
+          "type": {
+            "name": "string|string[]"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ColumnTransformConfiguration",
+      "description": "Column masking and transformation configuration.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "maskWithHash",
+          "description": "Hash-based masking for irreversible column value hashing",
+          "type": {
+            "name": "ColumnHashMask[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ColumnHashMask"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "maskWithChars",
+          "description": "Character-based masking with a fixed-length replacement string",
+          "type": {
+            "name": "ColumnCharMask[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ColumnCharMask"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "truncateToChars",
+          "description": "Truncation to a fixed string length",
+          "type": {
+            "name": "ColumnTruncate[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ColumnTruncate"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "TopicConfiguration",
+      "description": "Topic naming configuration for change event kafka topics.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "delimiter",
+          "description": "Delimiter between topic name components",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "DataTypeConfiguration",
+      "description": "Data type handling configuration.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "binaryHandlingMode",
+          "description": "Encoding mode for binary column data (bytes, base64, hex)",
+          "type": {
+            "name": "BinaryHandlingMode",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "BinaryHandlingMode"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "timePrecisionMode",
+          "description": "Representation mode for temporal values",
+          "type": {
+            "name": "TimePrecisionMode",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TimePrecisionMode"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ConnectionRetryConfiguration",
+      "description": "Error handling configuration for connector failure and recovery behavior.\nRetry delays increase exponentially (×2 per attempt) from `retryInitialDelay` up to `retryMaxDelay`.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "maxAttempts",
+          "description": "Maximum retry attempts for retriable errors (-1 \u003d unlimited, 0 \u003d disabled).\nWhen the limit is reached, the connector stops with a fatal error.",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "retryInitialDelay",
+          "description": "Wait time in seconds before restarting after a retriable error",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "retryMaxDelay",
+          "description": "Maximum wait time in seconds before restarting after a retriable error",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "PerformanceConfiguration",
+      "description": "Performance tuning configuration.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "maxQueueSizeInBytes",
+          "description": "Maximum queue size in bytes for memory-based backpressure. If not set, remains unlimited.\nWhen both maxQueueSizeInBytes and maxQueueSize (from Options) are set, the lower of the two limits will apply.",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "pollInterval",
+          "description": "Interval in seconds between database polls for new events",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "DatabaseConnection",
+      "description": "Base database connection configuration for all CDC connectors.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "connectorClass",
+          "description": "Fully-qualified class name of the Debezium connector",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "hostname",
+          "description": "Database server hostname or IP address",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "port",
+          "description": "Database server port number",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "username",
+          "description": "Database username for authentication",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "password",
+          "description": "Database password for authentication",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "connectTimeout",
+          "description": "Connection timeout in seconds",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "tasksMax",
+          "description": "Maximum number of connector tasks",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "secure",
+          "description": "SSL/TLS connection configuration",
+          "type": {
+            "name": "SecureDatabaseConnection",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SecureDatabaseConnection"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Options",
+      "description": "Common CDC options applicable to all database connectors.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "snapshotMode",
+          "description": "Initial snapshot behavior (initial, always, no_data, etc.)",
+          "type": {
+            "name": "SnapshotMode",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SnapshotMode"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "eventProcessingFailureHandlingMode",
+          "description": "How to handle event processing failures",
+          "type": {
+            "name": "EventProcessingFailureHandlingMode",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "EventProcessingFailureHandlingMode"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "skippedOperations",
+          "description": "Database operations to skip publishing",
+          "type": {
+            "name": "Operation[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Operation"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "skipMessagesWithoutChange",
+          "description": "Whether to discard events with no data changes",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "decimalHandlingMode",
+          "description": "Representation mode for decimal values",
+          "type": {
+            "name": "DecimalHandlingMode",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DecimalHandlingMode"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "maxQueueSize",
+          "description": "Maximum number of events in the internal queue",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxBatchSize",
+          "description": "Maximum number of events per processing batch",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "queryTimeout",
+          "description": "Database query timeout in seconds",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "heartbeatConfig",
+          "description": "Heartbeat configuration for connection liveness",
+          "type": {
+            "name": "HeartbeatConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "HeartbeatConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "signalConfig",
+          "description": "Signal channel configuration for ad-hoc control",
+          "type": {
+            "name": "SignalConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SignalConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "transactionMetadataConfig",
+          "description": "Transaction boundary event configuration",
+          "type": {
+            "name": "TransactionMetadataConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TransactionMetadataConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "columnTransformConfig",
+          "description": "Column masking and transformation configuration",
+          "type": {
+            "name": "ColumnTransformConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ColumnTransformConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "topicConfig",
+          "description": "Topic naming and routing configuration",
+          "type": {
+            "name": "TopicConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TopicConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "connectionRetryConfig",
+          "description": "Error handling and retry configuration",
+          "type": {
+            "name": "ConnectionRetryConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ConnectionRetryConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "performanceConfig",
+          "description": "Performance tuning configuration",
+          "type": {
+            "name": "PerformanceConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PerformanceConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "extendedSnapshot",
+          "description": "Extended snapshot configuration for fine-tuning snapshot behavior",
+          "type": {
+            "name": "ExtendedSnapshotConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ExtendedSnapshotConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "InternalSchemaStorage",
+      "description": "Union type representing all supported internal schema history storage configurations.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "FileInternalSchemaStorage",
+          "type": {
+            "name": "FileInternalSchemaStorage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "FileInternalSchemaStorage"
+              }
+            ]
+          }
+        },
+        {
+          "name": "KafkaInternalSchemaStorage",
+          "type": {
+            "name": "KafkaInternalSchemaStorage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "KafkaInternalSchemaStorage"
+              }
+            ]
+          }
+        },
+        {
+          "name": "MemoryInternalSchemaStorage",
+          "type": {
+            "name": "MemoryInternalSchemaStorage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "MemoryInternalSchemaStorage"
+              }
+            ]
+          }
+        },
+        {
+          "name": "JdbcInternalSchemaStorage",
+          "type": {
+            "name": "JdbcInternalSchemaStorage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "JdbcInternalSchemaStorage"
+              }
+            ]
+          }
+        },
+        {
+          "name": "RedisInternalSchemaStorage",
+          "type": {
+            "name": "RedisInternalSchemaStorage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RedisInternalSchemaStorage"
+              }
+            ]
+          }
+        },
+        {
+          "name": "AmazonS3InternalSchemaStorage",
+          "type": {
+            "name": "AmazonS3InternalSchemaStorage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AmazonS3InternalSchemaStorage"
+              }
+            ]
+          }
+        },
+        {
+          "name": "AzureBlobInternalSchemaStorage",
+          "type": {
+            "name": "AzureBlobInternalSchemaStorage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AzureBlobInternalSchemaStorage"
+              }
+            ]
+          }
+        },
+        {
+          "name": "RocketMQInternalSchemaStorage",
+          "type": {
+            "name": "RocketMQInternalSchemaStorage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RocketMQInternalSchemaStorage"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "OffsetStorage",
+      "description": "Union type representing all supported offset storage configurations.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "FileOffsetStorage",
+          "type": {
+            "name": "FileOffsetStorage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "FileOffsetStorage"
+              }
+            ]
+          }
+        },
+        {
+          "name": "KafkaOffsetStorage",
+          "type": {
+            "name": "KafkaOffsetStorage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "KafkaOffsetStorage"
+              }
+            ]
+          }
+        },
+        {
+          "name": "MemoryOffsetStorage",
+          "type": {
+            "name": "MemoryOffsetStorage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "MemoryOffsetStorage"
+              }
+            ]
+          }
+        },
+        {
+          "name": "JdbcOffsetStorage",
+          "type": {
+            "name": "JdbcOffsetStorage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "JdbcOffsetStorage"
+              }
+            ]
+          }
+        },
+        {
+          "name": "RedisOffsetStorage",
+          "type": {
+            "name": "RedisOffsetStorage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RedisOffsetStorage"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "ListenerConfiguration",
+      "description": "Base CDC listener configuration.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "engineName",
+          "description": "Debezium engine instance name",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "internalSchemaStorage",
+          "description": "Schema history storage configuration",
+          "type": {
+            "name": "InternalSchemaStorage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "InternalSchemaStorage"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "offsetStorage",
+          "description": "Offset storage configuration",
+          "type": {
+            "name": "OffsetStorage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OffsetStorage"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "livenessInterval",
+          "description": "Interval in seconds for checking CDC listener liveness",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "database",
+          "description": "Database connection configuration (provided by DB-specific listener configs)",
+          "type": {
+            "name": "DatabaseConnection",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DatabaseConnection"
+              }
+            ]
+          }
+        },
+        {
+          "name": "options",
+          "description": "Connector options",
+          "type": {
+            "name": "Options",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Options"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    }
+  ],
+  "clients": [],
+  "functions": [
+    {
+      "name": "externAttach",
+      "type": "Normal Function",
+      "description": "Attach point to call the native CDC listener attach method.\n",
+      "parameters": [
+        {
+          "name": "cdcListener",
+          "description": "the cdc listener object  ",
+          "type": {
+            "name": "Listener",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Listener"
+              }
+            ]
+          }
+        },
+        {
+          "name": "cdcService",
+          "description": "the cdc service object",
+          "type": {
+            "name": "Service",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Service"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "an error if the service cannot be attached, or `()` if successful",
+        "type": {
+          "name": "Error|()",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "externDetach",
+      "type": "Normal Function",
+      "description": "Attach point to call the native CDC listener detach method.\n",
+      "parameters": [
+        {
+          "name": "cdcListener",
+          "description": "the cdc listener object",
+          "type": {
+            "name": "Listener",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Listener"
+              }
+            ]
+          }
+        },
+        {
+          "name": "cdcService",
+          "description": "the configuration map",
+          "type": {
+            "name": "Service",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Service"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "an error if the service cannot be detached, or `()` if successful",
+        "type": {
+          "name": "Error|()",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "externStart",
+      "type": "Normal Function",
+      "description": "Attach point to call the native CDC listener start method.\n",
+      "parameters": [
+        {
+          "name": "cdcListener",
+          "description": "the cdc listener object",
+          "type": {
+            "name": "Listener",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Listener"
+              }
+            ]
+          }
+        },
+        {
+          "name": "config",
+          "description": "the configuration map containing debezium properties",
+          "type": {
+            "name": "map\u003canydata\u003e"
+          }
+        }
+      ],
+      "return": {
+        "description": "an error if the listener cannot be started, or `()` if successful\nUse `externStartWithExtendedConfigs` instead, which separates debezium properties from\nlistener-specific properties into distinct maps.\n",
+        "type": {
+          "name": "Error|()",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      },
+      "isDeprecated": true
+    },
+    {
+      "name": "externStartWithExtendedConfigs",
+      "type": "Normal Function",
+      "description": "Attach point to call the native CDC listener start method with separate config maps.\n",
+      "parameters": [
+        {
+          "name": "cdcListener",
+          "description": "the cdc listener object",
+          "type": {
+            "name": "Listener",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Listener"
+              }
+            ]
+          }
+        },
+        {
+          "name": "debeziumConfigs",
+          "description": "the configuration map containing debezium properties",
+          "type": {
+            "name": "map\u003canydata\u003e"
+          }
+        },
+        {
+          "name": "listenerConfigs",
+          "description": "the configuration map containing listener-specific properties",
+          "type": {
+            "name": "map\u003canydata\u003e"
+          }
+        }
+      ],
+      "return": {
+        "description": "an error if the listener cannot be started, or `()` if successful",
+        "type": {
+          "name": "Error|()",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "externGracefulStop",
+      "type": "Normal Function",
+      "description": "Attach point to call the native CDC listener gracefulStop method.\n",
+      "parameters": [
+        {
+          "name": "cdcListener",
+          "description": "the cdc listener object",
+          "type": {
+            "name": "Listener",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Listener"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "an error if the listener cannot be stopped, or `()` if successful",
+        "type": {
+          "name": "Error|()",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "externImmediateStop",
+      "type": "Normal Function",
+      "description": "Attach point to call the native CDC listener immediateStop method.\n",
+      "parameters": [
+        {
+          "name": "cdcListener",
+          "description": "the cdc listener object",
+          "type": {
+            "name": "Listener",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Listener"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "an error if the listener cannot be stopped, or `()` if successful",
+        "type": {
+          "name": "Error|()",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "isLive",
+      "type": "Normal Function",
+      "description": "Checks whether the given CDC listener is live.\n",
+      "parameters": [
+        {
+          "name": "cdc",
+          "description": "The CDC listener instance to be checked",
+          "type": {
+            "name": "Listener",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Listener"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "Returns `true` if the listener is considered live, `false` otherwise,\nor an error if the liveness check fail",
+        "type": {
+          "name": "boolean|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "externGetAdditionalConfigKeys",
+      "type": "Normal Function",
+      "description": "Retrieves additional configuration keys for the given options.\n",
+      "parameters": [
+        {
+          "name": "options",
+          "description": "The options instance to retrieve additional configuration keys from",
+          "type": {
+            "name": "Options",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Options"
+              }
+            ]
+          }
+        },
+        {
+          "name": "optionsSubType",
+          "description": "The type descriptor of the options",
+          "type": {
+            "name": "cdc:Options"
+          }
+        }
+      ],
+      "return": {
+        "description": "An array of additional configuration keys",
+        "type": {
+          "name": "string[]"
+        }
+      }
+    },
+    {
+      "name": "populateDebeziumProperties",
+      "type": "Normal Function",
+      "description": "Processes the given configuration and populates the map with the necessary debezium properties.\n",
+      "parameters": [
+        {
+          "name": "config",
+          "description": "listener configuration",
+          "type": {
+            "name": "ListenerConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ListenerConfiguration"
+              }
+            ]
+          }
+        },
+        {
+          "name": "configMap",
+          "description": "map to populate with debezium properties",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          }
+        }
+      ],
+      "return": {
+        "type": {
+          "name": "()"
+        }
+      }
+    },
+    {
+      "name": "populateListenerProperties",
+      "type": "Normal Function",
+      "description": "Processes the given configuration and populates the map with the necessary listener-specific properties.\nThese properties are not passed to the Debezium engine, but are used by the listener implementation for\nits internal functioning.\n",
+      "parameters": [
+        {
+          "name": "config",
+          "description": "listener configuration",
+          "type": {
+            "name": "ListenerConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ListenerConfiguration"
+              }
+            ]
+          }
+        },
+        {
+          "name": "listenerConfigMap",
+          "description": "map to populate with listener-specific properties",
+          "type": {
+            "name": "map\u003canydata\u003e"
+          }
+        }
+      ],
+      "return": {
+        "type": {
+          "name": "()"
+        }
+      }
+    },
+    {
+      "name": "populateOptions",
+      "type": "Normal Function",
+      "description": "",
+      "parameters": [
+        {
+          "name": "options",
+          "type": {
+            "name": "Options",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Options"
+              }
+            ]
+          }
+        },
+        {
+          "name": "configMap",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          }
+        }
+      ],
+      "return": {
+        "type": {
+          "name": "()"
+        }
+      }
+    },
+    {
+      "name": "populateDatabaseConfigurations",
+      "type": "Normal Function",
+      "description": "Populates the database configurations in the given map.\n",
+      "parameters": [
+        {
+          "name": "connection",
+          "description": "database connection configuration",
+          "type": {
+            "name": "DatabaseConnection",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DatabaseConnection"
+              }
+            ]
+          }
+        },
+        {
+          "name": "configMap",
+          "description": "map to populate with database configurations",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          }
+        }
+      ],
+      "return": {
+        "type": {
+          "name": "()"
+        }
+      }
+    },
+    {
+      "name": "populateTableAndColumnConfigurations",
+      "type": "Normal Function",
+      "description": "Populates table and column filtering configurations (relational databases only).\n",
+      "parameters": [
+        {
+          "name": "includedTables",
+          "description": "Regex patterns for tables to include",
+          "type": {
+            "name": "string|string[]|()"
+          }
+        },
+        {
+          "name": "excludedTables",
+          "description": "Regex patterns for tables to exclude",
+          "type": {
+            "name": "string|string[]|()"
+          }
+        },
+        {
+          "name": "includedColumns",
+          "description": "Regex patterns for columns to include",
+          "type": {
+            "name": "string|string[]|()"
+          }
+        },
+        {
+          "name": "excludedColumns",
+          "description": "Regex patterns for columns to exclude",
+          "type": {
+            "name": "string|string[]|()"
+          }
+        },
+        {
+          "name": "configMap",
+          "description": "map to populate with filtering configurations",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          }
+        }
+      ],
+      "return": {
+        "type": {
+          "name": "()"
+        }
+      }
+    },
+    {
+      "name": "populateMessageKeyColumnsConfiguration",
+      "type": "Normal Function",
+      "description": "Populates message.key.columns configuration (relational databases only).\nThis property specifies the columns to use for the message key in change events.\n",
+      "parameters": [
+        {
+          "name": "messageKeyColumns",
+          "description": "Composite message key columns specification",
+          "type": {
+            "name": "MessageKeyColumns[]|()",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "MessageKeyColumns"
+              }
+            ]
+          }
+        },
+        {
+          "name": "configMap",
+          "description": "map to populate with message key columns configuration",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          }
+        }
+      ],
+      "return": {
+        "type": {
+          "name": "()"
+        }
+      }
+    },
+    {
+      "name": "populateHeartbeatConfiguration",
+      "type": "Normal Function",
+      "description": "Populates heartbeat configuration properties.\n",
+      "parameters": [
+        {
+          "name": "config",
+          "description": "heartbeat configuration",
+          "type": {
+            "name": "HeartbeatConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "HeartbeatConfiguration"
+              }
+            ]
+          }
+        },
+        {
+          "name": "configMap",
+          "description": "map to populate with heartbeat properties",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          }
+        }
+      ],
+      "return": {
+        "type": {
+          "name": "()"
+        }
+      }
+    },
+    {
+      "name": "populateRelationalHeartbeatConfiguration",
+      "type": "Normal Function",
+      "description": "Populates relational heartbeat configuration properties (includes SQL action query).\n",
+      "parameters": [
+        {
+          "name": "config",
+          "description": "relational heartbeat configuration",
+          "type": {
+            "name": "RelationalHeartbeatConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RelationalHeartbeatConfiguration"
+              }
+            ]
+          }
+        },
+        {
+          "name": "configMap",
+          "description": "map to populate with heartbeat properties",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          }
+        }
+      ],
+      "return": {
+        "type": {
+          "name": "()"
+        }
+      }
+    },
+    {
+      "name": "populateSignalConfiguration",
+      "type": "Normal Function",
+      "description": "Populates signal configuration properties.\n",
+      "parameters": [
+        {
+          "name": "config",
+          "description": "signal configuration",
+          "type": {
+            "name": "SignalConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SignalConfiguration"
+              }
+            ]
+          }
+        },
+        {
+          "name": "configMap",
+          "description": "map to populate with signal properties",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          }
+        }
+      ],
+      "return": {
+        "type": {
+          "name": "()"
+        }
+      }
+    },
+    {
+      "name": "populateExtendedSnapshotConfiguration",
+      "type": "Normal Function",
+      "description": "Populates extended snapshot configuration properties.\n",
+      "parameters": [
+        {
+          "name": "config",
+          "description": "extended snapshot configuration",
+          "type": {
+            "name": "ExtendedSnapshotConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ExtendedSnapshotConfiguration"
+              }
+            ]
+          }
+        },
+        {
+          "name": "configMap",
+          "description": "map to populate with snapshot properties",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          }
+        }
+      ],
+      "return": {
+        "type": {
+          "name": "()"
+        }
+      }
+    },
+    {
+      "name": "populateRelationalExtendedSnapshotConfiguration",
+      "type": "Normal Function",
+      "description": "Populates relational database extended snapshot configuration properties.\n",
+      "parameters": [
+        {
+          "name": "config",
+          "description": "relational extended snapshot configuration",
+          "type": {
+            "name": "RelationalExtendedSnapshotConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RelationalExtendedSnapshotConfiguration"
+              }
+            ]
+          }
+        },
+        {
+          "name": "configMap",
+          "description": "map to populate with relational snapshot properties",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          }
+        }
+      ],
+      "return": {
+        "type": {
+          "name": "()"
+        }
+      }
+    },
+    {
+      "name": "populateIncrementalSnapshotConfiguration",
+      "type": "Normal Function",
+      "description": "Populates incremental snapshot configuration properties.\n",
+      "parameters": [
+        {
+          "name": "config",
+          "description": "incremental snapshot configuration",
+          "type": {
+            "name": "IncrementalSnapshotConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "IncrementalSnapshotConfiguration"
+              }
+            ]
+          }
+        },
+        {
+          "name": "configMap",
+          "description": "map to populate with incremental snapshot properties",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          }
+        }
+      ],
+      "return": {
+        "type": {
+          "name": "()"
+        }
+      }
+    },
+    {
+      "name": "populateTransactionMetadataConfiguration",
+      "type": "Normal Function",
+      "description": "Populates transaction metadata configuration properties.\n",
+      "parameters": [
+        {
+          "name": "config",
+          "description": "transaction metadata configuration",
+          "type": {
+            "name": "TransactionMetadataConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TransactionMetadataConfiguration"
+              }
+            ]
+          }
+        },
+        {
+          "name": "configMap",
+          "description": "map to populate with transaction metadata properties",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          }
+        }
+      ],
+      "return": {
+        "type": {
+          "name": "()"
+        }
+      }
+    },
+    {
+      "name": "populateColumnTransformConfiguration",
+      "type": "Normal Function",
+      "description": "Populates column transformation configuration properties.\n",
+      "parameters": [
+        {
+          "name": "config",
+          "description": "column transformation configuration",
+          "type": {
+            "name": "ColumnTransformConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ColumnTransformConfiguration"
+              }
+            ]
+          }
+        },
+        {
+          "name": "configMap",
+          "description": "map to populate with column transformation properties",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          }
+        }
+      ],
+      "return": {
+        "type": {
+          "name": "()"
+        }
+      }
+    },
+    {
+      "name": "populateTopicConfiguration",
+      "type": "Normal Function",
+      "description": "Populates topic configuration properties.\n",
+      "parameters": [
+        {
+          "name": "config",
+          "description": "topic configuration",
+          "type": {
+            "name": "TopicConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TopicConfiguration"
+              }
+            ]
+          }
+        },
+        {
+          "name": "configMap",
+          "description": "map to populate with topic properties",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          }
+        }
+      ],
+      "return": {
+        "type": {
+          "name": "()"
+        }
+      }
+    },
+    {
+      "name": "populateDataTypeConfiguration",
+      "type": "Normal Function",
+      "description": "Populates data type configuration properties.\n",
+      "parameters": [
+        {
+          "name": "config",
+          "description": "data type configuration",
+          "type": {
+            "name": "DataTypeConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DataTypeConfiguration"
+              }
+            ]
+          }
+        },
+        {
+          "name": "configMap",
+          "description": "map to populate with data type properties",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          }
+        }
+      ],
+      "return": {
+        "type": {
+          "name": "()"
+        }
+      }
+    },
+    {
+      "name": "populateErrorHandlingConfiguration",
+      "type": "Normal Function",
+      "description": "Populates error handling configuration properties.\n",
+      "parameters": [
+        {
+          "name": "config",
+          "description": "error handling configuration",
+          "type": {
+            "name": "ConnectionRetryConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ConnectionRetryConfiguration"
+              }
+            ]
+          }
+        },
+        {
+          "name": "configMap",
+          "description": "map to populate with error handling properties",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          }
+        }
+      ],
+      "return": {
+        "type": {
+          "name": "()"
+        }
+      }
+    },
+    {
+      "name": "populatePerformanceConfiguration",
+      "type": "Normal Function",
+      "description": "Populates performance configuration properties.\n",
+      "parameters": [
+        {
+          "name": "config",
+          "description": "performance configuration",
+          "type": {
+            "name": "PerformanceConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PerformanceConfiguration"
+              }
+            ]
+          }
+        },
+        {
+          "name": "configMap",
+          "description": "map to populate with performance properties",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          }
+        }
+      ],
+      "return": {
+        "type": {
+          "name": "()"
+        }
+      }
+    },
+    {
+      "name": "populateJdbcSchemaHistoryConfiguration",
+      "type": "Normal Function",
+      "description": "Populates JDBC schema history configuration properties.\n",
+      "parameters": [
+        {
+          "name": "storage",
+          "description": "JDBC schema history configuration",
+          "type": {
+            "name": "JdbcInternalSchemaStorage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "JdbcInternalSchemaStorage"
+              }
+            ]
+          }
+        },
+        {
+          "name": "configMap",
+          "description": "map to populate with JDBC schema history properties",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          }
+        }
+      ],
+      "return": {
+        "type": {
+          "name": "()"
+        }
+      }
+    },
+    {
+      "name": "populateRedisSchemaHistoryConfiguration",
+      "type": "Normal Function",
+      "description": "Populates Redis schema history configuration properties.\n",
+      "parameters": [
+        {
+          "name": "storage",
+          "description": "Redis schema history configuration",
+          "type": {
+            "name": "RedisInternalSchemaStorage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RedisInternalSchemaStorage"
+              }
+            ]
+          }
+        },
+        {
+          "name": "configMap",
+          "description": "map to populate with Redis schema history properties",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          }
+        }
+      ],
+      "return": {
+        "type": {
+          "name": "()"
+        }
+      }
+    },
+    {
+      "name": "populateS3SchemaHistoryConfiguration",
+      "type": "Normal Function",
+      "description": "Populates Amazon S3 schema history configuration properties.\n",
+      "parameters": [
+        {
+          "name": "storage",
+          "description": "S3 schema history configuration",
+          "type": {
+            "name": "AmazonS3InternalSchemaStorage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AmazonS3InternalSchemaStorage"
+              }
+            ]
+          }
+        },
+        {
+          "name": "configMap",
+          "description": "map to populate with S3 schema history properties",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          }
+        }
+      ],
+      "return": {
+        "type": {
+          "name": "()"
+        }
+      }
+    },
+    {
+      "name": "populateAzureBlobSchemaHistoryConfiguration",
+      "type": "Normal Function",
+      "description": "Populates Azure Blob schema history configuration properties.\n",
+      "parameters": [
+        {
+          "name": "storage",
+          "description": "Azure Blob schema history configuration",
+          "type": {
+            "name": "AzureBlobInternalSchemaStorage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AzureBlobInternalSchemaStorage"
+              }
+            ]
+          }
+        },
+        {
+          "name": "configMap",
+          "description": "map to populate with Azure Blob schema history properties",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          }
+        }
+      ],
+      "return": {
+        "type": {
+          "name": "()"
+        }
+      }
+    },
+    {
+      "name": "populateRocketMQSchemaHistoryConfiguration",
+      "type": "Normal Function",
+      "description": "Populates RocketMQ schema history configuration properties.\n",
+      "parameters": [
+        {
+          "name": "storage",
+          "description": "RocketMQ schema history configuration",
+          "type": {
+            "name": "RocketMQInternalSchemaStorage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RocketMQInternalSchemaStorage"
+              }
+            ]
+          }
+        },
+        {
+          "name": "configMap",
+          "description": "map to populate with RocketMQ schema history properties",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          }
+        }
+      ],
+      "return": {
+        "type": {
+          "name": "()"
+        }
+      }
+    },
+    {
+      "name": "populateRedisOffsetStorageConfiguration",
+      "type": "Normal Function",
+      "description": "Populates Redis offset storage configuration properties.\n",
+      "parameters": [
+        {
+          "name": "storage",
+          "description": "Redis offset storage configuration",
+          "type": {
+            "name": "RedisOffsetStorage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RedisOffsetStorage"
+              }
+            ]
+          }
+        },
+        {
+          "name": "configMap",
+          "description": "map to populate with Redis properties",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          }
+        }
+      ],
+      "return": {
+        "type": {
+          "name": "()"
+        }
+      }
+    },
+    {
+      "name": "populateJdbcOffsetStorageConfiguration",
+      "type": "Normal Function",
+      "description": "Populates JDBC offset storage configuration properties.\n",
+      "parameters": [
+        {
+          "name": "storage",
+          "description": "JDBC offset storage configuration",
+          "type": {
+            "name": "JdbcOffsetStorage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "JdbcOffsetStorage"
+              }
+            ]
+          }
+        },
+        {
+          "name": "configMap",
+          "description": "map to populate with JDBC properties",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          }
+        }
+      ],
+      "return": {
+        "type": {
+          "name": "()"
+        }
+      }
+    },
+    {
+      "name": "populateAdditionalConfigurations",
+      "type": "Normal Function",
+      "description": "Populates additional configuration properties from options record.\nSupports primitive types (string, int, boolean, decimal, float) which are converted to strings.\nComplex types (arrays, records, maps) are rejected and logged as errors.\n",
+      "parameters": [
+        {
+          "name": "options",
+          "description": "Options record containing additional properties",
+          "type": {
+            "name": "Options",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Options"
+              }
+            ]
+          }
+        },
+        {
+          "name": "configMap",
+          "description": "Map to populate with additional configuration properties",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          }
+        },
+        {
+          "name": "optionsSubType",
+          "description": "Type descriptor for the options subtype",
+          "type": {
+            "name": "cdc:Options"
+          }
+        }
+      ],
+      "return": {
+        "type": {
+          "name": "()"
+        }
+      }
+    }
+  ],
+  "services": [],
+  "annotations": [
+    {
+      "name": "ServiceConfig",
+      "attachmentPoint": "SERVICE",
+      "description": "The annotation to configure a CDC service.",
+      "typeConstraint": {
+        "name": "CdcServiceConfig",
+        "links": [
+          {
+            "category": "internal",
+            "recordName": "CdcServiceConfig"
+          }
+        ]
+      }
+    }
+  ]
+}

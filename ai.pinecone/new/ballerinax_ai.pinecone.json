@@ -1,0 +1,266 @@
+{
+  "name": "ballerinax/ai.pinecone",
+  "description": "Pinecone is a fully managed vector database that makes it easy to build high-performance vector search applications. The Pinecone connector provides an API to interact with Pinecone indexes, enabling efficient management and search of vector embeddings in the cloud.",
+  "readme": "## Overview\n\nPinecone is a fully managed vector database that makes it easy to build high-performance vector search applications. The Pinecone connector provides an API to interact with Pinecone indexes, enabling efficient management and search of vector embeddings in the cloud.\n\n### Key Features\n\n- Fully managed vector database for high-performance search\n- Efficient management of indexes and namespaces\n- High-speed vector similarity search with metadata filtering\n- Reliable and scalable cloud-native infrastructure\n- Secure communication with API key authentication\n- GraalVM compatible for native image builds\n\n## Prerequisites\nBefore using this module in your Ballerina application, you must obtain the necessary configuration to engage with Pinecone:\n\n- Create a [Pinecone account](https://www.pinecone.io/start/)\n- Create a Pinecone index through the [Pinecone Console](https://app.pinecone.io/)\n- Obtain your API key from the Pinecone Console\n- Get your index service URL from the Pinecone Console\n\n## Quickstart\nTo use the `ai.pinecone` module in your Ballerina application, update the `.bal` file as follows:\n\n### Step 1: Import the module\nImport the `ai.pinecone` module along with required AI modules.\n\n```ballerina\nimport ballerinax/ai.pinecone;\n```\n\n### Step 2: Initialize the Vector Store\nHere\u0027s how to initialize the Pinecone Vector Store:\n\n```ballerina\nimport ballerina/ai;\nimport ballerinax/ai.pinecone;\n\n// Basic initialization\nai:VectorStore vectorStore \u003d check new pinecone:VectorStore(\n    serviceUrl \u003d \"https://your-index-name.svc.region.pinecone.io\", \n    apiKey \u003d \"your-pinecone-api-key\"\n);\n\nai:VectorStore vectorStore \u003d check new pinecone:VectorStore(\n    serviceUrl \u003d \"https://your-index-name.svc.region.pinecone.io\",\n    apiKey \u003d \"your-pinecone-api-key\"\n);\n```\n",
+  "typeDefs": [
+    {
+      "name": "Configuration",
+      "description": "Represents the configuration options for interacting with a Pinecone vector store.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "namespace",
+          "description": "Optional namespace to isolate vectors within Pinecone",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "filters",
+          "description": "Metadata filters applied during search",
+          "type": {
+            "name": "MetadataFilters",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "MetadataFilters",
+                "libraryName": "ballerina/ai"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "sparseVector",
+          "description": "Optional sparse vector for hybrid search operations",
+          "type": {
+            "name": "SparseVector",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "SparseVector",
+                "libraryName": "ballerina/ai"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "VectorStore",
+      "description": "Initializes the PineconeVectorStore with the given configuration.\n",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes the PineconeVectorStore with the given configuration.\n",
+          "parameters": [
+            {
+              "name": "serviceUrl",
+              "description": "URL of the Pinecone API service",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Service URL\"}"
+                }
+              ]
+            },
+            {
+              "name": "apiKey",
+              "description": "Pinecone API key for authentication",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"API Key\"}"
+                }
+              ]
+            },
+            {
+              "name": "queryMode",
+              "description": "Vector query mode (defaults to ai:DENSE)",
+              "type": {
+                "name": "VectorStoreQueryMode",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "VectorStoreQueryMode",
+                    "libraryName": "ballerina/ai"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "ai:DENSE",
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Query Mode\"}"
+                }
+              ]
+            },
+            {
+              "name": "config",
+              "type": {
+                "name": "Configuration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Configuration"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}",
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Pinecone Configuration\"}"
+                }
+              ]
+            },
+            {
+              "name": "httpConfig",
+              "description": "HTTP client configuration for the Pinecone connection\n",
+              "type": {
+                "name": "ConnectionConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ConnectionConfig",
+                    "libraryName": "ballerinax/pinecone.vector"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}",
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"HTTP Configuration\"}"
+                }
+              ]
+            }
+          ],
+          "return": {
+            "description": "An ai:Error if the initialization fails, else ().",
+            "type": {
+              "name": "ai:Error?"
+            }
+          }
+        },
+        {
+          "name": "add",
+          "type": "Normal Function",
+          "description": "Adds the given vector entries to the Pinecone vector store.\n",
+          "parameters": [
+            {
+              "name": "entries",
+              "description": "An array of ai:VectorEntry values to be added",
+              "type": {
+                "name": "VectorEntry[]",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "VectorEntry",
+                    "libraryName": "ballerina/ai"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "An ai:Error if vector addition fails, else ()",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/ai"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "query",
+          "type": "Normal Function",
+          "description": "Queries Pinecone using the provided embedding vector and returns the top matches.\n",
+          "parameters": [
+            {
+              "name": "queryVector",
+              "description": "The embedding vector to query against. Should match the configured query mode",
+              "type": {
+                "name": "VectorStoreQuery",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "VectorStoreQuery",
+                    "libraryName": "ballerina/ai"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "A list of matching ai:VectorMatch values, or an ai:Error on failure",
+            "type": {
+              "name": "VectorMatch[]|Error",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "VectorMatch",
+                  "libraryName": "ballerina/ai"
+                },
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/ai"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "delete",
+          "type": "Normal Function",
+          "description": "Deletes vector entries from the store by their reference document ID.\n",
+          "parameters": [
+            {
+              "name": "refDocIds",
+              "description": "The unique document ID/IDs used to identify and delete the corresponding vector entries",
+              "type": {
+                "name": "string|string[]"
+              }
+            }
+          ],
+          "return": {
+            "description": "An `ai:Error` if the deletion fails; otherwise, `()` is returned indicating success",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/ai"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "clients": [],
+  "functions": [],
+  "services": [],
+  "annotations": []
+}

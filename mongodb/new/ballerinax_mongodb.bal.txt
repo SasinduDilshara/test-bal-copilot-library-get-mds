@@ -1,0 +1,707 @@
+// ============================================================
+// Library: ballerinax/mongodb
+// [MongoDB](https://docs.mongodb.com/v4.2/) is a document-oriented, NoSQL database designed for high volume data storage. It offers a flexible schema, high availability, and horizontal scalability, making it ideal for modern application development.
+// ============================================================
+import ballerinax/mongodb;
+
+// --- README ---
+## Overview
+
+[MongoDB](https://docs.mongodb.com/v4.2/) is a document-oriented, NoSQL database designed for high volume data storage. It offers a flexible schema, high availability, and horizontal scalability, making it ideal for modern application development.
+
+The MongoDB connector offers APIs to connect to MongoDB servers and perform various operations including CRUD operations, indexing, and aggregation.
+
+### Key Features
+
+- Support for MongoDB v3.6 and later versions
+- Comprehensive CRUD operations for collections and documents
+- Support for indexing and aggregation pipelines
+- Connection management via connection string or parameters
+- GraalVM compatible for native image builds
+
+## Setup guide
+
+To use the MongoDB connector, you need to have a MongoDB server running and accessible. For that, you can either install MongoDB locally or use the [MongoDB Atlas](https://www.mongodb.com/cloud/atlas/register), the cloud offering of the MongoDB.
+
+### Setup a MongoDB server locally
+
+1. Download and install the MongoDB server from the [MongoDB download center](https://www.mongodb.com/try/download/community).
+
+2. Follow the installation instructions provided in the download center.
+
+3. Follow the [instructions](https://www.mongodb.com/docs/manual/administration/install-community/#std-label-install-mdb-community-edition) for each operating system to start the MongoDB server.
+
+> **Note:** This guide uses the MongoDB community edition for the setup. Alternatively, the enterprise edition can also be used.
+
+### Setup a MongoDB server using MongoDB Atlas
+
+1. Sign up for a free account in [MongoDB Atlas](https://www.mongodb.com/cloud/atlas/register).
+
+2. Follow the instructions provided in the [MongoDB Atlas documentation](https://docs.atlas.mongodb.com/getting-started/) to create a new cluster.
+
+3. Navigate to your MongoDB Atlas cluster.
+
+4. Select "Database" from the left navigation pane under the "Deployment" section and click "connect" button to open connection instructions.
+
+    ![MongoDB Atlas Connect](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-mongodb/master/docs/setup/resources/mongodb-atlas-database-page.png)
+
+5. Add your IP address to the IP access list or select "Allow access from anywhere" to allow all IP addresses to access the cluster.
+
+    ![MongoDB Atlas IP Access List](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-mongodb/master/docs/setup/resources/mongodb-atlas-ip-access-list.png)
+
+6. Click "Choose a connection method" and select "Drivers" under the "Connect your application". There you can find the connection string to connect to the MongoDB Atlas cluster.
+
+    ![MongoDB Atlas Connection Method](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-mongodb/master/docs/setup/resources/mongodb-atlas-connection-method.png)
+
+## Quickstart
+
+### Step 1: Import the module
+
+Import the `mongodb` module into the Ballerina project.
+
+```ballerina
+import ballerinax/mongodb;
+```
+
+### Step 2: Initialize the MongoDB client
+
+#### Initialize the MongoDB client using the connection parameters
+
+```ballerina
+mongodb:Client mongoDb = check new ({
+    connection: {
+        serverAddress: {
+            host: "localhost",
+            port: 27017
+        },
+        auth: <mongodb:ScramSha256AuthCredential>{
+            username: <username>,
+            password: <password>,
+            database: <admin-database>
+        }
+    }
+});
+```
+
+#### Initialize the MongoDB client using the connection string
+
+```ballerina
+mongodb:Client mongoDb = check new ({
+    connection: <connection string obtained from the MongoDB server>
+});
+```
+
+### Step 3: Invoke the connector operation
+
+Now, you can use the available connector operations to interact with MongoDB server.
+
+#### Retrieve a Database
+
+```ballerina
+mongodb:Database moviesDb = check mongoDb->getDatabase("movies");
+```
+
+#### Retrieve a Collection
+
+```ballerina
+mongodb:Collection moviesCollection = check moviesDb->getCollection("movies");
+```
+
+#### Insert a Document
+
+```ballerina
+Movie movie = {title: "Inception", year: 2010};
+check moviesCollection->insert(movie);
+```
+
+### Step 4: Run the Ballerina application
+
+Save the changes and run the Ballerina application using the following command.
+
+```bash
+bal run
+```
+
+## Examples
+
+The MongoDB connector provides practical examples illustrating usage in various scenarios. Explore these [examples](https://github.com/ballerina-platform/module-ballerinax-mongodb/tree/master/examples/) covering common MongoDB operations.
+
+1. [Movie database](https://github.com/ballerina-platform/module-ballerinax-mongodb/tree/master/examples/movie-database) - Implement a movie database using MongoDB.
+2. [Order management system](https://github.com/ballerina-platform/module-ballerinax-mongodb/tree/master/examples/order-management-system) - Implement an order management system using MongoDB.
+
+// --- END README ---
+
+// --- Types ---
+
+# The PLAIN authentication mechanism.
+const string AUTH_PLAIN = "PLAIN";
+
+# The SCRAM-SHA-1 authentication mechanism.
+const string AUTH_SCRAM_SHA_1 = "SCRAM_SHA_1";
+
+# The SCRAM-SHA-256 authentication mechanism.
+const string AUTH_SCRAM_SHA_256 = "SCRAM_SHA_256";
+
+# The X509 authentication mechanism.
+const string AUTH_MONGODB_X509 = "MONGODB_X509";
+
+# The GSSAPI authentication mechanism.
+const string AUTH_GSSAPI = "GSSAPI";
+
+const string LOCAL = "local";
+
+const string AVAILABLE = "available";
+
+const string MAJORITY = "majority";
+
+const string LINEARIZABLE = "linearizable";
+
+const string SNAPSHOT = "snapshot";
+
+# Holds the properties of a database error.
+# 
+
+type DatabaseErrorDetail record {
+    # Type of the returned MongoDB exception
+    string mongoDBExceptionType;
+};
+
+# Represents an error caused by an issue related to database accessibility, erroneous queries, constraint violations,
+# database resource clean-up, and other similar scenarios.
+type DatabaseError error<DatabaseErrorDetail>;
+
+# Represents an error originating from application-level causes.
+type ApplicationError error;
+
+# Represents a database or application level error returned from the MongoDB client remote functions.
+type Error DatabaseError|ApplicationError|error;
+
+# Represents the Client configurations for MongoDB.
+
+@display {label: "Connection Config"}
+type ConnectionConfig record {
+    # connection - Connection string or the connection parameters for the MongoDB connection
+    @display {label: "Connection"}
+    ConnectionParameters|string connection;
+    # The additional connection options for the MongoDB connection
+    @display {label: "Connection Options"}
+    ConnectionProperties options?;
+};
+
+# Represents the MongoDB connection parameters.
+
+@display {label: "Connection Parameters"}
+type ConnectionParameters record {
+    # Server address (or the list of server addresses for replica sets) of the MongoDB server
+    @display {label: "Server Address"}
+    ServerAddress|ServerAddress[] serverAddress?;
+    # The authentication configurations for the MongoDB connection
+    @display {label: "Authentication"}
+    BasicAuthCredential|ScramSha1AuthCredential|ScramSha256AuthCredential|X509Credential|GssApiCredential auth?;
+};
+
+# Represents the MongoDB server address.
+
+@display {label: "Server Address"}
+type ServerAddress record {
+    # The host address of the MongoDB server
+    @display {label: "Host"}
+    string host?;
+    # The port of the MongoDB server
+    @display {label: "Port"}
+    int port?;
+};
+
+# Represents the Basic Authentication configurations for MongoDB.
+
+@display {label: "Basic Auth Credential"}
+type BasicAuthCredential record {
+    # The authentication mechanism to use
+    @display {label: "Auth Mechanism"}
+    "PLAIN" authMechanism?;
+    # The username for the database connection
+    @display {label: "Username"}
+    string username;
+    # The password for the database connection
+    @display {label: "Password"}
+    string password;
+    # The source database for authenticate the client. Usually the database name
+    @display {label: "Auth Source Database"}
+    string database;
+};
+
+# Represents the SCRAM-SHA-1 authentication configurations for MongoDB.
+
+@display {label: "SCRAM-SHA-1 Credential"}
+type ScramSha1AuthCredential record {
+    # The authentication mechanism to use
+    @display {label: "Auth Mechanism"}
+    "SCRAM_SHA_1" authMechanism?;
+    # The username for the database connection
+    @display {label: "Username"}
+    string username;
+    # The password for the database connection
+    @display {label: "Password"}
+    string password;
+    # The source database for authenticate the client. Usually the database name
+    @display {label: "Auth Source Database"}
+    string database;
+};
+
+# Represents the SCRAM-SHA-256 authentication configurations for MongoDB.
+
+@display {label: "SCRAM-SHA-256 Credential"}
+type ScramSha256AuthCredential record {
+    # The authentication mechanism to use
+    @display {label: "Auth Mechanism"}
+    "SCRAM_SHA_256" authMechanism?;
+    # The username for the database connection
+    @display {label: "Username"}
+    string username;
+    # The password for the database connection
+    @display {label: "Password"}
+    string password;
+    # The source database for authenticate the client. Usually the database name
+    @display {label: "Auth Source Database"}
+    string database;
+};
+
+# Represents the X509 authentication configurations for MongoDB.
+
+@display {label: "X509 Credential"}
+type X509Credential record {
+    # The authentication mechanism to use
+    @display {label: "Auth Mechanism"}
+    "MONGODB_X509" authMechanism?;
+    # The username for authenticating the client certificate
+    @display {label: "Username"}
+    string username?;
+};
+
+# Represents the GSSAPI authentication configurations for MongoDB.
+
+@display {label: "GSSAPI Credential"}
+type GssApiCredential record {
+    # The authentication mechanism to use
+    @display {label: "Auth Mechanism"}
+    "GSSAPI" authMechanism?;
+    # The username for the database connection
+    @display {label: "Username"}
+    string username;
+    # The service name for the database connection. Use this to override the default service name of `mongodb`
+    @display {label: "Service Name"}
+    string serviceName?;
+};
+
+# Represents the MongoDB connection pool properties.
+
+@display {label: "Connection Properties"}
+type ConnectionProperties record {
+    # The read concern level to use
+    @display {label: "Read Concern"}
+    ReadConcern readConcern?;
+    # The write concern level to use
+    @display {label: "Write Concern"}
+    string writeConcern?;
+    # The read preference for the replica set
+    @display {label: "Read Preference"}
+    string readPreference?;
+    # The replica set name if it is to connect to replicas
+    @display {label: "Replica Set"}
+    string replicaSet?;
+    # Whether SSL connection is enabled
+    @display {label: "SSL Enabled"}
+    boolean sslEnabled?;
+    # Whether invalid host names should be allowed
+    @display {label: "SSL Invalid Host Name Allowed"}
+    boolean invalidHostNameAllowed?;
+    # Configurations related to facilitating secure connection
+    @display {label: "Secure Socket"}
+    SecureSocket secureSocket?;
+    # Whether to retry writing failures
+    @display {label: "Retry Writes"}
+    boolean retryWrites?;
+    # The timeout for the socket
+    @display {label: "Socket Timeout"}
+    int socketTimeout?;
+    # The timeout for the connection
+    @display {label: "Connection Timeout"}
+    int connectionTimeout?;
+    # The maximum connection pool size
+    @display {label: "Maximum Pool Size"}
+    int maxPoolSize?;
+    # The maximum idle time for a pooled connection in milliseconds
+    @display {label: "Maximum Idle Time"}
+    int maxIdleTime?;
+    # The maximum life time for a pooled connection in milliseconds
+    @display {label: "Maximum Life Time"}
+    int maxLifeTime?;
+    # The minimum connection pool size
+    @display {label: "Minimum Pool Size"}
+    int minPoolSize?;
+    # The local threshold latency in milliseconds
+    @display {label: "Local Threshold"}
+    int localThreshold?;
+    # The heartbeat frequency in milliseconds. This is the frequency that the driver will attempt
+to determine the current state of each server in the cluster.
+    @display {label: "Heartbeat Frequency"}
+    int heartbeatFrequency?;
+};
+
+# Read concern level.
+enum ReadConcern {
+    SNAPSHOT,
+    LINEARIZABLE,
+    MAJORITY,
+    AVAILABLE,
+    LOCAL
+}
+
+# Represents the configurations related to facilitating secure connection.
+
+@display {label: "Secure Socket"}
+type SecureSocket record {
+    # Configurations associated with the TrustStore
+    @display {label: "Trust Store"}
+    crypto:TrustStore trustStore; // Special Agent Note: TrustStore FROM ballerina/crypto package
+    # Configurations associated with the KeyStore
+    @display {label: "Key Store"}
+    crypto:KeyStore keyStore; // Special Agent Note: KeyStore FROM ballerina/crypto package
+    # The standard name of the requested protocol
+    @display {label: "Protocol"}
+    string protocol;
+};
+
+# Represents the options for the `Collection.insertOne()` operation.
+
+type InsertOneOptions record {
+    # The comment to send with the operation
+    @display {label: "Comment"}
+    string comment?;
+    # Whether to bypass the document validation
+    @display {label: "Bypass Document Validation"}
+    boolean bypassDocumentValidation?;
+};
+
+# Represents the options for the `Collection.insertMany()` operation.
+
+type InsertManyOptions record {
+    # The comment to send with the operation
+    @display {label: "Comment"}
+    string comment?;
+    # Whether to bypass the document validation
+    @display {label: "Bypass Document Validation"}
+    boolean bypassDocumentValidation?;
+    # Whether to insert documents in the order provided
+    @display {label: "Ordered"}
+    boolean ordered?;
+};
+
+# Represents the options for the `Collection.find()` operation.
+
+type FindOptions record {
+    # The sort options for the query
+    map<json> sort?;
+    # The maximum limit of the number of documents to retrive. -1 means no limit
+    int 'limit?;
+    # The batch size of the query
+    int batchSize?;
+    # The number of documents to skip
+    int skip?;
+};
+
+# Represents the options for the `Collection.countDocuments()` operation.
+
+type CountOptions record {
+    # The maximum limit of the number of documents to count
+    int 'limit?;
+    # The number of documents to skip
+    int skip?;
+    # The maximum time to count documents in milliseconds
+    int maxTimeMS?;
+    # The hint to use
+    string hint?;
+};
+
+# Represents the options for the `Collection.createIndex()` operation.
+
+type CreateIndexOptions record {
+    # Whether to create the index in the background
+    @display {label: "Background"}
+    boolean background?;
+    # Whether to create a unique index
+    @display {label: "Unique"}
+    boolean unique?;
+    # Name of the index
+    @display {label: "Index Name"}
+    string name?;
+    # Should the index only reference documents with the specified field
+    @display {label: "Sparse"}
+    boolean sparse?;
+    # The time to live for documents in the collection in seconds
+    @display {label: "Time to Live"}
+    int expireAfterSeconds?;
+    # The version of the index
+    @display {label: "Version"}
+    int version?;
+    # Sets the weighting object for use with a text index
+    @display {label: "Weights"}
+    map<json> weights?;
+    # The default language for the index
+    @display {label: "Default Language"}
+    string defaultLanguage?;
+    # Sets the name of the field that contains the language string
+    @display {label: "Language Override"}
+    string languageOverride?;
+    # Set the text index version number
+    @display {label: "Text Index Version"}
+    int textVersion?;
+    # Sets the 2D sphere index version number
+    @display {label: "2D Sphere Index Version"}
+    int sphereVersion?;
+    # Sets the number of precision of the stored geohash value of the location data in 2D indexes
+    @display {label: "Bits"}
+    int bits?;
+    # Sets the lower inclusive boundary for the longitude and latitude values for 2D indexes
+    @display {label: "Min"}
+    float min?;
+    # Sets the upper inclusive boundary for the longitude and latitude values for 2D indexes
+    @display {label: "Max"}
+    float max?;
+    # Sets the filter expression for the documents to be included in the index
+    @display {label: "Partial Filter Expression"}
+    map<json> partialFilterExpression?;
+    # Should the index be hidden from the query planner
+    @display {label: "Hidden"}
+    boolean hidden?;
+};
+
+# Represents the options for the `Collection.updateOne()` operation.
+
+type UpdateOptions record {
+    # Whether to upsert if the document does not exist
+    @display {label: "Upsert"}
+    boolean upsert?;
+    # Whether to bypass the document validation
+    @display {label: "Bypass Document Validation"}
+    boolean bypassDocumentValidation?;
+    # The comment to send with the operation
+    @display {label: "Comment"}
+    string comment?;
+    # The hint to use
+    @display {label: "Hint"}
+    map<json> hint?;
+    # The hint string to use
+    @display {label: "Hint String"}
+    string hintString?;
+};
+
+# Represents the options for the `Collection.deleteOne()` operation.
+
+type DeleteOptions record {
+    # The comment to send with the operation
+    @display {label: "Comment"}
+    string comment?;
+    # The hint to use
+    @display {label: "Hint"}
+    map<json> hint?;
+    # The hint string to use
+    @display {label: "Hint String"}
+    string hintString?;
+};
+
+# Represents a MongoDB collection index.
+
+type Index record {
+    # The name space of the index
+    @display {label: "Name Space"}
+    string ns;
+    # The index version
+    @display {label: "Version"}
+    int v;
+    # The name of the index
+    @display {label: "Name"}
+    string name;
+    # The key of the index
+    @display {label: "Key"}
+    map<json> key;
+};
+
+# Represents an update operation for single entry.
+
+type Update record {
+    # Sets the value of a field to the current date, either as a Date or a Timestamp
+    map<json> currentDate?;
+    # Increments the value of the field by the specified amount
+    map<json> inc?;
+    # Only updates the field if the specified value is less than the existing field value
+    map<json> min?;
+    # Only updates the field if the specified value is greater than the existing field value
+    map<json> max?;
+    # Multiplies the value of the field by the specified amount
+    map<json> mul?;
+    # Renames a field
+    map<json> rename?;
+    # Sets the value of a field in a document
+    map<json> set?;
+    # Sets the value of a field if it is an insert operation
+    map<json> setOnInsert?;
+    # Unsets the value of a field in a document
+    map<json> unset?;
+    # Rest field
+    map<json> ;
+};
+
+# Repsents the return type of the Update operation.
+
+type UpdateResult record {
+    # The number of documents matched by the update operation
+    @display {label: "Matched Count"}
+    int matchedCount;
+    # The number of documents modified by the update operation
+    @display {label: "Modified Count"}
+    int modifiedCount;
+    # The identifier of the inserted document if the upsert option is used
+    @display {label: "Upserted Id"}
+    string upsertedId?;
+};
+
+# Represents the return type of the Delete operation.
+
+type DeleteResult record {
+    # The number of documents deleted by the delete operation
+    @display {label: "Deleted Count"}
+    int deletedCount;
+    # Whether the delete operation was acknowledged
+    @display {label: "Acknowledged"}
+    boolean acknowledged;
+};
+
+// --- Client ---
+
+# Represents a MongoDB client that can be used to interact with a MongoDB server.
+@display {label: "MongoDB Client", iconPath: "icon.png"}
+client class Client {
+    function init(ConnectionParameters|string connection = {}, ConnectionProperties options = {}, ConnectionConfig config) returns Error?;
+
+    # Lists the database names in the MongoDB server.
+    # 
+    @display {label: "List Database Names"}
+    remote function listDatabaseNames() returns string[]|DatabaseError|ApplicationError|error;
+
+    # Retrieves a database from the MongoDB server.
+    # 
+    @display {label: "Get Database"}
+    remote function getDatabase(@display {label: "Database Name"} string databaseName) returns Database|DatabaseError|ApplicationError|error;
+
+    # Closes the client.
+    # 
+    # > **Note:** Use a single client instance for the lifetime of the application and close it when the application is done.
+    # 
+    @display {label: "Close the Client"}
+    remote function close() returns DatabaseError|ApplicationError|error|();
+}
+
+# Represents a MongoDB collection that can be used to perform operations on the collection.
+@display {label: "MongoDB Collection"}
+client class Collection {
+    function init(Database database, string collectionName) returns Error?;
+
+    # Returns the name of the collection.
+    # 
+    function name() returns string;
+
+    # Inserts a single document into the collection.
+    # 
+    remote function insertOne(record {|anydata...;|} document, InsertOneOptions options = {}) returns DatabaseError|ApplicationError|error|();
+
+    # Inserts multiple documents into the collection.
+    # 
+    remote function insertMany(record {|anydata...;|}[] documents, InsertManyOptions options = {}) returns DatabaseError|ApplicationError|error|();
+
+    # Finds documents from the collection.
+    # 
+    # > **Note:** Close the resulted stream once the operation is completed.
+    # 
+    remote function find(map<json> filter = {}, FindOptions findOptions = {}, map<json>|() projection = (), record {|anydata...;|} targetType = record {|anydata...;|}) returns stream<targetType, error?>|DatabaseError|ApplicationError|error;
+
+    # Finds a single document from the collection.
+    # 
+    remote function findOne(map<json> filter = {}, FindOptions findOptions = {}, map<json>|() projection = (), record {|anydata...;|} targetType = record {|anydata...;|}) returns targetType|DatabaseError|ApplicationError|error|();
+
+    # Counts the number of documents in the collection.
+    # 
+    remote function countDocuments(map<json> filter = {}, CountOptions options = {}) returns int|DatabaseError|ApplicationError|error;
+
+    # Creates an index on the collection.
+    # 
+    remote function createIndex(map<json> keys, CreateIndexOptions options = {}) returns DatabaseError|ApplicationError|error|();
+
+    # Lists the indexes of the collection.
+    # 
+    # > **Note:** Close the resulted stream once the operation is completed.
+    # 
+    remote function listIndexes() returns stream<Index, error?>|DatabaseError|ApplicationError|error;
+
+    # Drops an index from the collection.
+    # 
+    remote function dropIndex(string indexName) returns DatabaseError|ApplicationError|error|();
+
+    # Drops all the indexes from the collection.
+    # 
+    remote function dropIndexes() returns DatabaseError|ApplicationError|error|();
+
+    # Drops the collection.
+    # 
+    remote function drop() returns DatabaseError|ApplicationError|error|();
+
+    # Updates a single document in the collection.
+    # 
+    remote function updateOne(map<json> filter, Update update, UpdateOptions options = {}) returns UpdateResult|DatabaseError|ApplicationError|error;
+
+    # Updates multiple documents in the collection.
+    # 
+    remote function updateMany(map<json> filter, Update update, UpdateOptions options = {}) returns UpdateResult|DatabaseError|ApplicationError|error;
+
+    # Retrieves the distinct values for a specified field across a collection.
+    # 
+    # > **Note:** Close the resulted stream once the operation is completed.
+    # 
+    remote function 'distinct(string fieldName, map<json> filter = {}, anydata targetType = anydata) returns stream<targetType, error?>|DatabaseError|ApplicationError|error;
+
+    # Deletes a single document from the collection.
+    # 
+    remote function deleteOne(map<json> filter) returns DeleteResult|DatabaseError|ApplicationError|error;
+
+    # Deletes multiple documents from the collection.
+    # 
+    remote function deleteMany(string|map<json> filter) returns DeleteResult|DatabaseError|ApplicationError|error;
+
+    # Aggregates documents according to the specified aggregation pipeline.
+    # 
+    # > **Note:** Close the resulted stream once the operation is completed.
+    # 
+    remote function aggregate(map<json>[] pipeline, anydata targetType = anydata) returns stream<targetType, error?>|DatabaseError|ApplicationError|error;
+}
+
+# Represents a MongoDB database.
+@display {label: "MongoDB Database"}
+client class Database {
+    function init(Client 'client, string databaseName) returns Error?;
+
+    # Lists all the collections in the database.
+    # 
+    remote function listCollectionNames() returns string[]|DatabaseError|ApplicationError|error;
+
+    # Creates a collection in the database.
+    # 
+    remote function createCollection(string collectionName) returns DatabaseError|ApplicationError|error|();
+
+    # Get a collection from the database.
+    # 
+    remote function getCollection(string collectionName) returns Collection|DatabaseError|ApplicationError|error;
+
+    # Drops the database.
+    # 
+    remote function drop() returns DatabaseError|ApplicationError|error|();
+}

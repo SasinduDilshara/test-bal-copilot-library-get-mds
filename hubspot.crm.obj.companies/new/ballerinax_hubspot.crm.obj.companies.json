@@ -1,0 +1,2619 @@
+{
+  "name": "ballerinax/hubspot.crm.obj.companies",
+  "description": "[HubSpot](https://www.hubspot.com) is an AI-powered customer relationship management (CRM) platform.",
+  "readme": "## Overview\n\n[HubSpot](https://www.hubspot.com) is an AI-powered customer relationship management (CRM) platform.\n\nThe HubSpot CRM Companies connector provides APIs to connect and interact with the [HubSpot Companies API](https://api.hubapi.com/crm/v3/objects/companies) endpoints, specifically based on the [HubSpot REST API](https://developers.hubspot.com/docs/reference/api/crm/objects/companies).\n\n### Key Features\n\n- Create, read, update, and delete company records in HubSpot CRM\n- List and search companies with filtering support\n- Merge duplicate company records\n- Manage company associations and lifecycle stages\n\n## Setup guide\n\nTo use the HubSpot Marketing Events connector, you must have access to the HubSpot API through a HubSpot developer account and a HubSpot App under it. Therefore you need to register for a developer account at HubSpot if you don\u0027t have one already.\n\n### Step 1: Create/Login to a HubSpot Developer Account\n\nIf you have an account already, go to the [HubSpot developer portal](https://app.hubspot.com/)\n\nIf you don\u0027t have a HubSpot Developer Account you can sign up to a free account [here](https://developers.hubspot.com/get-started)\n\n### Step 2 (Optional): Create a Developer Test Account\n\nWithin app developer accounts, you can create a [developer test account](https://developers.hubspot.com/beta-docs/getting-started/account-types#developer-test-accounts) under your account to test apps and integrations without affecting any real HubSpot data.\n\n\u003e **Note:** These accounts are only for development and testing purposes. In production you should not use Developer Test Accounts.\n\n1. Go to Test Account section from the left sidebar.\n\n    ![Hubspot developer portal](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.object.companies/main/docs/resources/test_acc_1.png)\n\n2. Click Create developer test account.\n\n    ![Hubspot developer portal](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.object.companies/main/docs/resources/test_acc_2.png)\n\n3. In the dialogue box, give a name to your test account and click create.\n\n    ![Hubspot developer portal](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.object.companies/main/docs/resources/test_acc_3.png)\n\n### Step 3: Create a HubSpot App under your account.\n\n1. In your developer account, navigate to the \"Apps\" section. Click on \"Create App\"\n   ![Hubspot developer portal](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.object.companies/main/docs/resources/create_app_1.png)\n\n2. Provide the necessary details, including the app name and description.\n\n### Step 4: Configure the Authentication Flow.\n\n1. Move to the Auth Tab.\n\n   ![Hubspot developer portal](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.object.companies/main/docs/resources/create_app_2.png)\n\n\n2. In the Scopes section, add the following scopes for your app using the \"Add new scope\" button.\n\n   - `crm.objects.companies.read`\n   - `crm.objects.companies.write`\n\n   ![Hubspot developer portal](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.object.companies/main/docs/resources/scope_set.png)\n\n3. Add your Redirect URI in the relevant section. You can also use `localhost` addresses for local development purposes. Click Create App.\n\n   ![Hubspot developer portal](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.object.companies/main/docs/resources/create_app_final.png)\n\n### Step 5: Get your Client ID and Client Secret\n\n- Navigate to the Auth section of your app. Make sure to save the provided Client ID and Client Secret.\n\n   ![Hubspot developer portal](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.object.companies/main/docs/resources/get_credentials.png)\n\n\n### Step 6: Setup Authentication Flow\n\nBefore proceeding with the Quickstart, ensure you have obtained the Access Token using the following steps:\n\n1. Create an authorization URL using the following format:\n\n   ```\n   https://app.hubspot.com/oauth/authorize?client_id\u003d\u003cYOUR_CLIENT_ID\u003e\u0026scope\u003d\u003cYOUR_SCOPES\u003e\u0026redirect_uri\u003d\u003cYOUR_REDIRECT_URI\u003e\n   ```\n\n   Replace the `\u003cYOUR_CLIENT_ID\u003e`, `\u003cYOUR_REDIRECT_URI\u003e` and `\u003cYOUR_SCOPES\u003e` with your specific value.\n\n2. Paste it in the browser and select your developer test account to intall the app when prompted.\n\n   ![Hubspot developer portal](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.object.companies/main/docs/resources/install_app.png)\n\n3. A code will be displayed in the browser. Copy the code.\n\n4. Run the following curl command. Replace the `\u003cYOUR_CLIENT_ID\u003e`, `\u003cYOUR_REDIRECT_URI`\u003e and `\u003cYOUR_CLIENT_SECRET\u003e` with your specific value. Use the code you received in the above step 3 as the `\u003cCODE\u003e`.\n\n   - Linux/macOS\n\n     ```bash\n     curl --request POST \\\n     --url https://api.hubapi.com/oauth/v1/token \\\n     --header \u0027content-type: application/x-www-form-urlencoded\u0027 \\\n     --data \u0027grant_type\u003dauthorization_code\u0026code\u003d\u003cCODE\u003e\u0026redirect_uri\u003d\u003cYOUR_REDIRECT_URI\u003e\u0026client_id\u003d\u003cYOUR_CLIENT_ID\u003e\u0026client_secret\u003d\u003cYOUR_CLIENT_SECRET\u003e\u0027\n     ```\n\n   - Windows\n\n     ```bash\n     curl --request POST ^\n     --url https://api.hubapi.com/oauth/v1/token ^\n     --header \u0027content-type: application/x-www-form-urlencoded\u0027 ^\n     --data \u0027grant_type\u003dauthorization_code\u0026code\u003d\u003cCODE\u003e\u0026redirect_uri\u003d\u003cYOUR_REDIRECT_URI\u003e\u0026client_id\u003d\u003cYOUR_CLIENT_ID\u003e\u0026client_secret\u003d\u003cYOUR_CLIENT_SECRET\u003e\u0027\n     ```\n\n   This command will return the access token necessary for API calls.\n\n   ```json\n   {\n     \"token_type\": \"bearer\",\n     \"refresh_token\": \"\u003cRefresh Token\u003e\",\n     \"access_token\": \"\u003cAccess Token\u003e\",\n     \"expires_in\": 1800\n   }\n   ```\n\n5. Store the access token securely for use in your application.\n\n## Quickstart\n\nTo use the `HubSpot CRM Companies Connector` connector in your Ballerina application, update the `.bal` file as follows:\n\n### Step 1: Import the module\n\nImport the `hubspot.crm.obj.companies` module.\n\n````ballerina\nimport ballerinax/hubspot.crm.obj.companies;\n````\n\n### Step 2: Instantiate a new connector\n\n1. Create a `companies:OAuth2RefreshTokenGrantConfig` with the obtained access token and initialize the connector with it.\n\n````ballerina\nconfigurable companies:OAuth2RefreshTokenGrantConfig \u0026 readonly auth \u003d ?;\n\nfinal companies:Client hubSpotCrmCompanies \u003d check new ({ auth });\n````\n\n2. Create a Config.toml file and, configure the obtained credentials in the above steps as follows:\n\n````toml\n[auth]\nclientId \u003d \"\u003cClient Id\u003e\"\nclientSecret \u003d  \"\u003cClient Secret\u003e\"\nrefreshToken \u003d \"\u003cRefresh Token\u003e\"\ncredentialBearer \u003d  \"POST_BODY_BEARER\"\n````\n\n### Step 3: Invoke the connector operation\n\nNow, utilize the available connector operations.\n\n#### Create a company\n\n```ballerina\ncompanies:SimplePublicObjectInputForCreate newCompany \u003d {\n    properties: {\n        \"name\": \"NewCompany\",\n        \"domain\": \"newcompany.com\",\n        \"city\": \"Colombo\",\n        \"industry\": \"MARKETING_AND_ADVERTISING\",\n        \"phone\": \"011-222-333\",\n        \"state\": \"Western\",\n        \"lifecyclestage\": \"lead\"\n    },\n    associations: []\n};\n\ncompanies:SimplePublicObject response \u003d check hubSpotCrmCompanies-\u003e/companies.post(newCompany);\n\n```\n\n#### List companies\n\n```ballerina\ncompanies:CollectionResponseSimplePublicObjectWithAssociationsForwardPaging companies \u003d check hubSpotCrmCompanies-\u003e/companies;\n\n```\n\n### Step 4: Run the Ballerina application\n\n````bash\nbal run\n````\n\n## Examples\n\nThe `Ballerina HubSpot CRM Companies Connector` connector provides practical examples illustrating usage in various scenarios. Explore these [examples](https://github.com/module-ballerinax-hubspot.crm.object.companies/tree/main/examples/), covering the following use cases:\n\n1. [Create Count Delete Companies](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.object.companies/tree/main/examples/Company_create_count_delete) - see how the HubSpot API can be used to create, count and delete companies.\n2. [Update and Merge Companies](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.object.companies/tree/main/examples/Company_update_merge) - see how the HubSpot API can be used to merge and update companies.\n",
+  "typeDefs": [
+    {
+      "name": "GetCrmV3ObjectsCompaniesGetPageQueries",
+      "description": "Represents the Queries record for the operation: get-/crm/v3/objects/companies_getPage",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "associations",
+          "description": "A comma separated list of object types to retrieve associated IDs for. If any of the specified associations do not exist, they will be ignored",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "archived",
+          "description": "Whether to return only results that have been archived",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "propertiesWithHistory",
+          "description": "A comma separated list of the properties to be returned along with their history of previous values. If any of the specified properties are not present on the requested object(s), they will be ignored. Usage of this parameter will reduce the maximum number of objects that can be read by a single request",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "\u0027limit",
+          "description": "The maximum number of results to display per page",
+          "type": {
+            "name": "int:Signed32"
+          },
+          "optional": true
+        },
+        {
+          "name": "after",
+          "description": "The paging cursor token of the last successfully read resource will be returned as the `paging.next.after` JSON property of a paged response containing more results",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "properties",
+          "description": "A comma separated list of the properties to be returned in the response. If any of the specified properties are not present on the requested object(s), they will be ignored",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "StandardError",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "subCategory",
+          "description": "",
+          "type": {
+            "name": "record {|anydata...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "context",
+          "description": "",
+          "type": {
+            "name": "record {|string[]...;|}"
+          }
+        },
+        {
+          "name": "links",
+          "description": "",
+          "type": {
+            "name": "record {|string...;|}"
+          }
+        },
+        {
+          "name": "id",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "category",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "message",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "errors",
+          "description": "",
+          "type": {
+            "name": "ErrorDetail[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ErrorDetail"
+              }
+            ]
+          }
+        },
+        {
+          "name": "status",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ErrorDetail",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "subCategory",
+          "description": "A specific category that contains more specific detail about the error",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "code",
+          "description": "The status code associated with the error detail",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "\u0027in",
+          "description": "The name of the field or parameter in which the error was found",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "context",
+          "description": "Context about the error condition",
+          "type": {
+            "name": "record {|string[]...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "message",
+          "description": "A human readable message describing the error along with remediation steps where appropriate",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "CollectionResponseAssociatedId",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "paging",
+          "description": "",
+          "type": {
+            "name": "Paging",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Paging"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "results",
+          "description": "",
+          "type": {
+            "name": "AssociatedId[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AssociatedId"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Paging",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "next",
+          "description": "",
+          "type": {
+            "name": "NextPage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "NextPage"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "prev",
+          "description": "",
+          "type": {
+            "name": "PreviousPage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PreviousPage"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "NextPage",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "link",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "after",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "PreviousPage",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "before",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "link",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "AssociatedId",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "id",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "\u0027type",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "GetCrmV3ObjectsCompaniesCompanyIdGetByIdQueries",
+      "description": "Represents the Queries record for the operation: get-/crm/v3/objects/companies/{companyId}_getById",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "associations",
+          "description": "A comma separated list of object types to retrieve associated IDs for. If any of the specified associations do not exist, they will be ignored",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "archived",
+          "description": "Whether to return only results that have been archived",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "propertiesWithHistory",
+          "description": "A comma separated list of the properties to be returned along with their history of previous values. If any of the specified properties are not present on the requested object(s), they will be ignored",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "idProperty",
+          "description": "The name of a property whose values are unique for this object",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "properties",
+          "description": "A comma separated list of the properties to be returned in the response. If any of the specified properties are not present on the requested object(s), they will be ignored",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "PublicAssociationsForObject",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "types",
+          "description": "",
+          "type": {
+            "name": "AssociationSpec[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AssociationSpec"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "to",
+          "description": "",
+          "type": {
+            "name": "PublicObjectId",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PublicObjectId"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "AssociationSpec",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "associationCategory",
+          "description": "",
+          "type": {
+            "name": "\"HUBSPOT_DEFINED\"|\"USER_DEFINED\"|\"INTEGRATOR_DEFINED\""
+          },
+          "optional": true
+        },
+        {
+          "name": "associationTypeId",
+          "description": "",
+          "type": {
+            "name": "int:Signed32"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "PublicObjectId",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "id",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "BatchResponseSimplePublicObject",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "completedAt",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "requestedAt",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "startedAt",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "links",
+          "description": "",
+          "type": {
+            "name": "record {|string...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "results",
+          "description": "",
+          "type": {
+            "name": "SimplePublicObject[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SimplePublicObject"
+              }
+            ]
+          }
+        },
+        {
+          "name": "status",
+          "description": "",
+          "type": {
+            "name": "\"PENDING\"|\"PROCESSING\"|\"CANCELED\"|\"COMPLETE\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "SimplePublicObject",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "createdAt",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "archived",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "archivedAt",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "propertiesWithHistory",
+          "description": "",
+          "type": {
+            "name": "record {|ValueWithTimestamp[]...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "id",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "properties",
+          "description": "",
+          "type": {
+            "name": "record {|string?...;|}"
+          }
+        },
+        {
+          "name": "updatedAt",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ValueWithTimestamp",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "sourceId",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "sourceType",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "sourceLabel",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "updatedByUserId",
+          "description": "",
+          "type": {
+            "name": "int:Signed32"
+          },
+          "optional": true
+        },
+        {
+          "name": "value",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "timestamp",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "FilterGroup",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "filters",
+          "description": "",
+          "type": {
+            "name": "Filter[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Filter"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Filter",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "highValue",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "propertyName",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "values",
+          "description": "",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "value",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "operator",
+          "description": "null",
+          "type": {
+            "name": "\"EQ\"|\"NEQ\"|\"LT\"|\"LTE\"|\"GT\"|\"GTE\"|\"BETWEEN\"|\"IN\"|\"NOT_IN\"|\"HAS_PROPERTY\"|\"NOT_HAS_PROPERTY\"|\"CONTAINS_TOKEN\"|\"NOT_CONTAINS_TOKEN\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "ForwardPaging",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "next",
+          "description": "",
+          "type": {
+            "name": "NextPage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "NextPage"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "SimplePublicObjectId",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "id",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "BatchResponseSimplePublicUpsertObjectWithErrors",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "completedAt",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "numErrors",
+          "description": "",
+          "type": {
+            "name": "int:Signed32"
+          },
+          "optional": true
+        },
+        {
+          "name": "requestedAt",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "startedAt",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "links",
+          "description": "",
+          "type": {
+            "name": "record {|string...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "results",
+          "description": "",
+          "type": {
+            "name": "SimplePublicUpsertObject[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SimplePublicUpsertObject"
+              }
+            ]
+          }
+        },
+        {
+          "name": "errors",
+          "description": "",
+          "type": {
+            "name": "StandardError[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "StandardError"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "status",
+          "description": "",
+          "type": {
+            "name": "\"PENDING\"|\"PROCESSING\"|\"CANCELED\"|\"COMPLETE\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "SimplePublicUpsertObject",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "createdAt",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "archived",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "archivedAt",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "\u0027new",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          }
+        },
+        {
+          "name": "propertiesWithHistory",
+          "description": "",
+          "type": {
+            "name": "record {|ValueWithTimestamp[]...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "id",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "properties",
+          "description": "",
+          "type": {
+            "name": "record {|string...;|}"
+          }
+        },
+        {
+          "name": "updatedAt",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "BatchReadInputSimplePublicObjectId",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "propertiesWithHistory",
+          "description": "",
+          "type": {
+            "name": "string[]"
+          }
+        },
+        {
+          "name": "idProperty",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "inputs",
+          "description": "",
+          "type": {
+            "name": "SimplePublicObjectId[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SimplePublicObjectId"
+              }
+            ]
+          }
+        },
+        {
+          "name": "properties",
+          "description": "",
+          "type": {
+            "name": "string[]"
+          }
+        }
+      ]
+    },
+    {
+      "name": "BatchResponseSimplePublicUpsertObject",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "completedAt",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "requestedAt",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "startedAt",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "links",
+          "description": "",
+          "type": {
+            "name": "record {|string...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "results",
+          "description": "",
+          "type": {
+            "name": "SimplePublicUpsertObject[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SimplePublicUpsertObject"
+              }
+            ]
+          }
+        },
+        {
+          "name": "status",
+          "description": "",
+          "type": {
+            "name": "\"PENDING\"|\"PROCESSING\"|\"CANCELED\"|\"COMPLETE\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "BatchInputSimplePublicObjectId",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "inputs",
+          "description": "",
+          "type": {
+            "name": "SimplePublicObjectId[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SimplePublicObjectId"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PatchCrmV3ObjectsCompaniesCompanyIdUpdateQueries",
+      "description": "Represents the Queries record for the operation: patch-/crm/v3/objects/companies/{companyId}_update",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "idProperty",
+          "description": "The name of a property whose values are unique for this object",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "OAuth2RefreshTokenGrantConfig",
+      "description": "OAuth2 Refresh Token Grant Configs",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "refreshUrl",
+          "description": "Refresh URL",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "refreshToken",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "clientId",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "clientSecret",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "scopes",
+          "description": "",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "defaultTokenExpTime",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "clockSkew",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "optionalParams",
+          "description": "",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "credentialBearer",
+          "description": "",
+          "type": {
+            "name": "CredentialBearer",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CredentialBearer",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "clientConfig",
+          "description": "",
+          "type": {
+            "name": "ClientConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientConfiguration",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "BatchInputSimplePublicObjectBatchInputUpsert",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "inputs",
+          "description": "",
+          "type": {
+            "name": "SimplePublicObjectBatchInputUpsert[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SimplePublicObjectBatchInputUpsert"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SimplePublicObjectBatchInputUpsert",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "idProperty",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "objectWriteTraceId",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "id",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "properties",
+          "description": "",
+          "type": {
+            "name": "record {|string...;|}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "CollectionResponseWithTotalSimplePublicObjectForwardPaging",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "total",
+          "description": "",
+          "type": {
+            "name": "int:Signed32"
+          }
+        },
+        {
+          "name": "paging",
+          "description": "",
+          "type": {
+            "name": "ForwardPaging",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ForwardPaging"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "results",
+          "description": "",
+          "type": {
+            "name": "SimplePublicObject[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SimplePublicObject"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "ConnectionConfig",
+      "description": "Provides a set of configurations for controlling the behaviours when communicating with a remote HTTP endpoint.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "auth",
+          "description": "Provides Auth configurations needed when communicating with a remote HTTP endpoint.",
+          "type": {
+            "name": "BearerTokenConfig|OAuth2RefreshTokenGrantConfig|ApiKeysConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "BearerTokenConfig",
+                "libraryName": "ballerina/http"
+              },
+              {
+                "category": "internal",
+                "recordName": "OAuth2RefreshTokenGrantConfig"
+              },
+              {
+                "category": "internal",
+                "recordName": "ApiKeysConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "httpVersion",
+          "description": "The HTTP version understood by the client",
+          "type": {
+            "name": "HttpVersion",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "HttpVersion",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "http1Settings",
+          "description": "Configurations related to HTTP/1.x protocol",
+          "type": {
+            "name": "ClientHttp1Settings",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientHttp1Settings",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "http2Settings",
+          "description": "Configurations related to HTTP/2 protocol",
+          "type": {
+            "name": "ClientHttp2Settings",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientHttp2Settings",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "timeout",
+          "description": "The maximum time to wait (in seconds) for a response before closing the connection",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "forwarded",
+          "description": "The choice of setting `forwarded`/`x-forwarded` header",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "followRedirects",
+          "description": "Configurations associated with Redirection",
+          "type": {
+            "name": "FollowRedirects",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "FollowRedirects",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "poolConfig",
+          "description": "Configurations associated with request pooling",
+          "type": {
+            "name": "PoolConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "PoolConfiguration",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "cache",
+          "description": "HTTP caching related configurations",
+          "type": {
+            "name": "CacheConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CacheConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "compression",
+          "description": "Specifies the way of handling compression (`accept-encoding`) header",
+          "type": {
+            "name": "Compression",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Compression",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "circuitBreaker",
+          "description": "Configurations associated with the behaviour of the Circuit Breaker",
+          "type": {
+            "name": "CircuitBreakerConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CircuitBreakerConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "retryConfig",
+          "description": "Configurations associated with retrying",
+          "type": {
+            "name": "RetryConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "RetryConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "cookieConfig",
+          "description": "Configurations associated with cookies",
+          "type": {
+            "name": "CookieConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CookieConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "responseLimits",
+          "description": "Configurations associated with inbound response size limits",
+          "type": {
+            "name": "ResponseLimitConfigs",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ResponseLimitConfigs",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "SSL/TLS-related options",
+          "type": {
+            "name": "ClientSecureSocket",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientSecureSocket",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "proxy",
+          "description": "Proxy server related options",
+          "type": {
+            "name": "ProxyConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ProxyConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "socketConfig",
+          "description": "Provides settings related to client socket configuration",
+          "type": {
+            "name": "ClientSocketConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientSocketConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "validation",
+          "description": "Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "laxDataBinding",
+          "description": "Enables relaxed data binding on the client side. When enabled, `nil` values are treated as optional, \nand absent fields are handled as `nilable` types. Enabled by default.",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ],
+      "annotations": [
+        {
+          "name": "display",
+          "value": "{label: \"Connection Config\"}"
+        }
+      ]
+    },
+    {
+      "name": "ApiKeysConfig",
+      "description": "Provides API key configurations needed when communicating with a remote HTTP endpoint.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "privateAppLegacy",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "privateApp",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "PostCrmV3ObjectsCompaniesBatchReadReadQueries",
+      "description": "Represents the Queries record for the operation: post-/crm/v3/objects/companies/batch/read_read",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "archived",
+          "description": "Whether to return only results that have been archived",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "PublicObjectSearchRequest",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "query",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "\u0027limit",
+          "description": "",
+          "type": {
+            "name": "int:Signed32"
+          },
+          "optional": true
+        },
+        {
+          "name": "after",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "sorts",
+          "description": "",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "properties",
+          "description": "",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "filterGroups",
+          "description": "",
+          "type": {
+            "name": "FilterGroup[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "FilterGroup"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "BatchResponseSimplePublicObjectWithErrors",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "completedAt",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "numErrors",
+          "description": "",
+          "type": {
+            "name": "int:Signed32"
+          },
+          "optional": true
+        },
+        {
+          "name": "requestedAt",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "startedAt",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "links",
+          "description": "",
+          "type": {
+            "name": "record {|string...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "results",
+          "description": "",
+          "type": {
+            "name": "SimplePublicObject[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SimplePublicObject"
+              }
+            ]
+          }
+        },
+        {
+          "name": "errors",
+          "description": "",
+          "type": {
+            "name": "StandardError[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "StandardError"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "status",
+          "description": "",
+          "type": {
+            "name": "\"PENDING\"|\"PROCESSING\"|\"CANCELED\"|\"COMPLETE\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "SimplePublicObjectInput",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "objectWriteTraceId",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "properties",
+          "description": "",
+          "type": {
+            "name": "record {|string...;|}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "CollectionResponseSimplePublicObjectWithAssociationsForwardPaging",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "paging",
+          "description": "",
+          "type": {
+            "name": "ForwardPaging",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ForwardPaging"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "results",
+          "description": "",
+          "type": {
+            "name": "SimplePublicObjectWithAssociations[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SimplePublicObjectWithAssociations"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SimplePublicObjectWithAssociations",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "associations",
+          "description": "",
+          "type": {
+            "name": "record {|CollectionResponseAssociatedId...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "createdAt",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "archived",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "archivedAt",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "propertiesWithHistory",
+          "description": "",
+          "type": {
+            "name": "record {|ValueWithTimestamp[]...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "id",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "properties",
+          "description": "",
+          "type": {
+            "name": "record {|string?...;|}"
+          }
+        },
+        {
+          "name": "updatedAt",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "PublicMergeInput",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "objectIdToMerge",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "primaryObjectId",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "BatchInputSimplePublicObjectInputForCreate",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "inputs",
+          "description": "",
+          "type": {
+            "name": "SimplePublicObjectInputForCreate[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SimplePublicObjectInputForCreate"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SimplePublicObjectInputForCreate",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "associations",
+          "description": "",
+          "type": {
+            "name": "PublicAssociationsForObject[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PublicAssociationsForObject"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "objectWriteTraceId",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "properties",
+          "description": "",
+          "type": {
+            "name": "record {|string...;|}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "BatchInputSimplePublicObjectBatchInput",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "inputs",
+          "description": "",
+          "type": {
+            "name": "SimplePublicObjectBatchInput[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SimplePublicObjectBatchInput"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SimplePublicObjectBatchInput",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "idProperty",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "objectWriteTraceId",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "id",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "properties",
+          "description": "",
+          "type": {
+            "name": "record {|string...;|}"
+          }
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "name": "Client",
+      "description": "",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Gets invoked to initialize the `connector`.\n",
+          "parameters": [
+            {
+              "name": "config",
+              "description": "The configurations to be used when initializing the `connector` ",
+              "type": {
+                "name": "ConnectionConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ConnectionConfig"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "serviceUrl",
+              "description": "URL of the target service ",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"https://api.hubapi.com/crm/v3/objects\""
+            }
+          ],
+          "return": {
+            "description": "An error if connector initialization failed ",
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Read a batch of companies by internal ID, or unique property values\n",
+          "accessor": "post",
+          "paths": [
+            "companies",
+            "batch",
+            "read"
+          ],
+          "parameters": [
+            {
+              "name": "payload",
+              "type": {
+                "name": "BatchReadInputSimplePublicObjectId",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "BatchReadInputSimplePublicObjectId"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "archived",
+              "description": "Whether to return only results that have been archived",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "queries",
+              "description": "Queries to be sent with the request ",
+              "type": {
+                "name": "PostCrmV3ObjectsCompaniesBatchReadReadQueries",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "PostCrmV3ObjectsCompaniesBatchReadReadQueries"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "BatchResponseSimplePublicObject|BatchResponseSimplePublicObjectWithErrors|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "BatchResponseSimplePublicObject"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "BatchResponseSimplePublicObjectWithErrors"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Read\n",
+          "accessor": "get",
+          "paths": [
+            "companies",
+            {
+              "name": "companyId",
+              "type": "string"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "companyId",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "associations",
+              "description": "A comma separated list of object types to retrieve associated IDs for. If any of the specified associations do not exist, they will be ignored",
+              "type": {
+                "name": "string[]"
+              },
+              "optional": true,
+              "default": "[]"
+            },
+            {
+              "name": "archived",
+              "description": "Whether to return only results that have been archived",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "propertiesWithHistory",
+              "description": "A comma separated list of the properties to be returned along with their history of previous values. If any of the specified properties are not present on the requested object(s), they will be ignored",
+              "type": {
+                "name": "string[]"
+              },
+              "optional": true,
+              "default": "[]"
+            },
+            {
+              "name": "idProperty",
+              "description": "The name of a property whose values are unique for this object",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "properties",
+              "description": "A comma separated list of the properties to be returned in the response. If any of the specified properties are not present on the requested object(s), they will be ignored",
+              "type": {
+                "name": "string[]"
+              },
+              "optional": true,
+              "default": "[]"
+            },
+            {
+              "name": "queries",
+              "description": "Queries to be sent with the request ",
+              "type": {
+                "name": "GetCrmV3ObjectsCompaniesCompanyIdGetByIdQueries",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "GetCrmV3ObjectsCompaniesCompanyIdGetByIdQueries"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "SimplePublicObjectWithAssociations|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "SimplePublicObjectWithAssociations"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Archive\n",
+          "accessor": "delete",
+          "paths": [
+            "companies",
+            {
+              "name": "companyId",
+              "type": "string"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "companyId",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Update\n",
+          "accessor": "patch",
+          "paths": [
+            "companies",
+            {
+              "name": "companyId",
+              "type": "string"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "companyId",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "payload",
+              "type": {
+                "name": "SimplePublicObjectInput",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "SimplePublicObjectInput"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "idProperty",
+              "description": "The name of a property whose values are unique for this object",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "queries",
+              "description": "Queries to be sent with the request ",
+              "type": {
+                "name": "PatchCrmV3ObjectsCompaniesCompanyIdUpdateQueries",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "PatchCrmV3ObjectsCompaniesCompanyIdUpdateQueries"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "SimplePublicObject|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "SimplePublicObject"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Merge two companies with same type\n",
+          "accessor": "post",
+          "paths": [
+            "companies",
+            "merge"
+          ],
+          "parameters": [
+            {
+              "name": "payload",
+              "type": {
+                "name": "PublicMergeInput",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "PublicMergeInput"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "SimplePublicObject|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "SimplePublicObject"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Archive a batch of companies by ID\n",
+          "accessor": "post",
+          "paths": [
+            "companies",
+            "batch",
+            "archive"
+          ],
+          "parameters": [
+            {
+              "name": "payload",
+              "type": {
+                "name": "BatchInputSimplePublicObjectId",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "BatchInputSimplePublicObjectId"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Create a batch of companies\n",
+          "accessor": "post",
+          "paths": [
+            "companies",
+            "batch",
+            "create"
+          ],
+          "parameters": [
+            {
+              "name": "payload",
+              "type": {
+                "name": "BatchInputSimplePublicObjectInputForCreate",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "BatchInputSimplePublicObjectInputForCreate"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "BatchResponseSimplePublicObject|BatchResponseSimplePublicObjectWithErrors|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "BatchResponseSimplePublicObject"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "BatchResponseSimplePublicObjectWithErrors"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Update a batch of companies by internal ID, or unique property values\n",
+          "accessor": "post",
+          "paths": [
+            "companies",
+            "batch",
+            "update"
+          ],
+          "parameters": [
+            {
+              "name": "payload",
+              "type": {
+                "name": "BatchInputSimplePublicObjectBatchInput",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "BatchInputSimplePublicObjectBatchInput"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "BatchResponseSimplePublicObject|BatchResponseSimplePublicObjectWithErrors|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "BatchResponseSimplePublicObject"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "BatchResponseSimplePublicObjectWithErrors"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "List\n",
+          "accessor": "get",
+          "paths": [
+            "companies"
+          ],
+          "parameters": [
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "associations",
+              "description": "A comma separated list of object types to retrieve associated IDs for. If any of the specified associations do not exist, they will be ignored",
+              "type": {
+                "name": "string[]"
+              },
+              "optional": true,
+              "default": "[]"
+            },
+            {
+              "name": "archived",
+              "description": "Whether to return only results that have been archived",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "propertiesWithHistory",
+              "description": "A comma separated list of the properties to be returned along with their history of previous values. If any of the specified properties are not present on the requested object(s), they will be ignored. Usage of this parameter will reduce the maximum number of objects that can be read by a single request",
+              "type": {
+                "name": "string[]"
+              },
+              "optional": true,
+              "default": "[]"
+            },
+            {
+              "name": "limit",
+              "description": "The maximum number of results to display per page",
+              "type": {
+                "name": "int:Signed32"
+              },
+              "optional": true,
+              "default": "0"
+            },
+            {
+              "name": "after",
+              "description": "The paging cursor token of the last successfully read resource will be returned as the `paging.next.after` JSON property of a paged response containing more results",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "properties",
+              "description": "A comma separated list of the properties to be returned in the response. If any of the specified properties are not present on the requested object(s), they will be ignored",
+              "type": {
+                "name": "string[]"
+              },
+              "optional": true,
+              "default": "[]"
+            },
+            {
+              "name": "queries",
+              "description": "Queries to be sent with the request ",
+              "type": {
+                "name": "GetCrmV3ObjectsCompaniesGetPageQueries",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "GetCrmV3ObjectsCompaniesGetPageQueries"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "CollectionResponseSimplePublicObjectWithAssociationsForwardPaging|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "CollectionResponseSimplePublicObjectWithAssociationsForwardPaging"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Create\n",
+          "accessor": "post",
+          "paths": [
+            "companies"
+          ],
+          "parameters": [
+            {
+              "name": "payload",
+              "type": {
+                "name": "SimplePublicObjectInputForCreate",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "SimplePublicObjectInputForCreate"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "SimplePublicObject|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "SimplePublicObject"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Create or update a batch of companies by unique property values\n",
+          "accessor": "post",
+          "paths": [
+            "companies",
+            "batch",
+            "upsert"
+          ],
+          "parameters": [
+            {
+              "name": "payload",
+              "type": {
+                "name": "BatchInputSimplePublicObjectBatchInputUpsert",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "BatchInputSimplePublicObjectBatchInputUpsert"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "BatchResponseSimplePublicUpsertObject|BatchResponseSimplePublicUpsertObjectWithErrors|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "BatchResponseSimplePublicUpsertObject"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "BatchResponseSimplePublicUpsertObjectWithErrors"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "",
+          "accessor": "post",
+          "paths": [
+            "companies",
+            "search"
+          ],
+          "parameters": [
+            {
+              "name": "payload",
+              "type": {
+                "name": "PublicObjectSearchRequest",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "PublicObjectSearchRequest"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "CollectionResponseWithTotalSimplePublicObjectForwardPaging|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "CollectionResponseWithTotalSimplePublicObjectForwardPaging"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "functions": [],
+  "services": [],
+  "annotations": []
+}

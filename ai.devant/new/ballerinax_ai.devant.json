@@ -1,0 +1,492 @@
+{
+  "name": "ballerinax/ai.devant",
+  "description": "The `ai.devant` module provides APIs to interact with [Devant by WSO2](https://wso2.com/devant/), enabling document chunking and loading documents from a directory in the format expected by the Devant Chunker. It integrates seamlessly with the [`ai`](https://central.ballerina.io/ballerina/ai/latest) module to provide a smooth workflow for processing AI documents using Devant AI services.",
+  "readme": "## Overview\n\nThe `ai.devant` module provides APIs to interact with [Devant by WSO2](https://wso2.com/devant/), enabling document chunking and loading documents from a directory in the format expected by the Devant Chunker. It integrates seamlessly with the [`ai`](https://central.ballerina.io/ballerina/ai/latest) module to provide a smooth workflow for processing AI documents using Devant AI services.\n\n### Key Features\n\n- Load documents from a directory in the format expected by the Devant Chunker\n- Chunk documents using the Devant AI service\n- Seamless integration with the `ai` module for AI document processing workflows\n\n## Prerequisites\n\nBefore using this module in your Ballerina application, ensure you have the following:\n\n- A valid Devant AI service URL\n- An access token to authenticate with the Devant platform\n\n## Quickstart\n\nTo use the `ai.devant` module in your Ballerina application, follow these steps:\n\n### Step 1: Import the module\n\n```ballerina\nimport ballerinax/ai.devant;\n```\n\n### Step 2: Load the document\n\n```ballerina\ndevant:BinaryDataLoader loader \u003d check new (\"./sample.pdf\");\nai:Document|ai:Document[] docs \u003d check loader.load();\n```\n\n### Step 3: Chunk the documents using the Devant service\n\n```ballerina\ndevant:Chunker chunker \u003d new (serviceUrl, accessToken);\nif docs is ai:Document {\n    ai:Chunk[] chunks \u003d check chunker.chunk(docs);\n}\n```\n",
+  "typeDefs": [
+    {
+      "name": "RECURSIVE",
+      "description": "Recursively split the text into smaller chunks.",
+      "type": "Constant",
+      "value": "recursive",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "SENTENCE",
+      "description": "Split the text into sentence-level chunks.",
+      "type": "Constant",
+      "value": "sentence",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "PARAGRAPH",
+      "description": "Split the text into paragraph-level chunks.",
+      "type": "Constant",
+      "value": "paragraph",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "CHARACTER",
+      "description": "Split the text into character-level chunks.",
+      "type": "Constant",
+      "value": "character",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "Error",
+      "description": "Defines the common error type for the module.",
+      "type": "Error",
+      "baseType": "error"
+    },
+    {
+      "name": "ChunkStrategy",
+      "description": "Specifies the strategy to split text into chunks.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "CHARACTER",
+          "description": "Split the text into character-level chunks."
+        },
+        {
+          "name": "PARAGRAPH",
+          "description": "Split the text into paragraph-level chunks."
+        },
+        {
+          "name": "SENTENCE",
+          "description": "Split the text into sentence-level chunks."
+        },
+        {
+          "name": "RECURSIVE",
+          "description": "Recursively split the text into smaller chunks."
+        }
+      ]
+    },
+    {
+      "name": "Chunker",
+      "description": "Initializes a new `Chunker` instance.\n",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes a new `Chunker` instance.\n",
+          "parameters": [
+            {
+              "name": "serviceUrl",
+              "description": "The base URL of the Devant AI service endpoint",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Service URL\"}"
+                }
+              ]
+            },
+            {
+              "name": "accessToken",
+              "description": "The access token used to authenticate API requests",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Access Token\"}"
+                }
+              ]
+            },
+            {
+              "name": "maxChunkSize",
+              "description": "The maximum number of characters allowed per chunk",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "500",
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Maximum Chunk Size in Characters\"}"
+                }
+              ]
+            },
+            {
+              "name": "maxOverlapSize",
+              "description": "The maximum number of characters to reuse from the end of the previous\nchunk when creating the next one",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "50",
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Maximum Overlap Size in Characters\"}"
+                }
+              ]
+            },
+            {
+              "name": "strategy",
+              "description": "The strategy to use for chunking the document",
+              "type": {
+                "name": "ChunkStrategy",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ChunkStrategy"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "RECURSIVE",
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Chunking Strategy\"}"
+                }
+              ]
+            },
+            {
+              "name": "httpVersion",
+              "description": "The HTTP version understood by the client",
+              "type": {
+                "name": "HttpVersion",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "HttpVersion",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "\"2.0\""
+            },
+            {
+              "name": "http1Settings",
+              "description": "Configurations related to HTTP/1.x protocol",
+              "type": {
+                "name": "ClientHttp1Settings",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ClientHttp1Settings",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "http2Settings",
+              "description": "Configurations related to HTTP/2 protocol",
+              "type": {
+                "name": "ClientHttp2Settings",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ClientHttp2Settings",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "timeout",
+              "description": "The maximum time to wait (in seconds) for a response before closing the connection",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "0.0d"
+            },
+            {
+              "name": "forwarded",
+              "description": "The choice of setting `forwarded`/`x-forwarded` header",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "poolConfig",
+              "description": "Configurations associated with request pooling",
+              "type": {
+                "name": "PoolConfiguration",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "PoolConfiguration",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "cache",
+              "description": "HTTP caching related configurations",
+              "type": {
+                "name": "CacheConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "CacheConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "compression",
+              "description": "Specifies the way of handling compression (`accept-encoding`) header",
+              "type": {
+                "name": "Compression",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "Compression",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "\"AUTO\""
+            },
+            {
+              "name": "circuitBreaker",
+              "description": "Configurations associated with the behaviour of the Circuit Breaker",
+              "type": {
+                "name": "CircuitBreakerConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "CircuitBreakerConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "retryConfig",
+              "description": "Configurations associated with retrying",
+              "type": {
+                "name": "RetryConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "RetryConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "responseLimits",
+              "description": "Configurations associated with inbound response size limits",
+              "type": {
+                "name": "ResponseLimitConfigs",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ResponseLimitConfigs",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "secureSocket",
+              "description": "SSL/TLS-related options",
+              "type": {
+                "name": "ClientSecureSocket",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ClientSecureSocket",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "proxy",
+              "description": "Proxy server related options",
+              "type": {
+                "name": "ProxyConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ProxyConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "validation",
+              "description": "Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "connectionConfig",
+              "description": "Additional HTTP connection configurations",
+              "type": {
+                "name": "ConnectionConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ConnectionConfig",
+                    "libraryName": "ballerina/ai"
+                  }
+                ]
+              },
+              "optional": true,
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Connection Configuration\"}"
+                }
+              ]
+            }
+          ],
+          "return": {
+            "description": "`nil` on success, or a `devant:Error` if the initialization fails",
+            "type": {
+              "name": "ai:Error?"
+            }
+          }
+        },
+        {
+          "name": "chunk",
+          "type": "Normal Function",
+          "description": "Chunks the provided document.",
+          "parameters": [
+            {
+              "name": "document",
+              "description": "The input document to be chunked",
+              "type": {
+                "name": "Document",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "Document",
+                    "libraryName": "ballerina/ai"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "An array of chunks, or an `ai:Error` if the chunking fails",
+            "type": {
+              "name": "Chunk[]|Error",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "Chunk",
+                  "libraryName": "ballerina/ai"
+                },
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/ai"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "BinaryDataLoader",
+      "description": "Creates a new `BinaryDataLoader` instance.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Creates a new `BinaryDataLoader` instance.",
+          "parameters": [
+            {
+              "name": "path",
+              "description": "The file or directory path to load documents from",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "`nil` on success, or an `ai:Error` if the initialization fails",
+            "type": {
+              "name": "ai:Error?"
+            }
+          }
+        },
+        {
+          "name": "load",
+          "type": "Normal Function",
+          "description": "Loads documents from the specified path.\n",
+          "parameters": [],
+          "return": {
+            "description": "An array of `ai:Document` instances if the path is a directory,\nor a single `ai:Document` if the path is a file.\nReturns an `ai:Error` if the path is invalid or loading fails.",
+            "type": {
+              "name": "Document[]|Document|Error",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "Document",
+                  "libraryName": "ballerina/ai"
+                },
+                {
+                  "category": "external",
+                  "recordName": "Document",
+                  "libraryName": "ballerina/ai"
+                },
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/ai"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "clients": [],
+  "functions": [],
+  "services": [],
+  "annotations": []
+}

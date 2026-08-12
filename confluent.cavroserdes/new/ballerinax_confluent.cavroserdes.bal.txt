@@ -1,0 +1,95 @@
+// ============================================================
+// Library: ballerinax/confluent.cavroserdes
+// [Avro Serializer/Deserializer for Confluent Schema Registry](https://docs.confluent.io/platform/current/schema-registry/fundamentals/serdes-develop/serdes-avro.html) is an Avro serializer/deserializer designed to work with the Confluent Schema Registry. It is designed to not include the message schema in the message payload but instead includes the schema ID.
+// ============================================================
+import ballerinax/confluent.cavroserdes;
+
+// --- README ---
+## Overview
+
+[Avro Serializer/Deserializer for Confluent Schema Registry](https://docs.confluent.io/platform/current/schema-registry/fundamentals/serdes-develop/serdes-avro.html) is an Avro serializer/deserializer designed to work with the Confluent Schema Registry. It is designed to not include the message schema in the message payload but instead includes the schema ID.
+
+The Confluent Avro SerDes connector integrates with the Confluent Schema Registry for Avro serialization and deserialization.
+
+### Key Features
+
+- Serialize data to Avro format using Confluent Schema Registry
+- Deserialize Avro-encoded data back to structured types
+- Automatic schema ID management via Confluent Schema Registry
+- Seamless integration with Kafka producers and consumers
+
+## Quickstart
+
+To use the Confluent schema registry connector in your Ballerina project, modify the `.bal` file as follows.
+
+### Step 1: Import the module
+
+Import the `ballerinax/confluent.cavroserdes` module into your Ballerina project.
+
+```ballerina
+import ballerinax/confluent.cavroserdes;
+```
+
+### Step 2: Invoke the connector operation
+
+You can now utilize the operations available within the connector. To instantiate a `cregistry:Client` instance refer to the guidelines [here](https://central.ballerina.io/ballerinax/confluent.cregistry/latest).
+
+```ballerina
+public function main() returns error? {
+   cregistry:Client registry = ; // instantiate a schema registry client
+
+   string schema = string `
+      {
+         "type": "int",
+         "name" : "value", 
+         "namespace": "data"
+      }`;
+
+   int value = 1;
+   byte[] bytes = check cavroserdes:serialize(registry, schema, value, "subject");
+   int number = check cavroserdes:deserialize(registry, bytes);
+}
+```
+
+### Step 3: Run the Ballerina application
+
+Use the following command to compile and run the Ballerina program.
+
+```bash
+bal run
+```
+
+## Examples
+
+The Ballerina Avro Serializer/Deserializer connector for Confluent Schema Registry provides practical examples illustrating usage in various scenarios. Explore these [examples](https://github.com/ballerina-platform/module-ballerinax-confluent.cavroserdes/tree/main/examples).
+
+1. [Kafka Avro producer](https://github.com/ballerina-platform/module-ballerinax-confluent.cavroserdes/tree/main/examples/kafka-avro-producer) - This example demonstrates how to publish Avro serialized data to a Kafka topic.
+
+2. [Kafka Avro consumer](https://github.com/ballerina-platform/module-ballerinax-confluent.cavroserdes/tree/main/examples/kafka-avro-consumer) - This guide demonstrates how to consume data in the correct format according to the Avro schema from a Kafka topic.
+
+// --- END README ---
+
+// --- Types ---
+
+# Represents any error related to the module.
+type Error error;
+
+// --- Functions ---
+
+# Serializes the given data according to the Avro format and registers the schema into the schema registry.
+# 
+# + registry - The schema registry client
+# + schema - The Avro schema
+# + data - The data to be serialized according to the schema
+# + subject - The subject under which the schema should be registered
+# + return - A `byte` array of the serialized data or else an `cavroserdes:Error`
+function serialize(cregistry:Client registry, string schema, anydata data, string subject) returns byte[]|Error; // Special Agent Note: Client FROM ballerinax/confluent.cregistry package
+
+# Deserializes the given Avro serialized message to the given data type by retrieving the schema 
+# from the schema registry.
+# 
+# + registry - The schema registry client
+# + data - Avro serialized data which includes the schema id
+# + targetType - Default parameter use to infer the user specified type
+# + return - A deserialized data with the given type or else an `cavroserdes:Error`
+function deserialize(cregistry:Client registry, byte[] data, anydata targetType = anydata) returns targetType|Error; // Special Agent Note: Client FROM ballerinax/confluent.cregistry package

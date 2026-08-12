@@ -1,0 +1,787 @@
+// ============================================================
+// Library: ballerinax/hubspot.crm.obj.tickets
+// [HubSpot](https://www.hubspot.com) is an AI-powered customer relationship management (CRM) platform.
+// ============================================================
+import ballerinax/hubspot.crm.obj.tickets;
+
+// --- README ---
+## Overview
+
+[HubSpot](https://www.hubspot.com) is an AI-powered customer relationship management (CRM) platform.
+
+The HubSpot CRM Tickets connector provides APIs to connect and interact with the [HubSpot Tickets API](https://developers.hubspot.com/docs/guides/api/crm/objects/tickets) endpoints, specifically based on the [HubSpot REST API](https://developers.hubspot.com/docs/reference/api).
+
+### Key Features
+
+- Create, read, update, and delete ticket records in HubSpot CRM
+- List and search tickets with filtering support
+- Manage ticket pipelines, stages, and priorities
+- Batch operations for bulk ticket management
+
+## Setup guide
+
+To use the `HubSpot CRM Object Tickets` connector, you must have access to the HubSpot API through a HubSpot developer account and an app under it. If you do not have a HubSpot developer account, you can sign up for one [here](https://developers.hubspot.com/get-started).
+
+### Step 1: Create a HubSpot Developer Account
+
+App Developer Accounts, allow you to create developer test accounts to test apps.
+
+> **Note:** These accounts are only for development and testing purposes. Not to be used in production.
+
+1. Go to "Test Account section" from the left sidebar.
+
+    ![Test accounts](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.tickets/main/docs/setup/resources/test_acc_img1.png)
+
+2. Click "Create developer test account".
+
+   ![Developer Test Accounts](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.tickets/main/docs/setup/resources/test_acc_img2.png)
+
+3. In the next dialogue box, give a name to your test account and click "Create".
+
+   ![HubSpot developer account name](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.tickets/main/docs/setup/resources/test_acc_img3.png)
+
+### Step 2: Create a HubSpot App under your account
+
+1. In your developer account, navigate to the "Apps" section. Click on "Create App".
+   ![HubSpot App Creation](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.tickets/main/docs/setup/resources/app_img1.png)
+
+2. Provide the necessary details, including the app name and description.
+
+### Step 3: Configure the Authentication Flow
+
+1. Move to the Auth Tab.
+
+   ![Auth tab](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.tickets/main/docs/setup/resources/auth.png)
+
+2. In the "Scopes" section, add the following scopes for your app using the "Add new scope" button.
+
+   * `tickets`
+   * `oauth`
+
+   ![Scope Selection](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.tickets/main/docs/setup/resources/scope_select.png)
+
+3. Add your Redirect URI in the relevant section. You can use `localhost` addresses for local development purposes. Then Click "Create App".
+
+   ![Redirect URI](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.tickets/main/docs/setup/resources/redirect_url.png)
+
+### Step 4: Get your Client ID and Client Secret
+
+- Navigate to the "Auth" tab. Make sure to save the provided Client ID and Client Secret.
+
+   ![Credentials](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.tickets/main/docs/setup/resources/credentials.png)
+
+### Step 5: Setup Authentication Flow
+
+Before proceeding with the Quickstart, ensure you have obtained the Access Token using the following steps:
+
+1. Create an authorization URL using the following format:
+
+   ```
+   https://app.hubspot.com/oauth/authorize?client_id=<YOUR_CLIENT_ID>&scope=<YOUR_SCOPES>&redirect_uri=<YOUR_REDIRECT_URI>
+   ```
+
+   Replace the `<YOUR_CLIENT_ID>`, `<YOUR_REDIRECT_URI>`, and `<YOUR_SCOPES>` with the above obtained values.
+
+2. Paste it in the browser and select your developer test account to install the app when prompted.
+
+3. A code will be displayed in the browser. Copy that code.
+
+4. Run the following curl command. Replace the `<YOUR_CLIENT_ID>`, `<YOUR_REDIRECT_URI>`, and `<YOUR_CLIENT_SECRET>` with your specific value. Use the code you received in the above step 3 as the `<CODE>`.
+
+   - Linux/macOS
+
+     ```bash
+     curl --request POST \
+     --url https://api.hubapi.com/oauth/v1/token \
+     --header 'content-type: application/x-www-form-urlencoded' \
+     --data 'grant_type=authorization_code&code=<CODE>&redirect_uri=<YOUR_REDIRECT_URI>&client_id=<YOUR_CLIENT_ID>&client_secret=<YOUR_CLIENT_SECRET>'
+     ```
+
+   - Windows
+
+     ```bash
+     curl --request POST ^
+     --url https://api.hubapi.com/oauth/v1/token ^
+     --header 'content-type: application/x-www-form-urlencoded' ^
+     --data 'grant_type=authorization_code&code=<CODE>&redirect_uri=<YOUR_REDIRECT_URI>&client_id=<YOUR_CLIENT_ID>&client_secret=<YOUR_CLIENT_SECRET>'
+     ```
+
+   This command will return the access token necessary for API calls.
+
+   ```json
+   {
+     "token_type": "bearer",
+     "refresh_token": "<Refresh Token>",
+     "access_token": "<Access Token>",
+     "expires_in": 1800
+   }
+   ```
+
+5. Store the access token and refresh token securely for use in your application.
+
+## Quickstart
+
+To use the `HubSpot CRM Object Tickets` connector in your Ballerina application, update the `.bal` file as follows:
+
+### Step 1: Import the module
+
+Import the `hubspot.crm.obj.tickets` module and `oauth2` module.
+
+```ballerina
+import ballerinax/hubspot.crm.obj.tickets as hstickets;
+import ballerina/oauth2;
+```
+
+### Step 2: Instantiate a new connector
+
+1. Create a `Config.toml` file inside the Ballerina package and add the following configurations with the values retrieved in the earlier steps as follows:
+
+   ```toml
+    clientId = <Client Id>
+    clientSecret = <Client Secret>
+    refreshToken = <Refresh Token>
+   ```
+
+2. Instantiate a `OAuth2RefreshTokenGrantConfig` with the obtained credentials and initialize the connector with it.
+
+    ```ballerina
+   configurable string clientId = ?;
+   configurable string clientSecret = ?;
+   configurable string refreshToken = ?;
+
+   OAuth2RefreshTokenGrantConfig auth = {
+      clientId,
+      clientSecret,
+      refreshToken,
+      credentialBearer: oauth2:POST_BODY_BEARER
+   };
+
+   final Client HubSpotClient = check new ({auth});
+   ```
+
+Now, utilize the available connector operations. A sample use case is shown below.
+
+#### Create a New Ticket
+
+```ballerina
+public function main() returns error? {
+    hstickets:SimplePublicObjectInputForCreate payload = {
+        properties: {
+            "hs_pipeline": "0",
+            "hs_pipeline_stage": "1",
+            "hs_ticket_priority": "HIGH",
+            "subject": "New troubleshoot report"
+        }
+    };
+    hstickets:SimplePublicObject response = check HubSpotClient->/.post(payload);
+    io:println(response);
+}
+```
+
+## Examples
+
+The `HubSpot CRM Object Tickets` connector provides practical examples illustrating usage in various scenarios. Explore these [examples](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.tickets/tree/main/examples), covering the following use cases:
+
+   1. [Ticket Management System](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.tickets/tree/main/examples/ticket-management-system) - Integrate HubSpot with multiple customer support channels to streamline ticket management.
+   2. [Weekly Tickets Report Generation](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.tickets/tree/main/examples/weekly-ticket-reports) - Analyze detailed summaries of customer tickets in each week for better support
+
+// --- END README ---
+
+// --- Types ---
+
+# Standard error response structure returned by the API
+
+type StandardError record {
+    # Optional sub-category providing additional error classification
+    record {|anydata...;|} subCategory?;
+    # Contextual metadata map with string array values for the error
+    record {|string[]...;|} context;
+    # Map of relevant links associated with the error response
+    record {|string...;|} links;
+    # Unique identifier for the error instance
+    string id?;
+    # High-level category classifying the type of error
+    string category;
+    # Human-readable message describing the error
+    string message;
+    # List of detailed error entries associated with this response
+    ErrorDetail[] errors;
+    # HTTP status code or status label for the error
+    string status;
+};
+
+# Detailed information about a specific error encountered in a request
+
+type ErrorDetail record {
+    # A specific category that contains more specific detail about the error
+    string subCategory?;
+    # The status code associated with the error detail
+    string code?;
+    # The name of the field or parameter in which the error was found
+    string 'in?;
+    # Context about the error condition
+    record {|string[]...;|} context?;
+    # A human readable message describing the error along with remediation steps where appropriate
+    string message;
+};
+
+# Paginated collection of associated object IDs
+
+type CollectionResponseAssociatedId record {
+    # Pagination container providing cursors for navigating to the next or previous result page
+    Paging paging?;
+    # Array of associated object IDs returned in this page
+    AssociatedId[] results;
+};
+
+# Pagination container providing cursors for navigating to the next or previous result page
+
+type Paging record {
+    # Pagination cursor details for retrieving the next page of results
+    NextPage next?;
+    # Pagination cursor and link referencing the previous page of results
+    PreviousPage prev?;
+};
+
+# Pagination cursor details for retrieving the next page of results
+
+type NextPage record {
+    # URL query string to fetch the next page of results
+    string link?;
+    # Cursor token representing the start of the next page
+    string after;
+};
+
+# Pagination cursor and link referencing the previous page of results
+
+type PreviousPage record {
+    # Cursor token representing the start of the previous page
+    string before;
+    # URL link to retrieve the previous page of results
+    string link?;
+};
+
+# Represents an associated object reference with its identifier and association type
+
+type AssociatedId record {
+    # Unique identifier of the associated object
+    string id;
+    # Type describing the nature of the association
+    string 'type;
+};
+
+# Defines association targets and types for a given object
+
+type PublicAssociationsForObject record {
+    # List of association type specifications for the relationship
+    AssociationSpec[] types?;
+    # Represents a public object identifier containing a unique ID string
+    PublicObjectId to?;
+};
+
+# Defines the category and type of an association between objects
+
+type AssociationSpec record {
+    # Category of the association: HUBSPOT_DEFINED, USER_DEFINED, or INTEGRATOR_DEFINED
+    "HUBSPOT_DEFINED"|"USER_DEFINED"|"INTEGRATOR_DEFINED" associationCategory?;
+    # Numeric identifier for the specific association type
+    int:Signed32 associationTypeId?;
+};
+
+# Represents a public object identifier containing a unique ID string
+
+type PublicObjectId record {
+    # Unique identifier of the public object
+    string id?;
+};
+
+# Batch operation response containing results and execution timestamps
+
+type BatchResponseSimplePublicObject record {
+    # Datetime when the batch operation completed
+    string completedAt;
+    # Datetime when the batch operation was requested
+    string requestedAt?;
+    # Datetime when the batch operation began processing
+    string startedAt;
+    # Map of supplementary links related to the batch response
+    record {|string...;|} links?;
+    # Array of ticket objects returned by the batch operation
+    SimplePublicObject[] results;
+    # Current processing status of the batch request
+    "PENDING"|"PROCESSING"|"CANCELED"|"COMPLETE" status;
+};
+
+# Represents a single ticket object with its properties, metadata, and optional history
+
+type SimplePublicObject record {
+    # Timestamp when the ticket was created
+    string createdAt;
+    # Indicates whether the ticket is archived
+    boolean archived?;
+    # Timestamp when the ticket was archived
+    string archivedAt?;
+    # Map of property names to their historical values with timestamps
+    record {|ValueWithTimestamp[]...;|} propertiesWithHistory?;
+    # Unique identifier of the ticket
+    string id;
+    # Map of ticket property names to their current values
+    record {|string?...;|} properties;
+    # Timestamp when the ticket was last updated
+    string updatedAt;
+};
+
+# A property value paired with its source metadata and the timestamp of the last update
+
+type ValueWithTimestamp record {
+    # Identifier of the source that set this property value
+    string sourceId?;
+    # The type of source that originated this property value
+    string sourceType;
+    # Human-readable label describing the value's source
+    string sourceLabel?;
+    # ID of the user who last updated this property value
+    int:Signed32 updatedByUserId?;
+    # The property value at the recorded timestamp
+    string value;
+    # Datetime when this property value was recorded
+    string timestamp;
+};
+
+# A group of filters combined to narrow search results
+
+type FilterGroup record {
+    # Array of filter conditions applied within the group
+    Filter[] filters;
+};
+
+# Defines a single filter condition used to query tickets by property value and operator
+
+type Filter record {
+    # Upper bound value for BETWEEN range filter operations
+    string highValue?;
+    # The ticket property name to filter on
+    string propertyName;
+    # List of values for IN or NOT_IN filter operations
+    string[] values?;
+    # The single value to compare against the specified property
+    string value?;
+    # Comparison operator that defines how the property is evaluated against the value
+    "EQ"|"NEQ"|"LT"|"LTE"|"GT"|"GTE"|"BETWEEN"|"IN"|"NOT_IN"|"HAS_PROPERTY"|"NOT_HAS_PROPERTY"|"CONTAINS_TOKEN"|"NOT_CONTAINS_TOKEN" operator;
+};
+
+# Represents the Queries record for the operation: patch-/crm/v3/objects/tickets/{ticketId}_update
+
+type PatchCrmV3ObjectsTicketsTicketIdUpdateQueries record {
+    # The name of a property whose values are unique for this object
+    string idProperty?;
+};
+
+# Pagination object providing a cursor for forward navigation
+
+type ForwardPaging record {
+    # Pagination cursor details for retrieving the next page of results
+    NextPage next?;
+};
+
+# A minimal object containing a unique identifier for a public object
+
+type SimplePublicObjectId record {
+    # The unique identifier of the object
+    string id;
+};
+
+# Batch upsert response containing results, status, timestamps, and any errors encountered
+
+type BatchResponseSimplePublicUpsertObjectWithErrors record {
+    # Timestamp when the batch operation completed
+    string completedAt;
+    # Total number of errors encountered during the batch operation
+    int:Signed32 numErrors?;
+    # Timestamp when the batch operation was requested
+    string requestedAt?;
+    # Timestamp when the batch operation began processing
+    string startedAt;
+    # Map of relevant links associated with the batch response
+    record {|string...;|} links?;
+    # Array of upserted ticket objects returned by the batch operation
+    SimplePublicUpsertObject[] results;
+    # Array of errors encountered for individual records in the batch
+    StandardError[] errors?;
+    # Current processing status of the batch upsert request
+    "PENDING"|"PROCESSING"|"CANCELED"|"COMPLETE" status;
+};
+
+# Represents a ticket returned from an upsert operation, indicating whether it was newly created
+
+type SimplePublicUpsertObject record {
+    # Timestamp when the ticket was originally created
+    string createdAt;
+    # Indicates whether the ticket is archived
+    boolean archived?;
+    # Timestamp when the ticket was archived, if applicable
+    string archivedAt?;
+    # Indicates whether the ticket was newly created by the upsert
+    boolean 'new;
+    # Map of property names to their historical values with timestamps
+    record {|ValueWithTimestamp[]...;|} propertiesWithHistory?;
+    # Unique identifier of the upserted ticket object
+    string id;
+    # Key-value map of ticket property names and their values
+    record {|string...;|} properties;
+    # Timestamp when the ticket object was last updated
+    string updatedAt;
+};
+
+# Input schema for reading a batch of tickets by ID with specified properties
+
+type BatchReadInputSimplePublicObjectId record {
+    # List of properties to return along with their historical values
+    string[] propertiesWithHistory;
+    # The property name used as the identifier for batch lookup
+    string idProperty?;
+    # List of object IDs to retrieve in the batch read request
+    SimplePublicObjectId[] inputs;
+    # List of property names to include in the response
+    string[] properties;
+};
+
+# Response object containing the results and status of a batch upsert operation on tickets
+
+type BatchResponseSimplePublicUpsertObject record {
+    # Datetime when the batch operation completed
+    string completedAt;
+    # Datetime when the batch operation was requested
+    string requestedAt?;
+    # Datetime when the batch operation began processing
+    string startedAt;
+    # Map of relevant hyperlinks associated with the batch response
+    record {|string...;|} links?;
+    # List of upserted ticket objects returned by the batch operation
+    SimplePublicUpsertObject[] results;
+    # Current processing status of the batch operation
+    "PENDING"|"PROCESSING"|"CANCELED"|"COMPLETE" status;
+};
+
+# Input schema containing a list of object IDs for a batch operation on tickets
+
+type BatchInputSimplePublicObjectId record {
+    # List of ticket object IDs to process in the batch operation
+    SimplePublicObjectId[] inputs;
+};
+
+# OAuth2 Refresh Token Grant Configs
+
+type OAuth2RefreshTokenGrantConfig record {
+    # Refresh URL
+    string refreshUrl?;
+    string refreshToken;
+    string clientId;
+    string clientSecret;
+    string|string[] scopes?;
+    decimal defaultTokenExpTime?;
+    decimal clockSkew?;
+    map<string> optionalParams?;
+    oauth2:CredentialBearer credentialBearer?; // Special Agent Note: CredentialBearer FROM ballerina/oauth2 package
+    oauth2:ClientConfiguration clientConfig?; // Special Agent Note: ClientConfiguration FROM ballerina/oauth2 package
+};
+
+# Input schema containing a list of ticket objects to create or update in a batch upsert operation
+
+type BatchInputSimplePublicObjectBatchInputUpsert record {
+    # Array of ticket upsert input objects to process in batch
+    SimplePublicObjectBatchInputUpsert[] inputs;
+};
+
+# Input object for upserting a ticket, containing an identifier and its associated properties
+
+type SimplePublicObjectBatchInputUpsert record {
+    # Name of the property used as the unique identifier
+    string idProperty?;
+    # Trace identifier for tracking the write operation
+    string objectWriteTraceId?;
+    # Unique identifier of the ticket to upsert
+    string id;
+    # Map of property names to values for the ticket
+    record {|string...;|} properties;
+};
+
+# A paginated collection of ticket objects with a total count and forward paging cursor
+
+type CollectionResponseWithTotalSimplePublicObjectForwardPaging record {
+    # Total number of tickets matching the request
+    int:Signed32 total;
+    # Pagination object providing a cursor for forward navigation
+    ForwardPaging paging?;
+    # Array of ticket objects returned in the current page
+    SimplePublicObject[] results;
+};
+
+# Represents the Queries record for the operation: get-/crm/v3/objects/tickets_getPage
+
+type GetCrmV3ObjectsTicketsGetPageQueries record {
+    # A comma separated list of object types to retrieve associated IDs for. If any of the specified associations do not exist, they will be ignored
+    string[] associations?;
+    # Whether to return only results that have been archived
+    boolean archived?;
+    # A comma separated list of the properties to be returned along with their history of previous values. If any of the specified properties are not present on the requested object(s), they will be ignored. Usage of this parameter will reduce the maximum number of objects that can be read by a single request
+    string[] propertiesWithHistory?;
+    # The maximum number of results to display per page
+    int:Signed32 'limit?;
+    # The paging cursor token of the last successfully read resource will be returned as the `paging.next.after` JSON property of a paged response containing more results
+    string after?;
+    # A comma separated list of the properties to be returned in the response. If any of the specified properties are not present on the requested object(s), they will be ignored
+    string[] properties?;
+};
+
+# Provides a set of configurations for controlling the behaviours when communicating with a remote HTTP endpoint
+
+@display {label: "Connection Config"}
+type ConnectionConfig record {
+    # Provides Auth configurations needed when communicating with a remote HTTP endpoint
+    http:BearerTokenConfig|OAuth2RefreshTokenGrantConfig|ApiKeysConfig auth; // Special Agent Note: BearerTokenConfig FROM ballerina/http package
+    # The HTTP version understood by the client
+    http:HttpVersion httpVersion?; // Special Agent Note: HttpVersion FROM ballerina/http package
+    # Configurations related to HTTP/1.x protocol
+    http:ClientHttp1Settings http1Settings?; // Special Agent Note: ClientHttp1Settings FROM ballerina/http package
+    # Configurations related to HTTP/2 protocol
+    http:ClientHttp2Settings http2Settings?; // Special Agent Note: ClientHttp2Settings FROM ballerina/http package
+    # The maximum time to wait (in seconds) for a response before closing the connection
+    decimal timeout?;
+    # The choice of setting `forwarded`/`x-forwarded` header
+    string forwarded?;
+    # Configurations associated with Redirection
+    http:FollowRedirects followRedirects?; // Special Agent Note: FollowRedirects FROM ballerina/http package
+    # Configurations associated with request pooling
+    http:PoolConfiguration poolConfig?; // Special Agent Note: PoolConfiguration FROM ballerina/http package
+    # HTTP caching related configurations
+    http:CacheConfig cache?; // Special Agent Note: CacheConfig FROM ballerina/http package
+    # Specifies the way of handling compression (`accept-encoding`) header
+    http:Compression compression?; // Special Agent Note: Compression FROM ballerina/http package
+    # Configurations associated with the behaviour of the Circuit Breaker
+    http:CircuitBreakerConfig circuitBreaker?; // Special Agent Note: CircuitBreakerConfig FROM ballerina/http package
+    # Configurations associated with retrying
+    http:RetryConfig retryConfig?; // Special Agent Note: RetryConfig FROM ballerina/http package
+    # Configurations associated with cookies
+    http:CookieConfig cookieConfig?; // Special Agent Note: CookieConfig FROM ballerina/http package
+    # Configurations associated with inbound response size limits
+    http:ResponseLimitConfigs responseLimits?; // Special Agent Note: ResponseLimitConfigs FROM ballerina/http package
+    # SSL/TLS-related options
+    http:ClientSecureSocket secureSocket?; // Special Agent Note: ClientSecureSocket FROM ballerina/http package
+    # Proxy server related options
+    http:ProxyConfig proxy?; // Special Agent Note: ProxyConfig FROM ballerina/http package
+    # Provides settings related to client socket configuration
+    http:ClientSocketConfig socketConfig?; // Special Agent Note: ClientSocketConfig FROM ballerina/http package
+    # Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default
+    boolean validation?;
+    # Enables relaxed data binding on the client side. When enabled, `nil` values are treated as optional, 
+and absent fields are handled as `nilable` types. Enabled by default
+    boolean laxDataBinding?;
+};
+
+# Provides API key configurations needed when communicating with a remote HTTP endpoint
+
+type ApiKeysConfig record {
+    string privateAppLegacy;
+    string privateApp;
+};
+
+# Request payload for searching tickets with filters, sorting, pagination, and property selection
+
+type PublicObjectSearchRequest record {
+    # Full-text search query string to match against ticket properties
+    string query?;
+    # Maximum number of results to return per page
+    int:Signed32 'limit?;
+    # Cursor token for retrieving the next page of results
+    string after?;
+    # List of property names to sort results by
+    string[] sorts?;
+    # List of property names to include in the response
+    string[] properties?;
+    # Groups of filters used to narrow search results
+    FilterGroup[] filterGroups?;
+};
+
+# Batch operation response for tickets, including results, status, timestamps, and any errors encountered
+
+type BatchResponseSimplePublicObjectWithErrors record {
+    # Timestamp when the batch operation completed
+    string completedAt;
+    # Total number of errors encountered in the batch
+    int:Signed32 numErrors?;
+    # Timestamp when the batch operation was requested
+    string requestedAt?;
+    # Timestamp when the batch operation started processing
+    string startedAt;
+    # Map of relevant link names to their associated URIs
+    record {|string...;|} links?;
+    # List of successfully processed ticket objects
+    SimplePublicObject[] results;
+    # List of errors encountered during batch processing
+    StandardError[] errors?;
+    # Current status of the batch operation
+    "PENDING"|"PROCESSING"|"CANCELED"|"COMPLETE" status;
+};
+
+# Represents the Queries record for the operation: get-/crm/v3/objects/tickets/{ticketId}_getById
+
+type GetCrmV3ObjectsTicketsTicketIdGetByIdQueries record {
+    # A comma separated list of object types to retrieve associated IDs for. If any of the specified associations do not exist, they will be ignored
+    string[] associations?;
+    # Whether to return only results that have been archived
+    boolean archived?;
+    # A comma separated list of the properties to be returned along with their history of previous values. If any of the specified properties are not present on the requested object(s), they will be ignored
+    string[] propertiesWithHistory?;
+    # The name of a property whose values are unique for this object
+    string idProperty?;
+    # A comma separated list of the properties to be returned in the response. If any of the specified properties are not present on the requested object(s), they will be ignored
+    string[] properties?;
+};
+
+# Input payload for creating or updating a ticket object with properties and associations
+
+type SimplePublicObjectInput record {
+    # Trace identifier for tracking the write operation
+    string objectWriteTraceId?;
+    # Key-value map of ticket property names and their string values
+    record {|string...;|} properties;
+};
+
+# Paginated collection of ticket objects including their associated records
+
+type CollectionResponseSimplePublicObjectWithAssociationsForwardPaging record {
+    # Pagination object providing a cursor for forward navigation
+    ForwardPaging paging?;
+    # Array of ticket objects returned in the current page
+    SimplePublicObjectWithAssociations[] results;
+};
+
+# Ticket object representation including properties, associations, and audit timestamps
+
+type SimplePublicObjectWithAssociations record {
+    # Map of associated object collections keyed by association type
+    record {|CollectionResponseAssociatedId...;|} associations?;
+    # Timestamp indicating when the ticket was created
+    string createdAt;
+    # Indicates whether the ticket has been archived
+    boolean archived?;
+    # Timestamp indicating when the ticket was archived
+    string archivedAt?;
+    # Map of property names to their historical values with timestamps
+    record {|ValueWithTimestamp[]...;|} propertiesWithHistory?;
+    # Unique identifier of the ticket object
+    string id;
+    # Map of ticket property names to their current string values
+    record {|string?...;|} properties;
+    # Timestamp of the last update to the ticket
+    string updatedAt;
+};
+
+# Input payload specifying the two ticket records to merge
+
+type PublicMergeInput record {
+    # ID of the secondary ticket to be merged into the primary
+    string objectIdToMerge;
+    # ID of the primary ticket that will be retained after the merge
+    string primaryObjectId;
+};
+
+# Wraps an array of ticket creation inputs for batch create operations
+
+type BatchInputSimplePublicObjectInputForCreate record {
+    # Array of ticket objects to create in a single batch request
+    SimplePublicObjectInputForCreate[] inputs;
+};
+
+# Input payload for creating a new ticket, including its properties and optional associations
+
+type SimplePublicObjectInputForCreate record {
+    # List of associations linking this ticket to other CRM objects
+    PublicAssociationsForObject[] associations?;
+    # Trace identifier for auditing the write operation
+    string objectWriteTraceId?;
+    # Key-value map of ticket property names and their values
+    record {|string...;|} properties;
+};
+
+# Wraps an array of ticket update inputs for batch update operations
+
+type BatchInputSimplePublicObjectBatchInput record {
+    # Array of ticket objects to update in a single batch request
+    SimplePublicObjectBatchInput[] inputs;
+};
+
+# Input payload for updating a ticket in a batch operation, including its identifier and property values
+
+type SimplePublicObjectBatchInput record {
+    # Name of a unique property to use as the record identifier
+    string idProperty?;
+    # Trace identifier for auditing the write operation
+    string objectWriteTraceId?;
+    # Unique identifier of the ticket to update
+    string id;
+    # Key-value map of ticket property names and their updated values
+    record {|string...;|} properties;
+};
+
+# Represents the Queries record for the operation: post-/crm/v3/objects/tickets/batch/read_read
+
+type PostCrmV3ObjectsTicketsBatchReadReadQueries record {
+    # Whether to return only results that have been archived
+    boolean archived?;
+};
+
+// --- Client ---
+
+client class Client {
+    function init(ConnectionConfig config, string serviceUrl = "https://api.hubapi.com/crm/v3/objects/tickets") returns error?;
+
+    # Read tickets by ID or property
+    # 
+    resource function post batch/read(BatchReadInputSimplePublicObjectId payload, map<string|string[]> headers = {}, boolean archived = false, PostCrmV3ObjectsTicketsBatchReadReadQueries queries) returns BatchResponseSimplePublicObject|BatchResponseSimplePublicObjectWithErrors|error;
+
+    # Retrieve a ticket by ID
+    # 
+    resource function get [string ticketId](map<string|string[]> headers = {}, string[] associations = [], boolean archived = false, string[] propertiesWithHistory = [], string idProperty = "", string[] properties = [], GetCrmV3ObjectsTicketsTicketIdGetByIdQueries queries) returns SimplePublicObjectWithAssociations|error;
+
+    # Archive a ticket by ID
+    # 
+    resource function delete [string ticketId](map<string|string[]> headers = {}) returns error?;
+
+    # Update a ticket by ID
+    # 
+    resource function patch [string ticketId](SimplePublicObjectInput payload, map<string|string[]> headers = {}, string idProperty = "", PatchCrmV3ObjectsTicketsTicketIdUpdateQueries queries) returns SimplePublicObject|error;
+
+    # Merge two tickets with same type
+    # 
+    resource function post merge(PublicMergeInput payload, map<string|string[]> headers = {}) returns SimplePublicObject|error;
+
+    # Archive a batch of tickets by ID
+    # 
+    resource function post batch/archive(BatchInputSimplePublicObjectId payload, map<string|string[]> headers = {}) returns error?;
+
+    # Create a batch of tickets
+    # 
+    resource function post batch/create(BatchInputSimplePublicObjectInputForCreate payload, map<string|string[]> headers = {}) returns BatchResponseSimplePublicObject|BatchResponseSimplePublicObjectWithErrors|error;
+
+    # Update tickets by ID or property
+    # 
+    resource function post batch/update(BatchInputSimplePublicObjectBatchInput payload, map<string|string[]> headers = {}) returns BatchResponseSimplePublicObject|BatchResponseSimplePublicObjectWithErrors|error;
+
+    # List a page of tickets
+    # 
+    resource function get (map<string|string[]> headers = {}, string[] associations = [], boolean archived = false, string[] propertiesWithHistory = [], int:Signed32 limit = 0, string after = "", string[] properties = [], GetCrmV3ObjectsTicketsGetPageQueries queries) returns CollectionResponseSimplePublicObjectWithAssociationsForwardPaging|error;
+
+    # Create a new ticket
+    # 
+    resource function post (SimplePublicObjectInputForCreate payload, map<string|string[]> headers = {}) returns SimplePublicObject|error;
+
+    # Upsert tickets by property
+    # 
+    resource function post batch/upsert(BatchInputSimplePublicObjectBatchInputUpsert payload, map<string|string[]> headers = {}) returns BatchResponseSimplePublicUpsertObject|BatchResponseSimplePublicUpsertObjectWithErrors|error;
+
+    # Search for tickets
+    # 
+    resource function post search(PublicObjectSearchRequest payload, map<string|string[]> headers = {}) returns CollectionResponseWithTotalSimplePublicObjectForwardPaging|error;
+}

@@ -1,7 +1,13 @@
-# Copilot library renders — `old/` set
+# Copilot library renders — `old/` and `new/`
 
-Generated from `ballerina-platform/ballerina-vscode` @ `main`, commit `eb5d81b3b283b5681306a75bfb48aa3172a9fb80`.
-Library content resolved from balas at the **exact versions pinned in `CLAUDE.md`** (Ballerina 2201.13.4, Swan Lake Update 13).
+Both sides render the same 162 libraries at the **exact versions pinned in `CLAUDE.md`**
+(Ballerina 2201.13.4, Swan Lake Update 13). Per-library pinned-vs-resolved evidence is in `versions.txt`.
+
+| | `old/` | `new/` |
+|---|---|---|
+| Source repo | `ballerina-platform/ballerina-vscode` | local `Check-PR-s/ballerina-vscode` |
+| Branch | `main` | `L1_json_and_annotations_with_spec_v2` |
+| Commit | `eb5d81b3b283b5681306a75bfb48aa3172a9fb80` | `412ba01e36a017d80b299e94ba168db70ba835d9` |
 
 ## Layout
 
@@ -9,49 +15,49 @@ Library content resolved from balas at the **exact versions pinned in `CLAUDE.md
 <library_name>/
 ├── old/   <org>_<name>.json      stage-1 JSON  (CopilotLibraryManager → ModelToJsonConverter)
 │          <org>_<name>.bal.txt   stage-2 render (toSyntaxString)
-└── new/   <org>_<name>.json      empty placeholder (0 bytes)
-           <org>_<name>.bal.txt   empty placeholder (0 bytes)
+└── new/   <org>_<name>.json      same pipeline, spec-v2 source
+           <org>_<name>.bal.txt
 ```
 
 Directory name is the org-stripped `<library_name>`; file names keep the `<org>_<name>` prefix.
 
 ## Totals
 
-| | count |
-|---|---|
-| Libraries requested (unique) | 162 |
-| Directories | 162 |
-| `old/` JSON produced | **162** |
-| `old/` renders produced | **162** |
-| Resolved at the pinned version (`PIN_OK`) | **162 / 162** |
-| Stage-1 resolution failures | 0 |
-| `new/` empty placeholders | 324 (all exactly 0 bytes) |
-| Total JSON | 46.8 MB |
-| Total rendered | 13.9 MB |
+| | `old/` | `new/` |
+|---|---|---|
+| Libraries | 162 | 162 |
+| JSON produced | **162** (46.8 MB) | **162** (51.2 MB) |
+| Renders produced | **162** (13.9 MB) | **162** (15.2 MB) |
+| Resolved at pinned version | **162 / 162** | **162 / 162** |
+| Stage-1 failures | 0 | 0 |
+| Render failures | 0 (after the mcp patch below) | 0 |
+| `// Unknown type:` lines | **2,370** across 101 libs | **0** |
 
-Per-library pinned-vs-resolved evidence is in `versions.txt`.
+## How the pinning was enforced (it differs between the two)
 
-## Version pinning — how it was enforced
+**`old/` (`main`)** has no version-aware entry point — `loadFilteredLibraries` requests every library
+with a **null version** ("use latest"). Under Gradle the tests run with `-Dls.test.offline=true`,
+putting `PackageUtil` in `FORCE_OFFLINE`: it never contacts Central and treats "latest" as *the
+highest version present in the build-owned home* (`build/ballerina_dependencies/home`). Pinning was
+therefore enforced as data — each pinned version was pulled into that home with `bal pull`, after
+confirming no library had a **newer**-than-pinned version there that would win instead.
 
-`CopilotLibraryManager` requests every library with a **null version** ("use latest"), so version
-selection is not controlled by code. Under Gradle the tests run with `-Dls.test.offline=true`, which
-puts `PackageUtil` in `FORCE_OFFLINE` mode: it never contacts Ballerina Central and treats "latest"
-as *the highest version present in the build-owned Ballerina home*
-(`build/ballerina_dependencies/home`), failing visibly when a package is absent.
+**`new/` (spec v2)** adds a version-aware overload,
+`loadFilteredLibraries(String[], Map<String,String> pinnedVersions)`, which resolves through
+`PackageUtil.getModulePackage(project, org, name, pinned)` — an **explicit exact-version** request.
+The renders use it, so pinning here is direct rather than inferred.
 
-Pinning was therefore enforced as data, not code: each of the 162 versions from the `CLAUDE.md`
-table was pulled into that home with `bal pull <org>/<name>:<version>` (`BALLERINA_HOME_DIR` set),
-after verifying no library had a **newer**-than-pinned version there that would win instead. The
-probe then recorded the version actually resolved for every library through the same `PackageUtil`
-call the manager uses, and compared it to the pinned table. All 162 returned `PIN_OK`.
+In both cases the probe recorded the version actually resolved for every library and compared it to
+the pinned table; all 162 returned `PIN_OK` on both sides.
 
-This mattered: an earlier pass without the pinned home silently rendered **22 libraries at older
+This mattered. An early pass without a pinned home silently rendered **22 libraries at older
 versions** — `openai.chat` 4.0.1 (pinned 5.0.0), `github` 5.1.0 (6.0.0), `salesforce` 8.4.0 (8.7.0),
-`mysql`/`postgresql`/`mssql` at 1.17–1.18 (1.19.0) — and left 112 unresolved.
+`mysql`/`postgresql`/`mssql` at 1.17–1.18 (1.19.0) — and left 112 unresolved. Those renders looked
+complete and plausible; only the resolved-version check exposed them.
 
-## Deviation from upstream `main`
+## Deviation from source
 
-**One renderer patch was applied**, at the user's direction:
+**`old/` carries one renderer patch**, applied at the user's direction:
 
 ```diff
 - for (const method of service.methods) {
@@ -60,39 +66,56 @@ versions** — `openai.chat` 4.0.1 (pinned 5.0.0), `github` 5.1.0 (6.0.0), `sale
 
 `to-syntax-string.ts:440` (`renderFixedService`). Without it `ballerina/mcp` crashes with
 `TypeError: service.methods is not iterable` — its single fixed service carries only
-`type,name,listener`, so `methods` is `undefined`. With the guard, mcp renders to 1,058 lines.
+`type,name,listener`, so `methods` is `undefined`. Re-rendering all 162 with the patch changed
+**only** `ballerina_mcp.bal.txt`, verified by checksum comparison of every render before and after.
 
-Re-rendering all 162 with the patch changed **only** `ballerina_mcp.bal.txt` (verified by checksum
-comparison of every render before and after), so no other output reflects patched behaviour.
+**`new/` required no patch** — spec v2 rewrites `to-syntax-string.ts` (2,459 lines vs 592) and the
+bug is gone. mcp renders cleanly at 1,258 lines.
 
-Nothing else was modified — `CopilotLibraryManager`, `PackageUtil`, and the rest of
-`to-syntax-string.ts` are stock upstream.
+Nothing else was modified in either source; the probe test and its `testng.xml` registration were
+removed after each run.
+
+## What spec v2 changes in the output
+
+**Type coverage is the headline.** In `main`, `renderTypeDef` handles only Record, Enum, Union,
+Constant, and Class; `Error`, untagged object types, and `Other` fall through to a bare
+`// Unknown type: <name>` comment with no members — 2,370 such lines across 101 of the 162 renders
+(worst: `stripe` 610, `discord` 421, `sap.s4hana.api_sales_order_srv` 167, `http` 155). **Spec v2
+emits none.** `ballerinax/copybook` shows it concretely:
+
+```diff
+- // Unknown type: Error
++ # Represents copybook module related errors.
++ type Error error;
+
+- // Unknown type: Converter
++ # Initializes the converter with a schema.
++ class Converter {
++     function init(string schemaFilePath) returns Error?;
++     # Converts the provided record or map<json> value to bytes.
++     function toBytes(record {|anydata...;|} input, ...) returns byte[]|Error;
++     ...
++ }
+```
 
 ## Known gaps
 
-**1. `ballerinax/copybook` renders only 30 lines.**
-The published package at the pinned 1.1.0 does not compile — 9 type errors of the form
-`incompatible types: expected 'ballerinax/copybook:1.1.0:Node', found '...GroupItem'`. Its main
-`Converter` client comes through as `// Unknown type: Converter`. This is a defect in the published
-package, not in the pipeline.
+**1. `ballerinax/azure_storage_service` renders README only (37 lines in `old/`).**
+Extraction uses `pkg.getDefaultModule()` only, and this package's API lives in submodules
+(`azure_storage_service.blobs`, `.files`, `.utils`), so none of it is captured. Verified against the
+bala. Previously seen with `candid`, which now renders 133 lines.
 
-**2. `ballerinax/azure_storage_service` renders README only (37 lines).**
-Extraction uses `pkg.getDefaultModule()` only. This package's API lives in submodules
-(`azure_storage_service.blobs`, `.files`, `.utils`), so none of it is captured. Same root cause
-previously seen with `candid` — which now renders 133 lines.
-
-**3. `ballerinax/idetraceprovider` renders 44 lines (README only).**
+**2. `ballerinax/idetraceprovider` renders README only (44 lines).**
 Genuinely exports no public symbols, so an empty render is correct.
 
-**4. 2,370 `// Unknown type:` lines across 101 of the 162 renders.**
-`renderTypeDef` (`to-syntax-string.ts:212`) handles only Record, Enum, Union, Constant, and Class.
-Three kinds present in the JSON fall through to a bare comment with no members: `Error`, untagged
-object types (no `type` field), and `Other`. Highest counts: `stripe` (610), `discord` (421),
-`sap.s4hana.api_sales_order_srv` (167), `http` (155), `postgresql` (126).
+**3. `ballerinax/copybook`** — the published package at the pinned 1.1.0 does not compile (9 errors of
+the form `incompatible types: expected 'Node', found 'GroupItem'`). Extraction still succeeds; its
+short `old/` render was caused by the renderer's missing type coverage, not the compile errors, as
+the spec-v2 diff above shows.
 
 ## Verification performed
 
-- All 162 JSON files parse; each top-level `name` matches its `org/name`.
-- All 162 renders carry the matching `// Library: <org>/<name>` header for their directory.
-- All 324 `new/` placeholders confirmed present and exactly 0 bytes.
-- No unexpected or missing files in any `old/` or `new/` directory.
+- All 324 JSON files parse; each top-level `name` matches its `org/name`.
+- All 324 renders carry the matching `// Library: <org>/<name>` header for their directory.
+- No empty, missing, or unexpected files in any `old/` or `new/` directory.
+- Both stage-1 runs reported `PIN_OK` for all 162 libraries against the `CLAUDE.md` table.

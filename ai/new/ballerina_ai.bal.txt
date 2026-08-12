@@ -1,0 +1,3172 @@
+// ============================================================
+// Library: ballerina/ai
+// This module provides APIs for building AI-powered applications and agents using Large Language Models (LLMs).
+// ============================================================
+import ballerina/ai;
+
+// --- README ---
+## Overview
+
+This module provides APIs for building AI-powered applications and agents using Large Language Models (LLMs).
+
+It includes capabilities for:
+
+1. **Direct LLM Calls** – Interact directly with LLMs for tasks such as text generation, summarization, conversation, or structured output generation.
+2. **AI Agents** – Create intelligent agents that can reason, plan, and use tools to perform complex tasks.
+3. **Retrieval-Augmented Generation (RAG)** – Improve LLM outputs by incorporating information from your own data sources.
+
+## 1. Direct LLM Calls
+
+You can directly interact with Large Language Models (LLMs) using `ModelProvider` implementations.
+The `ai:ModelProvider` type serves as a unified abstraction layer that enables integration with different LLMs through provider-specific modules such as `ballerinax/ai.openai`, `ballerinax/ai.anthropic`, and more.
+
+Each model provider exposes two main high-level APIs:
+
+- **`chat`** – Used for multi-turn conversational interactions.
+- **`generate`** – Used for single-turn text generation with structured output generation.
+
+Ballerina offers several model providers available on [Ballerina Central](https://central.ballerina.io/search?q=model+provider&sort=relevance%2CDESC&page=1&m=packages).
+You can also implement your own custom provider if required.
+
+Before using a model provider, you must first initialize it.
+
+### 1.1 Initializing a Model Provider
+
+For example, you can initialize a specific model provider such as OpenAI as shown below:
+
+```ballerina
+import ballerina/ai;
+import ballerinax/ai.openai;
+
+final ai:ModelProvider model = check new openai:ModelProvider("openAiApiKey", modelType = openai:GPT_4O);
+```
+
+### 1.2 Multi-turn Conversation with `chat`
+
+The `chat` method is used for conversational interactions with an LLM.
+It can take either a single user message or an array of messages:
+- When you pass **a single message**, the interaction is **stateless** — the model does not have any prior context.
+- When you pass **an array of messages**, the interaction is **context-aware** — the model considers the full conversation history to generate a coherent response.
+
+```ballerina
+public function main(string subject) returns error? {
+    // Create a user message with the prompt as the content.
+    ai:ChatUserMessage userMessage = {
+        role: ai:USER,
+        content: `Tell me a joke about ${subject}!`
+    };
+
+    // Use an array to hold the conversation history.
+    ai:ChatMessage[] messages = [userMessage];
+
+    // Use the `chat` method to make a call with the conversation history.
+    // Alternatively, you can pass a single message (`userMessage`) too.
+    ai:ChatAssistantMessage assistantMessage = check model->chat(messages);
+
+    // Update the conversation history with the assistant's response.
+    messages.push(assistantMessage);
+
+    // Print the joke from the assistant's response.
+    string? joke = assistantMessage?.content;
+    io:println(joke);
+
+    // Continue the conversation by asking for an explanation.
+    messages.push({
+        role: ai:USER,
+        content: "Can you explain it?"
+    });
+    ai:ChatAssistantMessage assistantMessage2 = check model->chat(messages);
+
+    // Since the conversation history is passed, the model can provide a relevant explanation.
+    string? explanation = assistantMessage2?.content;
+    io:println(explanation);
+}
+```
+
+### 1.3 Single-Turn and Structured Output Generation with `generate`
+
+The `generate` method allows you to perform single-turn text generation while producing structured outputs.
+It accepts a natural language prompt, derives a JSON schema based on the provided type descriptor (i.e., the expected return type), sends the prompt to the LLM, and automatically maps the response to the expected type — enabling seamless integration between Ballerina types and LLM outputs.
+
+```ballerina
+type JokeResponse record {|
+    string setup;
+    string punchline;
+|};
+
+public function main(string subject) returns error? {
+    // Use an insertion to insert the subject into the prompt.
+    // The response is expected to be a string.
+    string joke = check model->generate(`Tell me a joke about ${subject}!`);
+    io:println(joke);
+
+    // An LLM call with a structured response type.
+    JokeResponse jokeResponse = check model->generate(`Tell me a joke about ${subject}!`);
+    io:println("Setup: ", jokeResponse.setup);
+    io:println("Punchline: ", jokeResponse.punchline);
+}
+```
+
+## 2. AI Agents
+
+AI Agents are intelligent entities that can reason, plan, and perform complex tasks by leveraging LLMs along with tools and external data sources. They go beyond single-turn interactions by maintaining context, making decisions, and executing actions autonomously or semi-autonomously based on user instructions. Follow these steps to create an AI Agent using the AI module.
+
+### 2.1: Import the Module
+
+Import the `ai` module:
+
+```ballerina
+import ballerina/ai;
+```
+
+### 2.2: Define the System Prompt
+
+A system prompt guides the AI's behavior, tone, and response style, defining its role and interaction with users.
+
+```ballerina
+ai:SystemPrompt systemPrompt = {
+    role: "Math Tutor",
+    instructions: string `You are a helpful math tutor. Explain concepts clearly with examples and provide step-by-step solutions.`
+};
+```
+
+### 2.3: Define the Model Provider
+
+```ballerina
+import ballerinax/ai.openai;
+
+final openai:ModelProvider model = check new ("openAiApiKey", modelType = openai:GPT_4O);
+```
+
+To learn more about ModelProviders, see [Direct LLM calls](#1-direct-llm-calls).
+
+### 2.4: Define Tools and Toolkits
+
+Agent tools and toolkits extend the AI's abilities beyond text-based responses, enabling interaction with external systems or dynamic tasks. 
+
+You can define basic tools as shown below
+#### 2.4.1 Defining a Tool
+
+```ballerina
+# Returns the sum of two numbers
+# + a - first number
+# + b - second number
+# + return - sum of the numbers
+@ai:AgentTool
+isolated function sum(int a, int b) returns int => a + b;
+
+@ai:AgentTool
+isolated function mult(int a, int b) returns int => a * b;
+```
+
+#### 2.4.1.1 Constraints for defining tools
+
+1. The tool methods/functions must be marked `isolated` and annotated with `@ai:AgentTool`.
+2. Parameters should be a subtype of `anydata`.
+3. The tool should return a subtype of `anydata|http:Response|stream<anydata, error>|error`.
+4. Tool documentation enhances LLM performance but is optional.
+
+#### 2.4.2 Defining a Toolkit
+
+A **toolkit** is a class that encapsulates related tools and their state. Toolkits are **recommended for building stateful tools**, where you need to maintain data across multiple calls by an AI agent. To define a toolkit:
+
+##### 2.4.2.1 Define An Isolated Class
+
+```ballerina
+public isolated class TaskManagerToolkit {
+}
+```
+
+##### 2.4.2.2 Include the `ai:BaseToolkit` Type
+
+```ballerina
+public isolated class TaskManagerToolkit {
+    *ai:BaseToolkit;
+
+    public isolated function getTools() returns ToolConfig[] {
+        // TODO: implement tool mapping
+    }
+}
+```
+
+##### 2.4.2.3 Implement the Tools within the Toolkit
+
+In this example, we define three tools — `addTask`, `getTask`, and `listTasks`.
+The same constraints outlined in [Constraints for defining tools](#2411-constraints-for-defining-tools) apply here as well.
+
+```ballerina
+public isolated class TaskManagerToolkit {
+    *ai:BaseToolkit;
+    private final map<string> tasks = {};
+
+    @ai:AgentTool
+    public isolated function addTask(string description) {
+        lock {
+            self.tasks[generateUniqueId()] = description;
+        }
+    }
+
+    @ai:AgentTool
+    public isolated function getTask(string id) returns string? {
+        lock {
+            return self.tasks[id];
+        }
+    }
+
+    @ai:AgentTool
+    public isolated function listTasks() returns map<string> {
+        lock {
+            return self.tasks.clone();
+        }
+    }
+
+    public isolated function getTools() returns ToolConfig[] {
+        // TODO: implement tool mapping
+    }
+}
+```
+
+##### 2.4.2.4 Implement `getTools()` Method
+
+```ballerina
+public isolated class TaskManagerToolkit {
+    *ai:BaseToolkit;
+    private final map<string> tasks = {};
+
+    @ai:AgentTool
+    public isolated function addTask(string description) {
+        // omitted for brevity
+    }
+
+    @ai:AgentTool
+    public isolated function getTask(string id) returns string? {
+        // omitted for brevity
+    }
+
+    @ai:AgentTool
+    public isolated function listTasks() returns map<string> {
+        // omitted for brevity
+    }
+
+    public isolated function getTools() returns ToolConfig[] => 
+        ai:getToolConfigs([self.addTask, self.getTask, self.listTasks]);
+}
+```
+
+**Note:** `ai:getToolConfigs` is a utility method provided by the AI module that converts function pointers into their corresponding `ai:ToolConfig` records.
+
+##### 2.4.1.5 Initialize the toolkit
+
+```ballerina
+TaskManagerToolkit taskManagerTools = new;
+```
+
+Now the `taskManagerTools` instance can be passed to an AI agent, enabling **stateful task management** through its tools.
+
+### 2.5 Define the Memory
+
+The `ai` module manages memory for individual user sessions using `Memory`. By default, agents are configured with memory that has a predefined capacity. To create a stateless agent, set `memory` to `()` when defining the agent. You can also customize the memory capacity or provide your own memory implementation. Example:
+
+```ballerina
+final ai:Memory memory = check new ai:ShortTermMemory(check new ai:InMemoryShortTermMemoryStore(15));
+```
+
+### 2.6 Define the Agent
+
+Create a Ballerina AI agent using the configurations defined earlier:
+
+```ballerina
+final ai:Agent mathTutorAgent = check new (
+    systemPrompt = systemPrompt,
+    model = model,
+    tools = [sum, mult, taskManagerTools], // Provide an array of function pointers and toolkit instances
+    memory = memory
+);
+```
+
+### 2.7 Invoke the Agent
+
+Finally, invoke the agent by calling the `run` method:
+
+```ballerina
+mathTutorAgent.run("What is 8 + 9 multiplied by 10", sessionId = "student-one");
+```
+
+## 3. Retrieval-Augmented Generation
+
+Retrieval-Augmented Generation (RAG) enables LLMs to improve responses by fetching relevant information from an external knowledge base. Typically, RAG consist of two main flows:
+
+1. **Ingestion Flow** – Adding knowledge or data to the system.
+2. **Retrieval Flow** – Querying the stored knowledge to enhance LLM responses.  
+
+The AI module provides a high-level abstraction called **KnowledgeBase** to make both flows simple. It offers the following APIs:  
+- `ingest` – Add data or knowledge to the KnowledgeBase.  
+- `retrieve` – Search and retrieve relevant knowledge.  
+- `deleteByFilter` – Remove specific entries based on filters.  
+
+In a typical RAG system, the KnowledgeBase is often backed by a vector database for efficient storage and retrieval. The AI module provides **`ai:VectorKnowledgeBase`**, which uses an **`ai:VectorStore`** to implement this functionality.
+You can also create a custom KnowledgeBase if your requirements differ. 
+
+In order to write a RAG workflow you should initialize the Knowledge base.
+
+### 3.1 Creating a Vector Knowledge Base
+
+To create a `ai:VectorKnowledgeBase`, you need both an embedding model and a vector database.
+The embedding model can be obtained via an `ai:EmbeddingProvider` implementation, and the vector database can be set up using an `ai:VectorStore` implementation. Follow the steps below to initialize the embedding model and vector store.
+
+### 3.1.1: Initialize the Embedding Provider
+
+The `ai:EmbeddingProvider` transforms documents into embeddings during **ingestion** and converts user queries into embeddings for **similarity searches** against your database vectors during **retrieval**. The AI library provides this as an abstraction, with multiple provider implementations available on [Ballerina Central](https://central.ballerina.io/search?q=%22ai.openai%22+%22ai.azure%22+embedding+provider&sort=relevance%2CDESC&page=1&m=packages), so you can choose the provider that best fits your use case:
+
+
+```ballerina
+import ballerina/ai.openai;
+
+final openai:EmbeddingProvider embeddingModel = check new ("openAiApiKey", openai:TEXT_EMBEDDING_3_SMALL);
+```
+
+### 3.1.2: Initialize a Vector Store
+
+A Vector Store is an abstraction provided by the `ai` module to index and retrieve data from a database. Multiple vector store implementations are available on [Ballerina Central](https://central.ballerina.io/search?q=vector+store+%22ai.%22&sort=relevance%2CDESC&page=1&m=packages), such as Pinecone, Weaviate, PGVector, Milvus, or an in-memory store for testing:
+
+```ballerina
+import ballerina/ai.pinecone;
+
+final pinecone:VectorStore vectorStore = check new ("pineconeServiceUrl", "pineconeApiKey");
+```
+
+### 3.1.3: Initialize the Vector Knowledge Base
+
+Once you have the embedding model and vector store, initialize the `VectorKnowledgeBase`:
+
+```ballerina
+final ai:KnowledgeBase knowledgeBase = new ai:VectorKnowledgeBase(vectorStore, embeddingModel);
+```
+
+### 3.2 Implementing an Ingestion Workflow
+
+The following is an example of a typical ingestion workflow, where text documents are loaded from files. This example uses `ai:TextDataLoader` provided by the AI module to load documents as `ai:Document`s - a common document format abstraction provided by the module. The loaded documents are then ingested into the knowledge base.
+
+```ballerina
+public function main() returns error? {
+    // Initialize the data loader to load documents from a file or folder
+    ai:DataLoader loader = check new ai:TextDataLoader("./leave_policy.md");
+
+    // Load the documents using the data loader
+    ai:Document|ai:Document[] documents = check loader.load();
+
+    // Ingest the documents into the knowledge base.
+    // The knowledge base handles chunking automatically during ingestion.
+    // For more control, you can manually chunk the documents using
+    // `ai:Chunker` implementations and pass the chunks instead.
+    check knowledgeBase.ingest(documents);
+
+    io:println("Ingestion successful");
+}
+```
+
+### 3.3 Implementing a Retrieval Workflow
+
+The following example demonstrates a typical retrieval workflow, where a user query is matched against documents in the knowledge base, augmented using the `ai:augmentUserQuery` utility method from the AI module, and then sent to the model (a ModelProvider instance) for generating a response.
+
+```ballerina
+string appealQuery = "How many annual leave days can a full-time employee carry forward to the next year?";
+
+// Retrieve relevant top 10 chunks from the knowledge base
+ai:QueryMatch[] queryMatches = check knowledgeBase.retrieve(appealQuery, 10);
+
+// Augment the user query using the retrieved documents
+ai:ChatUserMessage augmentedQuery = ai:augmentUserQuery(queryMatches, appealQuery);
+
+// Send the augmented query to the model for response generation
+ai:ChatAssistantMessage assistantMessage = check model->chat(augmentedQuery);
+
+// Print the assistant's answer
+io:println("Answer: ", assistantMessage.content);
+```
+
+## Examples
+
+The `ai` module provides practical examples illustrating usage in various scenarios. Explore these [examples](https://github.com/ballerina-platform/module-ballerina-ai/tree/main/examples/), covering the following use cases:
+
+1. [Personal AI Assistant](https://github.com/ballerina-platform/module-ballerina-ai/tree/main/examples/personal-ai-assistant) - Demonstrates how to implement a personal AI assistant using Ballerina AI module along with Google Calendar and Gmail integrations
+
+// --- END README ---
+
+// --- Types ---
+
+# A function or method tool
+const string FUNCTION_TOOL = "FUNCTION_TOOL";
+
+# An MCP toolkit; its individual tools are resolved from the MCP server at runtime
+const string MCP_TOOLKIT = "MCP_TOOLKIT";
+
+# Any other toolkit (e.g., an HTTP toolkit); its tools are resolved at runtime
+const string TOOLKIT = "TOOLKIT";
+
+const string APPROVE = "APPROVE";
+
+const string REJECT = "REJECT";
+
+# Splits text by individual characters.
+const string CHARACTER = "CHARACTER";
+
+# Splits text by words. Falls back to CHARACTER if the chunk exceeds the size limit.
+# 
+# Word boundaries are detected using at least one space character (" ").
+# Any extra whitespace before or after words, such as multiple spaces or newline characters, is ignored.
+# Examples of valid word separators include " ", "  ", "\n", and " \n ".
+# When multiple words fit within the limit, they are joined together using a single space (" ").
+const string WORD = "WORD";
+
+# Splits text by lines. Falls back to WORD, then CHARACTER, if the chunk exceeds the size limit.
+# 
+# Line boundaries are identified using at least one newline character ("\n").
+# Any extra whitespace before or after lines is ignored.
+# Examples of valid line separators include "\n", "\n\n", " \n", and "\n ".
+# When multiple lines fit within the limit, they are joined together using a single newline ("\n").
+const string LINE = "LINE";
+
+# Splits text by sentences. Falls back to WORD, then CHARACTER, if the chunk exceeds the size limit.
+# 
+# Sentence boundaries are detected using OpenNLP's sentence detector (https://opennlp.apache.org).
+# When multiple sentences fit within the limit, they are joined together using a single space (" ").
+const string SENTENCE = "SENTENCE";
+
+# Splits text by paragraphs. Falls back to SENTENCE, then WORD, then CHARACTER, if the chunk exceeds the size limit.
+# 
+# Paragraph boundaries are detected using at least two newline characters ("\n\n").
+# Any extra whitespace before, between, or after paragraphs is ignored.
+# Examples of valid paragraph separators include "\n\n", "\n\n\n", "\n \n", and " \n \n ".
+# When multiple paragraphs fit within the limit, they are joined together using a double newline ("\n\n").
+const string PARAGRAPH = "PARAGRAPH";
+
+# Split text by markdown headers. Starting with h2 recursively falls back to h3, h4, h5, and h6. If chunk is still
+# too large, it falls back to the CODE_BLOCK, HORIZONTAL_LINE, PARAGRAPH, LINE, SENTENCE, WORD, and CHARACTER
+# strategies in that order.
+const string MARKDOWN_HEADER = "MARKDOWN_HEADER";
+
+# Split text by code blocks. Chunks that containing the code blocks will have annotation type "code_block". If
+# language is specified, will add "language" annotation to the chunk. Chunks produced by code blocks will not be
+# merged with other chunks even if combined chunk size is less than `maxChunkSize`.
+const string CODE_BLOCK = "CODE_BLOCK";
+
+# Split text by horizontal lines. Check for patterns (`***`, `---`, `___`). If chunk is still too large, it falls back to the
+# PARAGRAPH strategy.
+const string HORIZONTAL_LINE = "HORIZONTAL_LINE";
+
+# Split text by HTML headers. Starting with `<h1>...</h1>` recursively falls back to `<h2>`, `<h3>`, `<h4>`,
+# `<h5>`, and `<h6>`. If chunk is still too large, it falls back to the HTML_PARAGRAPH, HTML_LINE, SENTENCE, WORD, and
+# CHARACTER strategies in that order.
+const string HTML_HEADER = "HTML_HEADER";
+
+# Split text by HTML paragraphs (`<p>...</p>`). If chunk is still too large, it falls back to the HTML_LINE, SENTENCE, WORD, and
+# CHARACTER strategies in that order.
+const string HTML_PARAGRAPH = "HTML_PARAGRAPH";
+
+# Split text by HTML breaks (`<br>`). If chunk is still too large, it falls back to the SENTENCE, WORD, and
+# CHARACTER strategies in that order.
+const string HTML_LINE = "HTML_LINE";
+
+const string SYSTEM = "system";
+
+const string USER = "user";
+
+const string ASSISTANT = "assistant";
+
+const string QUERY = "query";
+
+const string HEADER = "header";
+
+const string PATH = "path";
+
+const string COOKIE = "cookie";
+
+const string FORM = "form";
+
+const string SIMPLE = "simple";
+
+const string MATRIX = "matrix";
+
+const string LABEL = "label";
+
+const string SPACEDELIMITED = "spaceDelimited";
+
+const string PIPEDELIMITED = "pipeDelimited";
+
+const string DEEPOBJECT = "deepObject";
+
+const string EQUAL = "==";
+
+const string NOT_EQUAL = "!=";
+
+const string GREATER_THAN = ">";
+
+const string LESS_THAN = "<";
+
+const string GREATER_THAN_OR_EQUAL = ">=";
+
+const string LESS_THAN_OR_EQUAL = "<=";
+
+const string IN = "in";
+
+const string NOT_IN = "nin";
+
+const string AND = "and";
+
+const string OR = "or";
+
+# Uses dense vector embeddings for similarity search
+const string DENSE = "DENSE";
+
+# Uses sparse vector embeddings for similarity search
+const string SPARSE = "SPARSE";
+
+# Uses hybrid embeddings that combine dense and sparse representations
+const string HYBRID = "HYBRID";
+
+# Cosine similarity measures the cosine of the angle between two vectors
+const string COSINE = "COSINE";
+
+# Euclidean distance calculates the straight-line distance between two points in space
+const string EUCLIDEAN = "EUCLIDEAN";
+
+# Reflect the directional similarity between two vectors
+const string DOT_PRODUCT = "DOT_PRODUCT";
+
+const string STRING = "string";
+
+const string INTEGER = "integer";
+
+const string FLOAT = "float";
+
+const string BOOLEAN = "boolean";
+
+const string NUMBER = "number";
+
+const string OBJECT = "object";
+
+const string ARRAY = "array";
+
+const string NULL = "null";
+
+const string GET = "GET";
+
+const string POST = "POST";
+
+const string DELETE = "DELETE";
+
+const string PUT = "PUT";
+
+const string PATCH = "PATCH";
+
+const string HEAD = "HEAD";
+
+const string OPTIONS = "OPTIONS";
+
+# Represent the automatic chunker configuration in the `VectorKnowledgeBase`.
+# This chunker will be chosen automatically based on the document type.
+const string AUTO = "AUTO";
+
+# Represents the disabled chunker configuration in the `VectorKnowledgeBase`.
+# This chunker will not perform any chunking and will treat the entire document as a single chunk.
+const string DISABLE = "DISABLE";
+
+# Loads all available tools without any filtering.
+const string NO_FILTER = "NO_FILTER";
+
+# Uses a selective, double-dispatch strategy.
+# 
+# Instead of sending all tool schemas directly to the LLM, only a list of tool names
+# and descriptions is sent initially. The LLM then selects the tools needed to handle
+# the user’s query. Once the required tools are identified, their corresponding schemas
+# are loaded and sent to the LLM to obtain the necessary parameters for execution.
+const string LLM_FILTER = "LLM_FILTER";
+
+# Raw template type for prompts.
+class Prompt {
+}
+
+# Represents the common structure for all document types
+
+type Document record {
+    # The type of the document or chunk
+    string 'type;
+    # Associated metadata
+    Metadata metadata?;
+    # The actual content
+    anydata content;
+};
+
+# Represents additional metadata associated with documents or nodes.
+
+type Metadata record {
+    # MIME type specification for the file
+    string mimeType?;
+    # File name for the document
+    string fileName?;
+    # File size in bytes
+    decimal fileSize?;
+    # Creation timestamp of the file
+    time:Utc createdAt?; // Special Agent Note: Utc FROM ballerina/time package
+    # Modification timestamp of the file
+    time:Utc modifiedAt?; // Special Agent Note: Utc FROM ballerina/time package
+    # Index of the chunk in the document
+    int index?;
+    # Unique identifier for the chunk
+    int id?;
+    # Previous chunk id if a semantically meaningful chunk was broken into multiple chunks
+    int prev?;
+    # Header of the chunk if the chunk belonged to a single header
+    string header?;
+    # Language of the chunk if the chunk is a code block
+    string language?;
+    # Header of the chunk if the chunk belongs to a single h1 header
+    string header1?;
+    # Header of the chunk if the chunk belongs to a single h2 header
+    string header2?;
+    # Header of the chunk if the chunk belongs to a single h3 header
+    string header3?;
+    # Header of the chunk if the chunk belongs to a single h4 header
+    string header4?;
+    # Header of the chunk if the chunk belongs to a single h5 header
+    string header5?;
+    # Header of the chunk if the chunk belongs to a single h6 header
+    string header6?;
+    # Rest field
+    json ;
+};
+
+# Represents a chunk of a document.
+
+type Chunk record {
+    string 'type;
+    Metadata metadata?;
+    anydata content;
+};
+
+# Execution step information
+
+type ExecutionStep record {
+    # Response generated by the LLM
+    json|FunctionCall llmResponse;
+    # Observations produced by the tool during the execution
+    anydata|error observation;
+};
+
+# Function call record
+
+type FunctionCall record {
+    # Name of the function
+    string name;
+    # Arguments of the function
+    map<json>? arguments?;
+    # Identifier for the tool call
+    string id?;
+};
+
+# Represents a contextual storage object used to pass additional data to tools during agent execution.
+class Context {
+
+    # Adds or updates an entry in the context.
+    # 
+    function set(string key, ContextEntry value) returns ();
+
+    # Retrieves a value from the context by key. Panics if the key does not exist.
+    # 
+    function get(string key) returns ContextEntry;
+
+    # Checks if the context contains an entry for the given key.
+    # 
+    function hasKey(string key) returns boolean;
+
+    # Returns all the keys currently stored in the context.
+    # 
+    function keys() returns string[];
+
+    # Retrieves the access token associated with the specified tool.
+    # 
+    function getAccessToken(string toolName) returns string|error;
+
+    # Retrieves and casts a value from the context to the specified type.
+    # 
+    function getWithType(string key, any & readonly|xml|ai:Cloneable[]|map<ai:Cloneable>|table<map<ai:Cloneable>>|isolated object {} targetType = ai:ContextEntry) returns targetType|Error;
+
+    # Removes the entry associated with the given key. Panics if the key does not exist.
+    # 
+    function remove(string key) returns ();
+}
+
+# Represents a non-error type that can be cloned.
+type Cloneable any & readonly|xml|Cloneable[]|map<Cloneable>|table<map<Cloneable>>;
+
+# Represents the type of a value stored in the `Context` object.
+type ContextEntry any & readonly|xml|Cloneable[]|map<Cloneable>|table<map<Cloneable>>|isolated object {};
+
+# User chat message record.
+
+type ChatUserMessage record {
+    # Role of the message
+    "user" role;
+    # Content of the message
+    string|Prompt content;
+    # An optional name for the participant
+Provides the model information to differentiate between participants of the same role
+    string name?;
+};
+
+# System chat message record.
+
+type ChatSystemMessage record {
+    # Role of the message
+    "system" role;
+    # Content of the message
+    string|Prompt content;
+    # An optional name for the participant
+Provides the model information to differentiate between participants of the same role
+    string name?;
+};
+
+# Assistant chat message record.
+
+type ChatAssistantMessage record {
+    # Role of the message
+    "assistant" role;
+    # The contents of the assistant message
+Required unless `tool_calls` or `function_call` is specified
+    string? content?;
+    # An optional name for the participant
+Provides the model information to differentiate between participants of the same role
+    string name?;
+    # The function calls generated by the model, such as function calls
+    FunctionCall[]|() toolCalls?;
+};
+
+# Function message record.
+
+type ChatFunctionMessage record {
+    # Role of the message
+    "function" role;
+    # Content of the message
+    string? content?;
+    # Name of the function when the message is a function call
+    string name;
+    # Identifier for the tool call
+    string id?;
+};
+
+# Chat message record.
+type ChatMessage ChatUserMessage|ChatSystemMessage|ChatAssistantMessage|ChatFunctionMessage;
+
+# Execution step information
+
+type ExecutionResult record {
+    # Tool decided by the LLM during the reasoning
+    LlmToolResponse tool;
+    # Observations produced by the tool during the execution
+    anydata|error observation;
+};
+
+# Tool selected by LLM to be performed by the agent
+
+type LlmToolResponse record {
+    # Name of the tool to selected
+    string name;
+    # Input to the tool
+    map<json>? arguments?;
+    # Identifier for the tool call
+    string id?;
+};
+
+
+type ExecutionError record {
+    # Response generated by the LLM
+    json llmResponse;
+    # Error caused during the execution
+    LlmInvalidGenerationError|ToolExecutionError|MemoryError|UnauthorizedError 'error;
+    # Observation on the caused error as additional instruction to the LLM
+    string observation;
+};
+
+# Defines the common error type for the module.
+type Error error;
+
+# Any error occurred during LLM generation is classified under this error type.
+type LlmError error;
+
+# Errors occurred due to invalid LLM generation.
+type LlmInvalidGenerationError error;
+
+# Errors during tool execution.
+type ToolExecutionError error;
+
+# Represents errors that occur during memory-related operations.  
+type MemoryError error;
+
+# Error returned when the request is unauthorized.
+type UnauthorizedError error;
+
+# Output from executing an action
+
+type ToolOutput record {
+    # Output value the tool
+    anydata|error value;
+};
+
+# Represents a human's decision on a pending tool call.
+
+type HumanResponse record {
+    # Whether the call is approved or rejected
+    ApprovalDecision decision;
+    # When rejecting, optional guidance shown to the agent: why it was blocked, or what to do instead
+    string reason?;
+};
+
+# A human reviewer's decision on a pending tool call. A call is either approved or rejected;
+# editing the proposed arguments before approval is not supported.
+enum ApprovalDecision {
+    REJECT,
+    APPROVE
+}
+
+# A human-facing request to approve a proposed tool call.
+
+type ApprovalRequest record {
+    # Unique identifier for this approval request
+    string id;
+    # The ID associated with the agent memory for the paused run
+    string sessionId;
+    # Name of the tool the agent is proposing to call
+    string toolName;
+    # Description of the tool, as registered with the agent
+    string toolDescription;
+    # Arguments the agent is proposing to call the tool with
+    map<json> arguments;
+    # Identifier of the underlying tool call, used for message threading
+    string toolCallId?;
+    # Position of this call within the batch the LLM proposed in this turn. Used to apply a
+resume decision back to the right call, and useful for display ("2 of 3 pending").
+    int batchIndex;
+};
+
+# Raised when the agent pauses to request human approval for one or more sensitive tool calls
+# proposed in the same turn. Usually carries a single entry in `requests`; more than one when
+# the LLM proposed several gated calls together and none of them have a decision yet.
+type ApprovalRequiredError error<record {|ApprovalRequest[] requests;|}>;
+
+# Represents the system prompt given to the agent.
+
+@display {label: "System Prompt"}
+type SystemPrompt record {
+    # The role or responsibility assigned to the agent
+    @display {label: "Role"}
+    string role;
+    # Specific instructions for the agent
+    @display {label: "Instructions"}
+    string instructions;
+};
+
+# Represents the authentication credentials of an autonomous agent.
+
+@display {label: "Agent Credential"}
+type Credential record {
+    # The unique identifier assigned to the agent.
+    @display {label: "Agent ID"}
+    string id;
+    # The secret associated with the agent.
+    @display {label: "Agent Secret"}
+    string secret;
+};
+
+# Provides a set of configurations for the agent.
+
+@display {label: "Agent Configuration"}
+type AgentConfiguration record {
+    # The system prompt assigned to the agent
+    @display {label: "System Prompt"}
+    SystemPrompt systemPrompt;
+    # The model used by the agent
+    @display {label: "Model"}
+    ModelProvider model;
+    # The tools available for the agent
+    @display {label: "Tools"}
+    BaseToolKit|ToolConfig|FunctionTool[] tools?;
+    # The maximum number of reasoning-action cycles the agent performs to complete the task.
+A single cycle is one LLM call plus the execution of every tool call returned in
+that response, so multiple tool calls from one response count as one iteration.
+Defaults to `max(number of tools, 10)` — i.e., at least 10, or more if the
+agent has more tools available.
+    @display {label: "Maximum Iterations"}
+    "INFER_TOOL_COUNT"|int maxIter?;
+    # Specifies whether verbose logging is enabled
+    @display {label: "Verbose"}
+    boolean verbose?;
+    # The memory used by the agent to store and manage conversation history.
+Defaults to use an in-memory message store that trims on overflow, if unspecified.
+    @display {label: "Memory"}
+    Memory|() memory?;
+    # Defines the strategies for loading tool schemas into an Agent.
+By default, all tools are loaded without any filtering.
+    @display {label: "Tool Loading Strategy"}
+    ToolLoadingStrategy toolLoadingStrategy?;
+    # Specifies whether multiple tool calls returned in a single LLM response are executed in parallel.
+If `true`, all tool calls from one LLM response are executed concurrently;
+otherwise, they are executed sequentially, one after another.
+    @display {label: "Execute Tool Calls in Parallel"}
+    boolean executeToolCallsInParallel?;
+    # Optional authentication details of the agent.
+    @display {label: "Agent Credential"}
+    Credential credential?;
+};
+
+# Represents an extendable client for interacting with an AI model.
+client class ModelProvider {
+
+    # Sends a chat request to the model with the given messages and tools.
+    remote function chat(ChatMessage[]|ChatUserMessage messages, ChatCompletionFunctions[] tools = [], string|() stop = ()) returns ChatAssistantMessage|Error;
+
+    # Sends a chat request to the model and generates a value that belongs to the type
+    # corresponding to the type descriptor argument.
+    # 
+    remote function generate(Prompt prompt, @display {label: "Expected type"} anydata td = <>) returns td|Error;
+}
+
+# Allows implmenting custom toolkits by extending this type. Toolkits can help to define new types of tools so that agent can understand them.
+class BaseToolKit {
+
+    # Useful to retrieve the Tools extracted from the Toolkit.
+    function getTools() returns ToolConfig[];
+}
+
+# Defines a tool. This is the only tool type directly understood by the agent. All other tool types are converted to this type using toolkits.
+
+type ToolConfig record {
+    # Name of the tool
+    string name;
+    # A description of the tool. This is used by the LLMs to understand the behavior of the tool.
+    string description;
+    # Input schema expected by the tool. If the tool doesn't expect any input, this should be null.
+    map<json>? parameters?;
+    # Pointer to the function that should be called when the tool is invoked.
+    FunctionTool caller;
+    # Optional authorization configuration required to invoke this tool.
+    @display {label: "Authorization Configuration"}
+    AgentIdAuthConfig|Scopes auth?;
+    # When `true`, the agent pauses and requests human approval before invoking this tool.
+A function value gates only the calls it evaluates to `true` for, based on the proposed
+arguments.
+    @display {label: "Requires Approval"}
+    RequiresApproval requiresApproval?;
+};
+
+# Represents a type alias for an isolated function, representing a function tool.
+type FunctionTool function;
+
+# Represents the OAuth 2.0 client configuration required to interact
+# with an external Authorization Server and validate issued access tokens.
+
+@display {label: "OAuth Client Configuration"}
+type AgentIdAuthConfig record {
+    # The base URL of the Authorization Server used to resolve
+OAuth 2.0 endpoints such as authorization, token, and introspection.
+    @display {label: "Authorization Server Base URL"}
+    string baseAuthUrl;
+    # The OAuth 2.0 client identifier issued to this client application.
+    @display {label: "Client ID"}
+    string clientId;
+    # The OAuth 2.0 client secret issued to this client application.
+    @display {label: "Client Secret"}
+    string clientSecret?;
+    # The redirect URI registered for the OAuth client and used
+in the Authorization Code flow.
+    @display {label: "Redirect URI"}
+    string redirectUri;
+    # Scopes required to invoke this tool
+    @display {label: "Required Scopes"}
+    string|string[] scopes?;
+    # Indicates whether PKCE (Proof Key for Code Exchange) is enabled
+for the Authorization Code flow.
+    @display {label: "Enable PKCE"}
+    boolean isPkceEnabled?;
+    # SSL/TLS-related options
+    http:ClientSecureSocket|() secureSocket?; // Special Agent Note: ClientSecureSocket FROM ballerina/http package
+};
+
+# Represents the OAuth scopes required for invoking a tool.
+
+type Scopes record {
+    # The required OAuth scope or list of scopes.
+    string|string[] scopes?;
+};
+
+# Determines whether a tool call requires human approval. `true`/`false` gates the tool
+# unconditionally; a function decides per call from the proposed arguments.
+# 
+# A function predicate is written with the **same parameter signature as the tool it gates** and
+# returns `boolean`. The agent binds the proposed call's arguments to the predicate's parameters
+# by name (exactly as it binds them to the tool), so a predicate for
+# `isolated function issueRefund(string orderId, decimal amount)` is
+# `isolated function (string orderId, decimal amount) returns boolean`. Only the tool's own
+# (`anydata`) parameters are supported.
+# 
+# The function runs synchronously, in-line with reasoning, and must be `isolated`. It must be
+# deterministic given the proposed call's arguments. A function that panics (or whose result is
+# not a `boolean`) fails safe: the call pauses for approval rather than executing unreviewed.
+type RequiresApproval boolean|function;
+
+# Represents the memory interface for the agents.
+class Memory {
+
+    # Retrieves all stored chat messages.
+    # 
+    function get(string sessionId) returns ChatMessage[]|MemoryError;
+
+    # Stores one or more chat messages in memory for the specified session.
+    # 
+    function update(string sessionId, ChatUserMessage|ChatSystemMessage|ChatAssistantMessage|ChatFunctionMessage|ChatMessage[] message) returns MemoryError|();
+
+    # Deletes all stored messages.
+    function delete(string sessionId) returns MemoryError|();
+}
+
+# Defines the strategies for loading tool schemas into an Agent.
+enum ToolLoadingStrategy {
+    LLM_FILTER,
+    NO_FILTER
+}
+
+# Represents an agent whose `run` return type is inferred from the expected type at the call site.
+# Callers decide whether they want the full `Trace`, the raw `string` answer, or the answer bound 
+# to a structured `anydata` type.
+class DependentlyTypedAgent {
+
+    # Executes the agent for the given query and binds the result to the inferred return type.
+    # 
+    # Pass a `string`/`Prompt` to start a new turn, or a `Resume` (the human's decisions on a
+    # previously paused run) to continue a run that paused for human approval. The input type is
+    # what distinguishes the two - there is no separate resume operation.
+    # 
+    function run(@display {label: "Query"} string|Prompt|Resume query, @display {label: "Session ID"} string sessionId = sessionId, Context context = new, ai:Trace|anydata td = <>) returns td|Error;
+}
+
+# Represents a reusable agent definition with a fixed `anydata` return type. Implementations typically
+# compose an `Agent` and delegate to it, exposing a domain-specific return type from `run` while still
+# surfacing the full execution `Trace` via `trace`.
+class FixedTypedAgent {
+
+    # Executes the agent for the given query and returns the result bound to the implementation's fixed type.
+    # 
+    function run(@display {label: "Query"} string|Prompt query, @display {label: "Session ID"} string sessionId = sessionId, Context context = new) returns anydata|Error;
+
+    # Executes the agent for the given query and returns the full execution trace.
+    # 
+    function trace(@display {label: "Query"} string|Prompt query, @display {label: "Session ID"} string sessionId = sessionId, Context context = new) returns Trace|Error;
+}
+
+# Represents the supported agent type abstractions: an agent whose return type is inferred from the call
+# site, or one that fixes its return type to a specific `anydata` value.
+type AgentType DependentlyTypedAgent|FixedTypedAgent;
+
+# Represents the kind of a tool entry available to an agent.
+enum ToolKind {
+    TOOLKIT,
+    MCP_TOOLKIT,
+    FUNCTION_TOOL
+}
+
+# Provides metadata about a single tool (or toolkit) available to a custom agent.
+
+type ToolMetadata record {
+    # The tool name. For toolkit entries this is the variable name used in the agent (or the
+toolkit's type name when the toolkit is constructed inline).
+    string name;
+    # The kind of tool entry
+    ToolKind kind;
+    # The UI label from the tool's `@display` annotation, if present
+    string label?;
+    # The icon path from the tool's `@display` annotation, if present
+    string icon?;
+};
+
+# Identifies an `init` parameter of a custom agent definition through which a dependency is supplied.
+
+type ParameterInfo record {
+    # The name of the parameter in the `init` method's signature
+    string parameterName;
+};
+
+# Provides metadata about a custom agent definition.
+# A compiler plugin records this for each custom agent (a class implementing `ai:AgentType`) within the
+# `agentMetadata` field of the class's `@display` annotation, so consumers of a shared agent definition can
+# discover its composition without access to the implementation. The recorded value lists the tools that are
+# statically identifiable from the `ai:Agent` constructed in the class's `init` method, the agent's system
+# prompt when resolvable, and the `init` parameters that supply the model provider and memory, if any.
+
+type AgentMetadataConfig record {
+    # The tools available to the agent
+    ToolMetadata[] tools?;
+    # The system prompt of the composed agent. Present only when both the role and the instructions are
+statically resolvable (string literals, interpolation-free string templates, or `const` references).
+    SystemPrompt systemPrompt?;
+    # The `init` parameter through which the agent's model provider is supplied.
+Absent when the model is not injectable via the constructor (e.g., it is created internally).
+    ParameterInfo modelProvider?;
+    # The `init` parameter through which the agent's memory is supplied.
+Absent when the memory is not injectable via the constructor.
+    ParameterInfo memory?;
+};
+
+# Resumes a run that paused for human approval, carrying the human's decisions. Passed as the
+# input to `Agent.run` (in place of a query) to continue a paused run rather than start a new one;
+# `run` distinguishes the two by the input type. `decisions` is keyed by each request's
+# `ApprovalRequest.id` - always a map, even for a single pending call, since a turn may propose
+# several gated calls. A partial map (fewer entries than there are pending requests) is fine:
+# whatever isn't supplied stays pending, and `run` returns a fresh `ApprovalRequiredError` listing
+# just the still-undecided requests.
+
+type Resume record {
+    # The human's decisions on the pending tool calls, keyed by `ApprovalRequest.id`
+    map<HumanResponse> decisions;
+};
+
+# The pending approval persisted across a pause, sufficient to resume the run
+# without reloading conversation history from `Memory`.
+
+type PendingApproval record {
+    # The session this pending approval belongs to
+    string sessionId;
+    # Identifier of the original execution, carried through to the resumed `Trace`
+    string executionId;
+    # Number of iterations already consumed in this logical run
+    int iterationsUsed;
+    # A snapshot of the conversation history, used to continue reasoning on resume
+    ChatMessage[] history;
+    # Number of entries at the start of `history` that belong to memory loaded
+prior to this turn (the system message, prior turns, and the user message)
+    int historyPrefixLength;
+    # Iterations accumulated in this logical run prior to this pause, so that a `Trace`
+produced after resuming reflects the whole run, not just the current call
+    Iteration[] iterations;
+    # Tool calls accumulated in this logical run prior to this pause
+    FunctionCall[] toolCalls;
+    # The original run's start time, carried unchanged across every subsequent pause
+    time:Utc startTime; // Special Agent Note: Utc FROM ballerina/time package
+    # The full batch of tool calls the LLM proposed in the turn that's currently gated
+    FunctionCall[] originalBatch?;
+    # One request per gated position in `originalBatch` that still has no decision
+    ApprovalRequest[] pendingRequests?;
+    # One slot per entry in `originalBatch`: `()` if not yet decided (or not gated at all),
+otherwise the human's decision already gathered for that position
+    HumanResponse|()[] decisions?;
+};
+
+# Represents a single reasoning-action cycle of an agent execution.
+
+type Iteration record {
+    # History of chat messages up to this iteration
+    ChatMessage[] history;
+    # Outputs produced by the agent in this iteration. Contains one entry per tool call
+executed in the reasoning-action cycle, or a single assistant message or error
+    ChatAssistantMessage|ChatFunctionMessage|Error[] output;
+    # Start time of the iteration
+    time:Utc startTime; // Special Agent Note: Utc FROM ballerina/time package
+    # End time of the iteration
+    time:Utc endTime; // Special Agent Note: Utc FROM ballerina/time package
+};
+
+# Represents a chunker that can process documents and return chunks.
+class Chunker {
+
+    # Chunks the provided document.
+    function chunk(Document document) returns Chunk[]|Error;
+}
+
+# Represents the available strategies for recursively chunking a document.
+# 
+# Each strategy attempts to include as much content as possible using a specific unit (such as paragraph or sentence).
+# If the content exceeds the defined `maxChunkSize` in `RecursiveChunker`, the strategy recursively falls back
+# to a finer-grained unit until the content fits within the limit.
+enum RecursiveChunkStrategy {
+    PARAGRAPH,
+    SENTENCE,
+    LINE,
+    WORD,
+    CHARACTER
+}
+
+# Represents the available strategies for chunking a markdown document.
+# 
+# Each strategy attempts to include as much content as possible using a specific unit (such as paragraph or sentence).
+# If the content exceeds the defined `maxChunkSize` the strategy recursively falls back to a finer-grained unit until
+# the content fits within the limit.
+enum MarkdownChunkStrategy {
+    CHARACTER,
+    WORD,
+    SENTENCE,
+    LINE,
+    PARAGRAPH,
+    HORIZONTAL_LINE,
+    CODE_BLOCK,
+    MARKDOWN_HEADER
+}
+
+# Represents the available strategies for chunking a HTML document.
+# 
+# Each strategy attempts to include as much content as possible using a specific unit (such as paragraph or sentence).
+# If the content exceeds the defined `maxChunkSize` the strategy recursively falls back to a finer-grained unit until
+# the content fits within the limit.
+enum HtmlChunkStrategy {
+    CHARACTER,
+    WORD,
+    SENTENCE,
+    HTML_LINE,
+    HTML_PARAGRAPH,
+    HTML_HEADER
+}
+
+# Represents a data loader that can load documents from various sources.
+class DataLoader {
+
+    # Loads documents from a source.
+    function load() returns Document[]|Document|Error;
+}
+
+# Represents documents containing plain text content
+
+type TextDocument record {
+    # Fixed type for the text document
+    "text" 'type?;
+    # The text content of the document
+    string content;
+    Metadata metadata?;
+};
+
+# Represents a chunk of text within a document.
+
+type TextChunk record {
+    # Fixed type for the text chunk
+    "text-chunk" 'type?;
+    # The text content of the chunk
+    string content;
+    Metadata metadata?;
+};
+
+# Represents a URL.
+@constraint:String { pattern: { value: urlRegExpr, message: "Must be a valid URL" } }
+type Url string;
+
+# Represents an image document.
+
+type ImageDocument record {
+    # Fixed type identifier for image documents
+    "image" 'type?;
+    # Image content, either a URL or binary data
+    Url|byte[] content;
+    Metadata metadata?;
+};
+
+# Represents an audio document.
+
+type AudioDocument record {
+    # Fixed type identifier for audio documents
+    "audio" 'type?;
+    # Audio content, either a URL or binary data
+    Url|byte[] content;
+    Metadata metadata?;
+};
+
+# Represents an ID referring to a file.
+
+type FileId record {
+    # Unique identifier for the file
+    string fileId;
+};
+
+# Represents a generic file document.
+
+type FileDocument record {
+    # Fixed type identifier for file documents
+    "file" 'type?;
+    # File content, a URL, binary data, or a file ID reference
+    byte[]|Url|FileId content;
+    Metadata metadata?;
+};
+
+# Represents a binary document.
+
+type BinaryDocument record {
+    # Fixed type identifier for binary documents
+    "binary" 'type?;
+    # Document content as binary data
+    byte[] content;
+    Metadata metadata?;
+};
+
+# Represents an embedding provider that converts chunk into vector embeddings for similarity search.
+client class EmbeddingProvider {
+
+    # Converts the given chunk into a vector embedding.
+    # 
+    remote function embed(Chunk chunk) returns Vector|SparseVector|HybridVector|Error;
+
+    # Converts a batch of chunks into vector embeddings.
+    # 
+    remote function batchEmbed(Chunk[] chunks) returns Embedding[]|Error;
+}
+
+# Any error occurred during parsing OpenAPI specification is classified under this error type.
+type OpenApiParsingError error;
+
+# Stackoverflow errors due to lenthy OpenAPI specification or cyclic references in the specification.
+type ParsingStackOverflowError error;
+
+# Errors occurred due to unsupported path parameter serializations.
+type UnsupportedSerializationError error;
+
+# Errors due to unsupported OpenAPI specification version.
+type UnsupportedOpenApiVersion error;
+
+# Errors due to invalid or broken references in the OpenAPI specification.
+type InvalidReferenceError error;
+
+# Errors due to incomplete OpenAPI specification.
+type IncompleteSpecificationError error;
+
+# Errors due to unsupported media type.
+type UnsupportedMediaTypeError error;
+
+# Error through due to invalid parameter definition that does not include either schema or content.
+type InvalidParameterDefinition error;
+
+# Errors occurred due to unexpected responses from the LLM.
+type LlmInvalidResponseError error;
+
+# Errors occurred during LLM generation due to connection.
+type LlmConnectionError error;
+
+# Errors occurred due to termination of the Agent's execution.
+type TaskCompletedError error;
+
+# Errors occurred due while running HTTP service toolkit.
+type HttpServiceToolKitError error;
+
+# Any error occurred during parsing HTTP response is classified under this error type.
+type HttpResponseParsingError error;
+
+# Error during unexpected output by the tool
+type ToolInvalidOutputError error;
+
+# Represents an error that occurs when getting token for tool 
+type TokenAcquisitionError error;
+
+# Represents an error that occurs when validating token for tool
+type TokenValidationError error;
+
+# Errors occurred due to invalid tool name generated by the LLM.
+type ToolNotFoundError error;
+
+# Errors occurred due to invalid input to the tool generated by the LLM.
+type ToolInvalidInputError error;
+
+# Errors occurred due to missing mandotary path or query parameters.
+type MissingHttpParameterError error;
+
+# Errors occurred when validating tool scope.
+type InsufficientScopeError error;
+
+# Represents an error that occurs when the maximum number of iterations has been exceeded.
+type MaxIterationExceededError error<record {|(ExecutionResult|ExecutionError|Error)[] steps;|}>;
+
+# Raised when `run` is given a `Resume` but no approval is pending for the session.
+type ApprovalNotFoundError error;
+
+# Raised when a `Resume` passed to `run` names an id that is not among the approvals currently
+# pending for the session (a stale id, a typo, or an id from a different session).
+type UnknownApprovalIdError error;
+
+# Represents the trace of an agent's execution.
+
+type Trace record {
+    # Unique identifier for the trace
+    string id;
+    # Input message provided by the user
+    ChatUserMessage userMessage;
+    # Sequence of iterations performed by the agent
+    Iteration[] iterations;
+    # Final output produced by the agent
+    ChatAssistantMessage|Error output;
+    # Tool invocations requested by the LLM in this turn
+    FunctionCall[] toolCalls?;
+    # Schema of the tools used by the agent during execution
+    ToolSchema[] tools;
+    # Start time of the trace
+    time:Utc startTime; // Special Agent Note: Utc FROM ballerina/time package
+    # End time of the trace
+    time:Utc endTime; // Special Agent Note: Utc FROM ballerina/time package
+};
+
+# Represents the schema of a tool used by the agent.
+
+type ToolSchema record {
+    # Name of the tool
+    string name;
+    # Description of the tool
+    string description;
+    # Parameters schema of the tool
+    map<json> parametersSchema?;
+};
+
+enum EncodingStyle {
+    DEEPOBJECT,
+    PIPEDELIMITED,
+    SPACEDELIMITED,
+    LABEL,
+    MATRIX,
+    SIMPLE,
+    FORM
+}
+
+# Roles for the chat messages.
+enum ROLE {
+    FUNCTION,
+    ASSISTANT,
+    USER,
+    SYSTEM
+}
+
+# Interactive chat messages.
+# This is the type `ChatMessage` excluding the type `ChatSystemMessage`.
+type ChatInteractiveMessage ChatUserMessage|ChatAssistantMessage|ChatFunctionMessage;
+
+# Function definitions for function calling API.
+
+type ChatCompletionFunctions record {
+    # Name of the function
+    string name;
+    # Description of the function
+    string description;
+    # Parameters of the function
+    map<json> parameters?;
+};
+
+# Represents configuratations of WSO2 provider.
+# 
+
+type Wso2ProviderConfig record {
+    # The URL for the WSO2 AI service
+    string serviceUrl;
+    # Access token for accessing WSO2 AI service
+    string accessToken;
+};
+
+enum ParameterLocation {
+    COOKIE,
+    PATH,
+    HEADER,
+    QUERY
+}
+
+enum HeaderStyle {
+    SIMPLE
+}
+
+# Base schema object.
+
+type BaseSchema record {
+    # Description of the schema
+    string description?;
+    # Default value of the schema
+    json default?;
+    # Whether the value is nullable
+    boolean nullable?;
+    # Xml schema
+    XmlSchema 'xml?;
+    # Not allowed $ref property
+    never \$ref?;
+};
+
+
+type XmlSchema record {
+    # Replaces the name of the element/attribute used for the described schema property.
+    string name?;
+    # The URI of the namespace definition.
+    string namespace?;
+    # The prefix to be used for the name.
+    string prefix?;
+    # Declares whether the property definition translates to an attribute instead of an element.
+    boolean attribute?;
+    # May be used only for an array definition.
+    boolean wrapped?;
+};
+
+# Base type schema object.
+
+type BaseTypeSchema record {
+    # Type of the schema
+    string 'type;
+    # Not allowed anyOf
+    never anyOf?;
+    # Not allowed oneOf
+    never oneOf?;
+    # Not allowed allOf
+    never allOf?;
+    # Not allowed not
+    never not?;
+    string description?;
+    json default?;
+    boolean nullable?;
+    XmlSchema 'xml?;
+    never \$ref?;
+};
+
+# Base primitive type schema object.
+
+type BasePrimitiveTypeSchema record {
+    # Can not have properties in a primitive type schema
+    never properties?;
+    # Can not have items in a primitive type schema
+    never items?;
+    string 'type;
+    never anyOf?;
+    never oneOf?;
+    never allOf?;
+    never not?;
+    string description?;
+    json default?;
+    boolean nullable?;
+    XmlSchema 'xml?;
+    never \$ref?;
+};
+
+# Integer schema object.
+
+type IntegerSchema record {
+    # Type of the integer schema
+    "integer" 'type;
+    # Format of the value
+    string format?;
+    # Minimum value of the integer value
+    int minimum?;
+    # Maximum value of the integer value
+    int maximum?;
+    # Whether the minimum value is exclusive
+    boolean exclusiveMinimum?;
+    # Whether the maximum value is exclusive
+    boolean exclusiveMaximum?;
+    # Multiplier of the integer value
+    int multipleOf?;
+    never properties?;
+    never items?;
+    never anyOf?;
+    never oneOf?;
+    never allOf?;
+    never not?;
+    string description?;
+    json default?;
+    boolean nullable?;
+    XmlSchema 'xml?;
+    never \$ref?;
+};
+
+# Number schema object.
+
+type NumberSchema record {
+    # Type of the number schema
+    "number"|"float" 'type;
+    # Format of the value
+    string format?;
+    # Minimum value of the number value
+    int|float minimum?;
+    # Maximum value of the number value
+    int|float maximum?;
+    # Whether the minimum value is exclusive
+    boolean exclusiveMinimum?;
+    # Whether the maximum value is exclusive
+    boolean exclusiveMaximum?;
+    # Multiplier of the number value
+    int|float multipleOf?;
+    never properties?;
+    never items?;
+    never anyOf?;
+    never oneOf?;
+    never allOf?;
+    never not?;
+    string description?;
+    json default?;
+    boolean nullable?;
+    XmlSchema 'xml?;
+    never \$ref?;
+};
+
+# String schema object.
+
+type StringSchema record {
+    # Type of the string schema
+    "string" 'type?;
+    # Format of the string
+    string format?;
+    # Minimum length of the string value
+    int minLength?;
+    # Maximum length of the string value
+    int maxLength?;
+    # Regular expression pattern of the string value
+    string pattern?;
+    # Enum values of the string value
+    (PrimitiveType?)[] 'enum?;
+    never properties?;
+    never items?;
+    never anyOf?;
+    never oneOf?;
+    never allOf?;
+    never not?;
+    string description?;
+    json default?;
+    boolean nullable?;
+    XmlSchema 'xml?;
+    never \$ref?;
+};
+
+# Primitive types supported by the Tool schemas.
+type PrimitiveType int|string|boolean|float|decimal;
+
+# Boolean schema object.
+
+type BooleanSchema record {
+    # Type of the boolean schema
+    "boolean" 'type;
+    never properties?;
+    never items?;
+    never anyOf?;
+    never oneOf?;
+    never allOf?;
+    never not?;
+    string description?;
+    json default?;
+    boolean nullable?;
+    XmlSchema 'xml?;
+    never \$ref?;
+};
+
+# Primitive type schema object.
+type PrimitiveTypeSchema IntegerSchema|NumberSchema|StringSchema|BooleanSchema;
+
+# Array schema object.
+
+type ArraySchema record {
+    # Type of the array schema
+    "array" 'type?;
+    # Whether the array items are unique
+    boolean uniqueItems?;
+    # Schema of the array items 
+    Schema items;
+    # Minimum number of items in the array
+    int minItems?;
+    # Maximum number of items in the array
+    int maxItems?;
+    # Not allowed properties
+    never properties?;
+    never anyOf?;
+    never oneOf?;
+    never allOf?;
+    never not?;
+    string description?;
+    json default?;
+    boolean nullable?;
+    XmlSchema 'xml?;
+    never \$ref?;
+};
+
+# Defines an bbject schema with type is specified and properties are optional.
+
+type ObjectSchemaType1 record {
+    # Type of the object schema
+    "object" 'type;
+    # Minimum number of properties in the object
+    int minProperties?;
+    # Maximum number of properties in the object
+    int maxProperties?;
+    # List of required properties
+    boolean|string[] required?;
+    # List of properties
+    map<Schema> properties?;
+    # Additional properties
+    boolean|IntegerSchema|NumberSchema|StringSchema|BooleanSchema|ArraySchema|ObjectSchemaType1|ObjectSchemaType2|OneOfSchema|AllOfSchema|AnyOfSchema|NotSchema|Reference additionalProperties?;
+    # Discriminator
+    Discriminator discriminator?;
+    # Not allowed items. Distinction between array and object
+    never items?;
+    never anyOf?;
+    never oneOf?;
+    never allOf?;
+    never not?;
+    string description?;
+    json default?;
+    boolean nullable?;
+    XmlSchema 'xml?;
+    never \$ref?;
+};
+
+# Defines an object schema with the properties defined and type is unspecified.
+
+type ObjectSchemaType2 record {
+    # To match when type is not specified, but properties are specified
+    never 'type?;
+    # List of properties
+    map<Schema> properties;
+    int minProperties?;
+    int maxProperties?;
+    boolean|string[] required?;
+    boolean|IntegerSchema|NumberSchema|StringSchema|BooleanSchema|ArraySchema|ObjectSchemaType1|ObjectSchemaType2|OneOfSchema|AllOfSchema|AnyOfSchema|NotSchema|Reference additionalProperties?;
+    Discriminator discriminator?;
+    never items?;
+    never anyOf?;
+    never oneOf?;
+    never allOf?;
+    never not?;
+    string description?;
+    json default?;
+    boolean nullable?;
+    XmlSchema 'xml?;
+    never \$ref?;
+};
+
+# Defines an object schema.
+type ObjectSchema ObjectSchemaType1|ObjectSchemaType2;
+
+# One of schema object.
+
+type OneOfSchema record {
+    # List of schemas that should match
+    Schema[] oneOf;
+    # Discriminator
+    Discriminator discriminator?;
+    string description?;
+    json default?;
+    boolean nullable?;
+    XmlSchema 'xml?;
+    never \$ref?;
+};
+
+# All of schema object.
+
+type AllOfSchema record {
+    # List of schemas that should match
+    Schema[] allOf;
+    string description?;
+    json default?;
+    boolean nullable?;
+    XmlSchema 'xml?;
+    never \$ref?;
+};
+
+# Any of schema object.
+
+type AnyOfSchema record {
+    # List of schemas that should match
+    Schema[] anyOf;
+    # Discriminator
+    Discriminator discriminator?;
+    string description?;
+    json default?;
+    boolean nullable?;
+    XmlSchema 'xml?;
+    never \$ref?;
+};
+
+# Not schema object.
+
+type NotSchema record {
+    # Schema that should not match
+    Schema not;
+    string description?;
+    json default?;
+    boolean nullable?;
+    XmlSchema 'xml?;
+    never \$ref?;
+};
+
+# Defines a reference object.
+
+type Reference record {
+    # Reference to a component
+    string \$ref;
+    # Short description of the target component
+    string summary?;
+    # Xml schema
+    XmlSchema 'xml?;
+    # Detailed description of the target component
+    string description?;
+};
+
+# Defines a OpenAPI schema.
+type Schema IntegerSchema|NumberSchema|StringSchema|BooleanSchema|ArraySchema|ObjectSchemaType1|ObjectSchemaType2|OneOfSchema|AllOfSchema|AnyOfSchema|NotSchema|Reference;
+
+# Discriminator object.
+
+type Discriminator record {
+    # Name of the property that specifies the type
+    string propertyName;
+    # Mapping of the property values to schema names
+    map<string> mapping?;
+};
+
+# Describes a single response from an API Operation.
+
+type Response record {
+    # A short description of the response
+    string description?;
+    # A map containing schema of the response headers
+    map<Header|Reference> headers?;
+    # A map containing the structure of the response body
+    map<MediaType> content?;
+    # Not allowed $ref
+    never \$ref?;
+};
+
+# Describes HTTP headers.
+
+type Header record {
+    # Whether this header parameter is mandatory
+    boolean required?;
+    # A brief description of the header parameter
+    string description?;
+    # Whether empty value is allowed
+    string allowEmptyValue?;
+    # Describes how a specific property value will be serialized depending on its type
+    HeaderStyle style?;
+    # When this is true, property values of type array or object generate separate parameters for each value of the array, or key-value-pair of the map
+    boolean explode?;
+    # Schema of the header parameter
+    Schema schema?;
+    # Content of the header parameter
+    map<MediaType> content?;
+    # Not allowed $ref
+    never \$ref?;
+};
+
+# Defines media type of a parameter, response body or header.
+
+type MediaType record {
+    # Schema of the content
+    Schema schema?;
+    # Encoding of the content
+    map<Encoding> encoding?;
+};
+
+# Describes a encoding definition applied to a schema property.
+
+type Encoding record {
+    # Describes how a specific property value will be serialized depending on its type
+    string style?;
+    # When this is true, property values of type array or object generate separate parameters for each value of the array, or key-value-pair of the map
+    boolean explode?;
+    # The Content-Type for encoding a specific property
+    string contentType?;
+    # A map allowing additional information to be provided as headers
+    map<Header|Reference> headers?;
+};
+
+# Describes a single operation parameter.
+
+type Parameter record {
+    # Name of the parameter
+    string name;
+    # The location of the parameter
+    ParameterLocation 'in;
+    # Whether the parameter is mandatory
+    boolean required?;
+    # A brief description of the parameter
+    string description?;
+    # Whether empty value is allowed
+    boolean allowEmptyValue?;
+    # Describes how a specific property value will be serialized depending on its type
+    EncodingStyle style?;
+    # When this is true, property values of type array or object generate separate parameters for each value of the array, or key-value-pair of the map
+    boolean explode?;
+    # Schema of the parameter
+    Schema schema?;
+    # Content of the parameter
+    map<MediaType> content?;
+    # Null value is allowed
+    boolean nullable?;
+};
+
+# Describes a single request body.
+
+type RequestBody record {
+    # A brief description of the request body. This could contain examples of use.
+    string description?;
+    # The content of the request body. 
+    map<MediaType> content;
+    # Whether the request body is mandatory in the request.
+    boolean required?;
+};
+
+# Describes a single path item.
+
+type PathItem record {
+    # Description of the path item
+    string description?;
+    # Summary of the path item
+    string summary?;
+    # GET operation
+    Operation get?;
+    # POST operation
+    Operation post?;
+    # PUT operation
+    Operation put?;
+    # DELETE operation
+    Operation delete?;
+    # OPTIONS operation
+    Operation options?;
+    # HEAD operation
+    Operation head?;
+    # PATCH operation
+    Operation patch?;
+    # TRACE operation
+    Operation trace?;
+    # Server information for the path
+    Server[] servers?;
+    # A list of parameters that are applicable for all the operations described under this path item
+    Parameter|Reference[] parameters?;
+    # Not allowed $ref
+    never \$ref?;
+};
+
+# Describes a single API operation on a path.
+
+type Operation record {
+    # A list of tags for API documentation control
+    string[] tags?;
+    # A short summary of what the operation does
+    string summary?;
+    # A description explanation of the operation behavior
+    string description?;
+    # Operation ID for referencing the operation
+    string operationId?;
+    # A list of parameters that are applicable for this operation
+    Parameter|Reference[] parameters?;
+    # The request body applicable for this operation
+    RequestBody|Reference requestBody?;
+    # The list of possible responses as they are returned from executing this operation
+    map<Response|Reference> responses?;
+};
+
+# Server information object.
+
+type Server record {
+    # A URL to the target host
+    string url;
+    # An optional string describing the host designated by the URL
+    string description?;
+};
+
+# Map of component objects.
+
+type Components record {
+    # A map of reusable schemas for different data types
+    map<Schema|Reference> schemas?;
+    # A map of reusable response objects 
+    map<Response|Reference> responses?;
+    # A map of reusable parameter objects
+    map<Parameter|Reference> parameters?;
+    # A map of reusable request body objects
+    map<RequestBody|Reference> requestBodies?;
+    # A map of reusable header objects
+    map<Header|Reference> headers?;
+    # A map of PathItem objects
+    map<PathItem|Reference> pathItems?;
+};
+
+# Map of pathItem objects.
+
+type Paths record {
+    # Rest field
+    PathItem|Reference ;
+};
+
+# Describes the responses from an API Operation.
+
+type Responses record {
+    # Default response for the API Operation
+    Response|Reference default?;
+    # Rest field
+    Response|Reference ;
+};
+
+# OpenAPI Specification 3.1.0
+
+type OpenApiSpec record {
+    # OpenAPI version
+    string openapi;
+    # Server information
+    Server[] servers?;
+    # Server resource definitions
+    Paths paths?;
+    # Reference objects
+    Components components?;
+};
+
+# Provides extracted tools and service URL from the OpenAPI specification.
+
+type HttpApiSpecification record {
+    # Extracted service URL from the OpenAPI specification if there is any
+    string serviceUrl?;
+    # Extracted Http tools from the OpenAPI specification
+    HttpTool[] tools;
+};
+
+# Defines an HTTP tool. This is a special type of tool that can be used to invoke HTTP resources.
+
+type HttpTool record {
+    # Name of the Http resource tool
+    string name;
+    # Description of the Http resource tool used by the LLM
+    string description;
+    # Http method type (GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS)
+    HttpMethod method;
+    # Path of the Http resource
+    string path;
+    # path and query parameters definitions of the Http resource
+    map<ParameterSchema> parameters?;
+    # Request body definition of the Http resource
+    RequestBodySchema requestBody?;
+};
+
+# Supported HTTP methods.
+enum HttpMethod {
+    OPTIONS,
+    HEAD,
+    PATCH,
+    PUT,
+    DELETE,
+    POST,
+    GET
+}
+
+# Defines a HTTP parameter schema (can be query parameter or path parameters).
+
+type ParameterSchema record {
+    # Whether the parameter is a path or query parameter
+    "path"|"query" location;
+    # A brief description of the parameter
+    string description?;
+    # Whether the parameter is mandatory
+    boolean required?;
+    # Describes how a specific property value will be serialized depending on its type
+    EncodingStyle style?;
+    # When this is true, property values of type array or object generate separate parameters for each value of the array, or key-value-pair of the map.
+    boolean explode?;
+    # Null value is allowed
+    boolean nullable?;
+    # Whether empty value is allowed
+    boolean allowEmptyValue?;
+    # Content type of the schema
+    string mediaType?;
+    # Parameter schema
+    JsonSubSchema schema;
+};
+
+# Defines a base input type schema.
+
+type BaseInputSchema record {
+    # Description of the input
+    string description?;
+    # Default value of the input
+    json default?;
+    # Indicates whether the value can be null.
+    boolean nullable?;
+};
+
+# Defines a base input schema with type field.
+
+type BaseInputTypeSchema record {
+    # Input data type
+    InputType 'type;
+    string description?;
+    json default?;
+    boolean nullable?;
+};
+
+# Supported input types by the Tool schemas.
+enum InputType {
+    NULL,
+    ARRAY,
+    OBJECT,
+    NUMBER,
+    BOOLEAN,
+    FLOAT,
+    INTEGER,
+    STRING
+}
+
+# Defines an object input field in the schema.
+
+type ObjectInputSchema record {
+    # Input data type. Should be `OBJECT`.
+    "object" 'type?;
+    # List of required properties
+    string[] required?;
+    # Schema of the object properties
+    map<JsonSubSchema> properties?;
+    string description?;
+    json default?;
+    boolean nullable?;
+};
+
+# Defines an array input field in the schema.
+
+type ArrayInputSchema record {
+    # Input data type. Should be `ARRAY`.
+    "array" 'type?;
+    # Schema of the array items
+    JsonSubSchema items;
+    # Default value for the array
+    json[] default?;
+    string description?;
+    boolean nullable?;
+};
+
+# Defines an `anyOf` input field in the schema. Follows OpenAPI 3.x specification.
+
+type AnyOfInputSchema record {
+    # List of possible input types
+    JsonSubSchema[] anyOf;
+    string description?;
+    json default?;
+    boolean nullable?;
+};
+
+# Defines an `oneOf` input field in the schema. Follows OpenAPI 3.x specification.
+
+type OneOfInputSchema record {
+    # List of possible input types
+    JsonSubSchema[] oneOf;
+    # Indicates whether the value can be null.
+    boolean nullable?;
+    # Description of the input
+    string description?;
+};
+
+# Defines an `allOf` input field in the schema. Follows OpenAPI 3.x specification.
+
+type AllOfInputSchema record {
+    # List of possible input types
+    JsonSubSchema[] allOf;
+    string description?;
+    json default?;
+    boolean nullable?;
+};
+
+# Defines a `not` input field in the schema. Follows OpenAPI 3.x specification.
+
+type NotInputSchema record {
+    # Schema that is not accepted as an input
+    JsonSubSchema not;
+    string description?;
+    json default?;
+    boolean nullable?;
+};
+
+# Defines a json input schema
+type JsonInputSchema ObjectInputSchema|ArrayInputSchema|AnyOfInputSchema|OneOfInputSchema|AllOfInputSchema|NotInputSchema;
+
+# Defines a primitive input field in the schema.
+
+type PrimitiveInputSchema record {
+    # Input data type. Should be one of `STRING`, `INTEGER`, `NUMBER`, or `BOOLEAN`.
+    "string"|"integer"|"number"|"boolean"|"null" 'type;
+    # Format of the input. This is not applicable for `BOOLEAN` type.
+    string format?;
+    # Pattern of the input. This is only applicable for `STRING` type.
+    string pattern?;
+    # Enum values of the input. This is only applicable for `STRING` type.
+    (PrimitiveType?)[] 'enum?;
+    # Default value of the input
+    PrimitiveType default?;
+    string description?;
+    boolean nullable?;
+};
+
+# Defines a constant value field in the schema.
+
+type ConstantValueSchema record {
+    # The constant value.
+    json 'const;
+};
+
+# Defines a json sub schema
+type JsonSubSchema ObjectInputSchema|ArrayInputSchema|AnyOfInputSchema|OneOfInputSchema|AllOfInputSchema|NotInputSchema|PrimitiveInputSchema|ConstantValueSchema;
+
+
+type RequestBodySchema record {
+    # A brief description of the request body
+    string description?;
+    # Content type of the request body
+    string mediaType?;
+    # Request body schema
+    JsonSubSchema schema;
+};
+
+# Defines additional information to be extracted from the OpenAPI specification.
+
+type AdditionInfoFlags record {
+    # Flag to extract description of parameters and schema attributes from the OpenAPI specification
+    boolean extractDescription?;
+    # Flag to extract default values of parameters and schema attributes from the OpenAPI specification
+    boolean extractDefault?;
+};
+
+# Represents a dense vector with floating-point values.
+type Vector float[];
+
+# Represents a sparse vector storing only non-zero values with their corresponding indices.
+
+type SparseVector record {
+    # Array of indices where non-zero values are located 
+    int[] indices;
+    # Array of non-zero floating-point values corresponding to the indices
+    Vector values;
+};
+
+# Represents a hybrid embedding containing both dense and sparse vector representations.
+
+type HybridVector record {
+    # Dense vector representation of the embedding
+    Vector dense;
+    # Sparse vector representation of the embedding
+    SparseVector sparse;
+};
+
+# Represents possible vector types.
+type Embedding Vector|SparseVector|HybridVector;
+
+# Represents the set of supported operators used for metadata filtering during vector search operations.
+enum MetadataFilterOperator {
+    NOT_IN,
+    IN,
+    LESS_THAN_OR_EQUAL,
+    GREATER_THAN_OR_EQUAL,
+    LESS_THAN,
+    GREATER_THAN,
+    NOT_EQUAL,
+    EQUAL
+}
+
+# Represents logical conditions for combining multiple metadata filtering during vector search operations.
+enum MetadataFilterCondition {
+    OR,
+    AND
+}
+
+# Represents a metadata filter for vector search operations.
+# Defines conditions to filter vectors based on their associated metadata values.
+
+type MetadataFilter record {
+    # The name of the metadata field to filter
+    string key;
+    # The comparison operator to use. Defaults to `EQUAL`
+    MetadataFilterOperator operator?;
+    # The value to compare the metadata field against
+    json value;
+};
+
+# Represents a container for combining multiple metadata filters using logical operators.
+# Enables complex filtering by applying multiple conditions with AND/OR logic during vector search.
+
+type MetadataFilters record {
+    # An array of `MetadataFilter` or nested `MetadataFilters` to apply
+    MetadataFilters|MetadataFilter[] filters;
+    # The logical operator (`AND` or `OR`) used to combine the filters. Defaults to `AND`
+    MetadataFilterCondition condition?;
+};
+
+# Defines a query to the vector store with an embedding vector and optional metadata filters.
+# Supports precise search operations by combining vector similarity with metadata conditions.
+# `embedding`, `filters`, or both can be provided. If neither is specified, all vector store entries are returned.
+
+type VectorStoreQuery record {
+    # The vector to use for similarity search
+    Embedding embedding?;
+    # Optional metadata filters to refine the search results
+    MetadataFilters filters?;
+    # The maximum number of most similar items to return. Set to `-1` to retrieve all available entries
+    int topK?;
+};
+
+# Represents a vector entry combining an embedding with its source chunk. 
+
+type VectorEntry record {
+    # Optional unique identifier for the vector entry
+    string id?;
+    # The vector representation of the chunk content
+    Embedding embedding;
+    # The chunk associated with the embedding
+    Chunk chunk;
+};
+
+# Represents a vector match result with similarity score. 
+
+type VectorMatch record {
+    # Similarity score indicating how closely the vector matches the query
+    float similarityScore;
+    string id?;
+    Embedding embedding;
+    Chunk chunk;
+};
+
+# Represents query modes to be used with vector store.
+# Defines different search strategies for retrieving relevant chunks
+# based on the type of embeddings and search algorithms to be used.
+enum VectorStoreQueryMode {
+    HYBRID,
+    SPARSE,
+    DENSE
+}
+
+# Represents a match result with similarity score.
+
+type QueryMatch record {
+    # The chunk that matched the query
+    Chunk chunk;
+    # Similarity score indicating chunk relevance to the query
+    float similarityScore;
+};
+
+# Represents the similarity metrics used for comparing vectors.
+# Defines how the similarity between vectors is calculated during search operations.
+enum SimilarityMetric {
+    DOT_PRODUCT,
+    EUCLIDEAN,
+    COSINE
+}
+
+# Represents chunk retriever that finds relevant chunks based on query similarity.
+class Retriever {
+
+    # Retrieves relevant chunks for the given query.
+    # 
+    function retrieve(string query, int maxLimit, MetadataFilters|() filters = ()) returns QueryMatch[]|Error;
+}
+
+# Represents a knowledge base for managing chunk indexing and retrieval operations.
+class KnowledgeBase {
+
+    # Ingests a collection of chunks.
+    # 
+    function ingest(Chunk[]|Document[]|Document documents) returns Error|();
+
+    # Retrieves relevant chunks for the given query.
+    # 
+    function retrieve(string query, int maxLimit, MetadataFilters|() filters = ()) returns QueryMatch[]|Error;
+
+    # Deletes chunks that match the given metadata filters.
+    # 
+    function deleteByFilter(MetadataFilters filters) returns Error|();
+}
+
+# Represents configuration to trim messages when overflow occurs.
+
+type TrimOverflowHandlerConfiguration record {
+    # Number of messages to trim when overflow occurs.
+    int trimCount?;
+};
+
+# Represents configuration to handle messages using a model when overflow occurs.
+
+type ModelAssistedOverflowHandlerConfiguration record {
+    # The model to use; if not provided, the default model is used.
+    ModelProvider model?;
+    # The prompt to use; if not provided, a default summarization prompt is used.
+    Prompt prompt?;
+};
+
+# Represents configuration for handling overflow in short-term memory.
+type OverflowHandlerConfiguration TrimOverflowHandlerConfiguration|ModelAssistedOverflowHandlerConfiguration;
+
+# Represents a short-term memory store that retains a fixed number of recent messages by a key,
+# and persists human-in-the-loop pause checkpoints keyed by session ID.
+# 
+# A store serves both concerns so one backend (e.g. a database or cache) durably holds the
+# conversation history and the pause state together. `ShortTermMemory` delegates both its message
+# operations and its checkpoint operations to the configured store, so a custom store that keeps
+# messages durable also keeps human-in-the-loop pauses durable without any extra wiring. The
+# built-in `InMemoryShortTermMemoryStore` keeps both in memory (not durable across a restart or a
+# run on another replica).
+class ShortTermMemoryStore {
+
+    # Retrieves the system message, if it was provided, for a given key.
+    # 
+    function getChatSystemMessage(string key) returns ChatSystemMessage|MemoryError|();
+
+    # Retrieves all stored interactive chat messages (i.e., all chat messages except the system
+    # message) for a given key.
+    # 
+    function getChatInteractiveMessages(string key) returns ChatInteractiveMessage[]|MemoryError;
+
+    # Retrieves all stored chat messages for a given key.
+    # 
+    function getAll(string key) returns [ChatSystemMessage, ChatInteractiveMessage...]|ChatInteractiveMessage[]|MemoryError;
+
+    # Adds one or more chat messages to the memory store for a given key.
+    # 
+    function put(string key, ChatUserMessage|ChatSystemMessage|ChatAssistantMessage|ChatFunctionMessage|ChatMessage[] message) returns MemoryError|();
+
+    # Removes the system chat message, if specified, for a given key.
+    # 
+    function removeChatSystemMessage(string key) returns MemoryError|();
+
+    # Removes all stored interactive chat messages (i.e., all chat messages except the system
+    # message) for a given key.
+    # 
+    function removeChatInteractiveMessages(string key, int|() count = ()) returns MemoryError|();
+
+    # Removes all stored chat messages for a given key.
+    # 
+    function removeAll(string key) returns MemoryError|();
+
+    # Checks if the memory store is full for a given key.
+    # 
+    function isFull(string key) returns boolean|MemoryError;
+
+    # Returns the capacity configured for each key in the store.
+    # 
+    function getCapacity() returns int;
+
+    # Stores (or replaces) the pending human-in-the-loop approval for its session. Named
+    # distinctly from the message operations so a single object (e.g. `ShortTermMemory`) can
+    # expose both concerns without collision.
+    # 
+    function putCheckpoint(PendingApproval approval) returns Error|();
+
+    # Returns the pending human-in-the-loop approval for a session, if any.
+    # 
+    function getCheckpoint(string sessionId) returns PendingApproval|()|Error;
+
+    # Removes the pending human-in-the-loop approval for a session, if any.
+    # 
+    function removeCheckpoint(string sessionId) returns Error|();
+
+    # Atomically fetches and removes the pending human-in-the-loop approval for a session, if
+    # any. Used to "claim" an approval before resolving it, so a concurrent duplicate resume
+    # call for the same session cannot also claim and execute the same approved tool call.
+    # 
+    function takeCheckpoint(string sessionId) returns PendingApproval|()|Error;
+}
+
+# Represents a conversation thread containing multiple agent interaction traces.
+
+type ConversationThread record {
+    # Unique identifier for the conversation thread
+    string id;
+    # Human-readable description of the conversation thread
+    string description;
+    # Sequence of traces representing individual agent executions within this thread
+    Trace[] & readonly traces;
+};
+
+# Represent the execution result of a tool.
+
+type ToolExecutionResult record {
+    # Return value of the tool
+    any|error result;
+};
+
+# This is the tool used by LLMs during reasoning.
+# This tool is same as the Tool record, but it has a clear separation between the variables that should be generated with the help of the LLMs and the constants that are defined by the users. 
+
+type Tool record {
+    # Name of the tool
+    string name;
+    # Description of the tool
+    string description;
+    # Variables that should be generated with the help of the LLMs
+    map<json> variables?;
+    # Constants that are defined by the users
+    map<json> constants?;
+    # Function that should be called to execute the tool
+    function caller;
+    # Optional authorization configuration required to invoke this tool.
+    AgentIdAuthConfig|Scopes auth?;
+    # When `true`, the agent pauses and requests human approval before invoking this tool.
+A function value gates only the calls it evaluates to `true` for, based on the proposed
+arguments.
+    RequiresApproval requiresApproval?;
+};
+
+# Defines a internal value field in the schema
+
+type InternalValueSchema record {
+    json 'const;
+};
+
+# Defines the configuration of the Tool annotation.
+
+type ToolAnnotationConfig record {
+    # The name of the tool. If not provided, defaults to the function pointer name.
+    string name?;
+    # A description of the tool. This is used by LLMs to understand the tool's behavior.  
+If not provided, the doc comment used as the description.
+    string description?;
+    # The input schema expected by the tool. If the tool does not expect any input, this should be null.  
+If not provided, the input schema is generated automatically. 
+    ObjectInputSchema|() parameters?;
+    # Optional authorization configuration required to invoke this tool.
+    @display {label: "Authorization Configuration"}
+    AgentIdAuthConfig|Scopes auth?;
+    # When `true`, the agent pauses and requests human approval before invoking this tool.
+A function value gates only the calls it evaluates to `true` for, based on the proposed
+arguments.
+    @display {label: "Requires Approval"}
+    RequiresApproval requiresApproval?;
+};
+
+# Defines an HTTP output record for requests.
+
+type HttpOutput record {
+    # HTTP status code of the response
+    int code;
+    # HTTP path url with encoded paramteres
+    string path;
+    # Response headers 
+    record {|string contentType?; int contentLength?;|} headers;
+    # Response payload
+    json|xml body?;
+};
+
+# Represents a base type for MCP toolkits.
+class McpBaseToolKit {
+
+    # Useful to retrieve the Tools extracted from the Toolkit.
+    function getTools() returns ToolConfig[];
+}
+
+# Represents a request message for the chat service.
+# 
+
+type ChatReqMessage record {
+    # A unique identifier for the chat session.
+    string sessionId;
+    # The content of the chat message sent by the user.
+    string message;
+};
+
+# Represents a response message from the chat service.
+# 
+
+type ChatRespMessage record {
+    # The response message generated by the chat service.
+    string message;
+};
+
+# Represents the configuration for a chat client.
+
+type ChatClientConfiguration record {
+    http:ClientSecureSocket|() secureSocket?; // Special Agent Note: ClientSecureSocket FROM ballerina/http package
+    http:HttpVersion httpVersion?; // Special Agent Note: HttpVersion FROM ballerina/http package
+    http:ClientHttp1Settings http1Settings?; // Special Agent Note: ClientHttp1Settings FROM ballerina/http package
+    http:ClientHttp2Settings http2Settings?; // Special Agent Note: ClientHttp2Settings FROM ballerina/http package
+    decimal timeout?;
+    string forwarded?;
+    http:FollowRedirects|() followRedirects?; // Special Agent Note: FollowRedirects FROM ballerina/http package
+    http:PoolConfiguration|() poolConfig?; // Special Agent Note: PoolConfiguration FROM ballerina/http package
+    http:CacheConfig cache?; // Special Agent Note: CacheConfig FROM ballerina/http package
+    http:Compression compression?; // Special Agent Note: Compression FROM ballerina/http package
+    http:CredentialsConfig|http:BearerTokenConfig|http:JwtIssuerConfig|http:OAuth2ClientCredentialsGrantConfig|http:OAuth2PasswordGrantConfig|http:OAuth2RefreshTokenGrantConfig|http:OAuth2JwtBearerGrantConfig|() auth?; // Special Agent Note: CredentialsConfig, BearerTokenConfig, JwtIssuerConfig, OAuth2ClientCredentialsGrantConfig, OAuth2PasswordGrantConfig, OAuth2RefreshTokenGrantConfig, OAuth2JwtBearerGrantConfig FROM ballerina/http package
+    http:CircuitBreakerConfig|() circuitBreaker?; // Special Agent Note: CircuitBreakerConfig FROM ballerina/http package
+    http:RetryConfig|() retryConfig?; // Special Agent Note: RetryConfig FROM ballerina/http package
+    http:CookieConfig|() cookieConfig?; // Special Agent Note: CookieConfig FROM ballerina/http package
+    http:ResponseLimitConfigs responseLimits?; // Special Agent Note: ResponseLimitConfigs FROM ballerina/http package
+    http:ProxyConfig|() proxy?; // Special Agent Note: ProxyConfig FROM ballerina/http package
+    boolean validation?;
+    http:ClientSocketConfig socketConfig?; // Special Agent Note: ClientSocketConfig FROM ballerina/http package
+    boolean laxDataBinding?;
+};
+
+# Defines a chat service interface that handles incoming chat messages.
+class ChatService {
+
+    resource function post chat(@http:Payload ChatReqMessage request) returns ChatRespMessage|error;
+}
+
+# Configurations for controlling the behaviours when communicating with a remote HTTP endpoint.
+
+@display {label: "Connection Configuration"}
+type ConnectionConfig record {
+    # The HTTP version understood by the client
+    @display {label: "HTTP Version"}
+    http:HttpVersion httpVersion?; // Special Agent Note: HttpVersion FROM ballerina/http package
+    # Configurations related to HTTP/1.x protocol
+    @display {label: "HTTP1 Settings"}
+    http:ClientHttp1Settings http1Settings?; // Special Agent Note: ClientHttp1Settings FROM ballerina/http package
+    # Configurations related to HTTP/2 protocol
+    @display {label: "HTTP2 Settings"}
+    http:ClientHttp2Settings http2Settings?; // Special Agent Note: ClientHttp2Settings FROM ballerina/http package
+    # The maximum time to wait (in seconds) for a response before closing the connection
+    @display {label: "Timeout"}
+    decimal timeout?;
+    # The choice of setting `forwarded`/`x-forwarded` header
+    @display {label: "Forwarded"}
+    string forwarded?;
+    # Configurations associated with request pooling
+    @display {label: "Pool Configuration"}
+    http:PoolConfiguration poolConfig?; // Special Agent Note: PoolConfiguration FROM ballerina/http package
+    # HTTP caching related configurations
+    @display {label: "Cache Configuration"}
+    http:CacheConfig cache?; // Special Agent Note: CacheConfig FROM ballerina/http package
+    # Specifies the way of handling compression (`accept-encoding`) header
+    @display {label: "Compression"}
+    http:Compression compression?; // Special Agent Note: Compression FROM ballerina/http package
+    # Configurations associated with the behaviour of the Circuit Breaker
+    @display {label: "Circuit Breaker Configuration"}
+    http:CircuitBreakerConfig circuitBreaker?; // Special Agent Note: CircuitBreakerConfig FROM ballerina/http package
+    # Configurations associated with retrying
+    @display {label: "Retry Configuration"}
+    http:RetryConfig retryConfig?; // Special Agent Note: RetryConfig FROM ballerina/http package
+    # Configurations associated with inbound response size limits
+    @display {label: "Response Limit Configuration"}
+    http:ResponseLimitConfigs responseLimits?; // Special Agent Note: ResponseLimitConfigs FROM ballerina/http package
+    # SSL/TLS-related options
+    @display {label: "Secure Socket Configuration"}
+    http:ClientSecureSocket secureSocket?; // Special Agent Note: ClientSecureSocket FROM ballerina/http package
+    # Proxy server related options
+    @display {label: "Proxy Configuration"}
+    http:ProxyConfig proxy?; // Special Agent Note: ProxyConfig FROM ballerina/http package
+    # Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default
+    @display {label: "Payload Validation"}
+    boolean validation?;
+};
+
+# Represents the configuration for the `ModelProvider.generate()` method.
+
+type GeneratorConfig record {
+    # Configuration for retrying on response parsing failures
+    @display {label: "Retry Configuration"}
+    RetryConfig retryConfig?;
+};
+
+# Represents retry configuration on response parsing failures.
+
+type RetryConfig record {
+    # Number of retry attempts
+    @display {label: "Retry Count"}
+    int count?;
+    # Retry interval in seconds
+    @display {label: "Retry Interval"}
+    decimal interval?;
+};
+
+# Configuration options for the Streamable HTTP client transport.
+
+type StreamableHttpClientTransportConfig record {
+    # HTTP protocol version supported by the client
+    http:HttpVersion httpVersion?; // Special Agent Note: HttpVersion FROM ballerina/http package
+    # HTTP/1.x specific settings
+    http:ClientHttp1Settings http1Settings?; // Special Agent Note: ClientHttp1Settings FROM ballerina/http package
+    # HTTP/2 specific settings
+    http:ClientHttp2Settings http2Settings?; // Special Agent Note: ClientHttp2Settings FROM ballerina/http package
+    # Maximum time(in seconds) to wait for a response before the request times out
+    decimal timeout?;
+    # The choice of setting `Forwarded`/`X-Forwarded-For` header, when acting as a proxy
+    string forwarded?;
+    # HTTP redirect handling configurations (with 3xx status codes)
+    http:FollowRedirects|() followRedirects?; // Special Agent Note: FollowRedirects FROM ballerina/http package
+    # Configurations associated with the request connection pool
+    http:PoolConfiguration|() poolConfig?; // Special Agent Note: PoolConfiguration FROM ballerina/http package
+    # HTTP response caching related configurations
+    http:CacheConfig cache?; // Special Agent Note: CacheConfig FROM ballerina/http package
+    # Enable request/response compression (using `accept-encoding` header)
+    http:Compression compression?; // Special Agent Note: Compression FROM ballerina/http package
+    # Client authentication options (Basic, Bearer token, OAuth, etc.)
+Circuit breaker configurations to prevent cascading failures
+    http:CircuitBreakerConfig|() circuitBreaker?; // Special Agent Note: CircuitBreakerConfig FROM ballerina/http package
+    # Automatic retry settings for failed requests
+    http:RetryConfig|() retryConfig?; // Special Agent Note: RetryConfig FROM ballerina/http package
+    # Cookie handling settings for session management
+    http:CookieConfig|() cookieConfig?; // Special Agent Note: CookieConfig FROM ballerina/http package
+    # Configurations related to client authentication
+    http:CredentialsConfig|http:BearerTokenConfig|http:JwtIssuerConfig|http:OAuth2ClientCredentialsGrantConfig|http:OAuth2PasswordGrantConfig|http:OAuth2RefreshTokenGrantConfig|http:OAuth2JwtBearerGrantConfig|AgentIdAuthConfig|() auth?; // Special Agent Note: CredentialsConfig, BearerTokenConfig, JwtIssuerConfig, OAuth2ClientCredentialsGrantConfig, OAuth2PasswordGrantConfig, OAuth2RefreshTokenGrantConfig, OAuth2JwtBearerGrantConfig FROM ballerina/http package
+    # Limits for response size and headers (to prevent memory issues)
+    http:ResponseLimitConfigs responseLimits?; // Special Agent Note: ResponseLimitConfigs FROM ballerina/http package
+    # Proxy server settings if requests need to go through a proxy
+    http:ProxyConfig|() proxy?; // Special Agent Note: ProxyConfig FROM ballerina/http package
+    # Enable automatic payload validation for request/response data against constraints
+    boolean validation?;
+    # Low-level socket settings (timeouts, buffer sizes, etc.)
+    http:ClientSocketConfig socketConfig?; // Special Agent Note: ClientSocketConfig FROM ballerina/http package
+    # Enable relaxed data binding on the client side.
+When enabled:
+- `null` values in JSON are allowed to be mapped to optional fields
+- missing fields in JSON are allowed to be mapped as `null` values
+    boolean laxDataBinding?;
+    # SSL/TLS-related options
+    http:ClientSecureSocket|() secureSocket?; // Special Agent Note: ClientSecureSocket FROM ballerina/http package
+    # Optional session identifier for continued interactions
+    string sessionId?;
+};
+
+# Represents a vector store that provides persistence, management, and search capabilities for vector embeddings.
+class VectorStore {
+
+    # Adds vector entries to the store.
+    # 
+    function add(VectorEntry[] entries) returns Error|();
+
+    # Searches for vectors in the store that are most similar to a given query.
+    # 
+    function query(VectorStoreQuery query) returns VectorMatch[]|Error;
+
+    # Deletes a vector entry from the store by its unique ID.
+    # 
+    function delete(string|string[] ids) returns Error|();
+}
+
+# Initialize an Agent.
+# 
+class Agent {
+    function init(SystemPrompt systemPrompt = {role: "", instructions: ""}, ModelProvider model = object {}, BaseToolKit|ToolConfig|FunctionTool[] tools = [], "INFER_TOOL_COUNT"|int maxIter = INFER_TOOL_COUNT, boolean verbose = false, Memory|() memory = (), ToolLoadingStrategy toolLoadingStrategy = NO_FILTER, boolean executeToolCallsInParallel = true, Credential credential = {id: "", secret: ""}, @display {label: "Agent Configuration"} AgentConfiguration config) returns Error?;
+
+    # Executes the agent for a given query.
+    # 
+    # Pass a `string`/`Prompt` to start a new turn, or a `Resume` (the human's decisions on a
+    # previously paused run) to continue a run that paused for human approval on this session. The
+    # input type is what distinguishes a fresh turn from a resume - there is no separate resume
+    # operation. A `Resume` for a session with no pending approval fails with `ApprovalNotFoundError`.
+    # 
+    # **Note:** Calls to this function using the same session ID must be invoked sequentially by the caller,
+    # as this operation is not thread-safe.
+    # 
+    function run(@display {label: "Query"} string|Prompt|Resume query, @display {label: "Session ID"} string sessionId = "", Context context = new (), Trace|anydata td = ai:Trace|anydata) returns td|Error;
+}
+
+# Register tools to the agent. 
+# These tools will be by the LLM to perform tasks.
+# 
+class ToolStore {
+    function init(BaseToolKit|ToolConfig|FunctionTool[] tools) returns Error?;
+
+    # execute the tool decided by the LLM.
+    # 
+    function execute(LlmToolResponse action, Context context = new ()) returns ToolOutput|LlmInvalidGenerationError|ToolExecutionError;
+}
+
+# Initializes short-term memory with an optional store and overflow configuration.
+# 
+class ShortTermMemory {
+    function init(ShortTermMemoryStore|() store = (), OverflowHandlerConfiguration overflowConfiguration = <TrimOverflowHandlerConfiguration> {}) returns MemoryError?;
+
+    # Retrieves all stored chat messages.
+    # 
+    function get(string key) returns ChatMessage[]|MemoryError;
+
+    # Adds one or more chat messages to the memory, handling overflow as configured.
+    # 
+    function update(string key, ChatUserMessage|ChatSystemMessage|ChatAssistantMessage|ChatFunctionMessage|ChatMessage[] message) returns MemoryError|();
+
+    # Deletes all messages stored against a key.
+    # 
+    function delete(string key) returns MemoryError|();
+
+    # Stores (or replaces) the pending approval for its session.
+    # 
+    function putCheckpoint(PendingApproval approval) returns Error|();
+
+    # Returns the pending approval for a session, if any.
+    # 
+    function getCheckpoint(string sessionId) returns PendingApproval|()|Error;
+
+    # Removes the pending approval for a session, if any.
+    # 
+    function removeCheckpoint(string sessionId) returns Error|();
+
+    # Atomically fetches and removes the pending approval for a session, if any.
+    # 
+    function takeCheckpoint(string sessionId) returns PendingApproval|()|Error;
+}
+
+# Initializes a new instance of the `GenericRecursiveChunker`.
+# 
+class GenericRecursiveChunker {
+    function init(int maxChunkSize = 200, int maxOverlapSize = 40, RecursiveChunkStrategy strategy = PARAGRAPH) returns ();
+
+    # Chunks the provided document.
+    function chunk(Document document) returns Chunk[]|Error;
+}
+
+# Initializes a new instance of the `MarkdownChunker`.
+# 
+class MarkdownChunker {
+    function init(int maxChunkSize = 200, int maxOverlapSize = 40, MarkdownChunkStrategy strategy = MARKDOWN_HEADER) returns ();
+
+    # Chunks the provided document.
+    function chunk(Document document) returns Chunk[]|Error;
+}
+
+# Initializes a new instance of the `HtmlChunker`.
+# 
+class HtmlChunker {
+    function init(int maxChunkSize = 200, int maxOverlapSize = 40, HtmlChunkStrategy strategy = HTML_HEADER) returns ();
+
+    # Chunks the provided document.
+    # 
+    function chunk(Document document) returns Chunk[]|Error;
+}
+
+# Initializes the data loader with the given paths.
+class TextDataLoader {
+    function init(string paths) returns Error?;
+
+    # Loads documents as `TextDocument`s from a source.
+    function load() returns Document[]|Document|Error;
+}
+
+class Listener {
+    function init(int|http:Listener listenOn = 8090) returns error?; // Special Agent Note: Listener FROM ballerina/http package
+
+    function attach(ChatService chatService, string[]|string|() name = ()) returns error?;
+
+    function detach(ChatService chatService) returns error?;
+
+    function 'start() returns error?;
+
+    function gracefulStop() returns error?;
+
+    function immediateStop() returns error?;
+}
+
+# Initializes a new memory window with a default or given size.
+@deprecated
+class MessageWindowChatMemory {
+    function init(int size = 10) returns ();
+
+    # Retrieves a copy of all stored messages, with an optional system prompt.
+    # 
+    function get(string sessionId) returns ChatMessage[]|MemoryError;
+
+    # Stores one or more chat messages in memory for the specified session.
+    # 
+    function update(string sessionId, ChatUserMessage|ChatSystemMessage|ChatAssistantMessage|ChatFunctionMessage|ChatMessage[] message) returns MemoryError|();
+
+    # Removes all messages from the memory.
+    # 
+    function delete(string sessionId) returns MemoryError|();
+}
+
+# Initializes a new `Retriever` instance.
+# 
+class VectorRetriever {
+    function init(VectorStore vectorStore, EmbeddingProvider embeddingModel) returns ();
+
+    # Retrieves relevant chunks for the given query.
+    # 
+    function retrieve(string query, int topK = 0, MetadataFilters|() filters = ()) returns QueryMatch[]|Error;
+}
+
+# Initializes a new `VectorKnowledgeBase` instance.
+# 
+class VectorKnowledgeBase {
+    function init(VectorStore vectorStore, EmbeddingProvider embeddingModel, Chunker|"AUTO"|"DISABLE" chunker = AUTO) returns ();
+
+    # Indexes a collection of chunks.
+    # Converts each chunk to an embedding and stores it in the vector store,
+    # making the chunk searchable through the retriever.
+    # 
+    function ingest(Document|Document[]|Chunk[] documents) returns Error|();
+
+    # Retrieves relevant chunk for the given query.
+    # 
+    function retrieve(string query, int topK = 0, MetadataFilters|() filters = ()) returns QueryMatch[]|Error;
+
+    # Deletes chunks that match the given metadata filters.
+    # 
+    function deleteByFilter(MetadataFilters filters) returns Error|();
+}
+
+# Initializes a new in-memory store.
+# 
+class InMemoryShortTermMemoryStore {
+    function init(int size = 10) returns MemoryError?;
+
+    # Retrieves the system message, if it was provided, for a given key.
+    # 
+    function getChatSystemMessage(string key) returns ChatSystemMessage|();
+
+    # Retrieves a copy of all stored messages, with an optional system prompt.
+    # 
+    function getChatInteractiveMessages(string key) returns ChatInteractiveMessage[];
+
+    # Retrieves all stored chat messages for a given key.
+    # 
+    function getAll(string key) returns [ChatSystemMessage, ChatInteractiveMessage...]|ChatInteractiveMessage[]|MemoryError;
+
+    # Adds one or more chat messages to the memory store for a given key.
+    # 
+    function put(string key, ChatUserMessage|ChatSystemMessage|ChatAssistantMessage|ChatFunctionMessage|ChatMessage[] message) returns MemoryError|();
+
+    # Removes the system chat message, if specified, for a given key.
+    # 
+    function removeChatSystemMessage(string key) returns ();
+
+    # Removes stored messages for a given key.
+    # 
+    function removeChatInteractiveMessages(string key, int|() count = ()) returns MemoryError|();
+
+    # Removes all stored chat messages for a given key.
+    # 
+    function removeAll(string key) returns MemoryError|();
+
+    # Checks if the memory store is full for a given key.
+    # 
+    function isFull(string key) returns boolean;
+
+    # Returns the capacity configured for each key in the `InMemoryShortTermMemoryStore`.
+    # 
+    function getCapacity() returns int;
+
+    # Stores (or replaces) the pending human-in-the-loop approval for its session.
+    # 
+    function putCheckpoint(PendingApproval approval) returns Error|();
+
+    # Returns the pending human-in-the-loop approval for a session, if any.
+    # 
+    function getCheckpoint(string sessionId) returns PendingApproval|()|Error;
+
+    # Removes the pending human-in-the-loop approval for a session, if any.
+    # 
+    function removeCheckpoint(string sessionId) returns Error|();
+
+    # Atomically fetches and removes the pending human-in-the-loop approval for a session, if any.
+    # 
+    function takeCheckpoint(string sessionId) returns PendingApproval|()|Error;
+}
+
+class McpToolKit {
+    function init(string serverUrl, string[]|() permittedTools = (), mcp:Implementation info = {name: "MCP Client", version: "1.0.0"}, http:HttpVersion httpVersion = http:HTTP_2_0, http:ClientHttp1Settings http1Settings = {}, http:ClientHttp2Settings http2Settings = {}, decimal timeout = 30, string forwarded = "disable", http:FollowRedirects|() followRedirects = (), http:PoolConfiguration|() poolConfig = (), http:CacheConfig cache = {}, http:Compression compression = AUTO, http:CircuitBreakerConfig|() circuitBreaker = (), http:RetryConfig|() retryConfig = (), http:CookieConfig|() cookieConfig = (), http:CredentialsConfig|http:BearerTokenConfig|http:JwtIssuerConfig|http:OAuth2ClientCredentialsGrantConfig|http:OAuth2PasswordGrantConfig|http:OAuth2RefreshTokenGrantConfig|http:OAuth2JwtBearerGrantConfig|AgentIdAuthConfig|() auth = (), http:ResponseLimitConfigs responseLimits = {}, http:ProxyConfig|() proxy = (), boolean validation = true, http:ClientSocketConfig socketConfig = {}, boolean laxDataBinding = false, http:ClientSecureSocket|() secureSocket = (), string sessionId = "", StreamableHttpClientTransportConfig config) returns Error?; // Special Agent Note: Implementation FROM ballerina/mcp package, HttpVersion, ClientHttp1Settings, ClientHttp2Settings, FollowRedirects, PoolConfiguration, CacheConfig, Compression, CircuitBreakerConfig, RetryConfig, CookieConfig, CredentialsConfig, BearerTokenConfig, JwtIssuerConfig, OAuth2ClientCredentialsGrantConfig, OAuth2PasswordGrantConfig, OAuth2RefreshTokenGrantConfig, OAuth2JwtBearerGrantConfig, ResponseLimitConfigs, ProxyConfig, ClientSocketConfig, ClientSecureSocket FROM ballerina/http package
+
+    function callTool(mcp:CallToolParams params) returns mcp:CallToolResult|error; // Special Agent Note: CallToolParams, CallToolResult FROM ballerina/mcp package
+
+    function getTools() returns ToolConfig[];
+}
+
+# Initializes the toolkit with the given service url and http tools.
+# 
+class HttpServiceToolKit {
+    function init(string serviceUrl, HttpTool[] httpTools, http:ClientConfiguration clientConfig = {}, map<string|string[]> headers = {}) returns Error?; // Special Agent Note: ClientConfiguration FROM ballerina/http package
+
+    # Useful to retrieve the Tools extracted from the HttpTools.
+    function getTools() returns ToolConfig[];
+}
+
+# Initializes a new in-memory vector store.
+# 
+class InMemoryVectorStore {
+    function init(SimilarityMetric similarityMetric = COSINE) returns Error?;
+
+    # Adds vector entries to the in-memory store.
+    # Only supports dense vectors in this implementation. 
+    # If a vector entry with the same ID already exists, it will be replaced.
+    # 
+    function add(VectorEntry[] entries) returns Error|();
+
+    # Queries the vector store for vectors similar to the given query.
+    # 
+    function query(VectorStoreQuery query) returns VectorMatch[]|Error;
+
+    # Deletes a vector entry from the in-memory store.
+    # Remove entries that matches the given reference identifiers.
+    # 
+    function delete(string|string[] ids) returns Error|();
+}
+
+// --- Client ---
+
+# A client class for interacting with a chat service.
+client class ChatClient {
+    function init(string serviceUrl, http:HttpVersion httpVersion = "2.0", http:ClientHttp1Settings http1Settings = {}, http:ClientHttp2Settings http2Settings = {}, decimal timeout = 0.0d, string forwarded = "", http:FollowRedirects|() followRedirects = (), http:PoolConfiguration|() poolConfig = (), http:CacheConfig cache = {}, http:Compression compression = "AUTO", http:CredentialsConfig|http:BearerTokenConfig|http:JwtIssuerConfig|http:OAuth2ClientCredentialsGrantConfig|http:OAuth2PasswordGrantConfig|http:OAuth2RefreshTokenGrantConfig|http:OAuth2JwtBearerGrantConfig|() auth = (), http:CircuitBreakerConfig|() circuitBreaker = (), http:RetryConfig|() retryConfig = (), http:CookieConfig|() cookieConfig = (), http:ResponseLimitConfigs responseLimits = {}, http:ProxyConfig|() proxy = (), boolean validation = false, http:ClientSocketConfig socketConfig = {}, boolean laxDataBinding = false, http:ClientSecureSocket|() secureSocket = (), ChatClientConfiguration clientConfig) returns error?; // Special Agent Note: HttpVersion, ClientHttp1Settings, ClientHttp2Settings, FollowRedirects, PoolConfiguration, CacheConfig, Compression, CredentialsConfig, BearerTokenConfig, JwtIssuerConfig, OAuth2ClientCredentialsGrantConfig, OAuth2PasswordGrantConfig, OAuth2RefreshTokenGrantConfig, OAuth2JwtBearerGrantConfig, CircuitBreakerConfig, RetryConfig, CookieConfig, ResponseLimitConfigs, ProxyConfig, ClientSocketConfig, ClientSecureSocket FROM ballerina/http package
+
+    # Handles incoming chat messages by sending a request to the chat service.
+    # 
+    resource function post chat(ChatReqMessage request) returns ChatRespMessage|error;
+}
+
+# WSO2 embedding provider implementation that provides embedding capabilities using WSO2's AI service.
+client class Wso2EmbeddingProvider {
+    function init(string serviceUrl, string accessToken, http:HttpVersion httpVersion = http:HTTP_2_0, http:ClientHttp1Settings http1Settings = {}, http:ClientHttp2Settings http2Settings = {}, decimal timeout = 60, string forwarded = "disable", http:PoolConfiguration poolConfig = {}, http:CacheConfig cache = {}, http:Compression compression = AUTO, http:CircuitBreakerConfig circuitBreaker = {}, http:RetryConfig retryConfig = {}, http:ResponseLimitConfigs responseLimits = {}, http:ClientSecureSocket secureSocket = {}, http:ProxyConfig proxy = {}, boolean validation = true, ConnectionConfig connectionConfig) returns Error?; // Special Agent Note: HttpVersion, ClientHttp1Settings, ClientHttp2Settings, PoolConfiguration, CacheConfig, Compression, CircuitBreakerConfig, RetryConfig, ResponseLimitConfigs, ClientSecureSocket, ProxyConfig FROM ballerina/http package
+
+    # Converts chunk to embedding.
+    # 
+    remote function embed(Chunk chunk) returns Vector|SparseVector|HybridVector|Error;
+
+    # Converts a batch of chunks into embeddings.
+    # 
+    remote function batchEmbed(Chunk[] chunks) returns Embedding[]|Error;
+}
+
+# WSO2 model provider implementation that provides chat completion capabilities using WSO2's AI services.
+client class Wso2ModelProvider {
+    function init(@display {label: "Service URL"} string serviceUrl, @display {label: "Access Token"} string accessToken, @display {label: "Temperature"} decimal temperature = 0.7, @display {label: "Generator Configuration"} ai:GeneratorConfig & readonly generatorConfig = {}, http:HttpVersion httpVersion = http:HTTP_2_0, http:ClientHttp1Settings http1Settings = {}, http:ClientHttp2Settings http2Settings = {}, decimal timeout = 60, string forwarded = "disable", http:PoolConfiguration poolConfig = {}, http:CacheConfig cache = {}, http:Compression compression = AUTO, http:CircuitBreakerConfig circuitBreaker = {}, http:RetryConfig retryConfig = {}, http:ResponseLimitConfigs responseLimits = {}, http:ClientSecureSocket secureSocket = {}, http:ProxyConfig proxy = {}, boolean validation = true, @display {label: "Connection Configuration"} ConnectionConfig connectionConfig) returns Error?; // Special Agent Note: HttpVersion, ClientHttp1Settings, ClientHttp2Settings, PoolConfiguration, CacheConfig, Compression, CircuitBreakerConfig, RetryConfig, ResponseLimitConfigs, ClientSecureSocket, ProxyConfig FROM ballerina/http package
+
+    # Sends a chat request to the model with the given messages and tools.
+    # 
+    remote function chat(ChatMessage[]|ChatUserMessage messages, ChatCompletionFunctions[] tools, string|() stop = ()) returns ChatAssistantMessage|Error;
+
+    # Sends a chat request to the model and generates a value that belongs to the type
+    # corresponding to the type descriptor argument.
+    # 
+    remote function generate(Prompt prompt, @display {label: "Expected type"} anydata td = anydata) returns td|Error;
+}
+
+// --- Functions ---
+
+# Get the tools registered with the agent.
+# 
+# + agent - Agent instance
+# + return - Array of tools registered with the agent
+function getTools(Agent agent) returns Tool[];
+
+# Provides functionality to recursively chunk a text document using a configurable strategy.
+# 
+# The chunking process begins with the specified strategy and recursively falls back to
+# finer-grained strategies if the content exceeds the configured `maxChunkSize`. Overlapping content
+# between chunks can be controlled using `maxOverlapSize`.
+# 
+# + document - The input document or string to be chunked
+# + maxChunkSize - Maximum number of characters allowed per chunk
+# + maxOverlapSize - Maximum number of characters to reuse from the end of the previous chunk when creating the next one.
+This overlap is made of complete sentences taken in reverse from the previous chunk, without exceeding
+this limit. It helps maintain context between chunks during splitting.
+# + strategy - The recursive chunking strategy to use. Defaults to `PARAGRAPH`
+# + return - An array of chunks, or an `ai:Error` if the chunking fails.
+function chunkDocumentRecursively(Document|string document, int maxChunkSize = 200, int maxOverlapSize = 40, RecursiveChunkStrategy strategy = PARAGRAPH) returns Chunk[]|Error;
+
+# Provides functionality to recursively chunk a markdown document using a configurable strategy.
+# 
+# The chunking process begins with the specified strategy and recursively falls back to
+# finer-grained strategies if the content exceeds the configured `maxChunkSize`. Overlapping content
+# between chunks can be controlled using `maxOverlapSize`.
+# 
+# + document - The input document to be chunked
+# + maxChunkSize - Maximum number of characters allowed per chunk
+# + maxOverlapSize - Maximum number of characters to reuse from the end of the previous chunk when creating the next one.
+# + strategy - The markdown chunking strategy to use. Defaults to `MARKDOWN_HEADER`
+# + return - An array of chunks, or an `ai:Error` if the chunking fails.
+function chunkMarkdownDocument(Document document, int maxChunkSize, int maxOverlapSize, MarkdownChunkStrategy strategy = MARKDOWN_HEADER) returns TextChunk[]|Error;
+
+# Provides functionality to recursively chunk a HTML document using a configurable strategy.
+# 
+# The chunking process begins with the specified strategy and recursively falls back to
+# finer-grained strategies if the content exceeds the configured `maxChunkSize`. Overlapping content
+# between chunks can be controlled using `maxOverlapSize`.
+# 
+# + document - The input document to be chunked
+# + maxChunkSize - Maximum number of characters allowed per chunk
+# + maxOverlapSize - Maximum number of characters to reuse from the end of the previous chunk when creating the next one.
+# + strategy - The HTML chunking strategy to use. Defaults to `HTML_HEADER`
+# + return - An array of chunks, or an `ai:Error` if the chunking fails.
+function chunkHtmlDocument(Document document, int maxChunkSize, int maxOverlapSize, HtmlChunkStrategy strategy = HTML_HEADER) returns TextChunk[]|Error;
+
+# Extracts the Http tools from the given OpenAPI specification file.
+# 
+# + filePath - Path to the OpenAPI specification file (should be JSON or YAML)
+# + extractDescription - Flag to extract description of parameters and schema attributes from the OpenAPI specification
+# + extractDefault - Flag to extract default values of parameters and schema attributes from the OpenAPI specification
+# + additionInfoFlags - Flags to extract additional information from the OpenAPI specification
+# + return - A record with the list of extracted tools and the service URL (if available)
+function extractToolsFromOpenApiSpecFile(string filePath, boolean extractDescription = false, boolean extractDefault = false, AdditionInfoFlags additionInfoFlags) returns HttpApiSpecification & readonly|Error;
+
+# Extracts the Http tools from the given OpenAPI specification as a JSON 
+# 
+# + openApiSpec - A valid OpenAPI specification in JSON format
+# + extractDescription - Flag to extract description of parameters and schema attributes from the OpenAPI specification
+# + extractDefault - Flag to extract default values of parameters and schema attributes from the OpenAPI specification
+# + additionInfoFlags - Flags to extract additional information from the OpenAPI specification
+# + return - A record with the list of extracted tools and the service URL (if available)
+function extractToolsFromOpenApiJsonSpec(map<json> openApiSpec, boolean extractDescription = false, boolean extractDefault = false, AdditionInfoFlags additionInfoFlags) returns HttpApiSpecification & readonly|Error;
+
+# Parses the given OpenAPI specification as a JSON to a OpenApiSpec object.
+# 
+# + openApiSpec - A valid OpenAPI specification in JSON format
+# + return - A OpenApiSpec object
+function parseOpenApiSpec(map<json> openApiSpec) returns OpenApiSpec|UnsupportedOpenApiVersion|OpenApiParsingError;
+
+# Creates a default model provider based on the provided `wso2ProviderConfig`.
+# + return - A `Wso2ModelProvider` instance if the configuration is valid; otherwise, an `ai:Error`.
+function getDefaultModelProvider() returns Wso2ModelProvider|Error;
+
+# Creates a default embedding provider based on the provided `wso2ProviderConfig`.
+# + return - A `Wso2EmbeddingProvider` instance if the configuration is valid; otherwise, an `ai:Error`.
+function getDefaultEmbeddingProvider() returns Wso2EmbeddingProvider|Error;
+
+# Augments the user's query with relevant context.
+# 
+# + context - Array of matched chunks or documents to include as context
+# + query - The user's original question
+# + return - The augmented query with injected context
+function augmentUserQuery(QueryMatch[]|Document[] context, string query) returns ChatUserMessage;
+
+# Loads conversation threads from a evaluation dataset JSON file.
+# 
+# Parses an evaluation set JSON file containing conversation threads with agent traces.
+# The JSON must contain a root object with an array of threads, where each thread represents
+# a conversation thread with multiple traces of agent executions.
+# 
+# Expected structure: `{ "id": "...", "name": "...", "description": "...", "threads": [...] }`
+# where each thread in the array has `id`, `description`, and `traces` fields.
+# 
+# + evalSetPath - Path to the JSON file containing the evaluation dataset
+# + return - Map of conversation threads indexed by thread ID, or an `Error` if the file cannot be read or parsed
+function loadConversationThreads(string evalSetPath) returns map<[ConversationThread & readonly]>|Error;
+
+# Extracts the user query from a conversation trace.
+# 
+# + trace - The conversation trace containing the user message
+# + return - The user query as a string
+function getUserQuery(Trace trace) returns string;
+
+# Executes an AgentTool.
+# 
+# + tool - Function pointer to the AgentTool
+# + llmToolInput - Tool input generated by the LLM
+# + context - Additional context for the tool execution
+# + return - Result of the tool execution
+function executeTool(FunctionTool tool, map<json> llmToolInput, Context context = new) returns ToolExecutionResult;
+
+# Generates a array of `ToolConfig` from the given list of function pointers.
+# 
+# + tools - Array of function pointers annotated with `@ai:AgentTool` annotation
+# + return - Array of `ai:ToolConfig` instances
+function getToolConfigs(FunctionTool[] tools) returns ToolConfig[];
+
+# Constructs the list of permitted MCP tool configurations by querying the MCP server.
+# 
+# This function initializes the MCP client using the provided implementation information
+# and retrieves the list of tools permitted for use. Each permitted tool is then associated
+# with a corresponding MCP function tool dispatcher.
+# 
+# A tool dispatcher is a function with the following signature:
+# ```ballerina
+# @ai:AgentTool
+# isolated function (mcp:CallToolParams) returns mcp:CallToolResult|error;
+# ```
+# 
+# + mcpClient - The MCP client instance used to query the MCP server
+# + info - The implementation information used to initialize the client
+# + permittedTools - A map of tool names to their respective MCP function tool dispatchers,
+or a single dispatcher if all tools are permitted
+# + auth - Configuration for authenticating with an external authorization server
+to obtain access tokens required for MCP tool invocation
+# + return - An array of tool configurations or an error if the operation fails
+function getPermittedMcpToolConfigs(mcp:StreamableHttpClient mcpClient, mcp:Implementation info, map<ai:FunctionTool>|ai:FunctionTool permittedTools, AgentIdAuthConfig|() auth = ()) returns ToolConfig[]|Error; // Special Agent Note: StreamableHttpClient, Implementation FROM ballerina/mcp package
+
+// --- Service ---
+
+service ai:ChatService on new ai:Listener(int|http:Listener listenOn = 8090) {
+    remote function chat(ai:ChatReqMessage request) returns ai:ChatRespMessage|error;
+}
+
+// --- Annotations ---
+
+public annotation map<json> JsonSchema on type;
+
+# Represents the annotation of a function tool.
+public annotation ToolAnnotationConfig AgentTool on function, object function;

@@ -1,0 +1,1861 @@
+// ============================================================
+// Library: ballerinax/hubspot.crm.lists
+// [HubSpot](https://www.hubspot.com/) is an AI-powered customer relationship management (CRM) platform.
+// ============================================================
+import ballerinax/hubspot.crm.lists;
+
+// --- README ---
+## Overview
+
+[HubSpot](https://www.hubspot.com/) is an AI-powered customer relationship management (CRM) platform.
+
+The HubSpot connector offers APIs to connect and interact with the [HubSpot CRM Lists API](https://developers.hubspot.com/docs/reference/api/crm/lists) endpoints, specifically based on the [HubSpot REST API](https://developers.hubspot.com/docs/reference/api/overview)
+
+### Key Features
+
+- Create, read, update, and delete CRM contact lists
+- Manage list membership and filtering criteria
+- Search and query lists with filtering support
+- Support for static and dynamic list types
+
+## Setup guide
+
+To use the HubSpot CRM Lists connector, you must have access to the HubSpot API through a HubSpot developer account and a HubSpot App under it. Therefore you need to register for a developer account at HubSpot if you don't have one already.
+
+### Step 1: Create/Login to a HubSpot Developer Account
+
+If you have an account already, go to the [HubSpot developer portal](https://app.hubspot.com/)
+
+If you don't have a HubSpot Developer Account you can sign up for a free account [here](https://developers.hubspot.com/get-started)
+
+### Step 2 (Optional): Create a Developer Test Account
+
+Within app developer accounts, you can create a [developer test account](https://developers.hubspot.com/beta-docs/getting-started/account-types#developer-test-accounts) under your account to test apps and integrations without affecting any real HubSpot data.
+
+> **Note:** These accounts are only for development and testing purposes. In production, you should not use Developer Test Accounts.
+
+1. Go to the Test Account section from the left sidebar.
+
+   ![Hubspot developer portal](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.lists/main/docs/setup/resources/test_acc_1.png)
+
+2. Click Create developer test account.
+
+   ![Creating a hubspot test account](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.lists/main/docs/setup/resources/test_acc_2.png)
+
+3. In the dialogue box, give a name to your test account and click "Create".
+
+   ![Adding a name and description for the test account](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.lists/main/docs/setup/resources/test_acc_3.png)
+
+### Step 3: Create a HubSpot App under your account
+
+1. In your developer account, navigate to the "Apps" section. Click on "Create App"
+
+   ![Creating a new App](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.lists/main/docs/setup/resources/create_app_1.png)
+
+2. Provide the necessary details, including the app name and description.
+
+### Step 4: Configure the Authentication Flow
+
+1. Move to the Auth Tab.
+
+   ![Selecting the Auth tab](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.lists/main/docs/setup/resources/create_app_2.png)
+
+2. In the Scopes section, add the following scopes for your app using the "Add new scope" button.
+
+   * `crm.lists.read`
+   * `crm.lists.write`
+   * `cms.membership.access_groups.write`
+
+   ![List of scopes](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.lists/main/docs/setup/resources/scope_set.png)
+
+   The scopes listed above are the mandatory scopes needed to use the HubSpot CRM Lists API. However, you may need to add additional scopes based on your use case. For example, if you are working with contacts, you may need to add `crm.objects.contacts.read` and `crm.objects.contacts.write` scopes as well.
+
+3. Add your Redirect URI in the relevant section. You can also use `localhost` addresses for local development purposes. Click "Create App".
+
+   ![Adding the redirect URI and save](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.lists/main/docs/setup/resources/create_app_final.png)
+
+### Step 5: Get your Client ID and Client Secret
+
+Navigate to the Auth section of your app. Make sure to save the provided Client ID and Client Secret.
+
+   ![Client ID and secret of the App](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.lists/main/docs/setup/resources/get_credentials.png)
+
+### Step 6: Setup Authentication Flow
+
+Before proceeding with the Quickstart, ensure you have obtained the Access Token using the following steps:
+
+1. Create an authorization URL using the following format:
+
+   ```
+   https://app.hubspot.com/oauth/authorize?client_id=<YOUR_CLIENT_ID>&scope=<YOUR_SCOPES>&redirect_uri=<YOUR_REDIRECT_URI>
+   ```
+
+   Replace the `<YOUR_CLIENT_ID>`, `<YOUR_REDIRECT_URI>`, and `<YOUR_SCOPES>` with your specific value.
+
+2. Paste it in the browser and select your developer test account to install the app when prompted. Provide consent for all scopes needed.
+
+   ![Selecting the App for OAuth process](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.lists/main/docs/setup/resources/install_app.png)
+
+3. A code will be displayed in the browser. Copy the code.
+
+4. Run the following curl command. Replace the `<YOUR_CLIENT_ID>`, `<YOUR_REDIRECT_URI>`, and `<YOUR_CLIENT_SECRET>` with your specific value. Use the code you received in the above step 3 as the `<CODE>`.
+
+   - Linux/macOS
+
+     ```bash
+     curl --request POST \
+     --url https://api.hubapi.com/oauth/v1/token \
+     --header 'content-type: application/x-www-form-urlencoded' \
+     --data 'grant_type=authorization_code&code=<CODE>&redirect_uri=<YOUR_REDIRECT_URI>&client_id=<YOUR_CLIENT_ID>&client_secret=<YOUR_CLIENT_SECRET>'
+     ```
+
+   - Windows
+
+     ```bash
+     curl --request POST ^
+     --url https://api.hubapi.com/oauth/v1/token ^
+     --header 'content-type: application/x-www-form-urlencoded' ^
+     --data 'grant_type=authorization_code&code=<CODE>&redirect_uri=<YOUR_REDIRECT_URI>&client_id=<YOUR_CLIENT_ID>&client_secret=<YOUR_CLIENT_SECRET>'
+     ```
+
+   This command will return the access token necessary for API calls.
+
+   ```json
+   {
+     "token_type": "bearer",
+     "refresh_token": "<Refresh Token>",
+     "access_token": "<Access Token>",
+     "expires_in": 1800
+   }
+   ```
+
+5. Store the access token securely for use in your application.
+
+## Quickstart
+
+To use the `HubSpot CRM Lists` connector in your Ballerina application, update the `.bal` file as follows:
+
+### Step 1: Import the module
+
+Import the `hubspot.crm.lists` module and `oauth2` module.
+
+```ballerina
+import ballerinax/hubspot.crm.lists as hslists;
+import ballerina/oauth2;
+```
+
+### Step 2: Instantiate a new connector
+
+1. Create a `Config.toml` file and, configure the obtained credentials in the above steps as follows:
+
+   ```toml
+    clientId = <Client Id>
+    clientSecret = <Client Secret>
+    refreshToken = <Refresh Token>
+   ```
+
+2. Instantiate an `OAuth2RefreshTokenGrantConfig` with the obtained credentials and initialize the connector with it.
+
+    ```ballerina
+    configurable string clientId = ?;
+    configurable string clientSecret = ?;
+    configurable string refreshToken = ?;
+
+    OAuth2RefreshTokenGrantConfig auth = {
+        clientId,
+        clientSecret,
+        refreshToken,
+        credentialBearer: oauth2:POST_BODY_BEARER
+    };
+
+    final hslists:Client crmListClient = check new ({auth});
+    ```
+
+### Step 3: Invoke the connector operation
+
+Now, utilize the available connector operations. A sample use case is shown below.
+
+#### Create a CRM List
+
+```ballerina
+public function main() returns error? {
+    hslists:ListCreateRequest payload = {
+        objectTypeId: "0-1",
+        processingType: "MANUAL",
+        name: "my-test-list"
+    };
+    hslists:ListCreateResponse response = check crmListClient->post_create(payload);
+}
+```
+
+## Examples
+
+The `HubSpot CRM Lists` connector provides practical examples illustrating usage in various scenarios. Explore these [examples](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.lists/tree/main/examples/), covering the following use cases:
+
+1. [Customer Support Ticket Manager](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.lists/tree/main/examples/customer_support_tickets_manager) - Integrates with HubSpot CRM Lists to create filtered lists of customer support tickets based on the priority level of the ticket.
+2. [Leads Tracker](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.lists/tree/main/examples/leads_tracker) - Integrates with HubSpot CRM Lists to create Manual Lists and add leads(contacts) to the lists.
+
+// --- END README ---
+
+// --- Types ---
+
+# Defines a filter that evaluates a specific object property using a supported property operation type
+
+type PublicPropertyFilter record {
+    # The name of the object property to filter on
+    string property;
+    # The filter type identifier; must be set to PROPERTY
+    "PROPERTY" filterType?;
+    # The operation applied to the property, supporting bool, number, string, date, enumeration, and range-based comparisons
+    PublicBoolPropertyOperation|PublicNumberPropertyOperation|PublicStringPropertyOperation|PublicDateTimePropertyOperation|PublicRangedDatePropertyOperation|PublicComparativePropertyUpdatedOperation|PublicComparativeDatePropertyOperation|PublicRollingDateRangePropertyOperation|PublicRollingPropertyUpdatedOperation|PublicEnumerationPropertyOperation|PublicAllPropertyTypesOperation|PublicRangedNumberPropertyOperation|PublicMultiStringPropertyOperation|PublicDatePropertyOperation|PublicCalendarDatePropertyOperation|PublicTimePointOperation|PublicRangedTimeOperation operation;
+};
+
+# A boolean property filter operation that evaluates a property against a true/false value using a specified operator
+
+type PublicBoolPropertyOperation record {
+    # Whether to include objects where the property has no value set
+    boolean includeObjectsWithNoValueSet;
+    # The operation type identifier, fixed as 'BOOL'
+    "BOOL" operationType?;
+    # The boolean value to evaluate against the property
+    boolean value;
+    # The comparison operator applied to the boolean property
+    string operator;
+};
+
+# Defines a numeric property filter operation with an operator, value, and null-value handling
+
+type PublicNumberPropertyOperation record {
+    # Whether to include records where the property has no value
+    boolean includeObjectsWithNoValueSet;
+    # The operation type identifier; always set to "NUMBER"
+    "NUMBER" operationType?;
+    # The numeric value to compare against the property
+    decimal value;
+    # The comparison operator applied to the numeric property value
+    string operator;
+};
+
+# Defines a string property operation, including the operator, value, and whether to include objects with no value set
+
+type PublicStringPropertyOperation record {
+    # Whether to include objects where the property has no value
+    boolean includeObjectsWithNoValueSet;
+    # Operation type identifier; always `STRING`
+    "STRING" operationType?;
+    # The string value used in the property operation comparison
+    string value;
+    # The comparison operator applied to the string property
+    string operator;
+};
+
+# Defines a datetime property filter operation with operator, timestamp, and timezone settings
+
+type PublicDateTimePropertyOperation record {
+    # Whether to include objects where this property has no value
+    boolean includeObjectsWithNoValueSet;
+    # Whether the timestamp requires timezone conversion before evaluation
+    boolean requiresTimeZoneConversion;
+    # The operation type identifier; must be 'DATETIME'
+    "DATETIME" operationType?;
+    # The comparison operator applied to the datetime property value
+    string operator;
+    # The reference timestamp (int32) used in the datetime comparison
+    int:Signed32 timestamp;
+};
+
+# A property operation that filters records where a date value falls within a specified range
+
+type PublicRangedDatePropertyOperation record {
+    # Whether to include objects with no value set for this property
+    boolean includeObjectsWithNoValueSet;
+    # The upper bound of the date range as an integer value
+    int:Signed32 upperBound;
+    # Whether the date value requires time zone conversion
+    boolean requiresTimeZoneConversion;
+    # The operation type identifier, always set to RANGED_DATE
+    "RANGED_DATE" operationType?;
+    # The lower bound of the date range as an integer value
+    int:Signed32 lowerBound;
+    # The comparison operator applied to the ranged date property
+    string operator;
+};
+
+# Filter operation that matches records where a property was updated relative to another property's value
+
+type PublicComparativePropertyUpdatedOperation record {
+    # Whether to include records with no value set
+    boolean includeObjectsWithNoValueSet;
+    # Fallback value used when the comparison property has no value
+    string defaultComparisonValue?;
+    # Operation type identifier; always COMPARATIVE_PROPERTY_UPDATED
+    "COMPARATIVE_PROPERTY_UPDATED" operationType?;
+    # Name of the property to compare against
+    string comparisonPropertyName;
+    # Comparison operator applied between the two properties
+    string operator;
+};
+
+# Defines a comparative date operation that filters records by comparing a date property against another property's value
+
+type PublicComparativeDatePropertyOperation record {
+    # Whether to include records with no value set for the property
+    boolean includeObjectsWithNoValueSet;
+    # Fallback value used when the comparison property has no value
+    string defaultComparisonValue?;
+    # The operation type identifier; always 'COMPARATIVE_DATE'
+    "COMPARATIVE_DATE" operationType?;
+    # Name of the property whose value is used for date comparison
+    string comparisonPropertyName;
+    # The comparison operator applied between the two date properties
+    string operator;
+};
+
+# Operation that evaluates a property against a rolling date range spanning a specified number of days
+
+type PublicRollingDateRangePropertyOperation record {
+    # Whether to include objects that have no value set for the property
+    boolean includeObjectsWithNoValueSet;
+    # Whether the date range evaluation requires time zone conversion
+    boolean requiresTimeZoneConversion;
+    # The operation type identifier; always set to ROLLING_DATE_RANGE
+    "ROLLING_DATE_RANGE" operationType?;
+    # The number of days defining the rolling date range window
+    int:Signed32 numberOfDays;
+    # The comparison operator applied within the rolling date range
+    string operator;
+};
+
+# Defines a rolling filter operation that matches records whose property was updated within a specified number of days
+
+type PublicRollingPropertyUpdatedOperation record {
+    # Whether to include records that have no value set for the property
+    boolean includeObjectsWithNoValueSet;
+    # The operation type identifier, fixed as ROLLING_PROPERTY_UPDATED
+    "ROLLING_PROPERTY_UPDATED" operationType?;
+    # The number of days in the rolling window for the property update check
+    int:Signed32 numberOfDays;
+    # The comparison operator applied in the rolling property updated operation
+    string operator;
+};
+
+# Defines a filter operation that evaluates an enumeration property against a set of specified values
+
+type PublicEnumerationPropertyOperation record {
+    # Whether to include objects where the property has no value set
+    boolean includeObjectsWithNoValueSet;
+    # List of enumeration values to match against
+    string[] values;
+    # The operation type identifier, fixed to 'ENUMERATION'
+    "ENUMERATION" operationType?;
+    # The comparison operator applied to the enumeration property
+    string operator;
+};
+
+# Defines a filter operation applicable to all property types, requiring an operator and specifying whether to include objects with no value set
+
+type PublicAllPropertyTypesOperation record {
+    # Whether to include objects where the property has no value set
+    boolean includeObjectsWithNoValueSet;
+    # The operation type identifier, fixed as 'ALL_PROPERTY'
+    "ALL_PROPERTY" operationType?;
+    # The comparison operator applied across all property types
+    string operator;
+};
+
+# Defines a ranged number operation that filters records whose numeric property value falls within a specified range
+
+type PublicRangedNumberPropertyOperation record {
+    # Whether to include records with no value set for the property
+    boolean includeObjectsWithNoValueSet;
+    # The inclusive upper bound of the numeric range
+    int:Signed32 upperBound;
+    # The operation type identifier; always 'NUMBER_RANGED'
+    "NUMBER_RANGED" operationType?;
+    # The inclusive lower bound of the numeric range
+    int:Signed32 lowerBound;
+    # The comparison operator applied to evaluate the numeric range
+    string operator;
+};
+
+# A property operation that evaluates a set of string values using a multi-string comparison operator
+
+type PublicMultiStringPropertyOperation record {
+    # Whether to include objects where the property has no value
+    boolean includeObjectsWithNoValueSet;
+    # The list of string values to evaluate against the property
+    string[] values;
+    # The operation type identifier, fixed to 'MULTISTRING'
+    "MULTISTRING" operationType?;
+    # The comparison operator applied to the multi-string values
+    string operator;
+};
+
+# Defines a filter operation on a date property using a specific day, month, and year with a comparison operator
+
+type PublicDatePropertyOperation record {
+    # Whether to include objects where the date property has no value
+    boolean includeObjectsWithNoValueSet;
+    # The month component of the target date for the filter operation
+    string month;
+    # The year component of the target date for the filter operation
+    int:Signed32 year;
+    # Operation type identifier, fixed as 'DATE'
+    "DATE" operationType?;
+    # The day component of the target date for the filter operation
+    int:Signed32 day;
+    # The comparison operator applied to the date property value
+    string operator;
+};
+
+# Filter operation that evaluates a date property against a calendar-based time unit
+
+type PublicCalendarDatePropertyOperation record {
+    # Whether to evaluate the date property using fiscal year boundaries
+    boolean useFiscalYear?;
+    # Month in which the fiscal year begins for date calculations
+    "JANUARY"|"FEBRUARY"|"MARCH"|"APRIL"|"MAY"|"JUNE"|"JULY"|"AUGUST"|"SEPTEMBER"|"OCTOBER"|"NOVEMBER"|"DECEMBER" fiscalYearStart?;
+    # Whether to include objects where the date property has no value
+    boolean includeObjectsWithNoValueSet;
+    # Discriminator identifying this operation as type CALENDAR_DATE
+    "CALENDAR_DATE" operationType?;
+    # Number of time units used in the calendar date evaluation
+    int:Signed32 timeUnitCount?;
+    # The comparison operator applied to the date property
+    string operator;
+    # The unit of time used for the date property operation
+    string timeUnit;
+};
+
+# A time-point filter operation that evaluates a property against a specific point in time
+
+type PublicTimePointOperation record {
+    # Defines how the time-point boundary is handled (inclusive/exclusive)
+    string endpointBehavior?;
+    # Whether to include objects where the property has no value set
+    boolean includeObjectsWithNoValueSet;
+    # The parser used to interpret the property value for comparison
+    string propertyParser?;
+    # The operation type identifier; always `TIME_POINT` for this schema
+    "TIME_POINT" operationType?;
+    # The reference time point: a date, indexed time, or property-referenced time
+    PublicDatePoint|PublicIndexedTimePoint|PublicPropertyReferencedTime timePoint;
+    # The property type to which this time-point operation applies
+    string 'type;
+    # The comparison operator used to evaluate the time-point condition
+    string operator;
+};
+
+# Represents a specific date point with year, month, day, and optional time components, anchored to a time zone
+
+type PublicDatePoint record {
+    # The month component of the date point (1–12)
+    int:Signed32 month;
+    # The hour component of the time (0–23)
+    int:Signed32 hour?;
+    # The year component of the date point
+    int:Signed32 year;
+    # The source used to determine the time zone
+    string timezoneSource?;
+    # The millisecond component of the time (0–999)
+    int:Signed32 millisecond?;
+    # The time type identifier, fixed as 'DATE'
+    "DATE" timeType?;
+    # The IANA time zone ID used to interpret the date point
+    string zoneId;
+    # The day component of the date point (1–31)
+    int:Signed32 day;
+    # The minute component of the time (0–59)
+    int:Signed32 minute?;
+    # The second component of the date-time value
+    int:Signed32 second?;
+};
+
+# A time point defined relative to a named index reference such as now, today, or a fiscal period
+
+type PublicIndexedTimePoint record {
+    # Represents a composite time offset broken down into individual calendar and time unit components
+    PublicIndexOffset offset?;
+    # Source used to determine the timezone for this time point
+    string timezoneSource?;
+    # The named time reference anchor, such as now, today, week, month, quarter, or year
+    PublicNowReference|PublicTodayReference|PublicWeekReference|PublicFiscalQuarterReference|PublicFiscalYearReference|PublicYearReference|PublicQuarterReference|PublicMonthReference indexReference;
+    # Discriminator identifying this time point as INDEXED type
+    "INDEXED" timeType?;
+    # IANA timezone ID used to resolve the time point
+    string zoneId;
+};
+
+# Represents a composite time offset broken down into individual calendar and time unit components
+
+type PublicIndexOffset record {
+    # Milliseconds component of the time offset
+    int:Signed32 milliseconds?;
+    # Hours component of the time offset
+    int:Signed32 hours?;
+    # Seconds component of the time offset
+    int:Signed32 seconds?;
+    # Months component of the time offset
+    int:Signed32 months?;
+    # Weeks component of the time offset
+    int:Signed32 weeks?;
+    # Minutes component of the time offset
+    int:Signed32 minutes?;
+    # Quarters component of the time offset
+    int:Signed32 quarters?;
+    # Days component of the time offset
+    int:Signed32 days?;
+    # Years component of the time offset
+    int:Signed32 years?;
+};
+
+# A relative date reference representing the current moment, with optional time offset components
+
+type PublicNowReference record {
+    # The hour component of the now reference time
+    int:Signed32 hour?;
+    # Millisecond component of the current time reference
+    int:Signed32 millisecond?;
+    # Reference type identifier, fixed value 'NOW'
+    "NOW" referenceType?;
+    # Minute component of the current time reference
+    int:Signed32 minute?;
+    # Second component of the current time reference
+    int:Signed32 second?;
+};
+
+# A relative date reference representing today, with optional time components for precise intraday targeting
+
+type PublicTodayReference record {
+    # The hour component of the today reference time
+    int:Signed32 hour?;
+    # The millisecond component of the today reference time
+    int:Signed32 millisecond?;
+    # The reference type identifier, fixed value 'TODAY'
+    "TODAY" referenceType?;
+    # The minute component of the today reference time
+    int:Signed32 minute?;
+    # The second component of the today reference time
+    int:Signed32 second?;
+};
+
+# A time reference anchored to a specific day and optional time within a week
+
+type PublicWeekReference record {
+    # The day of the week for the reference point
+    "MONDAY"|"TUESDAY"|"WEDNESDAY"|"THURSDAY"|"FRIDAY"|"SATURDAY"|"SUNDAY" dayOfWeek;
+    # The hour component of the week reference time
+    int:Signed32 hour?;
+    # The millisecond component of the week reference time
+    int:Signed32 millisecond?;
+    # The reference type identifier, fixed value 'WEEK'
+    "WEEK" referenceType?;
+    # The minute component of the week reference time
+    int:Signed32 minute?;
+    # The second component of the week reference time
+    int:Signed32 second?;
+};
+
+# Defines a fiscal quarter time reference with date and time components
+
+type PublicFiscalQuarterReference record {
+    # The hour component of the fiscal quarter reference timestamp
+    int:Signed32 hour?;
+    # The month component of the fiscal quarter reference date
+    int:Signed32 month;
+    # The millisecond component of the fiscal quarter reference timestamp
+    int:Signed32 millisecond?;
+    # The reference type identifier, always set to 'FISCAL_QUARTER'
+    "FISCAL_QUARTER" referenceType?;
+    # The day component of the fiscal quarter reference date
+    int:Signed32 day;
+    # The minute component of the fiscal quarter reference timestamp
+    int:Signed32 minute?;
+    # The second component of the fiscal quarter reference timestamp
+    int:Signed32 second?;
+};
+
+# A time reference point anchored to a fiscal year boundary
+
+type PublicFiscalYearReference record {
+    # Hour component of the fiscal year reference timestamp
+    int:Signed32 hour?;
+    # Month component of the fiscal year reference timestamp
+    int:Signed32 month;
+    # Millisecond component of the fiscal year reference timestamp
+    int:Signed32 millisecond?;
+    # Discriminator identifying this reference as type FISCAL_YEAR
+    "FISCAL_YEAR" referenceType?;
+    # Day component of the fiscal year reference timestamp
+    int:Signed32 day;
+    # Minute component of the fiscal year reference timestamp
+    int:Signed32 minute?;
+    # Second component of the fiscal year reference timestamp
+    int:Signed32 second?;
+};
+
+# A date/time reference anchored to a specific year, with optional time components
+
+type PublicYearReference record {
+    # The hour component of the year reference time
+    int:Signed32 hour?;
+    # The month component of the year reference date
+    int:Signed32 month;
+    # The millisecond component of the year reference time
+    int:Signed32 millisecond?;
+    # Identifies the reference type; always set to 'YEAR'
+    "YEAR" referenceType?;
+    # The day component of the year reference date
+    int:Signed32 day;
+    # The minute component of the year reference time
+    int:Signed32 minute?;
+    # The second component of the year reference time
+    int:Signed32 second?;
+};
+
+# Represents a quarter-based time reference with specific date and time components for filtering or segmentation
+
+type PublicQuarterReference record {
+    # The hour component of the quarter reference time
+    int:Signed32 hour?;
+    # The month component of the quarter reference date
+    int:Signed32 month;
+    # The millisecond component of the quarter reference time
+    int:Signed32 millisecond?;
+    # Identifies the reference type; always set to QUARTER for this schema
+    "QUARTER" referenceType?;
+    # The day component of the quarter reference date
+    int:Signed32 day;
+    # The minute component of the quarter reference time
+    int:Signed32 minute?;
+    # The second component of the quarter reference time
+    int:Signed32 second?;
+};
+
+# Defines a time reference anchored to a specific day and time within the current month
+
+type PublicMonthReference record {
+    # Hour component of the month-based time reference
+    int:Signed32 hour?;
+    # Millisecond component of the month-based time reference
+    int:Signed32 millisecond?;
+    # Reference type identifier, fixed value 'MONTH'
+    "MONTH" referenceType?;
+    # Day of the month for the time reference
+    int:Signed32 day;
+    # Minute component of the month-based time reference
+    int:Signed32 minute?;
+    # Second component of the month-based time reference
+    int:Signed32 second?;
+};
+
+# Represents a time value derived from a referenced property, including timezone and reference type configuration
+
+type PublicPropertyReferencedTime record {
+    # The source used to determine the timezone for the time value
+    string timezoneSource?;
+    # The name of the property from which the time value is referenced
+    string property;
+    # Time type identifier; always `PROPERTY_REFERENCED`
+    "PROPERTY_REFERENCED" timeType?;
+    # The timezone zone ID applied to the referenced time value
+    string zoneId;
+    # The type of reference used to resolve the property time value
+    string referenceType;
+};
+
+# Defines a ranged time operation filtering records where a time property falls between two time points
+
+type PublicRangedTimeOperation record {
+    # Defines whether the upper bound is inclusive or exclusive
+    string upperBoundEndpointBehavior?;
+    # Whether to include records with no value for the property
+    boolean includeObjectsWithNoValueSet;
+    # The upper boundary time point for the ranged time filter
+    PublicDatePoint|PublicIndexedTimePoint|PublicPropertyReferencedTime upperBoundTimePoint;
+    # Parser used to interpret the property's time value format
+    string propertyParser?;
+    # Identifies the category of operation being applied
+    string operationType;
+    # Operation type identifier; always set to TIME_RANGED
+    "TIME_RANGED" 'type?;
+    # Defines whether the lower bound is inclusive or exclusive
+    string lowerBoundEndpointBehavior?;
+    # The comparison operator applied to the time range
+    string operator;
+    # The lower boundary time point for the ranged time filter
+    PublicDatePoint|PublicIndexedTimePoint|PublicPropertyReferencedTime lowerBoundTimePoint;
+};
+
+# Defines a filter that evaluates whether an object has associations matching a specific list, type, and operator
+
+type PublicAssociationInListFilter record {
+    # The ID of the list used to match associated objects
+    string listId;
+    # Refines the association filter by occurrence count, set, or timestamp-based constraints
+    PublicNumOccurrencesRefineBy|PublicSetOccurrencesRefineBy|PublicRelativeComparativeTimestampRefineBy|PublicRelativeRangedTimestampRefineBy|PublicAbsoluteComparativeTimestampRefineBy|PublicAbsoluteRangedTimestampRefineBy|PublicAllHistoryRefineBy|PublicTimePointOperation|PublicRangedTimeOperation coalescingRefineBy;
+    # The object type of the associated records being evaluated
+    string toObjectType?;
+    # Numeric ID identifying the association type
+    int:Signed32 associationTypeId;
+    # Category classifying the association relationship
+    string associationCategory;
+    # Filter type discriminator; always 'ASSOCIATION' for this filter
+    "ASSOCIATION" filterType?;
+    # Object type ID of the associated target object
+    string toObjectTypeId?;
+    # Comparison operator applied to the association filter
+    string operator;
+};
+
+# Refines filter results by constraining the number of event occurrences
+
+type PublicNumOccurrencesRefineBy record {
+    # The maximum number of occurrences allowed to match the filter
+    int:Signed32 maxOccurrences?;
+    # The refine-by type; always 'NUM_OCCURRENCES'
+    "NUM_OCCURRENCES" 'type?;
+    # The minimum number of occurrences required to match the filter
+    int:Signed32 minOccurrences?;
+};
+
+# Refine-by definition that filters based on a predefined set of occurrence values
+
+type PublicSetOccurrencesRefineBy record {
+    # The refine-by type identifier, fixed as 'SET_OCCURRENCES'
+    "SET_OCCURRENCES" 'type?;
+    # The category or kind of occurrence set to apply
+    string setType;
+};
+
+# Refines a timestamp filter using a relative comparative offset and comparison type
+
+type PublicRelativeComparativeTimestampRefineBy record {
+    # The comparison direction applied to the relative time offset
+    string comparison;
+    # Defines a time offset with a magnitude, unit, and direction for relative time calculations
+    PublicTimeOffset timeOffset;
+    # Discriminator identifying this refine-by type as RELATIVE_COMPARATIVE
+    "RELATIVE_COMPARATIVE" 'type?;
+};
+
+# Defines a time offset with a magnitude, unit, and direction for relative time calculations
+
+type PublicTimeOffset record {
+    # The magnitude of the time offset
+    int amount;
+    # The direction of the time offset (e.g., forward or backward)
+    string offsetDirection;
+    # The unit of time for the offset (e.g., days, hours, minutes)
+    string timeUnit;
+};
+
+# Refines a timestamp filter using a relative range defined by upper and lower bound time offsets
+
+type PublicRelativeRangedTimestampRefineBy record {
+    # Defines a time offset with a magnitude, unit, and direction for relative time calculations
+    PublicTimeOffset upperBoundOffset;
+    # Specifies the type of relative time range applied to the timestamp filter
+    string rangeType;
+    # Defines a time offset with a magnitude, unit, and direction for relative time calculations
+    PublicTimeOffset lowerBoundOffset;
+    # Discriminator type identifying this refine-by as RELATIVE_RANGED
+    "RELATIVE_RANGED" 'type?;
+};
+
+# Refines a filter by comparing against an absolute timestamp value
+
+type PublicAbsoluteComparativeTimestampRefineBy record {
+    # The comparison operator applied to the timestamp
+    string comparison;
+    # Refine-by type; must be ABSOLUTE_COMPARATIVE
+    "ABSOLUTE_COMPARATIVE" 'type?;
+    # The absolute timestamp value in milliseconds (epoch)
+    int timestamp;
+};
+
+# Refines filter results by an absolute timestamp range defined by explicit lower and upper epoch millisecond boundaries
+
+type PublicAbsoluteRangedTimestampRefineBy record {
+    # Specifies the category or interpretation of the timestamp range
+    string rangeType;
+    # The upper bound of the timestamp range, in epoch milliseconds
+    int upperTimestamp;
+    # The lower bound of the timestamp range, in epoch milliseconds
+    int lowerTimestamp;
+    # Refine-by type identifier, fixed as 'ABSOLUTE_RANGED'
+    "ABSOLUTE_RANGED" 'type?;
+};
+
+# Refine-by filter that includes the full history of a record
+
+type PublicAllHistoryRefineBy record {
+    # Discriminator identifying this refine-by as ALL_HISTORY type
+    "ALL_HISTORY" 'type?;
+};
+
+# Filter criteria for segmenting contacts based on page view analytics events
+
+type PublicPageViewAnalyticsFilter record {
+    # Refine filter results by occurrence count, set, or timestamp criteria
+    PublicNumOccurrencesRefineBy|PublicSetOccurrencesRefineBy|PublicRelativeComparativeTimestampRefineBy|PublicRelativeRangedTimestampRefineBy|PublicAbsoluteComparativeTimestampRefineBy|PublicAbsoluteRangedTimestampRefineBy|PublicAllHistoryRefineBy|PublicTimePointOperation|PublicRangedTimeOperation coalescingRefineBy?;
+    # Whether analytics tracking is enabled for this filter
+    boolean enableTracking?;
+    # Narrows the filter window by occurrence count, set, or timestamp range
+    PublicNumOccurrencesRefineBy|PublicSetOccurrencesRefineBy|PublicRelativeComparativeTimestampRefineBy|PublicRelativeRangedTimestampRefineBy|PublicAbsoluteComparativeTimestampRefineBy|PublicAbsoluteRangedTimestampRefineBy|PublicAllHistoryRefineBy|PublicTimePointOperation|PublicRangedTimeOperation pruningRefineBy?;
+    # The URL of the page to filter contacts by view activity
+    string pageUrl;
+    # Identifies the filter type; always set to PAGE_VIEW for this filter
+    "PAGE_VIEW" filterType?;
+    # The comparison operator applied to the page view filter condition
+    string operator;
+};
+
+# Filter criteria based on CTA (call-to-action) analytics interactions, supporting occurrence and timestamp refinements
+
+type PublicCtaAnalyticsFilter record {
+    # Refine filter results by aggregating across occurrences or time ranges
+    PublicNumOccurrencesRefineBy|PublicSetOccurrencesRefineBy|PublicRelativeComparativeTimestampRefineBy|PublicRelativeRangedTimestampRefineBy|PublicAbsoluteComparativeTimestampRefineBy|PublicAbsoluteRangedTimestampRefineBy|PublicAllHistoryRefineBy|PublicTimePointOperation|PublicRangedTimeOperation coalescingRefineBy?;
+    # Refine filter results by restricting occurrences or time ranges
+    PublicNumOccurrencesRefineBy|PublicSetOccurrencesRefineBy|PublicRelativeComparativeTimestampRefineBy|PublicRelativeRangedTimestampRefineBy|PublicAbsoluteComparativeTimestampRefineBy|PublicAbsoluteRangedTimestampRefineBy|PublicAllHistoryRefineBy|PublicTimePointOperation|PublicRangedTimeOperation pruningRefineBy?;
+    # The filter type identifier, fixed as 'CTA'
+    "CTA" filterType?;
+    # The name of the CTA to filter against
+    string ctaName;
+    # The comparison operator applied to the CTA filter
+    string operator;
+};
+
+# Defines a filter based on an analytics event, supporting coalescing and pruning refinements to control event occurrence matching
+
+type PublicEventAnalyticsFilter record {
+    # The unique identifier of the analytics event to filter on
+    string eventId;
+    # Refine-by criteria that merges or aggregates matching event occurrences before evaluation
+    PublicNumOccurrencesRefineBy|PublicSetOccurrencesRefineBy|PublicRelativeComparativeTimestampRefineBy|PublicRelativeRangedTimestampRefineBy|PublicAbsoluteComparativeTimestampRefineBy|PublicAbsoluteRangedTimestampRefineBy|PublicAllHistoryRefineBy|PublicTimePointOperation|PublicRangedTimeOperation coalescingRefineBy?;
+    # Refine-by criteria that narrows the set of event occurrences considered during evaluation
+    PublicNumOccurrencesRefineBy|PublicSetOccurrencesRefineBy|PublicRelativeComparativeTimestampRefineBy|PublicRelativeRangedTimestampRefineBy|PublicAbsoluteComparativeTimestampRefineBy|PublicAbsoluteRangedTimestampRefineBy|PublicAllHistoryRefineBy|PublicTimePointOperation|PublicRangedTimeOperation pruningRefineBy?;
+    # Filter type identifier, fixed as 'EVENT'
+    "EVENT" filterType?;
+    # The comparison operator applied to the analytics event filter
+    string operator;
+};
+
+# Filter that matches contacts based on form submission activity, supporting occurrence and timestamp refinements
+
+type PublicFormSubmissionFilter record {
+    # The unique identifier of the form to filter by
+    string formId?;
+    # Refines filter results by aggregating across all matching submission events
+    PublicNumOccurrencesRefineBy|PublicSetOccurrencesRefineBy|PublicRelativeComparativeTimestampRefineBy|PublicRelativeRangedTimestampRefineBy|PublicAbsoluteComparativeTimestampRefineBy|PublicAbsoluteRangedTimestampRefineBy|PublicAllHistoryRefineBy|PublicTimePointOperation|PublicRangedTimeOperation coalescingRefineBy?;
+    # Refines filter results by restricting to a specific subset of submission events
+    PublicNumOccurrencesRefineBy|PublicSetOccurrencesRefineBy|PublicRelativeComparativeTimestampRefineBy|PublicRelativeRangedTimestampRefineBy|PublicAbsoluteComparativeTimestampRefineBy|PublicAbsoluteRangedTimestampRefineBy|PublicAllHistoryRefineBy|PublicTimePointOperation|PublicRangedTimeOperation pruningRefineBy?;
+    # The filter type identifier; always set to FORM_SUBMISSION
+    "FORM_SUBMISSION" filterType?;
+    # Operator indicating whether the form was filled out or not
+    "FILLED_OUT"|"NOT_FILLED_OUT" operator;
+};
+
+# A filter that matches contacts based on form submissions on a specific page
+
+type PublicFormSubmissionOnPageFilter record {
+    # The unique identifier of the form to filter on
+    string formId?;
+    # Refines matching by coalescing events based on time range or occurrence criteria
+    PublicNumOccurrencesRefineBy|PublicSetOccurrencesRefineBy|PublicRelativeComparativeTimestampRefineBy|PublicRelativeRangedTimestampRefineBy|PublicAbsoluteComparativeTimestampRefineBy|PublicAbsoluteRangedTimestampRefineBy|PublicAllHistoryRefineBy|PublicTimePointOperation|PublicRangedTimeOperation coalescingRefineBy?;
+    # Refines the filter by pruning events based on time range or occurrence criteria
+    PublicNumOccurrencesRefineBy|PublicSetOccurrencesRefineBy|PublicRelativeComparativeTimestampRefineBy|PublicRelativeRangedTimestampRefineBy|PublicAbsoluteComparativeTimestampRefineBy|PublicAbsoluteRangedTimestampRefineBy|PublicAllHistoryRefineBy|PublicTimePointOperation|PublicRangedTimeOperation pruningRefineBy?;
+    # Filter type identifier, always set to `FORM_SUBMISSION_ON_PAGE`
+    "FORM_SUBMISSION_ON_PAGE" filterType?;
+    # The unique identifier of the page where the form submission occurred
+    string pageId;
+    # Specifies whether the form was filled out or not (`FILLED_OUT`, `NOT_FILLED_OUT`)
+    "FILLED_OUT"|"NOT_FILLED_OUT" operator;
+};
+
+# A filter that targets records based on a specific integration event type
+
+type PublicIntegrationEventFilter record {
+    # The numeric ID of the integration event type to filter on
+    int:Signed32 eventTypeId;
+    # The metadata conditions applied to the integration event filter
+    PublicEventFilterMetadata[] filterLines;
+    # The filter type identifier, always 'INTEGRATION_EVENT'
+    "INTEGRATION_EVENT" filterType?;
+};
+
+# Defines filter metadata for an event, pairing a property name with a typed filter operation to evaluate against that property
+
+type PublicEventFilterMetadata record {
+    # The name of the event property to filter on
+    string property;
+    # The filter operation applied to the specified property, supporting multiple property types
+    PublicBoolPropertyOperation|PublicNumberPropertyOperation|PublicStringPropertyOperation|PublicDateTimePropertyOperation|PublicRangedDatePropertyOperation|PublicComparativePropertyUpdatedOperation|PublicComparativeDatePropertyOperation|PublicRollingDateRangePropertyOperation|PublicRollingPropertyUpdatedOperation|PublicEnumerationPropertyOperation|PublicAllPropertyTypesOperation|PublicRangedNumberPropertyOperation|PublicMultiStringPropertyOperation|PublicDatePropertyOperation|PublicCalendarDatePropertyOperation|PublicTimePointOperation|PublicRangedTimeOperation operation;
+};
+
+# Defines a filter that matches records based on email subscription status and subscription IDs
+
+type PublicEmailSubscriptionFilter record {
+    # The type of email subscription used to categorize the filter
+    string subscriptionType?;
+    # Array of subscription IDs to include in the email subscription filter
+    string[] subscriptionIds;
+    # Identifies the filter type; always set to EMAIL_SUBSCRIPTION for this schema
+    "EMAIL_SUBSCRIPTION" filterType?;
+    # Array of subscription statuses that satisfy this filter condition
+    string[] acceptedStatuses;
+};
+
+# Filter that matches records based on communication subscription status, channel, and opt-in state
+
+type PublicCommunicationSubscriptionFilter record {
+    # The type of communication subscription to filter on
+    string subscriptionType;
+    # List of subscription IDs to include in the filter criteria
+    string[] subscriptionIds;
+    # The communication channel associated with the subscription filter
+    string channel;
+    # The opt-in states that are accepted by this subscription filter
+    string[] acceptedOptStates;
+    # Discriminator identifying this filter type as COMMUNICATION_SUBSCRIPTION
+    "COMMUNICATION_SUBSCRIPTION" filterType?;
+    # The business unit ID scoping this subscription filter
+    string businessUnitId?;
+};
+
+# Defines a filter that matches records influenced by a specific campaign
+
+type PublicCampaignInfluencedFilter record {
+    # The unique identifier of the influencing campaign
+    string campaignId;
+    # The filter type identifier; must be 'CAMPAIGN_INFLUENCED'
+    "CAMPAIGN_INFLUENCED" filterType?;
+};
+
+# Filters records based on SurveyMonkey survey participation
+
+type PublicSurveyMonkeyFilter record {
+    # The unique identifier of the SurveyMonkey survey
+    string surveyId;
+    # Filter type identifier, fixed as 'SURVEY_MONKEY'
+    "SURVEY_MONKEY" filterType?;
+    # The comparison operator applied to the SurveyMonkey filter
+    string operator;
+};
+
+# Filter that evaluates contacts based on a specific SurveyMonkey survey response value
+
+type PublicSurveyMonkeyValueFilter record {
+    # The property operation used to compare the survey response value
+    PublicBoolPropertyOperation|PublicNumberPropertyOperation|PublicStringPropertyOperation|PublicDateTimePropertyOperation|PublicRangedDatePropertyOperation|PublicComparativePropertyUpdatedOperation|PublicComparativeDatePropertyOperation|PublicRollingDateRangePropertyOperation|PublicRollingPropertyUpdatedOperation|PublicEnumerationPropertyOperation|PublicAllPropertyTypesOperation|PublicRangedNumberPropertyOperation|PublicMultiStringPropertyOperation|PublicDatePropertyOperation|PublicCalendarDatePropertyOperation|PublicTimePointOperation|PublicRangedTimeOperation valueComparison;
+    # The unique identifier of the SurveyMonkey survey
+    string surveyId;
+    # The survey question whose response value is being evaluated
+    string surveyQuestion;
+    # The filter type identifier, always set to SURVEY_MONKEY_VALUE
+    "SURVEY_MONKEY_VALUE" filterType?;
+    # The row identifier for a specific survey answer in a matrix question
+    string surveyAnswerRowId?;
+    # The column ID of the survey answer to filter on
+    string surveyAnswerColId?;
+    # The comparison operator applied to the survey answer value
+    string operator;
+};
+
+# Defines a filter that segments records based on webinar participation or registration
+
+type PublicWebinarFilter record {
+    # The unique identifier of the target webinar
+    string webinarId?;
+    # Filter type identifier; always set to WEBINAR
+    "WEBINAR" filterType?;
+    # The operator defining the webinar filter condition
+    string operator;
+};
+
+# Filter definition for matching records based on email events, such as opens, clicks, bounces, or replies, scoped to a specific email and app
+
+type PublicEmailEventFilter record {
+    # URL of the link clicked within the email, used when filtering by click events
+    string clickUrl?;
+    # Scope level at which the email event filter is applied
+    string level;
+    # Optional refinement criteria to narrow event matches by occurrence count, frequency, or time range
+    PublicNumOccurrencesRefineBy|PublicSetOccurrencesRefineBy|PublicRelativeComparativeTimestampRefineBy|PublicRelativeRangedTimestampRefineBy|PublicAbsoluteComparativeTimestampRefineBy|PublicAbsoluteRangedTimestampRefineBy|PublicAllHistoryRefineBy|PublicTimePointOperation|PublicRangedTimeOperation pruningRefineBy?;
+    # Identifier of the app associated with the email event
+    string appId;
+    # Identifier of the specific email to filter events against
+    string emailId;
+    # Filter type identifier, always set to `EMAIL_EVENT`
+    "EMAIL_EVENT" filterType?;
+    # The email event action to filter on (e.g., OPENED, CLICKED, BOUNCED)
+    "LINK_CLICKED"|"MARKED_SPAM"|"OPENED"|"OPENED_BUT_LINK_NOT_CLICKED"|"OPENED_BUT_NOT_REPLIED"|"REPLIED"|"UNSUBSCRIBED"|"BOUNCED"|"RECEIVED"|"RECEIVED_BUT_NOT_OPENED"|"SENT"|"SENT_BUT_LINK_NOT_CLICKED"|"SENT_BUT_NOT_RECEIVED" operator;
+};
+
+# Defines a privacy-based analytics filter using a privacy name and comparison operator
+
+type PublicPrivacyAnalyticsFilter record {
+    # The name of the privacy setting used in the filter
+    string privacyName;
+    # The filter type identifier, fixed to 'PRIVACY'
+    "PRIVACY" filterType?;
+    # The comparison operator applied to the privacy filter
+    string operator;
+};
+
+# Filter definition for searching list members by ads search criteria, including ad network, entity type, and search terms
+
+type PublicAdsSearchFilter record {
+    # The list of search terms to match against
+    string[] searchTerms;
+    # The type of ad entity to filter on
+    string entityType;
+    # The ad network to target with this filter
+    string adNetwork;
+    # The classification type of the provided search terms
+    string searchTermType;
+    # The filter type identifier, fixed value 'ADS_SEARCH'
+    "ADS_SEARCH" filterType?;
+    # The logical operator applied to evaluate the filter
+    string operator;
+};
+
+# A time-based filter for ads interactions, supporting various time range and occurrence refinements
+
+type PublicAdsTimeFilter record {
+    # Refines the filter by pruning events based on time range or occurrence criteria
+    PublicNumOccurrencesRefineBy|PublicSetOccurrencesRefineBy|PublicRelativeComparativeTimestampRefineBy|PublicRelativeRangedTimestampRefineBy|PublicAbsoluteComparativeTimestampRefineBy|PublicAbsoluteRangedTimestampRefineBy|PublicAllHistoryRefineBy|PublicTimePointOperation|PublicRangedTimeOperation pruningRefineBy;
+    # Filter type identifier, always set to `ADS_TIME`
+    "ADS_TIME" filterType?;
+};
+
+# Filter that matches contacts or objects based on membership in a specified list
+
+type PublicInListFilter record {
+    # The unique identifier of the list used for membership filtering
+    string listId;
+    # Metadata describing a filter condition that checks membership in a list
+    PublicInListFilterMetadata metadata?;
+    # The filter type identifier, always set to IN_LIST
+    "IN_LIST" filterType?;
+    # The operator used to evaluate list membership
+    string operator;
+};
+
+# Metadata describing a filter condition that checks membership in a list
+
+type PublicInListFilterMetadata record {
+    # The unique identifier of the target list
+    string id;
+    # The type classification of the in-list filter condition
+    string inListType;
+};
+
+# Defines a filter that evaluates the number of associations of a specified type and category for an object
+
+type PublicNumAssociationsFilter record {
+    # Refines the filter by specifying occurrence count, set, or timestamp-based constraints
+    PublicNumOccurrencesRefineBy|PublicSetOccurrencesRefineBy|PublicRelativeComparativeTimestampRefineBy|PublicRelativeRangedTimestampRefineBy|PublicAbsoluteComparativeTimestampRefineBy|PublicAbsoluteRangedTimestampRefineBy|PublicAllHistoryRefineBy|PublicTimePointOperation|PublicRangedTimeOperation coalescingRefineBy;
+    # The numeric ID identifying the association type to filter on
+    int:Signed32 associationTypeId;
+    # The category of the association type used in the filter
+    string associationCategory;
+    # The filter type identifier; must be set to NUM_ASSOCIATIONS
+    "NUM_ASSOCIATIONS" filterType?;
+};
+
+# Filter definition for segmenting lists based on unified event criteria
+
+type PublicUnifiedEventsFilter record {
+    # Refine filter by merging overlapping event occurrences using a specified strategy
+    PublicNumOccurrencesRefineBy|PublicSetOccurrencesRefineBy|PublicRelativeComparativeTimestampRefineBy|PublicRelativeRangedTimestampRefineBy|PublicAbsoluteComparativeTimestampRefineBy|PublicAbsoluteRangedTimestampRefineBy|PublicAllHistoryRefineBy|PublicTimePointOperation|PublicRangedTimeOperation coalescingRefineBy?;
+    # Identifier of the unified event type to filter against
+    string eventTypeId?;
+    # Array of event filter metadata conditions applied to this filter
+    PublicEventFilterMetadata[] filterLines;
+    # Refine filter by pruning event occurrences outside a specified scope
+    PublicNumOccurrencesRefineBy|PublicSetOccurrencesRefineBy|PublicRelativeComparativeTimestampRefineBy|PublicRelativeRangedTimestampRefineBy|PublicAbsoluteComparativeTimestampRefineBy|PublicAbsoluteRangedTimestampRefineBy|PublicAllHistoryRefineBy|PublicTimePointOperation|PublicRangedTimeOperation pruningRefineBy?;
+    # Discriminator identifying this filter as type UNIFIED_EVENTS
+    "UNIFIED_EVENTS" filterType?;
+};
+
+# A filter that matches records based on a property association with members of a specified list
+
+type PublicPropertyAssociationInListFilter record {
+    # The unique identifier of the list used for the association filter
+    string listId;
+    # Refines matching by coalescing events based on time range or occurrence criteria
+    PublicNumOccurrencesRefineBy|PublicSetOccurrencesRefineBy|PublicRelativeComparativeTimestampRefineBy|PublicRelativeRangedTimestampRefineBy|PublicAbsoluteComparativeTimestampRefineBy|PublicAbsoluteRangedTimestampRefineBy|PublicAllHistoryRefineBy|PublicTimePointOperation|PublicRangedTimeOperation coalescingRefineBy;
+    # The property containing the associated object's ID
+    string propertyWithObjectId;
+    # Filter type identifier; always `PROPERTY_ASSOCIATION`
+    "PROPERTY_ASSOCIATION" filterType?;
+    # The object type ID of the associated target object
+    string toObjectTypeId?;
+    # The comparison operator applied to the association filter
+    string operator;
+};
+
+# A static filter that unconditionally accepts or rejects all records based on a fixed boolean value
+
+type PublicConstantFilter record {
+    # When true, all records are accepted; when false, all are rejected
+    boolean shouldAccept;
+    # The source context associated with the constant filter
+    string 'source?;
+    # The filter type identifier, fixed as 'CONSTANT'
+    "CONSTANT" filterType?;
+};
+
+# A filter applied within an association branch; one of many supported filter types
+type PublicAssociationFilterBranchFilters PublicPropertyFilter|PublicAssociationInListFilter|PublicPageViewAnalyticsFilter|PublicCtaAnalyticsFilter|PublicEventAnalyticsFilter|PublicFormSubmissionFilter|PublicFormSubmissionOnPageFilter|PublicIntegrationEventFilter|PublicEmailSubscriptionFilter|PublicCommunicationSubscriptionFilter|PublicCampaignInfluencedFilter|PublicSurveyMonkeyFilter|PublicSurveyMonkeyValueFilter|PublicWebinarFilter|PublicEmailEventFilter|PublicPrivacyAnalyticsFilter|PublicAdsSearchFilter|PublicAdsTimeFilter|PublicInListFilter|PublicNumAssociationsFilter|PublicUnifiedEventsFilter|PublicPropertyAssociationInListFilter|PublicConstantFilter;
+
+# Filter branch scoped to associated object property conditions
+
+type PublicPropertyAssociationFilterBranch record {
+    # Filter branch type identifier; always 'PROPERTY_ASSOCIATION'
+    "PROPERTY_ASSOCIATION" filterBranchType?;
+    # Nested filter branches for compound association conditions
+    PublicPropertyAssociationFilterBranchFilterBranches[] filterBranches;
+    # The ID of the associated object type being filtered
+    string objectTypeId;
+    # Logical operator applied across the filter branch conditions
+    string filterBranchOperator;
+    # Array of individual filters applied within this branch
+    PublicPropertyAssociationFilterBranchFilters[] filters;
+    # Property name that holds the associated object's identifier
+    string propertyWithObjectId;
+    # Operator defining how the association condition is evaluated
+    string operator;
+};
+
+# A filter branch that combines nested branches and filters using OR logic
+
+type PublicOrFilterBranch record {
+    # Branch type identifier, always set to `OR`
+    "OR" filterBranchType?;
+    # Nested filter branches evaluated within this OR branch
+    PublicOrFilterBranchFilterBranches[] filterBranches;
+    # The logical operator applied to this filter branch
+    string filterBranchOperator;
+    # The individual filters evaluated within this OR branch
+    PublicOrFilterBranchFilters[] filters;
+};
+
+# A filter branch that combines multiple filters or sub-branches using AND logic
+
+type PublicAndFilterBranch record {
+    # The branch type identifier, always 'AND' for this filter branch
+    "AND" filterBranchType?;
+    # Nested filter branches to evaluate within this AND branch
+    PublicAndFilterBranchFilterBranches[] filterBranches;
+    # The logical operator applied across this filter branch
+    string filterBranchOperator;
+    # The individual filters evaluated within this AND branch
+    PublicAndFilterBranchFilters[] filters;
+};
+
+# A filter branch that matches records satisfying none of the specified nested filter conditions
+
+type PublicNotAllFilterBranch record {
+    # Discriminator identifying this filter branch as type NOT_ALL
+    "NOT_ALL" filterBranchType?;
+    # Nested filter branches evaluated under the NOT_ALL condition
+    PublicNotAllFilterBranchFilterBranches[] filterBranches;
+    # Logical operator applied across the filter branch conditions
+    string filterBranchOperator;
+    # Array of individual filters evaluated within this NOT_ALL branch
+    PublicNotAllFilterBranchFilters[] filters;
+};
+
+# Filter branch that excludes records matching any of the specified conditions
+
+type PublicNotAnyFilterBranch record {
+    # Discriminator identifying this branch as a NOT_ANY filter branch
+    "NOT_ANY" filterBranchType?;
+    # Nested filter branches evaluated within this NOT_ANY branch
+    PublicNotAnyFilterBranchFilterBranches[] filterBranches;
+    # Logical operator applied across filters in this branch
+    string filterBranchOperator;
+    # Individual filters evaluated within this NOT_ANY branch
+    PublicNotAnyFilterBranchFilters[] filters;
+};
+
+# A restricted filter branch grouping nested filter branches and individual filters with a logical operator
+
+type PublicRestrictedFilterBranch record {
+    # Filter branch type identifier, fixed value 'RESTRICTED'
+    "RESTRICTED" filterBranchType?;
+    # Nested filter branches contained within this restricted branch
+    PublicRestrictedFilterBranchFilterBranches[] filterBranches;
+    # Logical operator applied across the filters and nested branches
+    string filterBranchOperator;
+    # Collection of individual filters applied within this branch
+    PublicRestrictedFilterBranchFilters[] filters;
+};
+
+# A filter branch that evaluates membership based on unified event criteria
+
+type PublicUnifiedEventsFilterBranch record {
+    # The filter branch type; always 'UNIFIED_EVENTS'
+    "UNIFIED_EVENTS" filterBranchType?;
+    # Nested filter branches applied within this unified events branch
+    PublicUnifiedEventsFilterBranchFilterBranches[] filterBranches;
+    # The unique identifier of the unified event type to filter on
+    string eventTypeId;
+    # An optional refinement condition applied across matched event occurrences
+    PublicNumOccurrencesRefineBy|PublicSetOccurrencesRefineBy|PublicRelativeComparativeTimestampRefineBy|PublicRelativeRangedTimestampRefineBy|PublicAbsoluteComparativeTimestampRefineBy|PublicAbsoluteRangedTimestampRefineBy|PublicAllHistoryRefineBy|PublicTimePointOperation|PublicRangedTimeOperation coalescingRefineBy?;
+    # The logical operator used to combine filters within this branch
+    string filterBranchOperator;
+    # The individual filters applied to unified event properties
+    PublicUnifiedEventsFilterBranchFilters[] filters;
+    # Specifies whether the record has or has not completed the event
+    "HAS_COMPLETED"|"HAS_NOT_COMPLETED" operator;
+};
+
+# Filter branch that evaluates membership criteria based on associated object properties and type
+
+type PublicAssociationFilterBranch record {
+    # The filter branch type identifier; always set to ASSOCIATION
+    "ASSOCIATION" filterBranchType?;
+    # Nested filter branches applied within this association filter branch
+    PublicAssociationFilterBranchFilterBranches[] filterBranches;
+    # The object type ID targeted by this association filter branch
+    string objectTypeId;
+    # Logical operator applied across the filter branch conditions
+    string filterBranchOperator;
+    # Numeric ID identifying the association type for this filter branch
+    int:Signed32 associationTypeId;
+    # Category classifying the type of association being filtered
+    string associationCategory;
+    # Array of filter definitions applied within this association filter branch
+    PublicAssociationFilterBranchFilters[] filters;
+    # Operator determining how filters within the branch are evaluated
+    string operator;
+};
+
+# A filter branch node within an association filter, accepting one of several supported branch types including OR, AND, NOT ALL, NOT ANY, restricted, unified events, property association, or association branches
+type PublicAssociationFilterBranchFilterBranches PublicOrFilterBranch|PublicAndFilterBranch|PublicNotAllFilterBranch|PublicNotAnyFilterBranch|PublicRestrictedFilterBranch|PublicUnifiedEventsFilterBranch|PublicPropertyAssociationFilterBranch|PublicAssociationFilterBranch;
+
+# A polymorphic filter branch supporting OR, AND, NOT ALL, NOT ANY, restricted, unified events, property association, and association branch types
+type PublicUnifiedEventsFilterBranchFilterBranches PublicOrFilterBranch|PublicAndFilterBranch|PublicNotAllFilterBranch|PublicNotAnyFilterBranch|PublicRestrictedFilterBranch|PublicUnifiedEventsFilterBranch|PublicPropertyAssociationFilterBranch|PublicAssociationFilterBranch;
+
+# A filter branch condition for unified events, accepting one of the supported filter types such as property, association, analytics, form submission, email, subscription, campaign, survey, webinar, or list filters
+type PublicUnifiedEventsFilterBranchFilters PublicPropertyFilter|PublicAssociationInListFilter|PublicPageViewAnalyticsFilter|PublicCtaAnalyticsFilter|PublicEventAnalyticsFilter|PublicFormSubmissionFilter|PublicFormSubmissionOnPageFilter|PublicIntegrationEventFilter|PublicEmailSubscriptionFilter|PublicCommunicationSubscriptionFilter|PublicCampaignInfluencedFilter|PublicSurveyMonkeyFilter|PublicSurveyMonkeyValueFilter|PublicWebinarFilter|PublicEmailEventFilter|PublicPrivacyAnalyticsFilter|PublicAdsSearchFilter|PublicAdsTimeFilter|PublicInListFilter|PublicNumAssociationsFilter|PublicUnifiedEventsFilter|PublicPropertyAssociationInListFilter|PublicConstantFilter;
+
+# A polymorphic filter branch that resolves to one of the supported branch types: OR, AND, NOT_ALL, NOT_ANY, restricted, unified events, property association, or association
+type PublicRestrictedFilterBranchFilterBranches PublicOrFilterBranch|PublicAndFilterBranch|PublicNotAllFilterBranch|PublicNotAnyFilterBranch|PublicRestrictedFilterBranch|PublicUnifiedEventsFilterBranch|PublicPropertyAssociationFilterBranch|PublicAssociationFilterBranch;
+
+# A filter applied within a restricted branch; must match exactly one of the supported filter types
+type PublicRestrictedFilterBranchFilters PublicPropertyFilter|PublicAssociationInListFilter|PublicPageViewAnalyticsFilter|PublicCtaAnalyticsFilter|PublicEventAnalyticsFilter|PublicFormSubmissionFilter|PublicFormSubmissionOnPageFilter|PublicIntegrationEventFilter|PublicEmailSubscriptionFilter|PublicCommunicationSubscriptionFilter|PublicCampaignInfluencedFilter|PublicSurveyMonkeyFilter|PublicSurveyMonkeyValueFilter|PublicWebinarFilter|PublicEmailEventFilter|PublicPrivacyAnalyticsFilter|PublicAdsSearchFilter|PublicAdsTimeFilter|PublicInListFilter|PublicNumAssociationsFilter|PublicUnifiedEventsFilter|PublicPropertyAssociationInListFilter|PublicConstantFilter;
+
+# A filter branch variant used within a NOT ANY branch, accepting one of several supported filter branch types
+type PublicNotAnyFilterBranchFilterBranches PublicOrFilterBranch|PublicAndFilterBranch|PublicNotAllFilterBranch|PublicNotAnyFilterBranch|PublicRestrictedFilterBranch|PublicUnifiedEventsFilterBranch|PublicPropertyAssociationFilterBranch|PublicAssociationFilterBranch;
+
+# A union of all supported filter types applicable within a NOT ANY filter branch
+type PublicNotAnyFilterBranchFilters PublicPropertyFilter|PublicAssociationInListFilter|PublicPageViewAnalyticsFilter|PublicCtaAnalyticsFilter|PublicEventAnalyticsFilter|PublicFormSubmissionFilter|PublicFormSubmissionOnPageFilter|PublicIntegrationEventFilter|PublicEmailSubscriptionFilter|PublicCommunicationSubscriptionFilter|PublicCampaignInfluencedFilter|PublicSurveyMonkeyFilter|PublicSurveyMonkeyValueFilter|PublicWebinarFilter|PublicEmailEventFilter|PublicPrivacyAnalyticsFilter|PublicAdsSearchFilter|PublicAdsTimeFilter|PublicInListFilter|PublicNumAssociationsFilter|PublicUnifiedEventsFilter|PublicPropertyAssociationInListFilter|PublicConstantFilter;
+
+# A filter branch that accepts one of several supported filter branch types
+type PublicNotAllFilterBranchFilterBranches PublicOrFilterBranch|PublicAndFilterBranch|PublicNotAllFilterBranch|PublicNotAnyFilterBranch|PublicRestrictedFilterBranch|PublicUnifiedEventsFilterBranch|PublicPropertyAssociationFilterBranch|PublicAssociationFilterBranch;
+
+# A union type representing any supported filter variant applicable within a NOT ALL filter branch
+type PublicNotAllFilterBranchFilters PublicPropertyFilter|PublicAssociationInListFilter|PublicPageViewAnalyticsFilter|PublicCtaAnalyticsFilter|PublicEventAnalyticsFilter|PublicFormSubmissionFilter|PublicFormSubmissionOnPageFilter|PublicIntegrationEventFilter|PublicEmailSubscriptionFilter|PublicCommunicationSubscriptionFilter|PublicCampaignInfluencedFilter|PublicSurveyMonkeyFilter|PublicSurveyMonkeyValueFilter|PublicWebinarFilter|PublicEmailEventFilter|PublicPrivacyAnalyticsFilter|PublicAdsSearchFilter|PublicAdsTimeFilter|PublicInListFilter|PublicNumAssociationsFilter|PublicUnifiedEventsFilter|PublicPropertyAssociationInListFilter|PublicConstantFilter;
+
+# The collection of nested filter branches combined using AND logic. Each branch must be one of the supported filter branch types
+type PublicAndFilterBranchFilterBranches PublicOrFilterBranch|PublicAndFilterBranch|PublicNotAllFilterBranch|PublicNotAnyFilterBranch|PublicRestrictedFilterBranch|PublicUnifiedEventsFilterBranch|PublicPropertyAssociationFilterBranch|PublicAssociationFilterBranch;
+
+# A union type representing any supported filter that can appear within an AND filter branch
+type PublicAndFilterBranchFilters PublicPropertyFilter|PublicAssociationInListFilter|PublicPageViewAnalyticsFilter|PublicCtaAnalyticsFilter|PublicEventAnalyticsFilter|PublicFormSubmissionFilter|PublicFormSubmissionOnPageFilter|PublicIntegrationEventFilter|PublicEmailSubscriptionFilter|PublicCommunicationSubscriptionFilter|PublicCampaignInfluencedFilter|PublicSurveyMonkeyFilter|PublicSurveyMonkeyValueFilter|PublicWebinarFilter|PublicEmailEventFilter|PublicPrivacyAnalyticsFilter|PublicAdsSearchFilter|PublicAdsTimeFilter|PublicInListFilter|PublicNumAssociationsFilter|PublicUnifiedEventsFilter|PublicPropertyAssociationInListFilter|PublicConstantFilter;
+
+# A nested filter branch within an OR branch; one of several supported branch types
+type PublicOrFilterBranchFilterBranches PublicOrFilterBranch|PublicAndFilterBranch|PublicNotAllFilterBranch|PublicNotAnyFilterBranch|PublicRestrictedFilterBranch|PublicUnifiedEventsFilterBranch|PublicPropertyAssociationFilterBranch|PublicAssociationFilterBranch;
+
+# A filter within an OR branch, represented as one of the supported filter types
+type PublicOrFilterBranchFilters PublicPropertyFilter|PublicAssociationInListFilter|PublicPageViewAnalyticsFilter|PublicCtaAnalyticsFilter|PublicEventAnalyticsFilter|PublicFormSubmissionFilter|PublicFormSubmissionOnPageFilter|PublicIntegrationEventFilter|PublicEmailSubscriptionFilter|PublicCommunicationSubscriptionFilter|PublicCampaignInfluencedFilter|PublicSurveyMonkeyFilter|PublicSurveyMonkeyValueFilter|PublicWebinarFilter|PublicEmailEventFilter|PublicPrivacyAnalyticsFilter|PublicAdsSearchFilter|PublicAdsTimeFilter|PublicInListFilter|PublicNumAssociationsFilter|PublicUnifiedEventsFilter|PublicPropertyAssociationInListFilter|PublicConstantFilter;
+
+# A filter branch node within a property association filter, accepting one of several supported branch types including OR, AND, NOT ALL, NOT ANY, restricted, unified events, property association, or association branches
+type PublicPropertyAssociationFilterBranchFilterBranches PublicOrFilterBranch|PublicAndFilterBranch|PublicNotAllFilterBranch|PublicNotAnyFilterBranch|PublicRestrictedFilterBranch|PublicUnifiedEventsFilterBranch|PublicPropertyAssociationFilterBranch|PublicAssociationFilterBranch;
+
+# A polymorphic filter supporting one of many available filter types for property association branches
+type PublicPropertyAssociationFilterBranchFilters PublicPropertyFilter|PublicAssociationInListFilter|PublicPageViewAnalyticsFilter|PublicCtaAnalyticsFilter|PublicEventAnalyticsFilter|PublicFormSubmissionFilter|PublicFormSubmissionOnPageFilter|PublicIntegrationEventFilter|PublicEmailSubscriptionFilter|PublicCommunicationSubscriptionFilter|PublicCampaignInfluencedFilter|PublicSurveyMonkeyFilter|PublicSurveyMonkeyValueFilter|PublicWebinarFilter|PublicEmailEventFilter|PublicPrivacyAnalyticsFilter|PublicAdsSearchFilter|PublicAdsTimeFilter|PublicInListFilter|PublicNumAssociationsFilter|PublicUnifiedEventsFilter|PublicPropertyAssociationInListFilter|PublicConstantFilter;
+
+# Response containing a single retrieved list folder object
+
+type ListFolderFetchResponse record {
+    # Represents a folder that organizes lists, including its hierarchy, child nodes, and metadata
+    PublicListFolder folder;
+};
+
+# Represents a folder that organizes lists, including its hierarchy, child nodes, and metadata
+
+type PublicListFolder record {
+    # The time the folder was created at
+    string createdAt?;
+    # The Id of the folder this folder is in, the root folder is represented as 0
+    int:Signed32 parentFolderId;
+    # Nested subfolders contained within this folder
+    PublicListFolder[] childNodes;
+    # The name of the folder
+    string name?;
+    # The Id of the folder
+    int:Signed32 id;
+    # An array of list Id's contained in this folder
+    int:Signed32[] childLists;
+    # The time that the contents of the folder was last updated at
+    string updatedContentsAt?;
+    # The user Id of the owner of the folder
+    int:Signed32 userId?;
+    # The time the folder was last updated at
+    string updatedAt?;
+};
+
+# Request body for searching and filtering lists by name, ID, or processing type, with pagination and additional property support
+
+type ListSearchRequest record {
+    # The _listIds_ that will be used to filter results by _listId_. If values are provided, then the response will only include results that have a _listId_ in this array
+
+If no value is provided, or if an empty list is provided, then the results will not be filtered by _listId_
+    string[] listIds?;
+    # Value used to paginate through lists. The _offset_ provided in the response can be used in the next request to fetch the next page of results. Defaults to _0_ if no offset is provided
+    int:Signed32 offset?;
+    # The _query_ that will be used to search for lists by list name. If no _query_ is provided, then the results will include all lists
+    string query?;
+    # The number of lists to include in the response. Defaults to _20_ if no value is provided. The max _count_ is _500_
+    int:Signed32 count?;
+    # The _processingTypes_ that will be used to filter results by _processingType_. If values are provided, then the response will only include results that have a _processingType_ in this array
+
+If no value is provided, or if an empty list is provided, then results will not be filtered by _processingType_
+
+Valid _processingTypes_ are: _MANUAL_, _SNAPSHOT_, or _DYNAMIC_
+    string[] processingTypes?;
+    # The property names of any additional list properties to include in the response. Properties that do not exist or that are empty for a particular list are not included in the response
+
+By default, all requests will fetch the following properties for each list: _hs_list_size_, _hs_last_record_added_at_, _hs_last_record_removed_at_, _hs_folder_name_, and _hs_list_reference_count_
+    string[] additionalProperties?;
+    # The field by which to sort the returned list results
+    string sort?;
+};
+
+# Response object containing matched lists, pagination details, and total result count for a list search query
+
+type ListSearchResponse record {
+    # The total number of lists that match the search criteria
+    int:Signed32 total;
+    # Value to be passed in a future request to paginate through list search results
+    int:Signed32 offset;
+    # The lists that matched the search criteria
+    PublicObjectListSearchResult[] lists;
+    # Whether or not there are more results to page through
+    boolean hasMore;
+};
+
+# Represents a list search result, including metadata such as name, ILS ID, object type, processing status, version, timestamps, and any additional requested properties
+
+type PublicObjectListSearchResult record {
+    # The processing type of the list
+    string processingType;
+    # The object type of the list
+    string objectTypeId;
+    # The ID of the user that last updated the list
+    string updatedById?;
+    # The time when the filters for this list were last updated
+    string filtersUpdatedAt?;
+    # The **ILS ID** of the list
+    string listId;
+    # The time when the list was created
+    string createdAt?;
+    # The processing status of the list
+    string processingStatus;
+    # The time when the list was deleted
+    string deletedAt?;
+    # The version of the list
+    int:Signed32 listVersion;
+    # The name of the list
+    string name;
+    # The name and value of any additional properties that exist for this list and that were included in the search request
+    record {|string...;|} additionalProperties;
+    # The ID of the user that created the list
+    string createdById?;
+    # The time the list was last updated
+    string updatedAt?;
+};
+
+# Response containing an array of object list definitions retrieved by ID
+
+type ListsByIdResponse record {
+    # The object list definitions
+    PublicObjectList[] lists;
+};
+
+# Represents a HubSpot object list, including its metadata, processing state, and filter configuration
+
+type PublicObjectList record {
+    # The processing type of the list
+    string processingType;
+    # The object type of the list
+    string objectTypeId;
+    # The ID of the user that last updated the list
+    string updatedById?;
+    # The time when the filters for this list were last updated
+    string filtersUpdatedAt?;
+    # The **ILS ID** of the list
+    string listId;
+    # The time when the list was created
+    string createdAt?;
+    # The processing status of the list
+    string processingStatus;
+    # The time when the list was deleted
+    string deletedAt?;
+    # The version of the list
+    int:Signed32 listVersion;
+    # The total number of records currently in the list
+    int size?;
+    # The name of the list
+    string name;
+    # The ID of the user that created the list
+    string createdById?;
+    # The root filter branch defining the membership criteria for the list
+    PublicOrFilterBranch|PublicAndFilterBranch|PublicNotAllFilterBranch|PublicNotAnyFilterBranch|PublicRestrictedFilterBranch|PublicUnifiedEventsFilterBranch|PublicPropertyAssociationFilterBranch|PublicAssociationFilterBranch filterBranch?;
+    # The time the list was last updated
+    string updatedAt?;
+};
+
+# Represents the Queries record for the operation: getIdmappingTranslateLegacyListIdToListId
+
+type GetIdmappingTranslateLegacyListIdToListIdQueries record {
+    # The legacy list id from lists v1 API
+    string legacyListId?;
+};
+
+# Represents the Queries record for the operation: getObjectTypeIdObjectTypeIdNameListNameGetByName
+
+type GetObjectTypeIdObjectTypeIdNameListNameGetByNameQueries record {
+    # A flag indicating whether or not the response object list definition should include a filter branch definition. By default, object list definitions will not have their filter branch definitions included in the response
+    boolean includeFilters?;
+};
+
+# Provides a set of configurations for controlling the behaviours when communicating with a remote HTTP endpoint
+
+@display {label: "Connection Config"}
+type ConnectionConfig record {
+    # Provides Auth configurations needed when communicating with a remote HTTP endpoint
+    http:BearerTokenConfig|OAuth2RefreshTokenGrantConfig|ApiKeysConfig auth; // Special Agent Note: BearerTokenConfig FROM ballerina/http package
+    # The HTTP version understood by the client
+    http:HttpVersion httpVersion?; // Special Agent Note: HttpVersion FROM ballerina/http package
+    # Configurations related to HTTP/1.x protocol
+    http:ClientHttp1Settings http1Settings?; // Special Agent Note: ClientHttp1Settings FROM ballerina/http package
+    # Configurations related to HTTP/2 protocol
+    http:ClientHttp2Settings http2Settings?; // Special Agent Note: ClientHttp2Settings FROM ballerina/http package
+    # The maximum time to wait (in seconds) for a response before closing the connection
+    decimal timeout?;
+    # The choice of setting `forwarded`/`x-forwarded` header
+    string forwarded?;
+    # Configurations associated with Redirection
+    http:FollowRedirects followRedirects?; // Special Agent Note: FollowRedirects FROM ballerina/http package
+    # Configurations associated with request pooling
+    http:PoolConfiguration poolConfig?; // Special Agent Note: PoolConfiguration FROM ballerina/http package
+    # HTTP caching related configurations
+    http:CacheConfig cache?; // Special Agent Note: CacheConfig FROM ballerina/http package
+    # Specifies the way of handling compression (`accept-encoding`) header
+    http:Compression compression?; // Special Agent Note: Compression FROM ballerina/http package
+    # Configurations associated with the behaviour of the Circuit Breaker
+    http:CircuitBreakerConfig circuitBreaker?; // Special Agent Note: CircuitBreakerConfig FROM ballerina/http package
+    # Configurations associated with retrying
+    http:RetryConfig retryConfig?; // Special Agent Note: RetryConfig FROM ballerina/http package
+    # Configurations associated with cookies
+    http:CookieConfig cookieConfig?; // Special Agent Note: CookieConfig FROM ballerina/http package
+    # Configurations associated with inbound response size limits
+    http:ResponseLimitConfigs responseLimits?; // Special Agent Note: ResponseLimitConfigs FROM ballerina/http package
+    # SSL/TLS-related options
+    http:ClientSecureSocket secureSocket?; // Special Agent Note: ClientSecureSocket FROM ballerina/http package
+    # Proxy server related options
+    http:ProxyConfig proxy?; // Special Agent Note: ProxyConfig FROM ballerina/http package
+    # Provides settings related to client socket configuration
+    http:ClientSocketConfig socketConfig?; // Special Agent Note: ClientSocketConfig FROM ballerina/http package
+    # Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default
+    boolean validation?;
+    # Enables relaxed data binding on the client side. When enabled, `nil` values are treated as optional, 
+and absent fields are handled as `nilable` types. Enabled by default
+    boolean laxDataBinding?;
+};
+
+# OAuth2 Refresh Token Grant Configs
+
+type OAuth2RefreshTokenGrantConfig record {
+    # Refresh URL
+    string refreshUrl?;
+    string refreshToken;
+    string clientId;
+    string clientSecret;
+    string|string[] scopes?;
+    decimal defaultTokenExpTime?;
+    decimal clockSkew?;
+    map<string> optionalParams?;
+    oauth2:CredentialBearer credentialBearer?; // Special Agent Note: CredentialBearer FROM ballerina/oauth2 package
+    oauth2:ClientConfiguration clientConfig?; // Special Agent Note: ClientConfiguration FROM ballerina/oauth2 package
+};
+
+# Provides API key configurations needed when communicating with a remote HTTP endpoint
+
+type ApiKeysConfig record {
+    string privateApp;
+};
+
+# Represents the Queries record for the operation: putListIdUpdateListFiltersUpdateListFilters
+
+type PutListIdUpdateListFiltersUpdateListFiltersQueries record {
+    # A flag indicating whether or not the memberships added to the list as a result of the filter change should be enrolled in workflows that are relevant to this list
+    boolean enrollObjectsInWorkflows?;
+};
+
+# Contains the results of a batch legacy list ID migration, including mapped IDs and any unresolved legacy IDs
+
+type PublicBatchMigrationMapping record {
+    # Array of legacy list ID to current ID mappings
+    PublicMigrationMapping[] legacyListIdsToIdsMapping;
+    # A list of legacy list ids that were passed in but not found. It will be empty if no id's are missing
+    string[] missingLegacyListIds;
+};
+
+# Maps a legacy list ID to its corresponding V3 list ID to support list migration
+
+type PublicMigrationMapping record {
+    # The V3 list id for the list
+    string listId;
+    # The legacy list id for the list
+    string legacyListId;
+};
+
+# Paginated collection response containing record IDs and their list join timestamps
+
+type ApiCollectionResponseJoinTimeAndRecordId record {
+    # Total number of records matching the request
+    int total?;
+    # Pagination metadata containing links to the next and previous pages of results
+    Paging paging?;
+    # Array of record IDs paired with their list join timestamps
+    JoinTimeAndRecordId[] results;
+};
+
+# Pagination metadata containing links to the next and previous pages of results
+
+type Paging record {
+    # Pagination metadata containing a cursor and direct link to retrieve the next page of results
+    NextPage next?;
+    # Pagination cursor and link for retrieving the previous page of records
+    PreviousPage prev?;
+};
+
+# Pagination metadata containing a cursor and direct link to retrieve the next page of results
+
+type NextPage record {
+    # A direct link to the request for the next page of records
+    string link?;
+    # The offset for the next page of records
+    string after;
+};
+
+# Pagination cursor and link for retrieving the previous page of records
+
+type PreviousPage record {
+    # The offset of the previous page of records
+    string before;
+    # A direct link to the request for the previous page of records
+    string link?;
+};
+
+# Associates a record ID with the timestamp at which it joined a list membership
+
+type JoinTimeAndRecordId record {
+    # Unique identifier of the record that joined the list
+    string recordId;
+    # Datetime when the record gained list membership
+    string membershipTimestamp;
+};
+
+# Response returned after successfully creating a list folder
+
+type ListFolderCreateResponse record {
+    # Represents a folder that organizes lists, including its hierarchy, child nodes, and metadata
+    PublicListFolder folder;
+};
+
+# Response returned after successfully updating a list
+
+type ListUpdateResponse record {
+    # Represents a HubSpot object list, including its metadata, processing state, and filter configuration
+    PublicObjectList updatedList?;
+};
+
+# Represents the Queries record for the operation: getListIdMembershipsJoinOrderGetPageOrderedByAddedToListDate
+
+type GetListIdMembershipsJoinOrderGetPageOrderedByAddedToListDateQueries record {
+    # The paging offset token for the page that comes _before_ the previously requested records
+
+If provided, then the records in the response will be the records preceding the offset, sorted in *descending* order
+    string before?;
+    # The number of records to return in the response. The maximum _limit_ is 250
+    int:Signed32 'limit?;
+    # The paging offset token for the page that comes _after_ the previously requested records
+
+If provided, then the records in the response will be the records following the offset, sorted in *ascending* order. Takes precedence over the _before_ offset
+    string after?;
+};
+
+# Response detailing the outcome of a list membership update operation
+
+type MembershipsUpdateResponse record {
+    # The IDs of the records that were _removed_ from the list
+    string[] recordIdsRemoved?;
+    # The IDs of the records successfully added to the list
+    string[] recordsIdsAdded?;
+    # The IDs of the records that were _missing_ (e.g. did not exist in the portal) and so were not _added_ or _removed_
+    string[] recordIdsMissing?;
+};
+
+# Response returned after successfully creating a new list
+
+type ListCreateResponse record {
+    # Represents a HubSpot object list, including its metadata, processing state, and filter configuration
+    PublicObjectList list;
+};
+
+# Represents a record's membership in a list, including timestamps for when it was first and last added
+
+type RecordListMembership record {
+    # The unique identifier of the list
+    string listId;
+    # The version number of the list at time of membership
+    int:Signed32 listVersion;
+    # Timestamp of the most recent addition to the list
+    string lastAddedTimestamp;
+    # Timestamp when the record was first added to the list
+    string firstAddedTimestamp;
+};
+
+# Represents the Queries record for the operation: getListIdMembershipsGetPage
+
+type GetListIdMembershipsGetPageQueries record {
+    # The paging offset token for the page that comes _before_ the previously requested records
+
+If provided, then the records in the response will be the records preceding the offset, sorted in *descending* order
+    string before?;
+    # The number of records to return in the response. The maximum _limit_ is 250
+    int:Signed32 'limit?;
+    # The paging offset token for the page that comes _after_ the previously requested records
+
+If provided, then the records in the response will be the records following the offset, sorted in *ascending* order. Takes precedence over the _before_ offset
+    string after?;
+};
+
+# Response object containing a single retrieved list
+
+type ListFetchResponse record {
+    # Represents a HubSpot object list, including its metadata, processing state, and filter configuration
+    PublicObjectList list;
+};
+
+# A collection response containing record list memberships without paging information
+
+type ApiCollectionResponseRecordListMembershipNoPaging record {
+    # Total number of record list memberships returned
+    int total?;
+    # Array of record list membership objects in the response
+    RecordListMembership[] results;
+};
+
+# Request body specifying record IDs to add or remove from a list
+
+type MembershipChangeRequest record {
+    # Array of record IDs to remove from the list
+    string[] recordIdsToRemove;
+    # Array of record IDs to add to the list
+    string[] recordIdsToAdd;
+};
+
+# Represents the Queries record for the operation: putListIdUpdateListNameUpdateName
+
+type PutListIdUpdateListNameUpdateNameQueries record {
+    # The name to update the list to
+    string listName?;
+    # A flag indicating whether or not the response object list definition should include a filter branch definition. By default, object list definitions will not have their filter branch definitions included in the response
+    boolean includeFilters?;
+};
+
+# Represents the Queries record for the operation: getFoldersGetAll
+
+type GetFoldersGetAllQueries record {
+    # The Id of the folder to retrieve
+    string folderId?;
+};
+
+# Represents the Queries record for the operation: getListIdGetById
+
+type GetListIdGetByIdQueries record {
+    # A flag indicating whether or not the response object list definition should include a filter branch definition. By default, object list definitions will not have their filter branch definitions included in the response
+    boolean includeFilters?;
+};
+
+# Request body for updating a list's filter criteria, containing a single required filter branch definition
+
+type ListFilterUpdateRequest record {
+    # The root filter branch defining the list's membership criteria
+    PublicOrFilterBranch|PublicAndFilterBranch|PublicNotAllFilterBranch|PublicNotAnyFilterBranch|PublicRestrictedFilterBranch|PublicUnifiedEventsFilterBranch|PublicPropertyAssociationFilterBranch|PublicAssociationFilterBranch filterBranch;
+};
+
+# Represents the Queries record for the operation: putFoldersFolderIdRenameRename
+
+type PutFoldersFolderIdRenameRenameQueries record {
+    # The new name to assign to the folder
+    string newFolderName?;
+};
+
+# Represents the Queries record for the operation: getGetAll
+
+type GetGetAllQueries record {
+    # The **ILS IDs** of the lists to fetch
+    string[] listIds?;
+    # A flag indicating whether or not the response object list definitions should include a filter branch definition. By default, object list definitions will not have their filter branch definitions included in the response
+    boolean includeFilters?;
+};
+
+# Request payload for creating a new list folder, including an optional parent folder and a required folder name
+
+type ListFolderCreateRequest record {
+    # The folder this should be created in, if not specified will be created in the root folder 0
+    string parentFolderId?;
+    # The name of the folder to be created
+    string name;
+};
+
+# Request payload for moving a list to a specified folder
+
+type ListMoveRequest record {
+    # The Id of the list to move
+    string listId;
+    # The Id of folder to move the list to, the root folder is Id 0
+    string newFolderId;
+};
+
+# Request body for creating a new list, including the object type, processing type, name, optional folder placement, custom properties, and filter criteria
+
+type ListCreateRequest record {
+    # The object type ID of the type of objects that the list will store
+    string objectTypeId;
+    # The processing type of the list. One of: _SNAPSHOT_, _MANUAL_, or _DYNAMIC_
+    string processingType;
+    # The list of custom properties to tie to the list. Custom property name is the key, the value is the value
+    record {|string...;|} customProperties?;
+    # The ID of the folder that the list should be created in. If left blank, then the list will be created in the root of the list folder structure
+    int:Signed32 listFolderId?;
+    # The name of the list, which must be globally unique across all public lists in the portal
+    string name;
+    # The root filter branch defining membership criteria for dynamic lists
+    PublicOrFilterBranch|PublicAndFilterBranch|PublicNotAllFilterBranch|PublicNotAnyFilterBranch|PublicRestrictedFilterBranch|PublicUnifiedEventsFilterBranch|PublicPropertyAssociationFilterBranch|PublicAssociationFilterBranch filterBranch?;
+};
+
+// --- Client ---
+
+client class Client {
+    function init(ConnectionConfig config, string serviceUrl = "https://api.hubapi.com/crm/v3/lists") returns error?;
+
+    # Update List Name
+    # 
+    remote function putListIdUpdateListNameUpdateName(string listId, map<string|string[]> headers = {}, string listName = "", boolean includeFilters = false, PutListIdUpdateListNameUpdateNameQueries queries) returns ListUpdateResponse|error;
+
+    # Add and/or Remove Records from a List
+    # 
+    remote function putListIdMembershipsAddAndRemoveAddAndRemove(string listId, MembershipChangeRequest payload, map<string|string[]> headers = {}) returns MembershipsUpdateResponse|error;
+
+    # Fetch List by ID
+    # 
+    remote function getListIdGetById(string listId, map<string|string[]> headers = {}, boolean includeFilters = false, GetListIdGetByIdQueries queries) returns ListFetchResponse|error;
+
+    # Delete a List
+    # 
+    remote function deleteListIdRemove(string listId, map<string|string[]> headers = {}) returns error?;
+
+    # Update List Filter Definition
+    # 
+    remote function putListIdUpdateListFiltersUpdateListFilters(string listId, ListFilterUpdateRequest payload, map<string|string[]> headers = {}, boolean enrollObjectsInWorkflows = false, PutListIdUpdateListFiltersUpdateListFiltersQueries queries) returns ListUpdateResponse|error;
+
+    # Search Lists
+    # 
+    remote function postSearchDoSearch(ListSearchRequest payload, map<string|string[]> headers = {}) returns ListSearchResponse|error;
+
+    # Moves a list to a given folder
+    # 
+    remote function putFoldersMoveListMoveList(ListMoveRequest payload, map<string|string[]> headers = {}) returns error?;
+
+    # Add Records to a List
+    # 
+    remote function putListIdMembershipsAddAdd(string listId, string[] payload, map<string|string[]> headers = {}) returns MembershipsUpdateResponse|error;
+
+    # Fetch List by Name
+    # 
+    remote function getObjectTypeIdObjectTypeIdNameListNameGetByName(string listName, string objectTypeId, map<string|string[]> headers = {}, boolean includeFilters = false, GetObjectTypeIdObjectTypeIdNameListNameGetByNameQueries queries) returns ListFetchResponse|error;
+
+    # Moves a folder
+    # 
+    remote function putFoldersFolderIdMoveNewParentFolderIdMove(string folderId, string newParentFolderId, map<string|string[]> headers = {}) returns ListFolderFetchResponse|error;
+
+    # Translate legacy list ID to modern ID
+    # 
+    remote function getIdmappingTranslateLegacyListIdToListId(map<string|string[]> headers = {}, string legacyListId = "", GetIdmappingTranslateLegacyListIdToListIdQueries queries) returns PublicMigrationMapping|error;
+
+    # Batch translate legacy list IDs
+    # 
+    remote function postIdmappingTranslateLegacyListIdToListIdBatch(string[] payload, map<string|string[]> headers = {}) returns PublicBatchMigrationMapping|error;
+
+    # Restore a List
+    # 
+    remote function putListIdRestoreRestore(string listId, map<string|string[]> headers = {}) returns error?;
+
+    # Rename a folder
+    # 
+    remote function putFoldersFolderIdRenameRename(string folderId, map<string|string[]> headers = {}, string newFolderName = "", PutFoldersFolderIdRenameRenameQueries queries) returns ListFolderFetchResponse|error;
+
+    # Get memberships by join date
+    # 
+    remote function getListIdMembershipsJoinOrderGetPageOrderedByAddedToListDate(string listId, map<string|string[]> headers = {}, string before = "", int:Signed32 limit = 0, string after = "", GetListIdMembershipsJoinOrderGetPageOrderedByAddedToListDateQueries queries) returns ApiCollectionResponseJoinTimeAndRecordId|error;
+
+    # Add all records from source list
+    # 
+    remote function putListIdMembershipsAddFromSourceListIdAddAllFromList(string listId, string sourceListId, map<string|string[]> headers = {}) returns error?;
+
+    # Get lists record is member of
+    # 
+    remote function getRecordsObjectTypeIdRecordIdMembershipsGetLists(string objectTypeId, string recordId, map<string|string[]> headers = {}) returns ApiCollectionResponseRecordListMembershipNoPaging|error;
+
+    # Fetch Multiple Lists
+    # 
+    remote function getGetAll(map<string|string[]> headers = {}, string[] listIds = [], boolean includeFilters = false, GetGetAllQueries queries) returns ListsByIdResponse|error;
+
+    # Create List
+    # 
+    remote function postCreate(ListCreateRequest payload, map<string|string[]> headers = {}) returns ListCreateResponse|error;
+
+    # Retrieves a folder
+    # 
+    remote function getFoldersGetAll(map<string|string[]> headers = {}, string folderId = "", GetFoldersGetAllQueries queries) returns ListFolderFetchResponse|error;
+
+    # Creates a folder
+    # 
+    remote function postFoldersCreate(ListFolderCreateRequest payload, map<string|string[]> headers = {}) returns ListFolderCreateResponse|error;
+
+    # Deletes a folder
+    # 
+    remote function deleteFoldersFolderIdRemove(string folderId, map<string|string[]> headers = {}) returns error?;
+
+    # Fetch List Memberships Ordered by ID
+    # 
+    remote function getListIdMembershipsGetPage(string listId, map<string|string[]> headers = {}, string before = "", int:Signed32 limit = 0, string after = "", GetListIdMembershipsGetPageQueries queries) returns ApiCollectionResponseJoinTimeAndRecordId|error;
+
+    # Delete All Records from a List
+    # 
+    remote function deleteListIdMembershipsRemoveAll(string listId, map<string|string[]> headers = {}) returns error?;
+
+    # Remove Records from a List
+    # 
+    remote function putListIdMembershipsRemoveRemove(string listId, string[] payload, map<string|string[]> headers = {}) returns MembershipsUpdateResponse|error;
+}

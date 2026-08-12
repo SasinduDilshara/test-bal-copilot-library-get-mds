@@ -1,0 +1,171 @@
+// ============================================================
+// Library: ballerinax/ai.memory.mssql
+// This module provides an MS SQL-backed short-term memory store to use with AI messages (e.g., with AI agents, model providers, etc.).
+// ============================================================
+import ballerinax/ai.memory.mssql;
+
+// --- README ---
+## Overview
+
+This module provides an MS SQL-backed short-term memory store to use with AI messages (e.g., with AI agents, model providers, etc.).
+
+### Key Features
+
+- MS SQL-backed persistent storage for short-term AI message memory
+- Configurable maximum messages per key with automatic eviction
+- Built-in in-memory caching for improved read performance
+- Support for both direct database configuration and existing MSSQL client reuse
+
+## Prerequisites
+
+- Configuration for an MS SQL database
+
+## Quickstart
+
+Follow the steps below to use this store in your Ballerina application:
+
+1. Import the `ballerinax/ai.memory.mssql` module.
+
+```ballerina
+import ballerinax/ai.memory.mssql;
+```
+
+Optionally, import the `ballerina/ai` and/or `ballerinax/mssql` module(s).
+
+```ballerina
+import ballerina/ai;
+import ballerinax/mssql;
+```
+
+2. Create the short-term memory store, by passing either the configuration for the database or an `mssql:Client` client.
+
+    i. Using the configuration 
+
+    ```ballerina
+    import ballerina/ai;
+    import ballerinax/ai.memory.mssql;
+
+    configurable string host = ?;
+    configurable string user = ?;
+    configurable string password = ?;
+    configurable string database = ?;
+
+    ai:ShortTermMemoryStore store = check new mssql:ShortTermMemoryStore({
+        host, user, password, database
+    });
+    ```
+
+    ii. Using an `mssql:Client` client
+
+    ```ballerina
+    import ballerina/ai;
+    import ballerinax/mssql;
+    import ballerinax/ai.memory.mssql as mssqlStore;
+
+    configurable string host = ?;
+    configurable string user = ?;
+    configurable string password = ?;
+    configurable string database = ?;
+
+    mssql:Client mssqlClient = check new (host, user, password, database);   
+    ai:ShortTermMemoryStore store = check new mssqlStore:ShortTermMemoryStore(mssqlClient);
+    ```
+
+    Optionally, specify the maximum number of messages to store per key (`maxMessagesPerKey` - defaults to `20`) and/or the configuration for the in-memory cache for messages (`cacheConfig` - defaults to a capacity of `20`).
+
+    ```ballerina
+    ai:ShortTermMemoryStore store = check new mssql:ShortTermMemoryStore({
+        host, user, password, database
+    }, 10, {capacity: 10});
+    ```
+// --- END README ---
+
+// --- Types ---
+
+# Represents a distinct error type for memory store errors.
+type Error error;
+
+# Database configuration for MS SQL client.
+
+type DatabaseConfiguration record {
+    # Database host
+    string host?;
+    # Database user
+    string user?;
+    # Database password
+    string password?;
+    # Database name
+    string database;
+    # Database port
+    int port?;
+    # Instance name
+    string instance?;
+    # Additional options for the MS SQL client
+    mssql:Options options?; // Special Agent Note: Options FROM ballerinax/mssql package
+    # Connection pool configuration
+    sql:ConnectionPool connectionPool?; // Special Agent Note: ConnectionPool FROM ballerina/sql package
+};
+
+# Initializes the MS SQL-backed short-term memory store.
+# 
+class ShortTermMemoryStore {
+    function init(mssql:Client|DatabaseConfiguration mssqlClient, int maxMessagesPerKey = 20, cache:CacheConfig|() cacheConfig = (), string tableName = "ChatMessages", string checkpointTableName = "Checkpoints") returns Error?; // Special Agent Note: Client FROM ballerinax/mssql package, CacheConfig FROM ballerina/cache package
+
+    # Retrieves the system message, if it was provided, for a given key.
+    # 
+    function getChatSystemMessage(string key) returns ai:ChatSystemMessage|Error|(); // Special Agent Note: ChatSystemMessage FROM ballerina/ai package
+
+    # Retrieves all stored interactive chat messages (i.e., all chat messages except the system
+    # message) for a given key.
+    # 
+    function getChatInteractiveMessages(string key) returns ai:ChatInteractiveMessage[]|Error; // Special Agent Note: ChatInteractiveMessage FROM ballerina/ai package
+
+    # Retrieves all stored chat messages for a given key.
+    # 
+    function getAll(string key) returns [ai:ChatSystemMessage, ai:ai:ChatInteractiveMessage...]|ai:ChatInteractiveMessage[]|Error; // Special Agent Note: ChatInteractiveMessage FROM ballerina/ai package
+
+    # Adds one or more chat messages to the memory store for a given key.
+    # 
+    function put(string key, ai:ChatUserMessage|ai:ChatSystemMessage|ai:ChatAssistantMessage|ai:ChatFunctionMessage|ai:ChatMessage[] message) returns Error|(); // Special Agent Note: ChatUserMessage, ChatSystemMessage, ChatAssistantMessage, ChatFunctionMessage, ChatMessage FROM ballerina/ai package
+
+    # Removes the system chat message, if specified, for a given key.
+    # 
+    function removeChatSystemMessage(string key) returns Error|();
+
+    # Removes all stored interactive chat messages (i.e., all chat messages except the system
+    # message) for a given key.
+    # 
+    function removeChatInteractiveMessages(string key, int|() count = ()) returns Error|();
+
+    # Removes all stored chat messages for a given key, including any pending human-in-the-loop
+    # approval checkpoint for that key, so clearing a session is atomic and an abandoned pause does
+    # not retain its whole history snapshot indefinitely.
+    # 
+    function removeAll(string key) returns Error|();
+
+    # Checks if the memory store is full for a given key.
+    # 
+    function isFull(string key) returns boolean|Error;
+
+    # Retrieves the maximum number of interactive messages that can be stored for each key.
+    # 
+    function getCapacity() returns int;
+
+    # Stores (or replaces) the pending human-in-the-loop approval for its session.
+    # 
+    function putCheckpoint(ai:PendingApproval approval) returns Error|(); // Special Agent Note: PendingApproval FROM ballerina/ai package
+
+    # Returns the pending human-in-the-loop approval for a session, if any.
+    # 
+    function getCheckpoint(string sessionId) returns ai:PendingApproval|()|Error; // Special Agent Note: PendingApproval FROM ballerina/ai package
+
+    # Removes the pending human-in-the-loop approval for a session, if any.
+    # 
+    function removeCheckpoint(string sessionId) returns Error|();
+
+    # Fetches and removes the pending human-in-the-loop approval for a session. The delete-and-return
+    # runs as a single statement so a concurrent duplicate resume for the same session cannot also
+    # claim and execute the same approved tool call.
+    # 
+    function takeCheckpoint(string sessionId) returns ai:PendingApproval|()|Error; // Special Agent Note: PendingApproval FROM ballerina/ai package
+}

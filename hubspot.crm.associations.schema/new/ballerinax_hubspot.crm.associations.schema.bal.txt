@@ -1,0 +1,582 @@
+// ============================================================
+// Library: ballerinax/hubspot.crm.associations.schema
+// [HubSpot](https://www.hubspot.com/) is an AI-powered customer relationship management (CRM) platform.
+// ============================================================
+import ballerinax/hubspot.crm.associations.schema;
+
+// --- README ---
+## Overview
+
+[HubSpot](https://www.hubspot.com/) is an AI-powered customer relationship management (CRM) platform.
+
+The HubSpot connector offers APIs to connect and interact with the [HubSpot Associations Schema API](https://developers.hubspot.com/docs/reference/api/crm/associations/associations-schema) endpoints, specifically based on the [HubSpot REST API](https://developers.hubspot.com/docs/reference/api).
+
+### Key Features
+
+- Define and manage association schemas between CRM objects
+- Create, read, update, and delete association type definitions
+- Batch operations for association schema management
+- Support for custom association labels and categories
+
+## Setup guide
+
+You need a HubSpot developer account and an associated app with API access to use the HubSpot Associations schema connector. If you don’t have one, register for a HubSpot developer account first.
+
+### Step 1: Login to a HubSpot developer account
+
+If you don't have a HubSpot Developer Account, you can sign up for a free account [here](https://developers.hubspot.com/get-started)
+
+If you have an account already, go to the [HubSpot developer portal](https://app.hubspot.com/)
+
+### Step 2: Create a developer test account (optional)
+
+Within app developer accounts, you can create a [developer test account](https://developers.hubspot.com/beta-docs/getting-started/account-types#developer-test-accounts) under your account to test apps and integrations without affecting any real HubSpot data.
+
+> **Note:** These accounts are only for development and testing purposes. In production, you should not use developer test accounts.
+
+1. Go to the Test accounts section from the left sidebar.
+    ![Test accounts section](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.associations.schema/refs/heads/main/docs/resources/test-account.png)
+
+2. Click the `Create developer test account` button in the top right corner.
+    ![Create developer test account](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.associations.schema/refs/heads/main/docs/resources/create-test-account.png)
+
+3. In the pop-up window, provide a name for the test account and click the `Create` button.
+    ![Create test account](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.associations.schema/refs/heads/main/docs/resources/create-account.png)
+    You will see the newly created test account in the list of test accounts.
+    ![Test account portal](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.associations.schema/refs/heads/main/docs/resources/test-account-portal.png)
+
+### Step 3: Create a HubSpot app
+
+1. Navigate to the `Apps` section in the left sidebar and click the `Create app` button in the top right corner.
+    ![Create app](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.associations.schema/refs/heads/main/docs/resources/create-app.png)
+
+2. Provide a public app name and description for your app.
+    ![App name and description](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.associations.schema/refs/heads/main/docs/resources/app-name-desc.png)
+
+### Step 4: Setup authentication
+
+1. Move to the `Auth` tab.
+    ![Configure authentication](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.associations.schema/refs/heads/main/docs/resources/config-auth.png)
+
+2. Add the following scopes for your app using the `Add new scopes` button in the `Scopes` section.
+
+- `crm.objects.contacts.read`
+- `crm.objects.contacts.write`
+- `crm.objects.companies.read`
+- `crm.objects.companies.write`
+- `crm.objects.deals.read`
+- `crm.objects.deals.write`
+- `crm.objects.line_items.read`
+- `crm.objects.line_items.write`
+- `crm.objects.custom.read`
+- `crm.objects.custom.write`
+
+    ![Add scopes](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.associations.schema/refs/heads/main/docs/resources/add-scopes.png)
+
+3. Add the redirect URL for your app in the `Redirect URL` section. This is the URL where the user will be redirected after authentication. You can use `localhost` for testing purposes. Then click the `Create App` button.
+
+    ![Redirect URL](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.associations.schema/refs/heads/main/docs/resources/redirect-url.png)
+
+### Step 5: Get the client ID and client secret
+
+Navigate to the `Auth` tab to see your app's `Client ID` and `Client Secret`. Make sure to save these values.
+
+![Client ID and Client Secret](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.associations.schema/refs/heads/main/docs/resources/client-id-secret.png)
+
+### Step 6: Setup authentication flow
+
+Before proceeding with the Quickstart, ensure you have obtained the access token or refresh token using the following steps:
+
+1. Create an authorization URL using the following format:
+
+    ```
+    https://app.hubspot.com/oauth/authorize?client_id=<YOUR_CLIENT_ID>&scope=<YOUR_SCOPES> redirect_uri=<YOUR_REDIRECT_URI>
+    ```
+
+    Replace the `<YOUR_CLIENT_ID>`, `<YOUR_REDIRECT_URI>` and `<YOUR_SCOPES>` with your specific value.
+
+2. Paste it in the browser and select your developer test account to install the app when prompted.
+    ![Account select](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.associations.schema/refs/heads/main/docs/resources/account-select.png)
+
+3. A code will be displayed in the browser. Copy the code.
+
+4. Run the following `curl` command. Replace the `<YOUR_CLIENT_ID>`, `<YOUR_REDIRECT_URI>` and `<YOUR_CLIENT_SECRET>` with your specific value. Use the code you received in the above step 3 as the `<CODE>`.
+
+    **Linux/macOS (Bash)**
+
+    Use the following `curl` command in your terminal:
+
+    ```bash
+    curl --location "https://api.hubapi.com/oauth/v1/token" \
+    --header "Content-Type: application/x-www-form-urlencoded" \
+    --data-urlencode "grant_type=authorization_code" \
+    --data-urlencode "code=<CODE>" \
+    --data-urlencode "redirect_uri=<YOUR_REDIRECT_URI>" \
+    --data-urlencode "client_id=<YOUR_CLIENT_ID>" \
+    --data-urlencode "client_secret=<YOUR_CLIENT_SECRET>"
+    ```
+
+    **Windows (CMD)**
+
+    Use the following `curl` command in Command Prompt:
+
+    ```bash
+    curl --location "https://api.hubapi.com/oauth/v1/token" ^
+    --header "Content-Type: application/x-www-form-urlencoded" ^
+    --data-urlencode "grant_type=authorization_code" ^
+    --data-urlencode "code=<CODE>" ^
+    --data-urlencode "redirect_uri=<YOUR_REDIRECT_URI>" ^
+    --data-urlencode "client_id=<YOUR_CLIENT_ID>" ^
+    --data-urlencode "client_secret=<YOUR_CLIENT_SECRET>"
+    ```
+
+    This command will return the access token and refresh token which are necessary for API calls.
+
+    ```json
+    {
+        "token_type": "bearer",
+        "refresh_token": "<Refresh Token>",
+        "access_token": "<Access Token>",
+        "expires_in": 1800
+    }
+    ```
+
+5. Store the refresh token securely for use in your application.
+
+6. If you are using testing tools (e.g., Postman, Insomnia) or need to manually refresh the token for testing, run the following `curl` command to refresh the access token when it expires, make a POST request to the HubSpot OAuth endpoint.
+Replace the `<YOUR_REFRESH_TOKEN>`, `<YOUR_CLIENT_ID>`, and `<YOUR_CLIENT_SECRET>` with your specific value.
+
+    **Linux/macOS (Bash)**
+
+    Use the following `curl` command in your terminal:
+
+    ```bash
+    curl --request POST \
+    --url https://api.hubapi.com/oauth/v1/token \
+    --header 'content-type: application/x-www-form-urlencoded' \
+    --data 'grant_type=refresh_token&refresh_token=<YOUR_REFRESH_TOKEN>&client_id=<YOUR_CLIENT_ID>&client_secret=<YOUR_CLIENT_SECRET>'
+    ```
+
+    **Windows (CMD)**
+
+    Use the following `curl` command in your command prompt:
+
+    ```bash
+    curl --request POST ^
+    --url https://api.hubapi.com/oauth/v1/token ^
+    --header 'content-type: application/x-www-form-urlencoded' ^
+    --data 'grant_type=refresh_token&refresh_token=<YOUR_REFRESH_TOKEN>&client_id=<YOUR_CLIENT_ID>&client_secret=<YOUR_CLIENT_SECRET>'
+    ```
+
+## Quickstart
+
+To use the `HubSpot CRM Associations Schema` connector in your Ballerina application, update the `.bal` file as follows:
+
+### Step 1: Import the module
+
+Import the `hubspot.crm.associations.schema` module and `oauth2` module.
+
+```ballerina
+import ballerina/oauth2;
+import ballerinax/hubspot.crm.associations.schema as hsschema;
+```
+
+### Step 2: Instantiate a new connector
+
+1. Create a `Config.toml` file and, configure the obtained credentials in the above steps as follows:
+
+    ```toml
+    clientId = <Client Id>
+    clientSecret = <Client Secret>
+    refreshToken = <Refresh Token>
+    ```
+
+2. Instantiate a `hsschema:ConnectionConfig` with the obtained credentials and initialize the connector with it.
+
+    ```ballerina
+    configurable string clientId = ?;
+    configurable string clientSecret = ?;
+    configurable string refreshToken = ?;
+    hsschema:OAuth2RefreshTokenGrantConfig auth = {
+        clientId,
+        clientSecret,
+        refreshToken,
+        credentialBearer: oauth2:POST_BODY_BEARER
+    };
+    final hsschema:Client hubspot = check new ({ auth });
+    ```
+
+### Step 3: Invoke the connector operation
+
+Now, utilize the available connector operations. A sample usecase is shown below.
+
+#### Read all association definitions from objects contact to deals
+
+```ballerina
+final string fromObjectType = "contacts";
+final string toObjectType = "deals";
+
+public function main() returns error? {
+    hsschema:CollectionResponseAssociationSpecWithLabelNoPaging associations = 
+        check hubspot->/[fromObjectType]/[toObjectType]/labels;
+    io:println("Contact-Deal Association definitions: ", associations);
+}
+```
+
+## Examples
+
+The `HubSpot CRM Associations schema` connector provides practical examples illustrating usage in various scenarios. Explore these [examples](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.associations.schema/tree/main/examples), covering the following use cases.
+
+1. [Association definition analytics report](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.associations.schema/tree/main/examples/association_analytics_report) : Analyzes association definition configurations between object types (e.g., `contacts` to `deals`) in HubSpot, categorizing them and generating a count-based report.
+
+2. [Automated association defnition configuration update](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.associations.schema/tree/main/examples/automated_configuration_update) : Manages Doctor-Patient associations by updating them dynamically based on status changes (`Pandemic`, `Emergency`, `Normal`, or `Special`).
+
+3. [Association definition management](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.associations.schema/tree/main/examples/companies_association_management) : Creates and manages custom associations (`Headquarters-Franchise`) between two `companies` objects, including reading, updating, and deleting associations.
+
+// --- END README ---
+
+// --- Types ---
+
+# Batch response containing association definition user configurations, processing status, and any errors encountered
+
+type BatchResponsePublicAssociationDefinitionUserConfigurationWithErrors record {
+    # Timestamp when the batch operation completed
+    string completedAt;
+    # Total number of errors encountered in the batch operation
+    int:Signed32 numErrors?;
+    # Timestamp when the batch operation was requested
+    string requestedAt?;
+    # Timestamp when the batch operation began processing
+    string startedAt;
+    # Map of relevant navigational links related to the batch response
+    record {|string...;|} links?;
+    # Array of successfully processed association definition user configurations
+    PublicAssociationDefinitionUserConfiguration[] results;
+    # Array of standard errors encountered during batch processing
+    StandardError[] errors?;
+    # Current processing status of the batch operation
+    "PENDING"|"PROCESSING"|"CANCELED"|"COMPLETE" status;
+};
+
+# User-defined configuration for an association definition, including type, category, label, and enforced object limit
+
+type PublicAssociationDefinitionUserConfiguration record {
+    # User-enforced maximum number of target objects. Nullable
+    int:Signed32? userEnforcedMaxToObjectIds?;
+    # The numeric ID identifying the association type
+    int:Signed32 typeId;
+    # Custom display label for the association definition
+    string? label?;
+    # The origin category of the association definition: HubSpot-defined, user-defined, or integrator-defined
+    "HUBSPOT_DEFINED"|"USER_DEFINED"|"INTEGRATOR_DEFINED" category;
+};
+
+# Structured error object containing category, message, context, and detail information for a failed operation
+
+type StandardError record {
+    # Optional object providing additional subcategory classification for the error
+    record {|anydata...;|} subCategory?;
+    # Key-value map of contextual metadata associated with the error
+    record {|string[]...;|} context;
+    # Map of relevant links providing additional error reference resources
+    record {|string...;|} links;
+    # Unique identifier for the error instance
+    string id?;
+    # High-level category classifying the type of error
+    string category;
+    # Human-readable description of the error
+    string message;
+    # List of detailed error information objects
+    ErrorDetail[] errors;
+    # The HTTP status description of the error response
+    string status;
+};
+
+# Detailed error information including message, code, field location, category, and remediation context
+
+type ErrorDetail record {
+    # A specific category that contains more specific detail about the error
+    string subCategory?;
+    # The status code associated with the error detail
+    string code?;
+    # The name of the field or parameter in which the error was found
+    string 'in?;
+    # Context about the error condition
+    record {|string[]...;|} context?;
+    # A human readable message describing the error along with remediation steps where appropriate
+    string message;
+};
+
+# Request payload for creating a new association definition, including its name and display labels
+
+type PublicAssociationDefinitionCreateRequest record {
+    # Display label for the inverse direction of the association
+    string inverseLabel?;
+    # Unique internal name identifying the association definition
+    string name;
+    # Human-readable display label for the association definition
+    string? label;
+};
+
+# Unpaged collection of association definition user configurations
+
+type CollectionResponsePublicAssociationDefinitionUserConfigurationNoPaging record {
+    PublicAssociationDefinitionUserConfiguration[] results;
+};
+
+# Batch input wrapper containing a list of association specs to process
+
+type BatchInputPublicAssociationSpec record {
+    # List of association specs to include in the batch operation
+    PublicAssociationSpec[] inputs;
+};
+
+# Specifies an association type by its numeric ID and category classification
+
+type PublicAssociationSpec record {
+    # Numeric identifier for the association type
+    int:Signed32 typeId;
+    # Category classification of the association type
+    string category;
+};
+
+# Batch response containing results and status for association definition configuration update operations
+
+type BatchResponsePublicAssociationDefinitionConfigurationUpdateResult record {
+    # Timestamp indicating when the batch operation completed
+    string completedAt;
+    # Timestamp indicating when the batch operation was requested
+    string requestedAt?;
+    # Timestamp indicating when the batch operation started processing
+    string startedAt;
+    # Map of relevant link names to associated URIs for the batch response
+    record {|string...;|} links?;
+    # List of association definition configuration update results
+    PublicAssociationDefinitionConfigurationUpdateResult[] results;
+    # Current processing status of the batch operation
+    "PENDING"|"PROCESSING"|"CANCELED"|"COMPLETE" status;
+};
+
+# Result of an association definition configuration update, including type, category, and enforced limits
+
+type PublicAssociationDefinitionConfigurationUpdateResult record {
+    # Maximum number of target object IDs enforced for this association type
+    int:Signed32 userEnforcedMaxToObjectIds?;
+    # Numeric identifier of the association type
+    int:Signed32 typeId;
+    # Category indicating who defined the association type
+    "HUBSPOT_DEFINED"|"USER_DEFINED"|"INTEGRATOR_DEFINED" category;
+};
+
+# Request payload for updating an association definition configuration, specifying type, category, and object limit
+
+type PublicAssociationDefinitionConfigurationUpdateRequest record {
+    # Numeric identifier of the association type to update
+    int:Signed32 typeId;
+    # The category of the association definition to update
+    "HUBSPOT_DEFINED"|"USER_DEFINED"|"INTEGRATOR_DEFINED" category;
+    # Maximum number of target objects allowed in this association
+    int:Signed32 maxToObjectIds;
+};
+
+# Request body for creating a configuration for an association definition, specifying its type, category, and object limit
+
+type PublicAssociationDefinitionConfigurationCreateRequest record {
+    # The numeric ID of the association type to configure
+    int:Signed32 typeId;
+    # The category of the association definition to configure
+    "HUBSPOT_DEFINED"|"USER_DEFINED"|"INTEGRATOR_DEFINED" category;
+    # Maximum number of target objects allowed in this association
+    int:Signed32 maxToObjectIds;
+};
+
+# Request body for updating an association definition's label and optional inverse label
+
+type PublicAssociationDefinitionUpdateRequest record {
+    # The inverse label for the reverse direction of the association
+    string inverseLabel?;
+    # The numeric ID of the association type to update
+    int:Signed32 associationTypeId;
+    # The display label for the association definition. Nullable
+    string? label;
+};
+
+# An association type specification including its numeric ID, category, and optional display label
+
+type AssociationSpecWithLabel record {
+    # The numeric ID identifying the association type
+    int:Signed32 typeId;
+    # The display label for the association type. Nullable
+    string? label?;
+    # The category classifying the origin of the association type
+    "HUBSPOT_DEFINED"|"USER_DEFINED"|"INTEGRATOR_DEFINED" category;
+};
+
+# A non-paginated collection of association type specifications with labels
+
+type CollectionResponseAssociationSpecWithLabelNoPaging record {
+    # Array of association type specifications returned in the response
+    AssociationSpecWithLabel[] results;
+};
+
+# Batch response containing user configuration details for multiple association definitions, including processing status and timestamps
+
+type BatchResponsePublicAssociationDefinitionUserConfiguration record {
+    # Timestamp when the batch operation completed
+    string completedAt;
+    # Timestamp when the batch operation was requested
+    string requestedAt?;
+    # Timestamp when the batch operation started processing
+    string startedAt;
+    # Map of relevant hypermedia links associated with the batch response
+    record {|string...;|} links?;
+    # Array of association definition user configuration objects returned by the batch operation
+    PublicAssociationDefinitionUserConfiguration[] results;
+    # Current processing status of the batch operation
+    "PENDING"|"PROCESSING"|"CANCELED"|"COMPLETE" status;
+};
+
+# OAuth2 Refresh Token Grant Configs
+
+type OAuth2RefreshTokenGrantConfig record {
+    # Refresh URL
+    string refreshUrl?;
+    string refreshToken;
+    string clientId;
+    string clientSecret;
+    string|string[] scopes?;
+    decimal defaultTokenExpTime?;
+    decimal clockSkew?;
+    map<string> optionalParams?;
+    oauth2:CredentialBearer credentialBearer?; // Special Agent Note: CredentialBearer FROM ballerina/oauth2 package
+    oauth2:ClientConfiguration clientConfig?; // Special Agent Note: ClientConfiguration FROM ballerina/oauth2 package
+};
+
+# Batch input payload containing a list of association definition configuration update requests
+
+type BatchInputPublicAssociationDefinitionConfigurationUpdateRequest record {
+    # Array of association definition configuration update requests to process in batch
+    PublicAssociationDefinitionConfigurationUpdateRequest[] inputs;
+};
+
+# Provides API key configurations needed when communicating with a remote HTTP endpoint
+
+type ApiKeysConfig record {
+    string privateAppLegacy;
+    string privateApp;
+};
+
+# Batch response for association definition configuration updates, including results, errors, and processing status
+
+type BatchResponsePublicAssociationDefinitionConfigurationUpdateResultWithErrors record {
+    # Timestamp when the batch update operation completed
+    string completedAt;
+    # Total number of errors encountered during the batch operation
+    int:Signed32 numErrors?;
+    # Timestamp when the batch update operation was requested
+    string requestedAt?;
+    # Timestamp when the batch update operation started processing
+    string startedAt;
+    # Map of relevant hypermedia links associated with the batch response
+    record {|string...;|} links?;
+    # Array of association definition configuration update results from the batch operation
+    PublicAssociationDefinitionConfigurationUpdateResult[] results;
+    # Array of standard errors encountered during the batch update operation
+    StandardError[] errors?;
+    # Current processing status of the batch update operation
+    "PENDING"|"PROCESSING"|"CANCELED"|"COMPLETE" status;
+};
+
+# Provides a set of configurations for controlling the behaviours when communicating with a remote HTTP endpoint
+
+@display {label: "Connection Config"}
+type ConnectionConfig record {
+    # Provides Auth configurations needed when communicating with a remote HTTP endpoint
+    http:BearerTokenConfig|OAuth2RefreshTokenGrantConfig|ApiKeysConfig auth; // Special Agent Note: BearerTokenConfig FROM ballerina/http package
+    # The HTTP version understood by the client
+    http:HttpVersion httpVersion?; // Special Agent Note: HttpVersion FROM ballerina/http package
+    # Configurations related to HTTP/1.x protocol
+    http:ClientHttp1Settings http1Settings?; // Special Agent Note: ClientHttp1Settings FROM ballerina/http package
+    # Configurations related to HTTP/2 protocol
+    http:ClientHttp2Settings http2Settings?; // Special Agent Note: ClientHttp2Settings FROM ballerina/http package
+    # The maximum time to wait (in seconds) for a response before closing the connection
+    decimal timeout?;
+    # The choice of setting `forwarded`/`x-forwarded` header
+    string forwarded?;
+    # Configurations associated with Redirection
+    http:FollowRedirects followRedirects?; // Special Agent Note: FollowRedirects FROM ballerina/http package
+    # Configurations associated with request pooling
+    http:PoolConfiguration poolConfig?; // Special Agent Note: PoolConfiguration FROM ballerina/http package
+    # HTTP caching related configurations
+    http:CacheConfig cache?; // Special Agent Note: CacheConfig FROM ballerina/http package
+    # Specifies the way of handling compression (`accept-encoding`) header
+    http:Compression compression?; // Special Agent Note: Compression FROM ballerina/http package
+    # Configurations associated with the behaviour of the Circuit Breaker
+    http:CircuitBreakerConfig circuitBreaker?; // Special Agent Note: CircuitBreakerConfig FROM ballerina/http package
+    # Configurations associated with retrying
+    http:RetryConfig retryConfig?; // Special Agent Note: RetryConfig FROM ballerina/http package
+    # Configurations associated with cookies
+    http:CookieConfig cookieConfig?; // Special Agent Note: CookieConfig FROM ballerina/http package
+    # Configurations associated with inbound response size limits
+    http:ResponseLimitConfigs responseLimits?; // Special Agent Note: ResponseLimitConfigs FROM ballerina/http package
+    # SSL/TLS-related options
+    http:ClientSecureSocket secureSocket?; // Special Agent Note: ClientSecureSocket FROM ballerina/http package
+    # Proxy server related options
+    http:ProxyConfig proxy?; // Special Agent Note: ProxyConfig FROM ballerina/http package
+    # Provides settings related to client socket configuration
+    http:ClientSocketConfig socketConfig?; // Special Agent Note: ClientSocketConfig FROM ballerina/http package
+    # Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default
+    boolean validation?;
+    # Enables relaxed data binding on the client side. When enabled, `nil` values are treated as optional, 
+and absent fields are handled as `nilable` types. Enabled by default
+    boolean laxDataBinding?;
+};
+
+# Batch input wrapper containing an array of association definition configuration create requests
+
+type BatchInputPublicAssociationDefinitionConfigurationCreateRequest record {
+    # Array of association definition configuration create requests to process in batch
+    PublicAssociationDefinitionConfigurationCreateRequest[] inputs;
+};
+
+// --- Client ---
+
+client class Client {
+    function init(ConnectionConfig config, string serviceUrl = "https://api.hubapi.com/crm/v4/associations") returns error?;
+
+    # Retrieve all association definitions
+    # 
+    resource function get definitions/configurations/all(map<string|string[]> headers = {}) returns CollectionResponsePublicAssociationDefinitionUserConfigurationNoPaging|error;
+
+    # Get configs between two object types
+    # 
+    resource function get definitions/configurations/[string fromObjectType]/[string toObjectType](map<string|string[]> headers = {}) returns CollectionResponsePublicAssociationDefinitionUserConfigurationNoPaging|error;
+
+    # Batch create association configs
+    # 
+    resource function post definitions/configurations/[string fromObjectType]/[string toObjectType]/batch/create(BatchInputPublicAssociationDefinitionConfigurationCreateRequest payload, map<string|string[]> headers = {}) returns BatchResponsePublicAssociationDefinitionUserConfiguration|BatchResponsePublicAssociationDefinitionUserConfigurationWithErrors|error;
+
+    # Retrieve all association labels
+    # 
+    resource function get [string fromObjectType]/[string toObjectType]/labels(map<string|string[]> headers = {}) returns CollectionResponseAssociationSpecWithLabelNoPaging|error;
+
+    # Update an association definition
+    # 
+    resource function put [string fromObjectType]/[string toObjectType]/labels(PublicAssociationDefinitionUpdateRequest payload, map<string|string[]> headers = {}) returns error?;
+
+    # Create an association definition
+    # 
+    resource function post [string fromObjectType]/[string toObjectType]/labels(PublicAssociationDefinitionCreateRequest payload, map<string|string[]> headers = {}) returns CollectionResponseAssociationSpecWithLabelNoPaging|error;
+
+    # Batch delete configurations
+    # 
+    resource function post definitions/configurations/[string fromObjectType]/[string toObjectType]/batch/purge(BatchInputPublicAssociationSpec payload, map<string|string[]> headers = {}) returns error?;
+
+    # Delete an association definition
+    # 
+    resource function delete [string fromObjectType]/[string toObjectType]/labels/[int:Signed32 associationTypeId](map<string|string[]> headers = {}) returns error?;
+
+    # Batch update configurations
+    # 
+    resource function post definitions/configurations/[string fromObjectType]/[string toObjectType]/batch/update(BatchInputPublicAssociationDefinitionConfigurationUpdateRequest payload, map<string|string[]> headers = {}) returns BatchResponsePublicAssociationDefinitionConfigurationUpdateResult|BatchResponsePublicAssociationDefinitionConfigurationUpdateResultWithErrors|error;
+}

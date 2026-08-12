@@ -1,0 +1,4018 @@
+{
+  "name": "ballerinax/aws.s3",
+  "description": "Connects to AWS S3 from Ballerina",
+  "readme": "## Overview\n\n[Amazon S3](https://aws.amazon.com/s3/) (Simple Storage Service) is a highly scalable, durable, and secure object storage service provided by Amazon Web Services (AWS). It is designed to store and retrieve any amount of data from anywhere on the web, making it ideal for a wide range of use cases, including data backup, archiving, content distribution, and big data analytics.\n\nThe `ballerinax/aws.s3` connector offers APIs to connect and interact with [Amazon S3](https://docs.aws.amazon.com/AmazonS3/latest/API/Welcome.html), specifically based on the `2006-03-01` version of the Amazon S3 REST API. It supports creating, listing, and deleting buckets, uploading, retrieving, and deleting objects, managing object metadata and tagging, multipart uploads, and bucket and object access control lists (ACLs).\n\n## Setup guide\n\nTo use the Ballerina AWS S3 connector, you need an AWS account with the necessary IAM user credentials. For detailed steps on obtaining these credentials, refer to the [Obtaining IAM user credentials](https://central.ballerina.io/ballerinax/aws/latest#obtaining-iam-user-credentials) guide.\n\n## Quickstart\n\nTo use the `aws.s3` connector in your Ballerina application, update your `.bal` file as follows.\n\n### Step 1: Import the module\n\nImport the `aws.s3` module and the `aws` module.\n\n```ballerina\nimport ballerinax/aws;\nimport ballerinax/aws.s3;\n```\n\n### Step 2: Instantiate a new connector\n\n1. Create a `Config.toml` file and configure the credentials obtained above:\n\n```toml\naccessKeyId \u003d \"\u003cACCESS_KEY_ID\u003e\"\nsecretAccessKey \u003d \"\u003cSECRET_ACCESS_KEY\u003e\"\n```\n\n2. Instantiate an `s3:Client` with the obtained credentials and initialize the connector with it.\n\n```ballerina\nconfigurable string accessKeyId \u003d ?;\nconfigurable string secretAccessKey \u003d ?;\n\nfinal s3:Client s3Client \u003d check new ({\n   region: aws:US_EAST_1,\n   auth: {\n      accessKeyId,\n      secretAccessKey\n   }\n});\n```\n\n#### Alternative authentication methods\n\n##### Profile-based authentication\n\nYou can use AWS profile-based authentication as an alternative to static credentials.\n\n```ballerina\nfinal s3:Client s3Client \u003d check new ({\n   region: aws:US_EAST_1,\n   auth: {\n      profileName: \"myAwsProfile\",\n      credentialsFilePath: \"/path/to/custom/credentials\"\n   }\n});\n```\n\n\u003e **Note:** Ensure your AWS credentials file follows the standard format.\n\u003e\n\u003e ```ini\n\u003e [default]\n\u003e aws_access_key_id \u003d YOUR_ACCESS_KEY_ID\n\u003e aws_secret_access_key \u003d YOUR_SECRET_ACCESS_KEY\n\u003e\n\u003e [myAwsProfile]\n\u003e aws_access_key_id \u003d ANOTHER_ACCESS_KEY_ID\n\u003e aws_secret_access_key \u003d ANOTHER_SECRET_ACCESS_KEY\n\u003e ```\n\n##### Default credential provider chain\n\nThe standard default credential provider chain, trying each of the following in order and taking the first source that yields credentials:\n\n1. Environment variables (`AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`, and `AWS_WEB_IDENTITY_TOKEN_FILE` if set)\n2. The shared config/credentials file\u0027s active profile (`AWS_PROFILE`, or `default` if unset) — which may itself resolve via SSO, an external process, or a chained `AssumeRole` call, depending on that profile\u0027s configuration\n3. Container credentials (ECS/EKS)\n4. EC2 instance profile (IMDS)\n\n```ballerina\nimport ballerinax/aws.auth;\n\nfinal s3:Client s3Client \u003d check new ({\n   region: aws:US_EAST_1,\n   auth: auth:DEFAULT_CREDENTIALS\n});\n```\n\n### Step 3: Invoke the connector operations\n\nNow, utilize the available connector operations. A sample use case is shown below.\n\n```ballerina\npublic function main() returns error? {\n   check s3Client-\u003ecreateBucket(\"add-unique-bucket-name\");\n}\n```\n\n### Step 4: Run the Ballerina application\n\nUse the following command to compile and run the Ballerina program.\n\n```bash\nbal run\n```\n\n## Examples\n\nThe `ballerinax/aws.s3` connector provides practical examples illustrating usage in various scenarios. Explore these [examples](https://github.com/ballerina-platform/module-ballerinax-aws.s3/tree/master/examples), covering the following use cases.\n\n1. [S3 Report Archiver](https://github.com/ballerina-platform/module-ballerinax-aws.s3/tree/master/examples/s3-report-archiver): Implements an ETL-style workflow that processes CSV reports and archives them to Amazon S3. Reads report data, transforms it, and uploads the results to a designated S3 bucket for long-term storage.\n\n2. [FTP to S3 Sync](https://github.com/ballerina-platform/module-ballerinax-aws.s3/tree/master/examples/ftp-to-s3-sync): Syncs files from an FTP server to Amazon S3. Downloads files from the FTP source, uploads them to an S3 bucket, and generates a summary report of skipped or failed transfers.\n",
+  "typeDefs": [
+    {
+      "name": "JSON",
+      "description": "JSON format",
+      "type": "Constant",
+      "value": "JSON",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "XML",
+      "description": "XML format",
+      "type": "Constant",
+      "value": "XML",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "CSV",
+      "description": "CSV format",
+      "type": "Constant",
+      "value": "CSV",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "PRIVATE",
+      "description": "Only the owner has access",
+      "type": "Constant",
+      "value": "private",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "PUBLIC_READ",
+      "description": "Anyone can read",
+      "type": "Constant",
+      "value": "public-read",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "PUBLIC_READ_WRITE",
+      "description": "Anyone can read and write",
+      "type": "Constant",
+      "value": "public-read-write",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "AUTHENTICATED_READ",
+      "description": "Only authenticated AWS users can read",
+      "type": "Constant",
+      "value": "authenticated-read",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "AWS_EXEC_READ",
+      "description": "EC2 gets read access to GET the object",
+      "type": "Constant",
+      "value": "aws-exec-read",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "BUCKET_OWNER_READ",
+      "description": "Bucket owner can read",
+      "type": "Constant",
+      "value": "bucket-owner-read",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "BUCKET_OWNER_FULL_CONTROL",
+      "description": "Bucket owner has full control",
+      "type": "Constant",
+      "value": "bucket-owner-full-control",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "BUCKET_OWNER_ENFORCED",
+      "description": "Bucket owner owns all objects (recommended, ACLs disabled)",
+      "type": "Constant",
+      "value": "BucketOwnerEnforced",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "OBJECT_WRITER",
+      "description": "The uploader owns the object",
+      "type": "Constant",
+      "value": "ObjectWriter",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "BUCKET_OWNER_PREFERRED",
+      "description": "Bucket owner owns if uploader grants full control",
+      "type": "Constant",
+      "value": "BucketOwnerPreferred",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "STANDARD",
+      "description": "Default storage for frequently accessed data",
+      "type": "Constant",
+      "value": "STANDARD",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "REDUCED_REDUNDANCY",
+      "description": "Lower cost for less critical, reproducible data",
+      "type": "Constant",
+      "value": "REDUCED_REDUNDANCY",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "STANDARD_IA",
+      "description": "Lower cost for infrequently accessed data (min 30 days)",
+      "type": "Constant",
+      "value": "STANDARD_IA",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "ONEZONE_IA",
+      "description": "Lower cost, single availability zone (min 30 days)",
+      "type": "Constant",
+      "value": "ONEZONE_IA",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "INTELLIGENT_TIERING",
+      "description": "Auto-moves data between tiers based on access patterns",
+      "type": "Constant",
+      "value": "INTELLIGENT_TIERING",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "GLACIER",
+      "description": "Low cost archive, retrieval takes minutes to hours",
+      "type": "Constant",
+      "value": "GLACIER",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "GLACIER_IR",
+      "description": "Archive with instant retrieval (min 90 days)",
+      "type": "Constant",
+      "value": "GLACIER_IR",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "DEEP_ARCHIVE",
+      "description": "Lowest cost archive, retrieval takes hours (min 180 days)",
+      "type": "Constant",
+      "value": "DEEP_ARCHIVE",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "GET",
+      "description": "HTTP GET method",
+      "type": "Constant",
+      "value": "GET",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "PUT",
+      "description": "HTTP PUT method",
+      "type": "Constant",
+      "value": "PUT",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "Error",
+      "description": "Represents the base error type for this module.\nThis is a distinct type to avoid mixing with generic `error` values.",
+      "type": "Error",
+      "baseType": "error"
+    },
+    {
+      "name": "NoSuchKeyError",
+      "description": "Represents an error when the specified key does not exist.",
+      "type": "Error",
+      "baseType": "error"
+    },
+    {
+      "name": "BucketAlreadyExistsError",
+      "description": "Represents an error when trying to create a bucket that already exists.",
+      "type": "Error",
+      "baseType": "error"
+    },
+    {
+      "name": "BucketAlreadyOwnedByYouError",
+      "description": "Represents an error when the bucket already exists and is owned by you.",
+      "type": "Error",
+      "baseType": "error"
+    },
+    {
+      "name": "NoSuchBucketError",
+      "description": "Represents an error when the specified bucket does not exist.",
+      "type": "Error",
+      "baseType": "error"
+    },
+    {
+      "name": "BucketNotEmptyError",
+      "description": "Represents an error when the bucket is not empty (for deletion).",
+      "type": "Error",
+      "baseType": "error"
+    },
+    {
+      "name": "ConnectionConfig",
+      "description": "Configuration for the AWS S3 Client.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "auth",
+          "description": "Authentication configuration",
+          "type": {
+            "name": "AuthConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "AuthConfig",
+                "libraryName": "ballerinax/aws.auth"
+              }
+            ]
+          }
+        },
+        {
+          "name": "region",
+          "description": "The AWS Region. If you don\u0027t specify an AWS region, Client uses US East (N. Virginia) as default region",
+          "type": {
+            "name": "aws:Region|string"
+          },
+          "optional": true
+        },
+        {
+          "name": "endpoint",
+          "description": "Optional endpoint configuration for FIPS, dualstack, or custom endpoint overrides (e.g., LocalStack)",
+          "type": {
+            "name": "EndpointConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "EndpointConfig",
+                "libraryName": "ballerinax/aws"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "CreateBucketConfig",
+      "description": "Configuration for creating a bucket.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "acl",
+          "description": "Specifies accessibility for this object (e.g., \"private\", \"public-read\")",
+          "type": {
+            "name": "CannedACL",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CannedACL"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "objectOwnership",
+          "description": "Specifies ownership of objects uploaded to this bucket (e.g., \"BucketOwnerEnforced\", \"ObjectWriter\")",
+          "type": {
+            "name": "ObjectOwnership",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ObjectOwnership"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "objectLockEnabled",
+          "description": "Enable Object Lock to prevent objects from being deleted or overwritten",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "CannedACL",
+      "description": "Access control options for buckets and objects.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "BUCKET_OWNER_FULL_CONTROL",
+          "description": "Bucket owner has full control"
+        },
+        {
+          "name": "BUCKET_OWNER_READ",
+          "description": "Bucket owner can read"
+        },
+        {
+          "name": "AWS_EXEC_READ",
+          "description": "EC2 gets read access to GET the object"
+        },
+        {
+          "name": "AUTHENTICATED_READ",
+          "description": "Only authenticated AWS users can read"
+        },
+        {
+          "name": "PUBLIC_READ_WRITE",
+          "description": "Anyone can read and write"
+        },
+        {
+          "name": "PUBLIC_READ",
+          "description": "Anyone can read"
+        },
+        {
+          "name": "PRIVATE",
+          "description": "Only the owner has access"
+        }
+      ]
+    },
+    {
+      "name": "ObjectOwnership",
+      "description": "Who owns objects uploaded to the bucket.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "BUCKET_OWNER_PREFERRED",
+          "description": "Bucket owner owns if uploader grants full control"
+        },
+        {
+          "name": "OBJECT_WRITER",
+          "description": "The uploader owns the object"
+        },
+        {
+          "name": "BUCKET_OWNER_ENFORCED",
+          "description": "Bucket owner owns all objects (recommended, ACLs disabled)"
+        }
+      ]
+    },
+    {
+      "name": "Bucket",
+      "description": "Defines bucket.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "name",
+          "description": "The name of the bucket",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "creationDate",
+          "description": "The creation date of the bucket",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ContentType",
+      "description": "Represents byte[], string, json and xml",
+      "type": "Union",
+      "members": [
+        {
+          "name": "byte[]",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "string",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "json",
+          "type": {
+            "name": "json"
+          }
+        },
+        {
+          "name": "xml",
+          "type": {
+            "name": "xml"
+          }
+        }
+      ]
+    },
+    {
+      "name": "UploadContent",
+      "description": "Represents the content types supported for uploading an S3 object.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "byte[]",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "string",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "json",
+          "type": {
+            "name": "json"
+          }
+        },
+        {
+          "name": "xml",
+          "type": {
+            "name": "xml"
+          }
+        },
+        {
+          "name": "record {|anydata...;|}",
+          "type": {
+            "name": "record {|anydata...;|}"
+          }
+        },
+        {
+          "name": "record {|anydata...;|}[]",
+          "type": {
+            "name": "record {|anydata...;|}[]"
+          }
+        },
+        {
+          "name": "stream\u003cbyte[], error?\u003e",
+          "type": {
+            "name": "stream\u003cbyte[], error?\u003e"
+          }
+        },
+        {
+          "name": "stream\u003crecord {|anydata...;|}, error?\u003e",
+          "type": {
+            "name": "stream\u003crecord {|anydata...;|}, error?\u003e"
+          }
+        }
+      ]
+    },
+    {
+      "name": "RetrievableType",
+      "description": "Represents the types that can be returned when retrieving an S3 object.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "byte[]",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "string",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "json",
+          "type": {
+            "name": "json"
+          }
+        },
+        {
+          "name": "xml",
+          "type": {
+            "name": "xml"
+          }
+        },
+        {
+          "name": "record {|anydata...;|}",
+          "type": {
+            "name": "record {|anydata...;|}"
+          }
+        },
+        {
+          "name": "record {|anydata...;|}[]",
+          "type": {
+            "name": "record {|anydata...;|}[]"
+          }
+        },
+        {
+          "name": "stream\u003cbyte[], error?\u003e",
+          "type": {
+            "name": "stream\u003cbyte[], error?\u003e"
+          }
+        },
+        {
+          "name": "stream\u003crecord {|anydata...;|}, error?\u003e",
+          "type": {
+            "name": "stream\u003crecord {|anydata...;|}, error?\u003e"
+          }
+        }
+      ]
+    },
+    {
+      "name": "FileFormat",
+      "description": "Represents the file format for serializing record content.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "CSV",
+          "description": "CSV format"
+        },
+        {
+          "name": "XML",
+          "description": "XML format"
+        },
+        {
+          "name": "JSON",
+          "description": "JSON format"
+        }
+      ]
+    },
+    {
+      "name": "PutObjectConfig",
+      "description": "Configuration for uploading an object.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "contentType",
+          "description": "The MIME type of the content",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "acl",
+          "description": "Specifies accessibility for this object (e.g., \"private\", \"public-read\")",
+          "type": {
+            "name": "CannedACL",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CannedACL"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "storageClass",
+          "description": "The Storage class of the object (e.g., \"STANDARD\", \"GLACIER\" for archive, \"INTELLIGENT_TIERING\")",
+          "type": {
+            "name": "StorageClass",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "StorageClass"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "metadata",
+          "description": "Custom data to attach to the object (e.g., {\"author\": \"John\", \"project\": \"demo\"})",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "cacheControl",
+          "description": "Specifies caching behavior along the request/reply chain",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "contentDisposition",
+          "description": "Specifies presentational information for the object",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "contentEncoding",
+          "description": "Specifies what content encodings have been applied to the object and thus what decoding mechanisms must be applied to obtain the media-type referenced by the Content-Type header field",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "contentLanguage",
+          "description": "The language the content is in (e.g., \"en-US\", \"fr\")",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "expires",
+          "description": "The date and time at which the object is no longer cacheable",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "tagging",
+          "description": "Tags for the object",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "serverSideEncryption",
+          "description": "Encryption type (\"AES256\" or \"aws:kms\")",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "fileFormat",
+          "description": "The file format to use for serializing record content. Overrides the format inferred from the object key extension",
+          "type": {
+            "name": "FileFormat",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "FileFormat"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "StorageClass",
+      "description": "Storage options for S3 objects (affects cost and access speed).",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "DEEP_ARCHIVE",
+          "description": "Lowest cost archive, retrieval takes hours (min 180 days)"
+        },
+        {
+          "name": "GLACIER_IR",
+          "description": "Archive with instant retrieval (min 90 days)"
+        },
+        {
+          "name": "GLACIER",
+          "description": "Low cost archive, retrieval takes minutes to hours"
+        },
+        {
+          "name": "INTELLIGENT_TIERING",
+          "description": "Auto-moves data between tiers based on access patterns"
+        },
+        {
+          "name": "ONEZONE_IA",
+          "description": "Lower cost, single availability zone (min 30 days)"
+        },
+        {
+          "name": "STANDARD_IA",
+          "description": "Lower cost for infrequently accessed data (min 30 days)"
+        },
+        {
+          "name": "REDUCED_REDUNDANCY",
+          "description": "Lower cost for less critical, reproducible data"
+        },
+        {
+          "name": "STANDARD",
+          "description": "Default storage for frequently accessed data"
+        }
+      ]
+    },
+    {
+      "name": "PutObjectStreamConfig",
+      "description": "Configuration for uploading an object as a stream.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "contentLength",
+          "description": "The Size of the content, in bytes",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "contentType",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "acl",
+          "description": "",
+          "type": {
+            "name": "CannedACL",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CannedACL"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "storageClass",
+          "description": "",
+          "type": {
+            "name": "StorageClass",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "StorageClass"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "metadata",
+          "description": "",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "cacheControl",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "contentDisposition",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "contentEncoding",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "contentLanguage",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "expires",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "tagging",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "serverSideEncryption",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "fileFormat",
+          "description": "",
+          "type": {
+            "name": "FileFormat",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "FileFormat"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "GetObjectConfig",
+      "description": "Configuration for retrieving an object.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "versionId",
+          "description": "Get a specific version of the object (when versioning is enabled)",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "range",
+          "description": "Downloads the specified range bytes of an object",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "ifMatch",
+          "description": "Return the object only if its entity tag (ETag) is the same as the one specified",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "ifNoneMatch",
+          "description": "Return the object only if its entity tag (ETag) is different from the one specified",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "ifModifiedSince",
+          "description": "Return the object only if it has been modified since the specified time (e.g., \"2024-01-15T00:00:00Z\")",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "ifUnmodifiedSince",
+          "description": "Return the object only if it has not been modified since the specified time (e.g., \"2024-01-15T00:00:00Z\")",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "partNumber",
+          "description": "The part number of the file part",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "responseContentType",
+          "description": "Override the MIME type of the content",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "responseContentDisposition",
+          "description": "Override presentational information for the object",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "DeleteObjectConfig",
+      "description": "Configuration for deleting an object.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "versionId",
+          "description": "Delete a specific version of the object (when versioning is enabled)",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "mfa",
+          "description": "Multi-factor authentication token (needed if MFA Delete is turned on for the bucket)",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "bypassGovernanceRetention",
+          "description": "Skip the lock protection and delete the object even if it\u0027s protected (use with caution)",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ListObjectsConfig",
+      "description": "Configuration for listing objects.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "prefix",
+          "description": "Filter objects that start with this value (e.g., \"photos/\" for all objects in photos folder)",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "delimiter",
+          "description": "Character to group object keys (e.g., \"/\" to list like folders)",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxKeys",
+          "description": "Maximum number of objects to return (1-1000)",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "continuationToken",
+          "description": "Token to get the next page of results",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "startAfter",
+          "description": "List objects after this key name",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "fetchOwner",
+          "description": "Include owner info in the results",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "encodingType",
+          "description": "Encoding type for object keys (e.g., \"url\")",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "CopyObjectConfig",
+      "description": "Configuration for copying an object.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "acl",
+          "description": "Specifies accessibility for the copied object (e.g., \"private\", \"public-read\")",
+          "type": {
+            "name": "CannedACL",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CannedACL"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "storageClass",
+          "description": "Storage type for the copied object (e.g., \"STANDARD\", \"GLACIER\")",
+          "type": {
+            "name": "StorageClass",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "StorageClass"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "metadataDirective",
+          "description": "\"COPY\" to keep original metadata or \"REPLACE\" to use new metadata",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "metadata",
+          "description": "New metadata for the copied object (only used when metadataDirective is \"REPLACE\")",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "contentType",
+          "description": "The MIME type of the copied object",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "cacheControl",
+          "description": "Specifies caching behavior along the request/reply chain",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "contentDisposition",
+          "description": "Specifies presentational information for the object",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "contentEncoding",
+          "description": "Specifies what content encodings have been applied to the object and thus what decoding mechanisms must be applied to obtain the media-type referenced by the Content-Type header field",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "tagging",
+          "description": "Tags for the copied object (e.g., \"env\u003dprod\u0026team\u003dfinance\")",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "copySourceIfMatch",
+          "description": "Copy the object only if its entity tag (ETag) is the same as the one specified",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "copySourceIfNoneMatch",
+          "description": "Copy the object only if its entity tag (ETag) is different from the one specified",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "copySourceIfModifiedSince",
+          "description": "Copy the object only if it has been modified since the specified time (e.g., \"2024-01-15T00:00:00Z\")",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "copySourceIfUnmodifiedSince",
+          "description": "Copy the object only if it has not been modified since the specified time (e.g., \"2024-01-15T00:00:00Z\")",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "HeadObjectConfig",
+      "description": "Configuration for getting object metadata.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "versionId",
+          "description": "Get metadata for a specific version of the object (when versioning is enabled)",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "partNumber",
+          "description": "The part number of the file part to get metadata for",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "ifMatch",
+          "description": "Return the metadata only if its entity tag (ETag) is the same as the one specified",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "ifNoneMatch",
+          "description": "Return the metadata only if its entity tag (ETag) is different from the one specified",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "ifModifiedSince",
+          "description": "Return the metadata only if it has been modified since the specified time",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "ifUnmodifiedSince",
+          "description": "Return the metadata only if it has not been modified since the specified time",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "PresignedUrlConfig",
+      "description": "Configuration for creating presigned URLs.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "expirationMinutes",
+          "description": "Specifies how long the URL is valid in minutes (default: 15, max: 10080 for 7 days)",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "httpMethod",
+          "description": "Specifies what action the URL allows (\"GET\" to download, \"PUT\" to upload)",
+          "type": {
+            "name": "HttpMethod",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "HttpMethod"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "contentType",
+          "description": "The MIME type of the content (for PUT requests)",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "contentDisposition",
+          "description": "Specifies presentational information for the object (for GET requests)",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "responseContentType",
+          "description": "Override file type when downloading (for GET requests)",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "versionId",
+          "description": "Get URL for a specific version of the object (when versioning is enabled)",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "HttpMethod",
+      "description": "HTTP methods for presigned URLs.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "PUT",
+          "description": "HTTP PUT method"
+        },
+        {
+          "name": "GET",
+          "description": "HTTP GET method"
+        }
+      ]
+    },
+    {
+      "name": "MultipartUploadConfig",
+      "description": "Configuration for multipart upload (for large files uploaded in parts).",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "contentType",
+          "description": "The MIME type of the content",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "acl",
+          "description": "Specifies accessibility for this object (e.g., \"private\", \"public-read\")",
+          "type": {
+            "name": "CannedACL",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CannedACL"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "storageClass",
+          "description": "The Storage class of the object (e.g., \"STANDARD\", \"GLACIER\" for archive)",
+          "type": {
+            "name": "StorageClass",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "StorageClass"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "metadata",
+          "description": "Custom data to attach to the object (e.g., {\"author\": \"John\"})",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "cacheControl",
+          "description": "Specifies caching behavior along the request/reply chain",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "contentDisposition",
+          "description": "Specifies presentational information for the object",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "contentEncoding",
+          "description": "Specifies what content encodings have been applied to the object and thus what decoding mechanisms must be applied to obtain the media-type referenced by the Content-Type header field",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "tagging",
+          "description": "Tags for the object (e.g., \"env\u003dprod\u0026team\u003dfinance\")",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "serverSideEncryption",
+          "description": "Encryption type (\"AES256\" or \"aws:kms\")",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "UploadPartConfig",
+      "description": "Configuration for uploading a single part in a multipart upload.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "contentLength",
+          "description": "Size of the part in bytes",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "contentMD5",
+          "description": "MD5 hash of the part content (for data integrity check)",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "fileFormat",
+          "description": "The file format to use for serializing record content. Overrides the format inferred from the object key extension",
+          "type": {
+            "name": "FileFormat",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "FileFormat"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "UploadStreamPartConfig",
+      "description": "Configuration for uploading a part as a stream in a multipart upload.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "contentLength",
+          "description": "Size of the part in bytes",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "contentMD5",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "fileFormat",
+          "description": "",
+          "type": {
+            "name": "FileFormat",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "FileFormat"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "S3Object",
+      "description": "Represents a single S3 object in a listing.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "key",
+          "description": "The object\u0027s path/name in the bucket (e.g., \"photos/image.jpg\")",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "size",
+          "description": "Size of the object in bytes",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "lastModified",
+          "description": "When the object was last changed",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "eTag",
+          "description": "Represents the hash value of the object, which reflects modifications made exclusively to the contents of the object",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "storageClass",
+          "description": "The Storage class of the object (e.g., \"STANDARD\", \"GLACIER\")",
+          "type": {
+            "name": "StorageClass",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "StorageClass"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ListObjectsResponse",
+      "description": "Response from listing objects in a bucket.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "objects",
+          "description": "List of objects found",
+          "type": {
+            "name": "S3Object[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "S3Object"
+              }
+            ]
+          }
+        },
+        {
+          "name": "count",
+          "description": "Number of objects returned",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "isTruncated",
+          "description": "True if there are more results (use nextContinuationToken to get them)",
+          "type": {
+            "name": "boolean"
+          }
+        },
+        {
+          "name": "nextContinuationToken",
+          "description": "Token to get the next page of results",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ObjectMetadata",
+      "description": "Metadata information about an S3 object.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "key",
+          "description": "The object\u0027s path/name in the bucket (e.g., \"photos/image.jpg\")",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "contentLength",
+          "description": "Size of the object in bytes",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "contentType",
+          "description": "The MIME type of the content",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "eTag",
+          "description": "Unique ID of the object\u0027s content ",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "lastModified",
+          "description": "When the object was last changed ",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "storageClass",
+          "description": "The Storage class of the object (e.g., \"STANDARD\", \"GLACIER\")",
+          "type": {
+            "name": "StorageClass",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "StorageClass"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "versionId",
+          "description": "Version ID of the object (when versioning is enabled)",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "userMetadata",
+          "description": "Custom data attached to the object",
+          "type": {
+            "name": "map\u003canydata\u003e"
+          },
+          "optional": true
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "name": "Client",
+      "description": "The AWS S3 Client Connector.\n\nProvides access to Amazon Simple Storage Service (S3) using the AWS SDK for Java V2.\nSupports static credentials, profile-based credentials, and the default AWS credential\nprovider chain (environment variables, ECS container credentials, EC2 instance profiles, etc.).",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes the S3 Client.\n",
+          "parameters": [
+            {
+              "name": "auth",
+              "description": "Authentication configuration",
+              "type": {
+                "name": "AuthConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "AuthConfig",
+                    "libraryName": "ballerinax/aws.auth"
+                  }
+                ]
+              },
+              "default": "{accessKeyId: \"\", secretAccessKey: \"\"}"
+            },
+            {
+              "name": "region",
+              "description": "The AWS Region. If you don\u0027t specify an AWS region, Client uses US East (N. Virginia) as default region",
+              "type": {
+                "name": "\"us-west-2\"|\"us-west-1\"|\"us-isof-south-1\"|\"us-isof-east-1\"|\"us-isob-west-1\"|\"us-isob-east-1\"|\"us-iso-west-1\"|\"us-iso-east-1\"|\"us-gov-west-1\"|\"us-gov-east-1\"|\"us-east-2\"|\"us-east-1\"|\"sa-east-1\"|\"mx-central-1\"|\"me-south-1\"|\"me-central-1\"|\"il-central-1\"|\"eusc-de-east-1\"|\"eu-isoe-west-1\"|\"eu-west-3\"|\"eu-west-2\"|\"eu-west-1\"|\"eu-south-2\"|\"eu-south-1\"|\"eu-north-1\"|\"eu-central-2\"|\"eu-central-1\"|\"cn-northwest-1\"|\"cn-north-1\"|\"ca-west-1\"|\"ca-central-1\"|\"aws-iso-f-global\"|\"aws-iso-e-global\"|\"aws-iso-b-global\"|\"aws-iso-global\"|\"aws-us-gov-global\"|\"aws-cn-global\"|\"aws-global\"|\"ap-southeast-7\"|\"ap-southeast-6\"|\"ap-southeast-5\"|\"ap-southeast-4\"|\"ap-southeast-3\"|\"ap-southeast-2\"|\"ap-southeast-1\"|\"ap-south-2\"|\"ap-south-1\"|\"ap-northeast-3\"|\"ap-northeast-2\"|\"ap-northeast-1\"|\"ap-east-2\"|\"ap-east-1\"|\"af-south-1\"|string"
+              },
+              "optional": true,
+              "default": "aws:US_EAST_1"
+            },
+            {
+              "name": "endpoint",
+              "description": "Optional endpoint configuration for FIPS, dualstack, or custom endpoint overrides (e.g., LocalStack)",
+              "type": {
+                "name": "EndpointConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "EndpointConfig",
+                    "libraryName": "ballerinax/aws"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "config",
+              "description": "The connection configuration",
+              "type": {
+                "name": "ConnectionConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ConnectionConfig"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "An Error if initialization fails",
+            "type": {
+              "name": "Error?"
+            }
+          }
+        },
+        {
+          "name": "createBucket",
+          "type": "Remote Function",
+          "description": "Creates an S3 bucket.\n",
+          "parameters": [
+            {
+              "name": "bucketName",
+              "description": "The name of the bucket",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Bucket Name\"}"
+                }
+              ]
+            },
+            {
+              "name": "acl",
+              "description": "Specifies accessibility for this object (e.g., \"private\", \"public-read\")",
+              "type": {
+                "name": "CannedACL",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "CannedACL"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "\"bucket-owner-full-control\""
+            },
+            {
+              "name": "objectOwnership",
+              "description": "Specifies ownership of objects uploaded to this bucket (e.g., \"BucketOwnerEnforced\", \"ObjectWriter\")",
+              "type": {
+                "name": "ObjectOwnership",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ObjectOwnership"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "\"BucketOwnerPreferred\""
+            },
+            {
+              "name": "objectLockEnabled",
+              "description": "Enable Object Lock to prevent objects from being deleted or overwritten",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "config",
+              "description": "Optional bucket configuration",
+              "type": {
+                "name": "CreateBucketConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "CreateBucketConfig"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "An Error if bucket creation fails",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          },
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Create Bucket\"}"
+            }
+          ]
+        },
+        {
+          "name": "deleteBucket",
+          "type": "Remote Function",
+          "description": "Deletes an S3 bucket.\n",
+          "parameters": [
+            {
+              "name": "bucketName",
+              "description": "The name of the bucket",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Bucket Name\"}"
+                }
+              ]
+            }
+          ],
+          "return": {
+            "description": "An Error if bucket deletion fails",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          },
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Delete Bucket\"}"
+            }
+          ]
+        },
+        {
+          "name": "listBuckets",
+          "type": "Remote Function",
+          "description": "Lists all buckets in the AWS account.\n",
+          "parameters": [],
+          "return": {
+            "description": "List of buckets or an Error",
+            "type": {
+              "name": "Bucket[]|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Bucket"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          },
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"List Buckets\"}"
+            }
+          ]
+        },
+        {
+          "name": "getBucketLocation",
+          "type": "Remote Function",
+          "description": "Gets the AWS region of a bucket.\n",
+          "parameters": [
+            {
+              "name": "bucketName",
+              "description": "The name of the bucket",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Bucket Name\"}"
+                }
+              ]
+            }
+          ],
+          "return": {
+            "description": "Region string or an Error",
+            "type": {
+              "name": "string|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          },
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Get Bucket Location\"}"
+            }
+          ]
+        },
+        {
+          "name": "putObjectFromFile",
+          "type": "Remote Function",
+          "description": "Uploads an S3 object from a file path.\n",
+          "parameters": [
+            {
+              "name": "bucketName",
+              "description": "The name of the bucket",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Bucket Name\"}"
+                }
+              ]
+            },
+            {
+              "name": "objectKey",
+              "description": "The path of the object",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Object Key\"}"
+                }
+              ]
+            },
+            {
+              "name": "filePath",
+              "description": "The local file path to upload",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"File Path\"}"
+                }
+              ]
+            },
+            {
+              "name": "contentType",
+              "description": "The MIME type of the content",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "acl",
+              "description": "Specifies accessibility for this object (e.g., \"private\", \"public-read\")",
+              "type": {
+                "name": "CannedACL",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "CannedACL"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "\"bucket-owner-full-control\""
+            },
+            {
+              "name": "storageClass",
+              "description": "The Storage class of the object (e.g., \"STANDARD\", \"GLACIER\" for archive, \"INTELLIGENT_TIERING\")",
+              "type": {
+                "name": "StorageClass",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "StorageClass"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "\"DEEP_ARCHIVE\""
+            },
+            {
+              "name": "metadata",
+              "description": "Custom data to attach to the object (e.g., {\"author\": \"John\", \"project\": \"demo\"})",
+              "type": {
+                "name": "map\u003cstring\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "cacheControl",
+              "description": "Specifies caching behavior along the request/reply chain",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "contentDisposition",
+              "description": "Specifies presentational information for the object",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "contentEncoding",
+              "description": "Specifies what content encodings have been applied to the object and thus what decoding mechanisms must be applied to obtain the media-type referenced by the Content-Type header field",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "contentLanguage",
+              "description": "The language the content is in (e.g., \"en-US\", \"fr\")",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "expires",
+              "description": "The date and time at which the object is no longer cacheable",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "tagging",
+              "description": "Tags for the object",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "serverSideEncryption",
+              "description": "Encryption type (\"AES256\" or \"aws:kms\")",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "fileFormat",
+              "description": "The file format to use for serializing record content. Overrides the format inferred from the object key extension",
+              "type": {
+                "name": "FileFormat",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "FileFormat"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "\"CSV\""
+            },
+            {
+              "name": "config",
+              "description": "Optional upload configuration",
+              "type": {
+                "name": "PutObjectConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "PutObjectConfig"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "An Error if the upload fails",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          },
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Put Object From File\"}"
+            }
+          ]
+        },
+        {
+          "name": "putObject",
+          "type": "Remote Function",
+          "description": "Uploads an S3 object from content.\n",
+          "parameters": [
+            {
+              "name": "bucketName",
+              "description": "The name of the bucket",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Bucket Name\"}"
+                }
+              ]
+            },
+            {
+              "name": "objectKey",
+              "description": "The path of the object",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Object Key\"}"
+                }
+              ]
+            },
+            {
+              "name": "content",
+              "description": "The object content (to be used for automatic data binding).\nSupported types:\n- Built-in subtypes of `anydata` (`byte[]`, `string`, `json`, `xml`)\n- Custom types (e.g., `User`, `Student`, etc.), written as JSON for a `.json` object key\nand as XML for a `.xml` object key\n- Arrays of custom types (e.g., `User[]`, `Student[]`, etc.), written as CSV with the field\nnames as headers, needs a `.csv` object key\n- Stream of custom types (e.g., `stream\u003cUser, error?\u003e`), written as CSV, needs a `.csv`\nobject key\n- Stream of byte arrays (`stream\u003cbyte[], error?\u003e`), collected into bytes before uploading\nThe `PutObjectConfig.fileFormat` configuration overrides the format inferred from the\nobject key",
+              "type": {
+                "name": "UploadContent",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "UploadContent"
+                  }
+                ]
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Content\"}"
+                }
+              ]
+            },
+            {
+              "name": "contentType",
+              "description": "The MIME type of the content",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "acl",
+              "description": "Specifies accessibility for this object (e.g., \"private\", \"public-read\")",
+              "type": {
+                "name": "CannedACL",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "CannedACL"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "\"bucket-owner-full-control\""
+            },
+            {
+              "name": "storageClass",
+              "description": "The Storage class of the object (e.g., \"STANDARD\", \"GLACIER\" for archive, \"INTELLIGENT_TIERING\")",
+              "type": {
+                "name": "StorageClass",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "StorageClass"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "\"DEEP_ARCHIVE\""
+            },
+            {
+              "name": "metadata",
+              "description": "Custom data to attach to the object (e.g., {\"author\": \"John\", \"project\": \"demo\"})",
+              "type": {
+                "name": "map\u003cstring\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "cacheControl",
+              "description": "Specifies caching behavior along the request/reply chain",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "contentDisposition",
+              "description": "Specifies presentational information for the object",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "contentEncoding",
+              "description": "Specifies what content encodings have been applied to the object and thus what decoding mechanisms must be applied to obtain the media-type referenced by the Content-Type header field",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "contentLanguage",
+              "description": "The language the content is in (e.g., \"en-US\", \"fr\")",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "expires",
+              "description": "The date and time at which the object is no longer cacheable",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "tagging",
+              "description": "Tags for the object",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "serverSideEncryption",
+              "description": "Encryption type (\"AES256\" or \"aws:kms\")",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "fileFormat",
+              "description": "The file format to use for serializing record content. Overrides the format inferred from the object key extension",
+              "type": {
+                "name": "FileFormat",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "FileFormat"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "\"CSV\""
+            },
+            {
+              "name": "config",
+              "description": "Optional upload configuration",
+              "type": {
+                "name": "PutObjectConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "PutObjectConfig"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "An Error if the upload fails",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          },
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Put Object\"}"
+            }
+          ]
+        },
+        {
+          "name": "putObjectAsStream",
+          "type": "Remote Function",
+          "description": "Uploads an S3 object from a stream.\n",
+          "parameters": [
+            {
+              "name": "bucketName",
+              "description": "The name of the bucket",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Bucket Name\"}"
+                }
+              ]
+            },
+            {
+              "name": "objectKey",
+              "description": "The path of the object",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Object Key\"}"
+                }
+              ]
+            },
+            {
+              "name": "contentStream",
+              "description": "The content stream",
+              "type": {
+                "name": "stream\u003cbyte[], error?\u003e"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Content Stream\"}"
+                }
+              ]
+            },
+            {
+              "name": "contentType",
+              "description": "The MIME type of the content",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "acl",
+              "description": "Specifies accessibility for this object (e.g., \"private\", \"public-read\")",
+              "type": {
+                "name": "CannedACL",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "CannedACL"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "\"bucket-owner-full-control\""
+            },
+            {
+              "name": "storageClass",
+              "description": "The Storage class of the object (e.g., \"STANDARD\", \"GLACIER\" for archive, \"INTELLIGENT_TIERING\")",
+              "type": {
+                "name": "StorageClass",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "StorageClass"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "\"DEEP_ARCHIVE\""
+            },
+            {
+              "name": "metadata",
+              "description": "Custom data to attach to the object (e.g., {\"author\": \"John\", \"project\": \"demo\"})",
+              "type": {
+                "name": "map\u003cstring\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "cacheControl",
+              "description": "Specifies caching behavior along the request/reply chain",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "contentDisposition",
+              "description": "Specifies presentational information for the object",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "contentEncoding",
+              "description": "Specifies what content encodings have been applied to the object and thus what decoding mechanisms must be applied to obtain the media-type referenced by the Content-Type header field",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "contentLanguage",
+              "description": "The language the content is in (e.g., \"en-US\", \"fr\")",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "expires",
+              "description": "The date and time at which the object is no longer cacheable",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "tagging",
+              "description": "Tags for the object",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "serverSideEncryption",
+              "description": "Encryption type (\"AES256\" or \"aws:kms\")",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "fileFormat",
+              "description": "The file format to use for serializing record content. Overrides the format inferred from the object key extension",
+              "type": {
+                "name": "FileFormat",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "FileFormat"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "\"CSV\""
+            },
+            {
+              "name": "contentLength",
+              "description": "The Size of the content, in bytes",
+              "type": {
+                "name": "int"
+              },
+              "default": "0"
+            },
+            {
+              "name": "config",
+              "description": "Optional upload configuration",
+              "type": {
+                "name": "PutObjectStreamConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "PutObjectStreamConfig"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "An Error if the upload fails",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          },
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Put Object As Stream\"}"
+            }
+          ]
+        },
+        {
+          "name": "getObject",
+          "type": "Remote Function",
+          "description": "Downloads an S3 object from an S3 bucket.\n",
+          "parameters": [
+            {
+              "name": "bucketName",
+              "description": "The name of the bucket",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Bucket Name\"}"
+                }
+              ]
+            },
+            {
+              "name": "objectKey",
+              "description": "The path of the object",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Object Key\"}"
+                }
+              ]
+            },
+            {
+              "name": "targetType",
+              "description": "Expected return type (to be used for automatic data binding).\nSupported types:\n- Built-in subtypes of `anydata` (`byte[]`, `string`, `json`, `xml`)\n- Custom types (e.g., `User`, `Student`, etc.), read as JSON for a `.json` object key\nand as XML for a `.xml` object key\n- Arrays of custom types (e.g., `User[]`, `Student[]`, etc.), read as CSV with the first\nrow as headers, needs a `.csv` object key\n- Stream of custom types (e.g., `stream\u003cUser, error?\u003e`), read as CSV, needs a `.csv`\nobject key\n- Stream of byte arrays (`stream\u003cbyte[], error?\u003e`), to retrieve large objects without\nloading the entire content into memory",
+              "type": {
+                "name": "byte[]|string|json|xml|record {|anydata...;|}|record {|anydata...;|}[]|stream\u003cbyte[], error?\u003e|stream\u003crecord {|anydata...;|}, error?\u003e"
+              },
+              "optional": true,
+              "default": "s3:RetrievableType"
+            },
+            {
+              "name": "versionId",
+              "description": "Get a specific version of the object (when versioning is enabled)",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "range",
+              "description": "Downloads the specified range bytes of an object",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "ifMatch",
+              "description": "Return the object only if its entity tag (ETag) is the same as the one specified",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "ifNoneMatch",
+              "description": "Return the object only if its entity tag (ETag) is different from the one specified",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "ifModifiedSince",
+              "description": "Return the object only if it has been modified since the specified time (e.g., \"2024-01-15T00:00:00Z\")",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "ifUnmodifiedSince",
+              "description": "Return the object only if it has not been modified since the specified time (e.g., \"2024-01-15T00:00:00Z\")",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "partNumber",
+              "description": "The part number of the file part",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "0"
+            },
+            {
+              "name": "responseContentType",
+              "description": "Override the MIME type of the content",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "responseContentDisposition",
+              "description": "Override presentational information for the object",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "config",
+              "description": "Optional retrieval configuration",
+              "type": {
+                "name": "GetObjectConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "GetObjectConfig"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "The object content in the requested type or an Error",
+            "type": {
+              "name": "targetType|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "targetType"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          },
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Get Object\"}"
+            }
+          ]
+        },
+        {
+          "name": "deleteObject",
+          "type": "Remote Function",
+          "description": "Deletes an S3 object from an S3 bucket.\n",
+          "parameters": [
+            {
+              "name": "bucketName",
+              "description": "The name of the bucket",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Bucket Name\"}"
+                }
+              ]
+            },
+            {
+              "name": "objectKey",
+              "description": "The path of the object",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Object Key\"}"
+                }
+              ]
+            },
+            {
+              "name": "versionId",
+              "description": "Delete a specific version of the object (when versioning is enabled)",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "mfa",
+              "description": "Multi-factor authentication token (needed if MFA Delete is turned on for the bucket)",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "bypassGovernanceRetention",
+              "description": "Skip the lock protection and delete the object even if it\u0027s protected (use with caution)",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "config",
+              "description": "Optional deletion configuration",
+              "type": {
+                "name": "DeleteObjectConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "DeleteObjectConfig"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "An Error if deletion fails",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          },
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Delete Object\"}"
+            }
+          ]
+        },
+        {
+          "name": "listObjects",
+          "type": "Remote Function",
+          "description": "Lists S3 objects in an S3 bucket.\n",
+          "parameters": [
+            {
+              "name": "bucketName",
+              "description": "The name of the bucket",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Bucket Name\"}"
+                }
+              ]
+            },
+            {
+              "name": "prefix",
+              "description": "Filter objects that start with this value (e.g., \"photos/\" for all objects in photos folder)",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "delimiter",
+              "description": "Character to group object keys (e.g., \"/\" to list like folders)",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "maxKeys",
+              "description": "Maximum number of objects to return (1-1000)",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "0"
+            },
+            {
+              "name": "continuationToken",
+              "description": "Token to get the next page of results",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "startAfter",
+              "description": "List objects after this key name",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "fetchOwner",
+              "description": "Include owner info in the results",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "encodingType",
+              "description": "Encoding type for object keys (e.g., \"url\")",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "config",
+              "description": "Optional listing configuration",
+              "type": {
+                "name": "ListObjectsConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ListObjectsConfig"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "List of objects or an Error",
+            "type": {
+              "name": "ListObjectsResponse|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "ListObjectsResponse"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          },
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"List Objects\"}"
+            }
+          ]
+        },
+        {
+          "name": "createPresignedUrl",
+          "type": "Remote Function",
+          "description": "Creates a presigned URL for temporary access to an S3 object.\n",
+          "parameters": [
+            {
+              "name": "bucketName",
+              "description": "The name of the bucket",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Bucket Name\"}"
+                }
+              ]
+            },
+            {
+              "name": "objectKey",
+              "description": "The path of the object",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Object Key\"}"
+                }
+              ]
+            },
+            {
+              "name": "expirationMinutes",
+              "description": "Specifies how long the URL is valid in minutes (default: 15, max: 10080 for 7 days)",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "0"
+            },
+            {
+              "name": "httpMethod",
+              "description": "Specifies what action the URL allows (\"GET\" to download, \"PUT\" to upload)",
+              "type": {
+                "name": "HttpMethod",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "HttpMethod"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "\"PUT\""
+            },
+            {
+              "name": "contentType",
+              "description": "The MIME type of the content (for PUT requests)",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "contentDisposition",
+              "description": "Specifies presentational information for the object (for GET requests)",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "responseContentType",
+              "description": "Override file type when downloading (for GET requests)",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "versionId",
+              "description": "Get URL for a specific version of the object (when versioning is enabled)",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "config",
+              "description": "Optional presigned URL configuration",
+              "type": {
+                "name": "PresignedUrlConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "PresignedUrlConfig"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "Presigned URL string or an Error",
+            "type": {
+              "name": "string|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          },
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Create Presigned URL\"}"
+            }
+          ]
+        },
+        {
+          "name": "getObjectMetadata",
+          "type": "Remote Function",
+          "description": "Gets metadata for an S3 object without downloading it.\n",
+          "parameters": [
+            {
+              "name": "bucketName",
+              "description": "The name of the bucket",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Bucket Name\"}"
+                }
+              ]
+            },
+            {
+              "name": "objectKey",
+              "description": "The path of the object",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Object Key\"}"
+                }
+              ]
+            },
+            {
+              "name": "versionId",
+              "description": "Get metadata for a specific version of the object (when versioning is enabled)",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "partNumber",
+              "description": "The part number of the file part to get metadata for",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "0"
+            },
+            {
+              "name": "ifMatch",
+              "description": "Return the metadata only if its entity tag (ETag) is the same as the one specified",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "ifNoneMatch",
+              "description": "Return the metadata only if its entity tag (ETag) is different from the one specified",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "ifModifiedSince",
+              "description": "Return the metadata only if it has been modified since the specified time",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "ifUnmodifiedSince",
+              "description": "Return the metadata only if it has not been modified since the specified time",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "config",
+              "description": "Optional metadata retrieval configuration",
+              "type": {
+                "name": "HeadObjectConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "HeadObjectConfig"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "Object metadata or an Error",
+            "type": {
+              "name": "ObjectMetadata|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "ObjectMetadata"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          },
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Get Object Metadata\"}"
+            }
+          ]
+        },
+        {
+          "name": "copyObject",
+          "type": "Remote Function",
+          "description": "Copies an S3 object from one location to another.\n",
+          "parameters": [
+            {
+              "name": "sourceBucket",
+              "description": "Source bucket name",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Source Bucket\"}"
+                }
+              ]
+            },
+            {
+              "name": "sourceKey",
+              "description": "Source object path",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Source Key\"}"
+                }
+              ]
+            },
+            {
+              "name": "destinationBucket",
+              "description": "Destination bucket name",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Destination Bucket\"}"
+                }
+              ]
+            },
+            {
+              "name": "destinationKey",
+              "description": "Destination object path",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Destination Key\"}"
+                }
+              ]
+            },
+            {
+              "name": "acl",
+              "description": "Specifies accessibility for the copied object (e.g., \"private\", \"public-read\")",
+              "type": {
+                "name": "CannedACL",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "CannedACL"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "\"bucket-owner-full-control\""
+            },
+            {
+              "name": "storageClass",
+              "description": "Storage type for the copied object (e.g., \"STANDARD\", \"GLACIER\")",
+              "type": {
+                "name": "StorageClass",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "StorageClass"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "\"DEEP_ARCHIVE\""
+            },
+            {
+              "name": "metadataDirective",
+              "description": "\"COPY\" to keep original metadata or \"REPLACE\" to use new metadata",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "metadata",
+              "description": "New metadata for the copied object (only used when metadataDirective is \"REPLACE\")",
+              "type": {
+                "name": "map\u003cstring\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "contentType",
+              "description": "The MIME type of the copied object",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "cacheControl",
+              "description": "Specifies caching behavior along the request/reply chain",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "contentDisposition",
+              "description": "Specifies presentational information for the object",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "contentEncoding",
+              "description": "Specifies what content encodings have been applied to the object and thus what decoding mechanisms must be applied to obtain the media-type referenced by the Content-Type header field",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "tagging",
+              "description": "Tags for the copied object (e.g., \"env\u003dprod\u0026team\u003dfinance\")",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "copySourceIfMatch",
+              "description": "Copy the object only if its entity tag (ETag) is the same as the one specified",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "copySourceIfNoneMatch",
+              "description": "Copy the object only if its entity tag (ETag) is different from the one specified",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "copySourceIfModifiedSince",
+              "description": "Copy the object only if it has been modified since the specified time (e.g., \"2024-01-15T00:00:00Z\")",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "copySourceIfUnmodifiedSince",
+              "description": "Copy the object only if it has not been modified since the specified time (e.g., \"2024-01-15T00:00:00Z\")",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "config",
+              "description": "Optional copy configuration",
+              "type": {
+                "name": "CopyObjectConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "CopyObjectConfig"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "An Error if copy fails",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          },
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Copy Object\"}"
+            }
+          ]
+        },
+        {
+          "name": "doesObjectExist",
+          "type": "Remote Function",
+          "description": "Checks if an S3 object exists in an S3 bucket.\n",
+          "parameters": [
+            {
+              "name": "bucketName",
+              "description": "The name of the bucket",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Bucket Name\"}"
+                }
+              ]
+            },
+            {
+              "name": "objectKey",
+              "description": "The path of the object",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Object Key\"}"
+                }
+              ]
+            }
+          ],
+          "return": {
+            "description": "True if the object exists, false if not found, or an Error on request/transport failures",
+            "type": {
+              "name": "boolean|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          },
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Does Object Exist\"}"
+            }
+          ]
+        },
+        {
+          "name": "createMultipartUpload",
+          "type": "Remote Function",
+          "description": "Creates a multipart upload.\n",
+          "parameters": [
+            {
+              "name": "bucketName",
+              "description": "The name of the bucket",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Bucket Name\"}"
+                }
+              ]
+            },
+            {
+              "name": "objectKey",
+              "description": "The path of the object",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Object Key\"}"
+                }
+              ]
+            },
+            {
+              "name": "contentType",
+              "description": "The MIME type of the content",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "acl",
+              "description": "Specifies accessibility for this object (e.g., \"private\", \"public-read\")",
+              "type": {
+                "name": "CannedACL",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "CannedACL"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "\"bucket-owner-full-control\""
+            },
+            {
+              "name": "storageClass",
+              "description": "The Storage class of the object (e.g., \"STANDARD\", \"GLACIER\" for archive)",
+              "type": {
+                "name": "StorageClass",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "StorageClass"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "\"DEEP_ARCHIVE\""
+            },
+            {
+              "name": "metadata",
+              "description": "Custom data to attach to the object (e.g., {\"author\": \"John\"})",
+              "type": {
+                "name": "map\u003cstring\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "cacheControl",
+              "description": "Specifies caching behavior along the request/reply chain",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "contentDisposition",
+              "description": "Specifies presentational information for the object",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "contentEncoding",
+              "description": "Specifies what content encodings have been applied to the object and thus what decoding mechanisms must be applied to obtain the media-type referenced by the Content-Type header field",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "tagging",
+              "description": "Tags for the object (e.g., \"env\u003dprod\u0026team\u003dfinance\")",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "serverSideEncryption",
+              "description": "Encryption type (\"AES256\" or \"aws:kms\")",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "config",
+              "description": "Optional multipart upload configuration",
+              "type": {
+                "name": "MultipartUploadConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "MultipartUploadConfig"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "Upload ID or an Error",
+            "type": {
+              "name": "string|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          },
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Create Multipart Upload\"}"
+            }
+          ]
+        },
+        {
+          "name": "uploadPart",
+          "type": "Remote Function",
+          "description": "Uploads a part in a multipart upload.\nSupported content types: `byte[]`, `string`, `json`, `xml`, `record {}`, `record {}[]`,\n`stream\u003cbyte[], error?\u003e`, and `stream\u003crecord {}, error?\u003e`.\n\nFor `record {}` content, the object key must end with `.json` or `.xml`.\n`.json` keys serialize the record as JSON; `.xml` keys serialize as XML.\nFor `record {}[]` and `stream\u003crecord {}, error?\u003e` content, the object key must end with `.csv`.\nThe records are serialized as CSV (field names as headers).\n`stream\u003cbyte[], error?\u003e` content is collected into bytes before uploading.\n",
+          "parameters": [
+            {
+              "name": "bucketName",
+              "description": "The name of the bucket",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Bucket Name\"}"
+                }
+              ]
+            },
+            {
+              "name": "objectKey",
+              "description": "The path of the object",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Object Key\"}"
+                }
+              ]
+            },
+            {
+              "name": "uploadId",
+              "description": "The upload ID from createMultipartUpload",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Upload ID\"}"
+                }
+              ]
+            },
+            {
+              "name": "partNumber",
+              "description": "The part number (1-10000)",
+              "type": {
+                "name": "int"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Part Number\"}"
+                }
+              ]
+            },
+            {
+              "name": "content",
+              "description": "The part content",
+              "type": {
+                "name": "UploadContent",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "UploadContent"
+                  }
+                ]
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Content\"}"
+                }
+              ]
+            },
+            {
+              "name": "contentLength",
+              "description": "Size of the part in bytes",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "0"
+            },
+            {
+              "name": "contentMD5",
+              "description": "MD5 hash of the part content (for data integrity check)",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "fileFormat",
+              "description": "The file format to use for serializing record content. Overrides the format inferred from the object key extension",
+              "type": {
+                "name": "FileFormat",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "FileFormat"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "\"CSV\""
+            },
+            {
+              "name": "config",
+              "description": "Optional upload part configuration",
+              "type": {
+                "name": "UploadPartConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "UploadPartConfig"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "ETag of the uploaded part or an Error",
+            "type": {
+              "name": "string|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          },
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Upload Part\"}"
+            }
+          ]
+        },
+        {
+          "name": "uploadPartAsStream",
+          "type": "Remote Function",
+          "description": "Uploads a part from a stream.\n",
+          "parameters": [
+            {
+              "name": "bucketName",
+              "description": "The name of the bucket",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Bucket Name\"}"
+                }
+              ]
+            },
+            {
+              "name": "objectKey",
+              "description": "The path of the object",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Object Key\"}"
+                }
+              ]
+            },
+            {
+              "name": "uploadId",
+              "description": "The upload ID from createMultipartUpload",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Upload ID\"}"
+                }
+              ]
+            },
+            {
+              "name": "partNumber",
+              "description": "The part number (1-10000)",
+              "type": {
+                "name": "int"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Part Number\"}"
+                }
+              ]
+            },
+            {
+              "name": "contentStream",
+              "description": "The content stream",
+              "type": {
+                "name": "stream\u003cbyte[], error?\u003e"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Content Stream\"}"
+                }
+              ]
+            },
+            {
+              "name": "contentLength",
+              "description": "Size of the part in bytes",
+              "type": {
+                "name": "int"
+              },
+              "default": "0"
+            },
+            {
+              "name": "contentMD5",
+              "description": "MD5 hash of the part content (for data integrity check)",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "fileFormat",
+              "description": "The file format to use for serializing record content. Overrides the format inferred from the object key extension",
+              "type": {
+                "name": "FileFormat",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "FileFormat"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "\"CSV\""
+            },
+            {
+              "name": "config",
+              "description": "Optional upload part configuration",
+              "type": {
+                "name": "UploadStreamPartConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "UploadStreamPartConfig"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "ETag of the uploaded part or an Error",
+            "type": {
+              "name": "string|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          },
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Upload Part As Stream\"}"
+            }
+          ]
+        },
+        {
+          "name": "completeMultipartUpload",
+          "type": "Remote Function",
+          "description": "Completes a multipart upload.\n",
+          "parameters": [
+            {
+              "name": "bucketName",
+              "description": "The name of the bucket",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Bucket Name\"}"
+                }
+              ]
+            },
+            {
+              "name": "objectKey",
+              "description": "The path of the object",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Object Key\"}"
+                }
+              ]
+            },
+            {
+              "name": "uploadId",
+              "description": "The upload ID from createMultipartUpload",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Upload ID\"}"
+                }
+              ]
+            },
+            {
+              "name": "partNumbers",
+              "description": "Array of part numbers",
+              "type": {
+                "name": "int[]"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Part Numbers\"}"
+                }
+              ]
+            },
+            {
+              "name": "etags",
+              "description": "Array of ETags corresponding to each part",
+              "type": {
+                "name": "string[]"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"ETags\"}"
+                }
+              ]
+            }
+          ],
+          "return": {
+            "description": "An Error if completion fails",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          },
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Complete Multipart Upload\"}"
+            }
+          ]
+        },
+        {
+          "name": "abortMultipartUpload",
+          "type": "Remote Function",
+          "description": "Aborts a multipart upload.\n",
+          "parameters": [
+            {
+              "name": "bucketName",
+              "description": "The name of the bucket",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Bucket Name\"}"
+                }
+              ]
+            },
+            {
+              "name": "objectKey",
+              "description": "The path of the object",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Object Key\"}"
+                }
+              ]
+            },
+            {
+              "name": "uploadId",
+              "description": "The upload ID from createMultipartUpload",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Upload ID\"}"
+                }
+              ]
+            }
+          ],
+          "return": {
+            "description": "An Error if abort fails",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          },
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Abort Multipart Upload\"}"
+            }
+          ]
+        },
+        {
+          "name": "close",
+          "type": "Normal Function",
+          "description": "Closes the underlying S3 client and releases resources.\n",
+          "parameters": [],
+          "return": {
+            "description": "An Error if closing fails",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "annotations": [
+        {
+          "name": "display",
+          "value": "{label: \"AWS S3 Client\", iconPath: \"icon.png\"}"
+        }
+      ]
+    }
+  ],
+  "functions": [],
+  "services": [],
+  "annotations": []
+}
