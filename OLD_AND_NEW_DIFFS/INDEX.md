@@ -1,0 +1,183 @@
+# Copilot render diffs — `old` vs `new`
+
+One `<library>_diff.md` per library, generated from `<library>/old/*.bal.txt` vs `<library>/new/*.bal.txt`.
+
+Every embedded patch is verified: **applying it to `old` reproduces `new` byte-for-byte (sha256).**
+
+## Totals
+
+| | |
+|---|---|
+| Libraries | 162 |
+| Identical pairs (no change) | 6 |
+| Total lines added | 35065 |
+| Total lines removed | 7757 |
+| `// Unknown type:` placeholders | 2370 → 0 |
+| Version/module-qualified type refs | 3638 → 0 |
+
+## Per library
+
+| Library | Old | New | Added | Removed | Hunks | Unknown types | Qualified refs |
+|---|---:|---:|---:|---:|---:|---|---|
+| [`ai`](./ai_diff.md) | 2683 | 3172 | +601 | −112 | 65 | 49 → 0 | 88 → 0 |
+| [`ai.agent`](./ai.agent_diff.md) | 2128 | 2315 | +280 | −93 | 54 | 31 → 0 | 75 → 0 |
+| [`ai.anthropic`](./ai.anthropic_diff.md) | 168 | 188 | +22 | −2 | 3 | 0 → 0 | 1 → 0 |
+| [`ai.aws.dynamodb`](./ai.aws.dynamodb_diff.md) | 143 | 225 | +84 | −2 | 2 | 2 → 0 | 0 → 0 |
+| [`ai.azure`](./ai.azure_diff.md) | 262 | 297 | +39 | −4 | 6 | 1 → 0 | 2 → 0 |
+| [`ai.deepseek`](./ai.deepseek_diff.md) | 125 | 144 | +21 | −2 | 3 | 0 → 0 | 1 → 0 |
+| [`ai.devant`](./ai.devant_diff.md) | 79 | 94 | +18 | −3 | 2 | 3 → 0 | 0 → 0 |
+| [`ai.eval`](./ai.eval_diff.md) | 470 | 502 | +33 | −1 | 24 | 1 → 0 | 0 → 0 |
+| [`ai.googleapis.vertex`](./ai.googleapis.vertex_diff.md) | 257 | 277 | +25 | −5 | 6 | 1 → 0 | 5 → 0 |
+| [`ai.memory.mssql`](./ai.memory.mssql_diff.md) | 108 | 171 | +65 | −2 | 2 | 2 → 0 | 0 → 0 |
+| [`ai.memory.postgresql`](./ai.memory.postgresql_diff.md) | 133 | 203 | +72 | −2 | 1 | 2 → 0 | 0 → 0 |
+| [`ai.memory.redis`](./ai.memory.redis_diff.md) | 85 | 149 | +66 | −2 | 1 | 2 → 0 | 0 → 0 |
+| [`ai.microsoft.sharepoint`](./ai.microsoft.sharepoint_diff.md) | 309 | 318 | +10 | −1 | 1 | 1 → 0 | 0 → 0 |
+| [`ai.milvus`](./ai.milvus_diff.md) | 130 | 146 | +17 | −1 | 1 | 1 → 0 | 0 → 0 |
+| [`ai.mistral`](./ai.mistral_diff.md) | 211 | 232 | +23 | −2 | 3 | 0 → 0 | 1 → 0 |
+| [`ai.np`](./ai.np_diff.md) | 60 | 60 | — | — | _identical_ | 0 → 0 | 0 → 0 |
+| [`ai.ollama`](./ai.ollama_diff.md) | 155 | 197 | +44 | −2 | 2 | 0 → 0 | 1 → 0 |
+| [`ai.openai`](./ai.openai_diff.md) | 370 | 393 | +26 | −3 | 7 | 0 → 0 | 2 → 0 |
+| [`ai.openrouter`](./ai.openrouter_diff.md) | 148 | 165 | +20 | −3 | 4 | 0 → 0 | 2 → 0 |
+| [`ai.pgvector`](./ai.pgvector_diff.md) | 120 | 136 | +17 | −1 | 1 | 1 → 0 | 0 → 0 |
+| [`ai.pinecone`](./ai.pinecone_diff.md) | 73 | 89 | +17 | −1 | 1 | 1 → 0 | 0 → 0 |
+| [`ai.sqlite`](./ai.sqlite_diff.md) | 162 | 234 | +74 | −2 | 1 | 2 → 0 | 0 → 0 |
+| [`ai.weaviate`](./ai.weaviate_diff.md) | 160 | 176 | +17 | −1 | 1 | 1 → 0 | 0 → 0 |
+| [`alfresco`](./alfresco_diff.md) | 4567 | 4654 | +195 | −108 | 102 | 0 → 0 | 0 → 0 |
+| [`amp`](./amp_diff.md) | 60 | 60 | — | — | _identical_ | 0 → 0 | 0 → 0 |
+| [`asana`](./asana_diff.md) | 7484 | 8270 | +1009 | −223 | 371 | 0 → 0 | 40 → 0 |
+| [`asb`](./asb_diff.md) | 1368 | 1699 | +379 | −48 | 31 | 4 → 0 | 4 → 0 |
+| [`aws.lambda`](./aws.lambda_diff.md) | 343 | 365 | +23 | −1 | 2 | 1 → 0 | 0 → 0 |
+| [`aws.marketplace.mpe`](./aws.marketplace.mpe_diff.md) | 221 | 226 | +9 | −4 | 6 | 1 → 0 | 2 → 0 |
+| [`aws.marketplace.mpm`](./aws.marketplace.mpm_diff.md) | 295 | 307 | +16 | −4 | 8 | 1 → 0 | 2 → 0 |
+| [`aws.redshift`](./aws.redshift_diff.md) | 199 | 200 | +4 | −3 | 2 | 0 → 0 | 1 → 0 |
+| [`aws.redshiftdata`](./aws.redshiftdata_diff.md) | 531 | 540 | +15 | −6 | 9 | 3 → 0 | 2 → 0 |
+| [`aws.s3`](./aws.s3_diff.md) | 650 | 677 | +54 | −27 | 4 | 6 → 0 | 2 → 0 |
+| [`aws.secretmanager`](./aws.secretmanager_diff.md) | 459 | 471 | +17 | −5 | 7 | 3 → 0 | 2 → 0 |
+| [`aws.sns`](./aws.sns_diff.md) | 1237 | 1245 | +28 | −20 | 14 | 6 → 0 | 4 → 0 |
+| [`aws.sqs`](./aws.sqs_diff.md) | 885 | 911 | +34 | −8 | 8 | 2 → 0 | 5 → 0 |
+| [`azure.ai.search`](./azure.ai.search_diff.md) | 1856 | 1859 | +51 | −48 | 11 | 2 → 0 | 15 → 0 |
+| [`azure.ai.search.index`](./azure.ai.search.index_diff.md) | 831 | 833 | +27 | −25 | 14 | 0 → 0 | 16 → 0 |
+| [`azure.functions`](./azure.functions_diff.md) | 231 | 338 | +119 | −12 | 2 | 11 → 0 | 4 → 0 |
+| [`azure.openai.chat`](./azure.openai.chat_diff.md) | 1038 | 1043 | +17 | −12 | 13 | 1 → 0 | 18 → 0 |
+| [`azure_storage_service`](./azure_storage_service_diff.md) | 37 | 38 | +2 | −1 | 1 | 1 → 0 | 0 → 0 |
+| [`candid`](./candid_diff.md) | 133 | 133 | — | — | _identical_ | 0 → 0 | 0 → 0 |
+| [`cdc`](./cdc_diff.md) | 1310 | 1339 | +37 | −8 | 4 | 4 → 0 | 15 → 0 |
+| [`confluent.cavroserdes`](./confluent.cavroserdes_diff.md) | 94 | 95 | +2 | −1 | 1 | 1 → 0 | 0 → 0 |
+| [`confluent.cregistry`](./confluent.cregistry_diff.md) | 120 | 121 | +2 | −1 | 1 | 1 → 0 | 0 → 0 |
+| [`copybook`](./copybook_diff.md) | 30 | 40 | +12 | −2 | 2 | 2 → 0 | 0 → 0 |
+| [`discord`](./discord_diff.md) | 5779 | 7142 | +2168 | −805 | 145 | 421 → 0 | 821 → 0 |
+| [`docusign.dsadmin`](./docusign.dsadmin_diff.md) | 2514 | 2516 | +54 | −52 | 30 | 1 → 0 | 51 → 0 |
+| [`elastic.elasticcloud`](./elastic.elasticcloud_diff.md) | 4976 | 5668 | +802 | −110 | 255 | 0 → 0 | 70 → 0 |
+| [`email`](./email_diff.md) | 718 | 811 | +101 | −8 | 5 | 3 → 0 | 6 → 0 |
+| [`ftp`](./ftp_diff.md) | 1564 | 1703 | +174 | −35 | 6 | 10 → 0 | 4 → 0 |
+| [`gcloud.pubsub`](./gcloud.pubsub_diff.md) | 347 | 394 | +51 | −4 | 4 | 2 → 0 | 1 → 0 |
+| [`github`](./github_diff.md) | 22880 | 26408 | +3935 | −407 | 1043 | 64 → 0 | 170 → 0 |
+| [`googleapis.calendar`](./googleapis.calendar_diff.md) | 804 | 878 | +84 | −10 | 17 | 0 → 0 | 0 → 0 |
+| [`googleapis.gcalendar`](./googleapis.gcalendar_diff.md) | 1240 | 1243 | +14 | −11 | 9 | 1 → 0 | 10 → 0 |
+| [`googleapis.gmail`](./googleapis.gmail_diff.md) | 730 | 735 | +17 | −12 | 7 | 3 → 0 | 9 → 0 |
+| [`googleapis.sheets`](./googleapis.sheets_diff.md) | 754 | 881 | +174 | −47 | 8 | 3 → 0 | 3 → 0 |
+| [`graphql`](./graphql_diff.md) | 1578 | 1722 | +177 | −33 | 11 | 13 → 0 | 27 → 0 |
+| [`grpc`](./grpc_diff.md) | 1239 | 1406 | +214 | −47 | 14 | 29 → 0 | 25 → 0 |
+| [`guidewire.insnow`](./guidewire.insnow_diff.md) | 2237 | 2249 | +20 | −8 | 15 | 0 → 0 | 0 → 0 |
+| [`http`](./http_diff.md) | 3532 | 4669 | +1368 | −231 | 112 | 155 → 0 | 117 → 0 |
+| [`hubspot.automation.actions`](./hubspot.automation.actions_diff.md) | 673 | 674 | +13 | −12 | 11 | 0 → 0 | 12 → 0 |
+| [`hubspot.crm.associations`](./hubspot.crm.associations_diff.md) | 681 | 682 | +10 | −9 | 10 | 0 → 0 | 8 → 0 |
+| [`hubspot.crm.associations.schema`](./hubspot.crm.associations.schema_diff.md) | 581 | 582 | +14 | −13 | 9 | 0 → 0 | 13 → 0 |
+| [`hubspot.crm.commerce.carts`](./hubspot.crm.commerce.carts_diff.md) | 781 | 782 | +16 | −15 | 15 | 0 → 0 | 11 → 0 |
+| [`hubspot.crm.commerce.discounts`](./hubspot.crm.commerce.discounts_diff.md) | 763 | 764 | +16 | −15 | 15 | 0 → 0 | 11 → 0 |
+| [`hubspot.crm.commerce.orders`](./hubspot.crm.commerce.orders_diff.md) | 785 | 786 | +16 | −15 | 15 | 0 → 0 | 11 → 0 |
+| [`hubspot.crm.commerce.quotes`](./hubspot.crm.commerce.quotes_diff.md) | 792 | 793 | +16 | −15 | 15 | 0 → 0 | 11 → 0 |
+| [`hubspot.crm.commerce.taxes`](./hubspot.crm.commerce.taxes_diff.md) | 761 | 762 | +16 | −15 | 15 | 0 → 0 | 11 → 0 |
+| [`hubspot.crm.engagement.meeting`](./hubspot.crm.engagement.meeting_diff.md) | 773 | 774 | +16 | −15 | 15 | 0 → 0 | 11 → 0 |
+| [`hubspot.crm.engagement.notes`](./hubspot.crm.engagement.notes_diff.md) | 784 | 785 | +16 | −15 | 15 | 0 → 0 | 11 → 0 |
+| [`hubspot.crm.engagements.calls`](./hubspot.crm.engagements.calls_diff.md) | 826 | 827 | +16 | −15 | 15 | 0 → 0 | 11 → 0 |
+| [`hubspot.crm.engagements.communications`](./hubspot.crm.engagements.communications_diff.md) | 772 | 773 | +16 | −15 | 15 | 0 → 0 | 11 → 0 |
+| [`hubspot.crm.engagements.email`](./hubspot.crm.engagements.email_diff.md) | 777 | 778 | +16 | −15 | 15 | 0 → 0 | 11 → 0 |
+| [`hubspot.crm.engagements.tasks`](./hubspot.crm.engagements.tasks_diff.md) | 790 | 791 | +16 | −15 | 15 | 0 → 0 | 11 → 0 |
+| [`hubspot.crm.extensions.timelines`](./hubspot.crm.extensions.timelines_diff.md) | 604 | 605 | +5 | −4 | 4 | 0 → 0 | 3 → 0 |
+| [`hubspot.crm.extensions.videoconferencing`](./hubspot.crm.extensions.videoconferencing_diff.md) | 243 | 245 | +2 | −0 | 1 | 0 → 0 | 0 → 0 |
+| [`hubspot.crm.import`](./hubspot.crm.import_diff.md) | 525 | 526 | +12 | −11 | 9 | 0 → 0 | 9 → 0 |
+| [`hubspot.crm.lists`](./hubspot.crm.lists_diff.md) | 1860 | 1861 | +115 | −114 | 36 | 0 → 0 | 335 → 0 |
+| [`hubspot.crm.obj.companies`](./hubspot.crm.obj.companies_diff.md) | 648 | 649 | +16 | −15 | 13 | 0 → 0 | 11 → 0 |
+| [`hubspot.crm.obj.contacts`](./hubspot.crm.obj.contacts_diff.md) | 782 | 783 | +15 | −14 | 14 | 0 → 0 | 11 → 0 |
+| [`hubspot.crm.obj.deals`](./hubspot.crm.obj.deals_diff.md) | 795 | 796 | +16 | −15 | 15 | 0 → 0 | 11 → 0 |
+| [`hubspot.crm.obj.feedback`](./hubspot.crm.obj.feedback_diff.md) | 780 | 781 | +16 | −15 | 15 | 0 → 0 | 11 → 0 |
+| [`hubspot.crm.obj.leads`](./hubspot.crm.obj.leads_diff.md) | 803 | 804 | +16 | −15 | 15 | 0 → 0 | 11 → 0 |
+| [`hubspot.crm.obj.lineitems`](./hubspot.crm.obj.lineitems_diff.md) | 797 | 798 | +16 | −15 | 15 | 0 → 0 | 11 → 0 |
+| [`hubspot.crm.obj.products`](./hubspot.crm.obj.products_diff.md) | 781 | 782 | +16 | −15 | 15 | 0 → 0 | 11 → 0 |
+| [`hubspot.crm.obj.schemas`](./hubspot.crm.obj.schemas_diff.md) | 567 | 568 | +10 | −9 | 9 | 0 → 0 | 7 → 0 |
+| [`hubspot.crm.obj.tickets`](./hubspot.crm.obj.tickets_diff.md) | 786 | 787 | +16 | −15 | 15 | 0 → 0 | 11 → 0 |
+| [`hubspot.crm.owners`](./hubspot.crm.owners_diff.md) | 362 | 365 | +8 | −5 | 5 | 0 → 0 | 3 → 0 |
+| [`hubspot.crm.pipelines`](./hubspot.crm.pipelines_diff.md) | 469 | 470 | +12 | −11 | 9 | 0 → 0 | 8 → 0 |
+| [`hubspot.crm.properties`](./hubspot.crm.properties_diff.md) | 575 | 576 | +12 | −11 | 12 | 0 → 0 | 9 → 0 |
+| [`hubspot.marketing.campaigns`](./hubspot.marketing.campaigns_diff.md) | 672 | 673 | +26 | −25 | 17 | 0 → 0 | 18 → 0 |
+| [`hubspot.marketing.emails`](./hubspot.marketing.emails_diff.md) | 1010 | 1011 | +25 | −24 | 20 | 0 → 0 | 17 → 0 |
+| [`hubspot.marketing.events`](./hubspot.marketing.events_diff.md) | 1366 | 1367 | +43 | −42 | 30 | 0 → 0 | 28 → 0 |
+| [`hubspot.marketing.forms`](./hubspot.marketing.forms_diff.md) | 1043 | 1044 | +11 | −10 | 9 | 0 → 0 | 20 → 0 |
+| [`hubspot.marketing.subscriptions`](./hubspot.marketing.subscriptions_diff.md) | 761 | 762 | +20 | −19 | 12 | 0 → 0 | 12 → 0 |
+| [`hubspot.marketing.transactional`](./hubspot.marketing.transactional_diff.md) | 407 | 408 | +4 | −3 | 4 | 0 → 0 | 2 → 0 |
+| [`ibm.ctg`](./ibm.ctg_diff.md) | 253 | 254 | +3 | −2 | 2 | 1 → 0 | 1 → 0 |
+| [`ibm.ibmmq`](./ibm.ibmmq_diff.md) | 979 | 1033 | +68 | −14 | 10 | 3 → 0 | 11 → 0 |
+| [`idetraceprovider`](./idetraceprovider_diff.md) | 44 | 44 | — | — | _identical_ | 0 → 0 | 0 → 0 |
+| [`java.jdbc`](./java.jdbc_diff.md) | 545 | 545 | +3 | −3 | 2 | 0 → 0 | 1 → 0 |
+| [`java.jms`](./java.jms_diff.md) | 505 | 558 | +62 | −9 | 8 | 2 → 0 | 4 → 0 |
+| [`jira`](./jira_diff.md) | 16649 | 16749 | +637 | −537 | 407 | 6 → 0 | 327 → 0 |
+| [`kafka`](./kafka_diff.md) | 936 | 1011 | +94 | −19 | 8 | 8 → 0 | 5 → 0 |
+| [`mailchimp.marketing`](./mailchimp.marketing_diff.md) | 11579 | 13811 | +2370 | −138 | 632 | 0 → 0 | 10 → 0 |
+| [`mailchimp.transactional`](./mailchimp.transactional_diff.md) | 3688 | 4155 | +469 | −2 | 152 | 2 → 0 | 0 → 0 |
+| [`mcp`](./mcp_diff.md) | 1058 | 1258 | +239 | −39 | 10 | 28 → 0 | 22 → 0 |
+| [`microsoft.onedrive`](./microsoft.onedrive_diff.md) | 10879 | 11055 | +225 | −49 | 123 | 1 → 0 | 0 → 0 |
+| [`milvus`](./milvus_diff.md) | 342 | 343 | +3 | −2 | 2 | 1 → 0 | 1 → 0 |
+| [`mistral`](./mistral_diff.md) | 1248 | 1409 | +175 | −14 | 55 | 1 → 0 | 14 → 0 |
+| [`moesif`](./moesif_diff.md) | 295 | 295 | — | — | _identical_ | 0 → 0 | 0 → 0 |
+| [`mongodb`](./mongodb_diff.md) | 608 | 707 | +108 | −9 | 12 | 2 → 0 | 6 → 0 |
+| [`mqtt`](./mqtt_diff.md) | 308 | 351 | +50 | −7 | 5 | 2 → 0 | 3 → 0 |
+| [`mssql`](./mssql_diff.md) | 837 | 899 | +94 | −32 | 3 | 13 → 0 | 15 → 0 |
+| [`mysql`](./mysql_diff.md) | 886 | 934 | +54 | −6 | 2 | 2 → 0 | 1 → 0 |
+| [`nats`](./nats_diff.md) | 552 | 646 | +104 | −10 | 6 | 5 → 0 | 4 → 0 |
+| [`newrelic`](./newrelic_diff.md) | 111 | 111 | — | — | _identical_ | 0 → 0 | 0 → 0 |
+| [`openai.audio`](./openai.audio_diff.md) | 2991 | 3286 | +333 | −38 | 122 | 6 → 0 | 51 → 0 |
+| [`openai.chat`](./openai.chat_diff.md) | 970 | 977 | +17 | −10 | 11 | 2 → 0 | 22 → 0 |
+| [`openai.finetunes`](./openai.finetunes_diff.md) | 3035 | 3330 | +333 | −38 | 122 | 6 → 0 | 51 → 0 |
+| [`oracledb`](./oracledb_diff.md) | 1091 | 1151 | +79 | −19 | 5 | 9 → 0 | 8 → 0 |
+| [`paypal.invoices`](./paypal.invoices_diff.md) | 1153 | 1251 | +109 | −11 | 36 | 7 → 0 | 0 → 0 |
+| [`paypal.orders`](./paypal.orders_diff.md) | 2219 | 2410 | +228 | −37 | 83 | 33 → 0 | 0 → 0 |
+| [`paypal.payments`](./paypal.payments_diff.md) | 716 | 750 | +38 | −4 | 15 | 4 → 0 | 0 → 0 |
+| [`paypal.subscriptions`](./paypal.subscriptions_diff.md) | 1154 | 1272 | +133 | −15 | 48 | 11 → 0 | 0 → 0 |
+| [`peoplehr`](./peoplehr_diff.md) | 1345 | 1374 | +53 | −24 | 2 | 0 → 0 | 0 → 0 |
+| [`pinecone.vector`](./pinecone.vector_diff.md) | 305 | 314 | +16 | −7 | 10 | 5 → 0 | 2 → 0 |
+| [`postgresql`](./postgresql_diff.md) | 1393 | 1864 | +603 | −132 | 2 | 126 → 0 | 1 → 0 |
+| [`rabbitmq`](./rabbitmq_diff.md) | 622 | 695 | +89 | −16 | 4 | 4 → 0 | 3 → 0 |
+| [`redis`](./redis_diff.md) | 695 | 838 | +253 | −110 | 4 | 2 → 0 | 1 → 0 |
+| [`salesforce`](./salesforce_diff.md) | 1769 | 1985 | +241 | −25 | 15 | 4 → 0 | 11 → 0 |
+| [`salesforce.marketingcloud`](./salesforce.marketingcloud_diff.md) | 1636 | 1675 | +54 | −15 | 25 | 1 → 0 | 0 → 0 |
+| [`sap`](./sap_diff.md) | 207 | 209 | +13 | −11 | 7 | 2 → 0 | 2 → 0 |
+| [`sap.commerce.webservices`](./sap.commerce.webservices_diff.md) | 8233 | 8242 | +386 | −377 | 153 | 0 → 0 | 146 → 0 |
+| [`sap.s4hana.api_sales_inquiry_srv`](./sap.s4hana.api_sales_inquiry_srv_diff.md) | 1131 | 1149 | +82 | −64 | 26 | 39 → 0 | 0 → 0 |
+| [`sap.s4hana.api_sales_order_simulation_srv`](./sap.s4hana.api_sales_order_simulation_srv_diff.md) | 1062 | 1102 | +45 | −5 | 22 | 3 → 0 | 0 → 0 |
+| [`sap.s4hana.api_sales_order_srv`](./sap.s4hana.api_sales_order_srv_diff.md) | 5398 | 5487 | +358 | −269 | 133 | 167 → 0 | 0 → 0 |
+| [`sap.s4hana.api_sales_quotation_srv`](./sap.s4hana.api_sales_quotation_srv_diff.md) | 3176 | 3232 | +220 | −164 | 83 | 102 → 0 | 0 → 0 |
+| [`sap.s4hana.api_salesdistrict_srv`](./sap.s4hana.api_salesdistrict_srv_diff.md) | 360 | 366 | +21 | −15 | 10 | 9 → 0 | 0 → 0 |
+| [`sap.s4hana.api_salesorganization_srv`](./sap.s4hana.api_salesorganization_srv_diff.md) | 365 | 371 | +21 | −15 | 10 | 9 → 0 | 0 → 0 |
+| [`sap.s4hana.api_sd_incoterms_srv`](./sap.s4hana.api_sd_incoterms_srv_diff.md) | 498 | 507 | +34 | −25 | 14 | 15 → 0 | 0 → 0 |
+| [`sap.s4hana.api_sd_sa_soldtopartydetn`](./sap.s4hana.api_sd_sa_soldtopartydetn_diff.md) | 250 | 256 | +11 | −5 | 4 | 3 → 0 | 0 → 0 |
+| [`sap.s4hana.ce_salesorder_0001`](./sap.s4hana.ce_salesorder_0001_diff.md) | 2070 | 2419 | +434 | −85 | 57 | 47 → 0 | 0 → 0 |
+| [`sap.s4hana.salesarea_0001`](./sap.s4hana.salesarea_0001_diff.md) | 238 | 243 | +9 | −4 | 5 | 2 → 0 | 0 → 0 |
+| [`scim`](./scim_diff.md) | 917 | 918 | +20 | −19 | 12 | 1 → 0 | 16 → 0 |
+| [`shopify.admin`](./shopify.admin_diff.md) | 11780 | 15280 | +3603 | −103 | 442 | 0 → 0 | 0 → 0 |
+| [`slack`](./slack_diff.md) | 5041 | 5754 | +845 | −132 | 202 | 31 → 0 | 67 → 0 |
+| [`smartsheet`](./smartsheet_diff.md) | 10516 | 10940 | +704 | −280 | 424 | 38 → 0 | 171 → 0 |
+| [`snowflake`](./snowflake_diff.md) | 288 | 290 | +9 | −7 | 3 | 0 → 0 | 4 → 0 |
+| [`solace`](./solace_diff.md) | 796 | 840 | +61 | −17 | 11 | 2 → 0 | 18 → 0 |
+| [`stripe`](./stripe_diff.md) | 31426 | 33448 | +2932 | −910 | 1091 | 610 → 0 | 75 → 0 |
+| [`tcp`](./tcp_diff.md) | 251 | 285 | +41 | −7 | 5 | 2 → 0 | 3 → 0 |
+| [`trello`](./trello_diff.md) | 4379 | 4499 | +336 | −216 | 131 | 24 → 0 | 65 → 0 |
+| [`twilio`](./twilio_diff.md) | 6220 | 6278 | +64 | −6 | 38 | 6 → 0 | 0 → 0 |
+| [`twitter`](./twitter_diff.md) | 4045 | 4965 | +1139 | −219 | 171 | 54 → 0 | 114 → 0 |
+| [`udp`](./udp_diff.md) | 205 | 239 | +39 | −5 | 4 | 2 → 0 | 3 → 0 |
+| [`weaviate`](./weaviate_diff.md) | 662 | 669 | +14 | −7 | 8 | 5 → 0 | 1 → 0 |
+| [`websocket`](./websocket_diff.md) | 831 | 988 | +203 | −46 | 12 | 19 → 0 | 31 → 0 |
+| [`websub`](./websub_diff.md) | 445 | 539 | +110 | −16 | 4 | 11 → 0 | 3 → 0 |
+| [`wso2.apim.catalog`](./wso2.apim.catalog_diff.md) | 449 | 473 | +25 | −1 | 7 | 1 → 0 | 0 → 0 |
+| [`zoom.meetings`](./zoom.meetings_diff.md) | 12144 | 14104 | +2040 | −80 | 578 | 10 → 0 | 7 → 0 |
+| [`zoom.scheduler`](./zoom.scheduler_diff.md) | 1419 | 1673 | +268 | −14 | 42 | 3 → 0 | 0 → 0 |
