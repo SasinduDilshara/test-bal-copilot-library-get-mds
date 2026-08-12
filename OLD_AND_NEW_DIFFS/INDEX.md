@@ -8,12 +8,12 @@ Every embedded patch is verified: **applying it to `old` reproduces `new` byte-f
 
 | | |
 |---|---|
-| Libraries | 162 |
-| Identical pairs (no change) | 6 |
-| Total lines added | 35065 |
-| Total lines removed | 7757 |
-| `// Unknown type:` placeholders | 2370 → 0 |
-| Version/module-qualified type refs | 3638 → 0 |
+| Libraries | 206 |
+| Identical pairs (no change) | 9 |
+| Total lines added | 38066 |
+| Total lines removed | 8139 |
+| `// Unknown type:` placeholders | 2656 → 0 |
+| Version/module-qualified type refs | 3770 → 0 |
 
 ## Per library
 
@@ -46,6 +46,8 @@ Every embedded patch is verified: **applying it to `old` reproduces `new` byte-f
 | [`amp`](./amp_diff.md) | 60 | 60 | — | — | _identical_ | 0 → 0 | 0 → 0 |
 | [`asana`](./asana_diff.md) | 7484 | 8270 | +1009 | −223 | 371 | 0 → 0 | 40 → 0 |
 | [`asb`](./asb_diff.md) | 1368 | 1699 | +379 | −48 | 31 | 4 → 0 | 4 → 0 |
+| [`auth`](./auth_diff.md) | 142 | 182 | +44 | −4 | 3 | 4 → 0 | 0 → 0 |
+| [`avro`](./avro_diff.md) | 61 | 90 | +31 | −2 | 1 | 2 → 0 | 0 → 0 |
 | [`aws.lambda`](./aws.lambda_diff.md) | 343 | 365 | +23 | −1 | 2 | 1 → 0 | 0 → 0 |
 | [`aws.marketplace.mpe`](./aws.marketplace.mpe_diff.md) | 221 | 226 | +9 | −4 | 6 | 1 → 0 | 2 → 0 |
 | [`aws.marketplace.mpm`](./aws.marketplace.mpm_diff.md) | 295 | 307 | +16 | −4 | 8 | 1 → 0 | 2 → 0 |
@@ -60,15 +62,25 @@ Every embedded patch is verified: **applying it to `old` reproduces `new` byte-f
 | [`azure.functions`](./azure.functions_diff.md) | 231 | 338 | +119 | −12 | 2 | 11 → 0 | 4 → 0 |
 | [`azure.openai.chat`](./azure.openai.chat_diff.md) | 1038 | 1043 | +17 | −12 | 13 | 1 → 0 | 18 → 0 |
 | [`azure_storage_service`](./azure_storage_service_diff.md) | 37 | 38 | +2 | −1 | 1 | 1 → 0 | 0 → 0 |
+| [`cache`](./cache_diff.md) | 78 | 180 | +104 | −2 | 3 | 2 → 0 | 0 → 0 |
 | [`candid`](./candid_diff.md) | 133 | 133 | — | — | _identical_ | 0 → 0 | 0 → 0 |
 | [`cdc`](./cdc_diff.md) | 1310 | 1339 | +37 | −8 | 4 | 4 → 0 | 15 → 0 |
 | [`confluent.cavroserdes`](./confluent.cavroserdes_diff.md) | 94 | 95 | +2 | −1 | 1 | 1 → 0 | 0 → 0 |
 | [`confluent.cregistry`](./confluent.cregistry_diff.md) | 120 | 121 | +2 | −1 | 1 | 1 → 0 | 0 → 0 |
+| [`constraint`](./constraint_diff.md) | 257 | 290 | +38 | −5 | 3 | 3 → 0 | 4 → 0 |
 | [`copybook`](./copybook_diff.md) | 30 | 40 | +12 | −2 | 2 | 2 → 0 | 0 → 0 |
+| [`crypto`](./crypto_diff.md) | 1507 | 1508 | +4 | −3 | 3 | 1 → 0 | 2 → 0 |
+| [`data.csv`](./data.csv_diff.md) | 595 | 601 | +15 | −9 | 4 | 1 → 0 | 8 → 0 |
+| [`data.jsondata`](./data.jsondata_diff.md) | 307 | 314 | +9 | −2 | 3 | 2 → 0 | 0 → 0 |
+| [`data.xmldata`](./data.xmldata_diff.md) | 626 | 665 | +48 | −9 | 3 | 1 → 0 | 8 → 0 |
+| [`data.yaml`](./data.yaml_diff.md) | 191 | 198 | +8 | −1 | 2 | 1 → 0 | 0 → 0 |
 | [`discord`](./discord_diff.md) | 5779 | 7142 | +2168 | −805 | 145 | 421 → 0 | 821 → 0 |
 | [`docusign.dsadmin`](./docusign.dsadmin_diff.md) | 2514 | 2516 | +54 | −52 | 30 | 1 → 0 | 51 → 0 |
+| [`edi`](./edi_diff.md) | 597 | 604 | +14 | −7 | 2 | 4 → 0 | 4 → 0 |
 | [`elastic.elasticcloud`](./elastic.elasticcloud_diff.md) | 4976 | 5668 | +802 | −110 | 255 | 0 → 0 | 70 → 0 |
 | [`email`](./email_diff.md) | 718 | 811 | +101 | −8 | 5 | 3 → 0 | 6 → 0 |
+| [`etl`](./etl_diff.md) | 588 | 593 | +7 | −2 | 2 | 2 → 0 | 0 → 0 |
+| [`file`](./file_diff.md) | 416 | 456 | +60 | −20 | 5 | 14 → 0 | 2 → 0 |
 | [`ftp`](./ftp_diff.md) | 1564 | 1703 | +174 | −35 | 6 | 10 → 0 | 4 → 0 |
 | [`gcloud.pubsub`](./gcloud.pubsub_diff.md) | 347 | 394 | +51 | −4 | 4 | 2 → 0 | 1 → 0 |
 | [`github`](./github_diff.md) | 22880 | 26408 | +3935 | −407 | 1043 | 64 → 0 | 170 → 0 |
@@ -119,15 +131,23 @@ Every embedded patch is verified: **applying it to `old` reproduces `new` byte-f
 | [`ibm.ctg`](./ibm.ctg_diff.md) | 253 | 254 | +3 | −2 | 2 | 1 → 0 | 1 → 0 |
 | [`ibm.ibmmq`](./ibm.ibmmq_diff.md) | 979 | 1033 | +68 | −14 | 10 | 3 → 0 | 11 → 0 |
 | [`idetraceprovider`](./idetraceprovider_diff.md) | 44 | 44 | — | — | _identical_ | 0 → 0 | 0 → 0 |
+| [`io`](./io_diff.md) | 356 | 879 | +548 | −25 | 4 | 24 → 0 | 1 → 0 |
 | [`java.jdbc`](./java.jdbc_diff.md) | 545 | 545 | +3 | −3 | 2 | 0 → 0 | 1 → 0 |
 | [`java.jms`](./java.jms_diff.md) | 505 | 558 | +62 | −9 | 8 | 2 → 0 | 4 → 0 |
+| [`jballerina.java.arrays`](./jballerina.java.arrays_diff.md) | 115 | 115 | — | — | _identical_ | 0 → 0 | 0 → 0 |
 | [`jira`](./jira_diff.md) | 16649 | 16749 | +637 | −537 | 407 | 6 → 0 | 327 → 0 |
+| [`jwt`](./jwt_diff.md) | 274 | 298 | +31 | −7 | 5 | 3 → 0 | 6 → 0 |
 | [`kafka`](./kafka_diff.md) | 936 | 1011 | +94 | −19 | 8 | 8 → 0 | 5 → 0 |
+| [`ldap`](./ldap_diff.md) | 552 | 553 | +3 | −2 | 2 | 1 → 0 | 1 → 0 |
+| [`log`](./log_diff.md) | 628 | 676 | +64 | −16 | 11 | 3 → 0 | 7 → 0 |
 | [`mailchimp.marketing`](./mailchimp.marketing_diff.md) | 11579 | 13811 | +2370 | −138 | 632 | 0 → 0 | 10 → 0 |
 | [`mailchimp.transactional`](./mailchimp.transactional_diff.md) | 3688 | 4155 | +469 | −2 | 152 | 2 → 0 | 0 → 0 |
+| [`math.vector`](./math.vector_diff.md) | 101 | 101 | — | — | _identical_ | 0 → 0 | 0 → 0 |
 | [`mcp`](./mcp_diff.md) | 1058 | 1258 | +239 | −39 | 10 | 28 → 0 | 22 → 0 |
+| [`messaging`](./messaging_diff.md) | 219 | 264 | +48 | −3 | 2 | 2 → 0 | 0 → 0 |
 | [`microsoft.onedrive`](./microsoft.onedrive_diff.md) | 10879 | 11055 | +225 | −49 | 123 | 1 → 0 | 0 → 0 |
 | [`milvus`](./milvus_diff.md) | 342 | 343 | +3 | −2 | 2 | 1 → 0 | 1 → 0 |
+| [`mime`](./mime_diff.md) | 210 | 490 | +299 | −19 | 1 | 19 → 0 | 0 → 0 |
 | [`mistral`](./mistral_diff.md) | 1248 | 1409 | +175 | −14 | 55 | 1 → 0 | 14 → 0 |
 | [`moesif`](./moesif_diff.md) | 295 | 295 | — | — | _identical_ | 0 → 0 | 0 → 0 |
 | [`mongodb`](./mongodb_diff.md) | 608 | 707 | +108 | −9 | 12 | 2 → 0 | 6 → 0 |
@@ -136,19 +156,28 @@ Every embedded patch is verified: **applying it to `old` reproduces `new` byte-f
 | [`mysql`](./mysql_diff.md) | 886 | 934 | +54 | −6 | 2 | 2 → 0 | 1 → 0 |
 | [`nats`](./nats_diff.md) | 552 | 646 | +104 | −10 | 6 | 5 → 0 | 4 → 0 |
 | [`newrelic`](./newrelic_diff.md) | 111 | 111 | — | — | _identical_ | 0 → 0 | 0 → 0 |
+| [`oauth2`](./oauth2_diff.md) | 283 | 307 | +29 | −5 | 3 | 3 → 0 | 7 → 0 |
+| [`observe`](./observe_diff.md) | 508 | 570 | +64 | −2 | 2 | 2 → 0 | 0 → 0 |
 | [`openai.audio`](./openai.audio_diff.md) | 2991 | 3286 | +333 | −38 | 122 | 6 → 0 | 51 → 0 |
 | [`openai.chat`](./openai.chat_diff.md) | 970 | 977 | +17 | −10 | 11 | 2 → 0 | 22 → 0 |
 | [`openai.finetunes`](./openai.finetunes_diff.md) | 3035 | 3330 | +333 | −38 | 122 | 6 → 0 | 51 → 0 |
 | [`oracledb`](./oracledb_diff.md) | 1091 | 1151 | +79 | −19 | 5 | 9 → 0 | 8 → 0 |
+| [`os`](./os_diff.md) | 102 | 129 | +32 | −5 | 2 | 3 → 0 | 0 → 0 |
+| [`otel`](./otel_diff.md) | 103 | 103 | — | — | _identical_ | 0 → 0 | 0 → 0 |
 | [`paypal.invoices`](./paypal.invoices_diff.md) | 1153 | 1251 | +109 | −11 | 36 | 7 → 0 | 0 → 0 |
 | [`paypal.orders`](./paypal.orders_diff.md) | 2219 | 2410 | +228 | −37 | 83 | 33 → 0 | 0 → 0 |
 | [`paypal.payments`](./paypal.payments_diff.md) | 716 | 750 | +38 | −4 | 15 | 4 → 0 | 0 → 0 |
 | [`paypal.subscriptions`](./paypal.subscriptions_diff.md) | 1154 | 1272 | +133 | −15 | 48 | 11 → 0 | 0 → 0 |
+| [`pdf`](./pdf_diff.md) | 240 | 246 | +11 | −5 | 2 | 4 → 0 | 1 → 0 |
 | [`peoplehr`](./peoplehr_diff.md) | 1345 | 1374 | +53 | −24 | 2 | 0 → 0 | 0 → 0 |
+| [`persist`](./persist_diff.md) | 207 | 211 | +8 | −4 | 1 | 4 → 0 | 0 → 0 |
 | [`pinecone.vector`](./pinecone.vector_diff.md) | 305 | 314 | +16 | −7 | 10 | 5 → 0 | 2 → 0 |
 | [`postgresql`](./postgresql_diff.md) | 1393 | 1864 | +603 | −132 | 2 | 126 → 0 | 1 → 0 |
+| [`protobuf`](./protobuf_diff.md) | 80 | 86 | +7 | −1 | 1 | 1 → 0 | 0 → 0 |
 | [`rabbitmq`](./rabbitmq_diff.md) | 622 | 695 | +89 | −16 | 4 | 4 → 0 | 3 → 0 |
+| [`random`](./random_diff.md) | 43 | 45 | +4 | −2 | 1 | 2 → 0 | 0 → 0 |
 | [`redis`](./redis_diff.md) | 695 | 838 | +253 | −110 | 4 | 2 → 0 | 1 → 0 |
+| [`regex`](./regex_diff.md) | 202 | 204 | +3 | −1 | 2 | 0 → 0 | 1 → 0 |
 | [`salesforce`](./salesforce_diff.md) | 1769 | 1985 | +241 | −25 | 15 | 4 → 0 | 11 → 0 |
 | [`salesforce.marketingcloud`](./salesforce.marketingcloud_diff.md) | 1636 | 1675 | +54 | −15 | 25 | 1 → 0 | 0 → 0 |
 | [`sap`](./sap_diff.md) | 207 | 209 | +13 | −11 | 7 | 2 → 0 | 2 → 0 |
@@ -164,20 +193,35 @@ Every embedded patch is verified: **applying it to `old` reproduces `new` byte-f
 | [`sap.s4hana.ce_salesorder_0001`](./sap.s4hana.ce_salesorder_0001_diff.md) | 2070 | 2419 | +434 | −85 | 57 | 47 → 0 | 0 → 0 |
 | [`sap.s4hana.salesarea_0001`](./sap.s4hana.salesarea_0001_diff.md) | 238 | 243 | +9 | −4 | 5 | 2 → 0 | 0 → 0 |
 | [`scim`](./scim_diff.md) | 917 | 918 | +20 | −19 | 12 | 1 → 0 | 16 → 0 |
+| [`serdes`](./serdes_diff.md) | 132 | 149 | +19 | −2 | 1 | 2 → 0 | 0 → 0 |
 | [`shopify.admin`](./shopify.admin_diff.md) | 11780 | 15280 | +3603 | −103 | 442 | 0 → 0 | 0 → 0 |
 | [`slack`](./slack_diff.md) | 5041 | 5754 | +845 | −132 | 202 | 31 → 0 | 67 → 0 |
 | [`smartsheet`](./smartsheet_diff.md) | 10516 | 10940 | +704 | −280 | 424 | 38 → 0 | 171 → 0 |
+| [`smb`](./smb_diff.md) | 973 | 1148 | +181 | −6 | 4 | 5 → 0 | 1 → 0 |
 | [`snowflake`](./snowflake_diff.md) | 288 | 290 | +9 | −7 | 3 | 0 → 0 | 4 → 0 |
+| [`soap`](./soap_diff.md) | 709 | 710 | +3 | −2 | 2 | 1 → 0 | 6 → 0 |
 | [`solace`](./solace_diff.md) | 796 | 840 | +61 | −17 | 11 | 2 → 0 | 18 → 0 |
+| [`sql`](./sql_diff.md) | 1027 | 1551 | +646 | −122 | 8 | 113 → 0 | 18 → 0 |
 | [`stripe`](./stripe_diff.md) | 31426 | 33448 | +2932 | −910 | 1091 | 610 → 0 | 75 → 0 |
+| [`task`](./task_diff.md) | 448 | 477 | +33 | −4 | 2 | 2 → 0 | 2 → 0 |
 | [`tcp`](./tcp_diff.md) | 251 | 285 | +41 | −7 | 5 | 2 → 0 | 3 → 0 |
+| [`time`](./time_diff.md) | 429 | 494 | +70 | −5 | 2 | 5 → 0 | 0 → 0 |
+| [`toml`](./toml_diff.md) | 90 | 94 | +11 | −7 | 1 | 4 → 0 | 11 → 0 |
 | [`trello`](./trello_diff.md) | 4379 | 4499 | +336 | −216 | 131 | 24 → 0 | 65 → 0 |
 | [`twilio`](./twilio_diff.md) | 6220 | 6278 | +64 | −6 | 38 | 6 → 0 | 0 → 0 |
 | [`twitter`](./twitter_diff.md) | 4045 | 4965 | +1139 | −219 | 171 | 54 → 0 | 114 → 0 |
 | [`udp`](./udp_diff.md) | 205 | 239 | +39 | −5 | 4 | 2 → 0 | 3 → 0 |
+| [`url`](./url_diff.md) | 44 | 45 | +2 | −1 | 1 | 1 → 0 | 0 → 0 |
+| [`uuid`](./uuid_diff.md) | 249 | 250 | +7 | −6 | 2 | 1 → 0 | 5 → 0 |
 | [`weaviate`](./weaviate_diff.md) | 662 | 669 | +14 | −7 | 8 | 5 → 0 | 1 → 0 |
 | [`websocket`](./websocket_diff.md) | 831 | 988 | +203 | −46 | 12 | 19 → 0 | 31 → 0 |
 | [`websub`](./websub_diff.md) | 445 | 539 | +110 | −16 | 4 | 11 → 0 | 3 → 0 |
+| [`websubhub`](./websubhub_diff.md) | 512 | 587 | +96 | −21 | 4 | 18 → 0 | 2 → 0 |
+| [`workflow`](./workflow_diff.md) | 638 | 714 | +85 | −9 | 7 | 4 → 0 | 0 → 0 |
 | [`wso2.apim.catalog`](./wso2.apim.catalog_diff.md) | 449 | 473 | +25 | −1 | 7 | 1 → 0 | 0 → 0 |
+| [`xlsx`](./xlsx_diff.md) | 638 | 891 | +269 | −16 | 5 | 12 → 0 | 4 → 0 |
+| [`xmldata`](./xmldata_diff.md) | 125 | 144 | +20 | −1 | 2 | 1 → 0 | 0 → 0 |
+| [`xslt`](./xslt_diff.md) | 38 | 39 | +2 | −1 | 1 | 1 → 0 | 0 → 0 |
+| [`yaml`](./yaml_diff.md) | 195 | 203 | +24 | −16 | 2 | 8 → 0 | 31 → 0 |
 | [`zoom.meetings`](./zoom.meetings_diff.md) | 12144 | 14104 | +2040 | −80 | 578 | 10 → 0 | 7 → 0 |
 | [`zoom.scheduler`](./zoom.scheduler_diff.md) | 1419 | 1673 | +268 | −14 | 42 | 3 → 0 | 0 → 0 |
