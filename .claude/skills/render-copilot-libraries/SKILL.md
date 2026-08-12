@@ -14,19 +14,45 @@ CopilotLibraryManager.loadFilteredLibraries  →  Library model
 ModelToJsonConverter.libraryToJson           →  JSON  ──►  toSyntaxString([json])  →  .bal.txt
 ```
 
-## Inputs
+## Parameters
 
-| Input | Required | Notes |
+| Parameter | Required | Notes |
 |---|---|---|
-| `side` | yes | `old` or `new` — which subdirectory to write into |
-| `libraries` | no | Subset of library names (`org/name`). Default: **all** libraries in the `CLAUDE.md` table |
-| source path | yes | Path to a `ballerina-vscode` checkout, or a git URL |
+| `--side` | **yes** | `old` or `new` — which subdirectory to write into |
+| `--source` | **yes** | Path to a `ballerina-vscode` checkout, or a git URL. The render represents *this* source's behaviour |
+| `--libs` | no | Space-separated `org/name` subset. Default: **all** libraries in the `CLAUDE.md` table |
+| `--root` | no | Repo root holding `CLAUDE.md` and the library directories. Default: this skill's repo |
+| `--scratch` | no | Work directory. Default: `$TMPDIR/copilot-render-<side>` |
+| `--donor-home` | no | A previous run's `build/ballerina_dependencies/home`, to copy balas instead of re-downloading |
+| `--skip-seed` | no | Skip seeding (only when the home is already known-good) |
 
-**Never invent a source path.** `CLAUDE.md` rule 4: if the user didn't say which source, ask. If they
-gave two, confirm which maps to `old` and which to `new`. If they gave one, confirm which side it is.
+Typical invocation:
 
-**Never invent or change a version.** Versions come only from the `CLAUDE.md` table (rule 7). If a
-requested library is not in that table, stop and ask.
+```
+/render-copilot-libraries --side new --source /path/to/ballerina-vscode
+/render-copilot-libraries --side old --source https://github.com/ballerina-platform/ballerina-vscode \
+                          --libs "ballerina/http ballerinax/kafka"
+```
+
+**`--source` is never guessed** (`CLAUDE.md` rule 4). If the user didn't give one, ask. If they gave
+two, confirm which maps to `old` and which to `new`. If they gave one, confirm which side it is.
+Record the resulting commit — it is the provenance of the render.
+
+**Versions are never invented** (rule 7). They come only from the `CLAUDE.md` table; a requested
+library absent from that table is a hard error, not a guess.
+
+## Quick path
+
+`scripts/run.sh` executes the whole pipeline with the parameters above and stops at the first failed
+gate:
+
+```bash
+.claude/skills/render-copilot-libraries/scripts/run.sh \
+    --side new --source /path/to/ballerina-vscode [--libs "org/a org/b"] [--donor-home <dir>]
+```
+
+Run the steps below manually when a run needs babysitting (a long Gradle build, a partial re-run, or
+diagnosing a gate failure).
 
 ## Procedure
 
