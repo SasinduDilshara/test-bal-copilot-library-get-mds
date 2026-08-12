@@ -1,0 +1,103 @@
+package io.ballerina.flowmodelgenerator.extension;
+
+import com.google.gson.GsonBuilder;
+import io.ballerina.flowmodelgenerator.core.copilot.CopilotLibraryManager;
+import io.ballerina.flowmodelgenerator.core.copilot.model.Library;
+import io.ballerina.flowmodelgenerator.core.copilot.model.ModelToJsonConverter;
+import io.ballerina.modelgenerator.commons.PackageUtil;
+import io.ballerina.projects.Package;
+import org.testng.annotations.Test;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+/**
+ * Throwaway probe: dumps the Copilot library catalogue as stage-1 JSON and records the version that
+ * actually resolved for each library, so a wrong-version render cannot pass unnoticed.
+ *
+ * <p>Paths are hardcoded on purpose — Gradle {@code -Dfoo=bar} does not reach the forked test JVM.
+ */
+public class CatalogProbeTest {
+
+    private static final Path OUT_DIR = Path.of("@@OUT_DIR@@");
+    private static final Path PINNED = Path.of("@@PINNED_FILE@@");
+    private static final Path VERSION_REPORT = Path.of("@@VERSION_REPORT@@");
+    private static final Path STATUS_LOG = Path.of("@@STATUS_LOG@@");
+
+    @Test
+    public void dumpAll() throws Exception {
+        Files.createDirectories(OUT_DIR);
+        List<String> specs = Files.readAllLines(PINNED);
+        List<String> versionRows = new ArrayList<>();
+        int index = 0;
+        int okCount = 0;
+        int failCount = 0;
+
+        for (String rawSpec : specs) {
+            String spec = rawSpec.trim();
+            if (spec.isEmpty()) {
+                continue;
+            }
+            index++;
+            int sep = spec.lastIndexOf(':');
+            String lib = spec.substring(0, sep);
+            String pinned = spec.substring(sep + 1);
+            String[] parts = lib.split("/");
+            String org = parts[0];
+            String name = parts[1];
+
+            // Record the version that actually resolves, via the same call the manager uses.
+            String resolved = "UNRESOLVED";
+            try {
+                Optional<Package> optPkg = @@RESOLVE_EXPR@@;
+                if (optPkg.isPresent()) {
+                    resolved = optPkg.get().packageVersion().toString();
+                }
+            } catch (Throwable t) {
+                resolved = "ERROR:" + t.getClass().getSimpleName();
+            }
+
+            String status;
+            try {
+                List<Library> libs = @@LOAD_EXPR@@;
+                if (libs.isEmpty()) {
+                    status = "UNRESOLVED";
+                    failCount++;
+                } else {
+                    Files.writeString(OUT_DIR.resolve(org + "_" + name + ".json"),
+                            new GsonBuilder().setPrettyPrinting().create()
+                                    .toJson(ModelToJsonConverter.libraryToJson(libs.get(0))),
+                            StandardCharsets.UTF_8);
+                    status = "OK";
+                    okCount++;
+                }
+            } catch (Throwable e) {
+                status = "ERROR:" + e;
+                failCount++;
+            }
+
+            String match = pinned.equals(resolved) ? "PIN_OK" : "PIN_MISMATCH";
+            versionRows.add(String.join("|", lib, pinned, resolved, match, status));
+            append(STATUS_LOG, "[" + index + "/" + specs.size() + "] " + lib
+                    + " pinned=" + pinned + " resolved=" + resolved + " " + match + " " + status);
+        }
+
+        Files.writeString(VERSION_REPORT, String.join("\n", versionRows) + "\n", StandardCharsets.UTF_8);
+        append(STATUS_LOG, "STAGE1_DONE ok=" + okCount + " fail=" + failCount);
+    }
+
+    private static void append(Path path, String line) {
+        try {
+            Files.writeString(path, line + System.lineSeparator(), StandardCharsets.UTF_8,
+                    java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+        } catch (IOException ignored) {
+            // best-effort progress log
+        }
+    }
+}
