@@ -7626,8 +7626,10 @@
     {
       "type": "fixed",
       "name": "Service",
+      "description": "Consumes messages delivered from the queue, topic, or subscription configured on the listener.",
       "listener": {
         "name": "asb:Listener",
+        "description": "Connects to the configured Azure Service Bus entity and dispatches each delivered message to the attached service.",
         "parameters": [
           {
             "name": "config",
@@ -7646,15 +7648,17 @@
           }
         ]
       },
+      "singleListenerOnly": true,
+      "singleServiceOnly": true,
       "methods": [
         {
           "name": "onMessage",
           "type": "remote",
-          "description": "Triggers when new message received for the azure service bus",
+          "description": "Invoked once per message delivered from the queue, topic, or subscription configured on the listener. The entity to consume from and the receive mode (RECEIVE_AND_DELETE or PEEK_LOCK) are configured on the listener\u0027s init config, not on the service.",
           "parameters": [
             {
               "name": "message",
-              "description": "The received message",
+              "description": "The delivered message. Declare a narrower type to project the body, see the messageBody data-binding rule.",
               "type": {
                 "name": "Message",
                 "links": [
@@ -7663,23 +7667,107 @@
                     "recordName": "Message"
                   }
                 ]
+              },
+              "binding": {
+                "typedescs": [
+                  {
+                    "constraint": {
+                      "name": "anydata"
+                    },
+                    "excludes": [
+                      {
+                        "name": "Message",
+                        "links": [
+                          {
+                            "category": "internal",
+                            "recordName": "Message"
+                          }
+                        ]
+                      }
+                    ],
+                    "shapes": [
+                      {
+                        "form": "bare"
+                      }
+                    ]
+                  },
+                  {
+                    "constraint": {
+                      "name": "anydata"
+                    },
+                    "shapes": [
+                      {
+                        "form": "included",
+                        "envelope": {
+                          "name": "Message",
+                          "links": [
+                            {
+                              "category": "internal",
+                              "recordName": "Message"
+                            }
+                          ]
+                        },
+                        "bindableFields": [
+                          "body"
+                        ],
+                        "fixedFields": [
+                          "contentType",
+                          "messageId",
+                          "to",
+                          "replyTo",
+                          "replyToSessionId",
+                          "label",
+                          "sessionId",
+                          "correlationId",
+                          "partitionKey",
+                          "timeToLive",
+                          "sequenceNumber",
+                          "lockToken",
+                          "applicationProperties",
+                          "deliveryCount",
+                          "enqueuedTime",
+                          "enqueuedSequenceNumber",
+                          "deadLetterErrorDescription",
+                          "deadLetterReason",
+                          "deadLetterSource",
+                          "state"
+                        ]
+                      }
+                    ]
+                  }
+                ]
               }
+            },
+            {
+              "name": "caller",
+              "description": "Handle for explicitly completing, abandoning, deferring, or dead-lettering the message via its lock token. Needed only when the listener\u0027s receiveMode is PEEK_LOCK and autoComplete is disabled; under RECEIVE_AND_DELETE the message is already removed from the entity on retrieval, and with autoComplete enabled the listener settles it automatically.",
+              "type": {
+                "name": "Caller",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Caller"
+                  }
+                ]
+              },
+              "optional": true
             }
           ],
           "return": {
             "type": {
               "name": "error?"
             }
-          }
+          },
+          "optional": false
         },
         {
           "name": "onError",
           "type": "remote",
-          "description": "Triggers when error occurred in the azure service bus",
+          "description": "Invoked when a message cannot be retrieved from the subscribed entity or cannot be dispatched, most commonly because a delivered message\u0027s body fails to bind to the declared parameter type.",
           "parameters": [
             {
-              "name": "asbErr",
-              "description": "The messages received for the topic",
+              "name": "error",
+              "description": "The failure that prevented the message from being delivered.",
               "type": {
                 "name": "MessageRetrievalError",
                 "links": [
@@ -7695,7 +7783,8 @@
             "type": {
               "name": "error?"
             }
-          }
+          },
+          "optional": true
         }
       ]
     }

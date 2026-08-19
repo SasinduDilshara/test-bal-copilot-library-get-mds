@@ -6797,8 +6797,10 @@
     {
       "type": "fixed",
       "name": "Service",
+      "description": "Consumes row-level change events captured from the subscribed PostgreSQL tables and dispatches each event to the matching handler.",
       "listener": {
         "name": "postgresql:CdcListener",
+        "description": "Streams row-level changes from the PostgreSQL logical replication slot and dispatches each captured event to the attached service.",
         "parameters": [
           {
             "name": "config",
@@ -6817,155 +6819,285 @@
           }
         ]
       },
+      "serviceTypeModule": "ballerinax/cdc",
+      "requiredImports": [
+        {
+          "module": "ballerinax/postgresql.cdc.driver",
+          "alias": "_"
+        }
+      ],
+      "annotations": [
+        {
+          "name": "ServiceConfig",
+          "module": "ballerinax/cdc",
+          "presence": "required",
+          "attachPoint": "service",
+          "typeConstraint": {
+            "name": "CdcServiceConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CdcServiceConfig",
+                "libraryName": "ballerinax/cdc"
+              }
+            ]
+          }
+        }
+      ],
+      "constraints": [
+        {
+          "id": "$atLeastOneChangeHandler",
+          "rule": "structure.atLeastOne",
+          "subjects": [
+            {
+              "kind": "handler",
+              "name": "onRead",
+              "id": "$service.onRead"
+            },
+            {
+              "kind": "handler",
+              "name": "onCreate",
+              "id": "$service.onCreate"
+            },
+            {
+              "kind": "handler",
+              "name": "onUpdate",
+              "id": "$service.onUpdate"
+            },
+            {
+              "kind": "handler",
+              "name": "onDelete",
+              "id": "$service.onDelete"
+            },
+            {
+              "kind": "handler",
+              "name": "onTruncate",
+              "id": "$service.onTruncate"
+            }
+          ],
+          "message": "A CDC service must declare at least one change handler. onError alone never receives a change event, so the service would do nothing."
+        }
+      ],
       "methods": [
         {
           "name": "onRead",
           "type": "remote",
-          "description": "Triggers initially to read existing records from the monitored table",
+          "description": "Invoked for each row captured during the initial snapshot of a table, before streaming of live changes from the replication slot begins.",
           "parameters": [
             {
               "name": "afterEntry",
-              "description": "The existing record from the monitored table",
+              "description": "The row as captured. Declare a record type to project its columns, see the rowState data-binding rule.",
               "type": {
                 "name": "record {}"
+              },
+              "binding": {
+                "typedescs": [
+                  {
+                    "constraint": {
+                      "name": "record {}"
+                    },
+                    "shapes": [
+                      {
+                        "form": "bare"
+                      }
+                    ]
+                  }
+                ]
               }
             },
             {
               "name": "tableName",
-              "description": "The name of the table where the record was created",
+              "description": "Name of the table the row came from, useful when one service handles several tables.",
               "type": {
                 "name": "string"
-              },
-              "optional": true
+              }
             }
           ],
           "return": {
             "type": {
               "name": "error?"
             }
-          }
+          },
+          "optional": true
         },
         {
           "name": "onCreate",
           "type": "remote",
-          "description": "Triggers when a new record is created in the monitored table",
+          "description": "Invoked when a row is inserted.",
           "parameters": [
             {
               "name": "afterEntry",
-              "description": "The new record created in the monitored table",
+              "description": "The row\u0027s state after the insert. Declare a record type to project its columns, see the rowState data-binding rule.",
               "type": {
                 "name": "record {}"
+              },
+              "binding": {
+                "typedescs": [
+                  {
+                    "constraint": {
+                      "name": "record {}"
+                    },
+                    "shapes": [
+                      {
+                        "form": "bare"
+                      }
+                    ]
+                  }
+                ]
               }
             },
             {
               "name": "tableName",
-              "description": "The name of the table where the record was created",
+              "description": "Name of the table the change occurred in.",
               "type": {
                 "name": "string"
-              },
-              "optional": true
+              }
             }
           ],
           "return": {
             "type": {
               "name": "error?"
             }
-          }
+          },
+          "optional": true
         },
         {
           "name": "onUpdate",
           "type": "remote",
-          "description": "Triggers when an existing record is updated in the monitored table",
+          "description": "Invoked when a row is updated, with both the pre- and post-change images of the row. Unless the table\u0027s REPLICA IDENTITY is set to FULL, the pre-image carries only the columns that make up the replica identity (the primary key by default), with the rest unset.",
           "parameters": [
             {
               "name": "beforeEntry",
-              "description": "The record before the update in the monitored table",
+              "description": "The row\u0027s state before the update.",
               "type": {
                 "name": "record {}"
+              },
+              "binding": {
+                "typedescs": [
+                  {
+                    "constraint": {
+                      "name": "record {}"
+                    },
+                    "shapes": [
+                      {
+                        "form": "bare"
+                      }
+                    ]
+                  }
+                ]
               }
             },
             {
               "name": "afterEntry",
-              "description": "The record after the update in the monitored table",
+              "description": "The row\u0027s state after the update.",
               "type": {
                 "name": "record {}"
+              },
+              "binding": {
+                "typedescs": [
+                  {
+                    "constraint": {
+                      "name": "record {}"
+                    },
+                    "shapes": [
+                      {
+                        "form": "bare"
+                      }
+                    ]
+                  }
+                ]
               }
             },
             {
               "name": "tableName",
-              "description": "The name of the table where the record was created",
+              "description": "Name of the table the change occurred in.",
               "type": {
                 "name": "string"
-              },
-              "optional": true
+              }
             }
           ],
           "return": {
             "type": {
               "name": "error?"
             }
-          }
+          },
+          "optional": true
         },
         {
           "name": "onDelete",
           "type": "remote",
-          "description": "Triggers when a record is deleted from the monitored table",
+          "description": "Invoked when a row is deleted. Only the pre-change image is available, and unless the table\u0027s REPLICA IDENTITY is set to FULL, it carries only the columns that make up the replica identity (the primary key by default).",
           "parameters": [
             {
               "name": "beforeEntry",
-              "description": "The record before the deletion in the monitored table",
+              "description": "The row\u0027s state immediately before it was deleted.",
               "type": {
                 "name": "record {}"
+              },
+              "binding": {
+                "typedescs": [
+                  {
+                    "constraint": {
+                      "name": "record {}"
+                    },
+                    "shapes": [
+                      {
+                        "form": "bare"
+                      }
+                    ]
+                  }
+                ]
               }
             },
             {
               "name": "tableName",
-              "description": "The name of the table where the record was created",
+              "description": "Name of the table the change occurred in.",
               "type": {
                 "name": "string"
-              },
-              "optional": true
+              }
             }
           ],
           "return": {
             "type": {
               "name": "error?"
             }
-          }
+          },
+          "optional": true
         },
         {
           "name": "onTruncate",
           "type": "remote",
-          "description": "Triggers when a monitored table is truncated",
+          "description": "Invoked when a table is truncated. No row images are available, only which table was affected.",
           "parameters": [
             {
               "name": "tableName",
-              "description": "The name of the table which was truncated",
+              "description": "Name of the table that was truncated.",
               "type": {
                 "name": "string"
-              },
-              "optional": true
+              }
             }
           ],
           "return": {
             "type": {
               "name": "error?"
             }
-          }
+          },
+          "optional": true
         },
         {
           "name": "onError",
           "type": "remote",
-          "description": "Triggers when an error occurs during event processing before mandatory functions are invoked",
+          "description": "Invoked when the connector fails to capture or dispatch a change event.",
           "parameters": [
             {
               "name": "cdcError",
-              "description": "The error occurred during message processing",
+              "description": "The failure that interrupted change capture.",
               "type": {
                 "name": "cdc:Error"
               }
             }
-          ]
+          ],
+          "optional": true
         }
       ]
     }

@@ -2057,8 +2057,10 @@
     {
       "type": "fixed",
       "name": "Service",
+      "description": "Consumes messages delivered from a subscribed queue, either fire-and-forget or RPC-style with a reply.",
       "listener": {
         "name": "rabbitmq:Listener",
+        "description": "Polls the subscribed queue and dispatches each delivered message to the attached service.",
         "parameters": [
           {
             "name": "host",
@@ -2145,8 +2147,7 @@
               "role": "fromAnnotation"
             },
             {
-              "kind": "identifier",
-              "role": "fromIdentifier"
+              "kind": "identifier"
             }
           ],
           "message": "A RabbitMQ consumer needs its queue name from exactly one source: @rabbitmq:ServiceConfig { queueName } or the service identifier.",
@@ -2158,11 +2159,13 @@
           "subjects": [
             {
               "kind": "handler",
-              "name": "onMessage"
+              "name": "onMessage",
+              "id": "$service.onMessage"
             },
             {
               "kind": "handler",
-              "name": "onRequest"
+              "name": "onRequest",
+              "id": "$service.onRequest"
             }
           ],
           "message": "A RabbitMQ service must implement exactly one of onMessage or onRequest."
@@ -2405,6 +2408,20 @@
           "return": {
             "type": {
               "name": "anydata|error"
+            },
+            "binding": {
+              "typedescs": [
+                {
+                  "constraint": {
+                    "name": "anydata"
+                  },
+                  "shapes": [
+                    {
+                      "form": "bare"
+                    }
+                  ]
+                }
+              ]
             }
           },
           "optional": true

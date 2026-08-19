@@ -651,6 +651,8 @@ client class MessageStore {
 
 // --- Service ---
 
+# Consumes messages delivered from a subscribed queue, either fire-and-forget or RPC-style with a reply.
+# Listener `rabbitmq:Listener`: Polls the subscribed queue and dispatches each delivered message to the attached service.
 # The service identifier accepts a quoted string literal, e.g. `"orders"`; it may be omitted.
 # A RabbitMQ consumer needs its queue name from exactly one source: @rabbitmq:ServiceConfig { queueName } or the service identifier.
 # Prefer the `queueName` field of @rabbitmq:ServiceConfig unless the requirement says otherwise.
@@ -675,6 +677,7 @@ service rabbitmq:Service on new rabbitmq:Listener(string host, int port, rabbitm
     # `message` may also be: rabbitmq:BytesMessage
     # `message` may bind directly to: anydata — but never rabbitmq:AnydataMessage
     # `message` may bind to a record that includes `*rabbitmq:AnydataMessage;` and overrides only `content`
+    # The `anydata` member of the return may be narrowed: declare the concrete type you return in place of `anydata`.
     # The `message` parameter may carry @rabbitmq:Payload, written `@rabbitmq:Payload {}` before its type. Its fields are those of rabbitmq:RabbitmqPayload.
     # Required parameters: message
     # Optional parameters (may be omitted): caller

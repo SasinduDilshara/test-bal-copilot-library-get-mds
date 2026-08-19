@@ -687,8 +687,10 @@
     {
       "type": "fixed",
       "name": "Service",
+      "description": "Handles a new TCP connection. Its onConnect handler decides whether to accept the connection and, if so, returns the connection service that will process its bytes.",
       "listener": {
         "name": "tcp:Listener",
+        "description": "TCP listener bound to one port. Dispatches each new connection to the attached service\u0027s onConnect handler.",
         "parameters": [
           {
             "name": "localPort",
@@ -715,15 +717,16 @@
           }
         ]
       },
+      "singleServiceOnly": true,
       "methods": [
         {
           "name": "onConnect",
           "type": "remote",
-          "description": "The `onConnect` remote method will be triggered when a message is received from a tcp client",
+          "description": "Invoked once a new client connects. Returns the connection service instance that will handle this connection\u0027s bytes, or an error to reject the connection.",
           "parameters": [
             {
               "name": "caller",
-              "description": "The new client connection",
+              "description": "Handle for the newly connected client, exposing its remote/local host and port. Store it if the returned connection service needs to write back later.",
               "type": {
                 "name": "Caller",
                 "links": [
@@ -749,7 +752,123 @@
                 }
               ]
             }
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "type": "fixed",
+      "name": "ConnectionService",
+      "description": "The per-connection service returned by onConnect. Its handlers are invoked over the lifetime of one TCP connection.",
+      "listener": {
+        "name": "tcp:Listener",
+        "description": "TCP listener bound to one port. Dispatches each new connection to the attached service\u0027s onConnect handler.",
+        "parameters": [
+          {
+            "name": "localPort",
+            "description": "The port number of the remote service",
+            "type": {
+              "name": "int"
+            },
+            "default": "0"
+          },
+          {
+            "name": "config",
+            "description": "Configurations related to the `tcp:Listener`",
+            "type": {
+              "name": "ListenerConfiguration",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "ListenerConfiguration"
+                }
+              ]
+            },
+            "optional": true,
+            "default": "{}"
           }
+        ]
+      },
+      "singleListenerOnly": true,
+      "singleServiceOnly": true,
+      "notListenerAttachable": true,
+      "methods": [
+        {
+          "name": "onBytes",
+          "type": "remote",
+          "description": "Invoked once for each chunk of bytes received from the client. Return bytes to write back to the same client, or () to send nothing.",
+          "parameters": [
+            {
+              "name": "data",
+              "description": "The bytes received from the client.",
+              "type": {
+                "name": "readonly \u0026 byte[]"
+              }
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "byte[]|Error?",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          },
+          "optional": false
+        },
+        {
+          "name": "onError",
+          "type": "remote",
+          "description": "Invoked when the connection fails, such as a read or write error on the underlying socket.",
+          "parameters": [
+            {
+              "name": "err",
+              "description": "The failure that occurred on this connection.",
+              "type": {
+                "name": "Error",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Error"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "Error?",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          },
+          "optional": true
+        },
+        {
+          "name": "onClose",
+          "type": "remote",
+          "description": "Invoked when the connection is closed, by either side.",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "Error?",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          },
+          "optional": true
         }
       ]
     }

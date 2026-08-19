@@ -1966,7 +1966,13 @@ client class Client {
 
 // --- Service ---
 
-service salesforce:Service on new salesforce:Listener(salesforce:ListenerConfig listenerConfig = {auth: {username: "", password: ""}}) {
+// This library declares 2 service types. Each is individually optional —
+// declare the ones the requirement needs, not all of them.
+
+# Receives change data capture events published for the subscribed Salesforce object channel.
+# Listener `salesforce:Listener`: Subscribes to the configured Salesforce channels and dispatches each inbound event to the service matching its channel type.
+# The service identifier requires a quoted string literal, e.g. `"orders"` — replace `"identifier"`.
+service salesforce:CdcService "identifier" on new salesforce:Listener(salesforce:ListenerConfig listenerConfig) {
     # Triggers on a new record create event.
     # + payload - The information about the triggered event
     remote function onCreate(salesforce:EventData payload) returns error?;
@@ -1982,4 +1988,13 @@ service salesforce:Service on new salesforce:Listener(salesforce:ListenerConfig 
     # Triggers on a record restore event.
     # + payload - The information about the triggered event
     remote function onRestore(salesforce:EventData payload) returns error?;
+}
+
+# Receives custom platform events published to the subscribed Salesforce event channel.
+# Listener `salesforce:Listener`: Subscribes to the configured Salesforce channels and dispatches each inbound event to the service matching its channel type.
+# The service identifier requires a quoted string literal, e.g. `"orders"` — replace `"identifier"`.
+service salesforce:PlatformEventsService "identifier" on new salesforce:Listener(salesforce:ListenerConfig listenerConfig) {
+    # Triggers when a Platform Event is published on the subscribed channel.
+    # + message - The Platform Events message including all published fields and metadata
+    remote function onMessage(salesforce:PlatformEventsMessage message) returns error?;
 }

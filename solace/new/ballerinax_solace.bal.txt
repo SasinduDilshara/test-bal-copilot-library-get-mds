@@ -818,17 +818,23 @@ client class MessageProducer {
 
 // --- Service ---
 
+# Consumes messages delivered from the queue or topic named in @solace:ServiceConfig.
+# Listener `solace:Listener`: Connects to a Solace PubSub+ broker and dispatches each delivered message to the attached service.
+# A Solace service needs its subscription from exactly one source: @solace:ServiceConfig { queueName } for a queue or @solace:ServiceConfig { topicName } for a topic.
+# Mandatory: this service must carry the @solace:ServiceConfig annotation. Replace {...} with its fields, which are those of solace:ServiceConfiguration.
+@solace:ServiceConfig {...} // required
 service solace:Service on new solace:Listener(string url, solace:ListenerConfiguration config = {}) {
-    # Triggers when a message is received from a Solace queue or topic
-    # + message - The received Solace message
-    # + caller - The Solace caller to control transactions and message acknowledgement
+    # Invoked once per message delivered from the queue or topic named in @solace:ServiceConfig. Declare a narrower payload type to project the message payload, see the messagePayload data-binding rule.
+    # + message - The delivered message. Declare a narrower type to project the payload, see the messagePayload data-binding rule.
+    # + caller - Handle for explicit acknowledgement and transaction control. Needed only when the service's ackMode is CLIENT_ACK (for caller->ack/caller->nack) or the listener's connection is transacted (for caller->commit/caller->rollback).
+    # `message` may bind to a record that includes `*solace:Message;` and overrides only `payload`
     # Required parameters: message
     # Optional parameters (may be omitted): caller
-    remote function onMessage(solace:Message message, solace:Caller caller) returns error?;
+    remote function onMessage(solace:Message message, solace:Caller caller) returns solace:Error?; // required
 
-    # Triggers when an error occurs during message processing
-    # + solaceError - The error occurred during message processing
-    remote function onError(solace:Error solaceError) returns error?;
+    # Invoked when a delivered message cannot be dispatched to onMessage, most commonly because its payload fails to bind to a declared narrowed payload type.
+    # + err - The failure that prevented dispatch.
+    remote function onError(solace:Error err) returns solace:Error?; // optional
 }
 
 // --- Annotations ---

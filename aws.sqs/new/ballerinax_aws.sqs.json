@@ -2808,7 +2808,117 @@
     }
   ],
   "functions": [],
-  "services": [],
+  "services": [
+    {
+      "type": "fixed",
+      "name": "Service",
+      "description": "Consumes messages received from the polled SQS queue.",
+      "listener": {
+        "name": "sqs:Listener",
+        "description": "Polls the configured SQS queue and dispatches each received message to the attached service.",
+        "parameters": [
+          {
+            "name": "connectionConfig",
+            "description": "The configurations to be used when initializing the AWS SQS listener",
+            "type": {
+              "name": "ConnectionConfig",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "ConnectionConfig"
+                }
+              ]
+            },
+            "default": "{auth: {accessKeyId: \"\", secretAccessKey: \"\"}, region: \"us-west-2\"}"
+          },
+          {
+            "name": "pollingConfig",
+            "description": "Default polling behavior for all services (can be overridden per service)",
+            "type": {
+              "name": "PollingConfig",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "PollingConfig"
+                }
+              ]
+            },
+            "optional": true,
+            "default": "{}"
+          }
+        ]
+      },
+      "singleListenerOnly": true,
+      "methods": [
+        {
+          "name": "onMessage",
+          "type": "remote",
+          "description": "Invoked once per message received from the polled queue. The listener requests one message at a time and waits for this call to return before polling again, so there is no batching to configure. Set @sqs:ServiceConfig { autoDelete: false } to take over deletion explicitly through the caller parameter instead of the listener\u0027s automatic delete-after-receive behavior.",
+          "parameters": [
+            {
+              "name": "message",
+              "description": "The received message: its body, message and receipt IDs, and any system or user-defined attributes requested for the poll.",
+              "type": {
+                "name": "Message",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Message"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "caller",
+              "description": "Handle for explicitly deleting the message from the queue. Needed only when @sqs:ServiceConfig { autoDelete: false } is set; otherwise the listener deletes the message automatically once this handler returns.",
+              "type": {
+                "name": "Caller",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Caller"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          },
+          "optional": false
+        },
+        {
+          "name": "onError",
+          "type": "remote",
+          "description": "Invoked when a received message cannot be dispatched to onMessage, most commonly because the declared parameter types do not match sqs:Message or sqs:Caller, or because an automatic delete after onMessage fails.",
+          "parameters": [
+            {
+              "name": "err",
+              "description": "The failure that prevented dispatch or the post-processing delete.",
+              "type": {
+                "name": "Error",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Error"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          },
+          "optional": true
+        }
+      ]
+    }
+  ],
   "annotations": [
     {
       "name": "ServiceConfig",

@@ -5050,9 +5050,11 @@
   "services": [
     {
       "type": "fixed",
-      "name": "Service",
+      "name": "CdcService",
+      "description": "Receives change data capture events published for the subscribed Salesforce object channel.",
       "listener": {
         "name": "salesforce:Listener",
+        "description": "Subscribes to the configured Salesforce channels and dispatches each inbound event to the service matching its channel type.",
         "parameters": [
           {
             "name": "listenerConfig",
@@ -5066,11 +5068,17 @@
                 }
               ]
             },
-            "optional": true,
             "default": "{auth: {username: \"\", password: \"\"}}"
           }
         ]
       },
+      "identifier": {
+        "presence": "required",
+        "form": [
+          "stringLiteral"
+        ]
+      },
+      "alternatives": true,
       "methods": [
         {
           "name": "onCreate",
@@ -5161,6 +5169,65 @@
                   {
                     "category": "internal",
                     "recordName": "EventData"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "fixed",
+      "name": "PlatformEventsService",
+      "description": "Receives custom platform events published to the subscribed Salesforce event channel.",
+      "listener": {
+        "name": "salesforce:Listener",
+        "description": "Subscribes to the configured Salesforce channels and dispatches each inbound event to the service matching its channel type.",
+        "parameters": [
+          {
+            "name": "listenerConfig",
+            "description": "Salesforce Listener configuration",
+            "type": {
+              "name": "ListenerConfig",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "ListenerConfig"
+                }
+              ]
+            },
+            "default": "{auth: {username: \"\", password: \"\"}}"
+          }
+        ]
+      },
+      "identifier": {
+        "presence": "required",
+        "form": [
+          "stringLiteral"
+        ]
+      },
+      "alternatives": true,
+      "methods": [
+        {
+          "name": "onMessage",
+          "type": "remote",
+          "description": "Triggers when a Platform Event is published on the subscribed channel.\n",
+          "parameters": [
+            {
+              "name": "message",
+              "description": "The Platform Events message including all published fields and metadata",
+              "type": {
+                "name": "PlatformEventsMessage",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "PlatformEventsMessage"
                   }
                 ]
               }

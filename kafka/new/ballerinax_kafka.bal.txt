@@ -986,6 +986,8 @@ client class Producer {
 
 // --- Service ---
 
+# Consumes records from the subscribed topics and dispatches each poll's batch.
+# Listener `kafka:Listener`: Polls the subscribed topics on its configured interval and dispatches each batch to the attached service.
 # This service type attaches to exactly one listener — do not write `on l1, l2`.
 # This listener hosts at most one service in total — any second service, of any type, needs its own listener.
 service kafka:Service on new kafka:Listener(string|string[] bootstrapServers, kafka:ConsumerConfiguration config = {}) {
@@ -995,7 +997,6 @@ service kafka:Service on new kafka:Listener(string|string[] bootstrapServers, ka
     # `records` may also be: kafka:BytesConsumerRecord[]
     # `records` may bind to a batch: anydata[] — but never kafka:AnydataConsumerRecord
     # `records` may bind to an array of records that include `*kafka:AnydataConsumerRecord;` and override only `value`
-    # The `records` parameter may carry @kafka:Payload, written `@kafka:Payload {}` before its type. Its fields are those of kafka:KafkaPayload.
     # Required parameters: records
     # Optional parameters (may be omitted): caller
     remote function onConsumerRecord(kafka:Caller caller, kafka:AnydataConsumerRecord[] records) returns error?; // required

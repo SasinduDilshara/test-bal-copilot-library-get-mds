@@ -441,16 +441,19 @@ function relativePath(string base, string target) returns string|Error;
 
 // --- Service ---
 
+# Receives file system change events for the watched directory: created, modified, and deleted files.
+# Listener `file:Listener`: Polls the watched directory on its configured interval and dispatches each detected file create, modify, or delete event to the attached service.
+# A Local Files service must declare at least one of onCreate, onModify, or onDelete, otherwise no event is ever dispatched. This connector has no onError handler to mistake for one.
 service file:Service on new file:Listener(file:ListenerConfig listenerConfig = {path: ""}) {
-    # The `onCreate` remote method will be triggered when a file is created in the specified directory
-    # + event - The File event
-    remote function onCreate(file:FileEvent event) returns error?;
+    # Invoked when a new file appears in the watched directory, or in one of its subdirectories when the listener is configured to recurse. Declares no return type; the file module rejects any return clause on this handler.
+    # + fileEvent - The absolute file URI in name and the triggering operation, always "create", in operation.
+    remote function onCreate(file:FileEvent fileEvent); // optional
 
-    # The `onDelete` remote method will be triggered when a file is deleted in the specified directory
-    # + event - The File event
-    remote function onDelete(file:FileEvent event) returns error?;
+    # Invoked when an existing file's contents or attributes change in the watched directory. Declares no return type; the file module rejects any return clause on this handler.
+    # + fileEvent - The absolute file URI in name and the triggering operation, always "modify", in operation.
+    remote function onModify(file:FileEvent fileEvent); // optional
 
-    # The `onModify` remote method will be triggered when a file is modified in the specified directory
-    # + event - The File event
-    remote function onModify(file:FileEvent event) returns error?;
+    # Invoked when a file disappears from the watched directory. There is no file content or metadata beyond the event itself, because the file is already gone. Declares no return type; the file module rejects any return clause on this handler.
+    # + fileEvent - The absolute file URI in name and the triggering operation, always "delete", in operation.
+    remote function onDelete(file:FileEvent fileEvent); // optional
 }

@@ -1360,6 +1360,8 @@ function getHeaders(map<string|string[]> headerMap, string headerName) returns s
 
 // --- Service ---
 
+# A gRPC service generated from a proto definition. One remote method per RPC, its calling convention (unary or streaming in either direction) determined by its params and return shape.
+# Listener `grpc:Listener`: gRPC listener that dispatches each inbound RPC call to the matching remote method by RPC name.
 # The service identifier requires a quoted string literal, e.g. `"orders"` — replace `"identifier"`.
 # Mandatory: this service must carry the @grpc:Descriptor annotation. Replace {...} with its fields, which are those of grpc:DescriptorData.
 # Optional: this service may carry the @grpc:ServiceConfig annotation. Replace {...} with its fields, which are those of grpc:GrpcServiceConfig.
@@ -1373,6 +1375,7 @@ service grpc:Service "identifier" on new grpc:Listener(int port, grpc:ListenerCo
     // Handles a simple RPC, one request message in and one response message out. The method name is the RPC name from the proto definition. Return the response directly, or take a caller and send through it, in which case the method returns error? instead.
     // + caller - Generated caller for this RPC, used to send the response asynchronously. Must come first when present. Declaring it changes the return type to error?.
     // + request - The inbound request message. Absent when the RPC input is google.protobuf.Empty.
+    // The `anydata` member of the return may be narrowed: declare the concrete type you return in place of `anydata`.
     // Required parameters: none — every parameter in the signature may be omitted.
     // Optional parameters (may be omitted): caller, request
     // remote function <handlerName>(grpc:Caller caller, anydata request) returns anydata|error?;
@@ -1381,6 +1384,7 @@ service grpc:Service "identifier" on new grpc:Listener(int port, grpc:ListenerCo
     // Handles a server streaming RPC, one request message in and a stream of response messages out. Return the stream directly, or take a caller and send each message through it, in which case the method returns error? instead.
     // + caller - Generated caller for this RPC, used to send each response message. Must come first when present. Declaring it changes the return type to error?.
     // + request - The inbound request message. Absent when the RPC input is google.protobuf.Empty.
+    // The returned stream's `anydata` element may be narrowed: declare the concrete element type in place of `anydata`.
     // Required parameters: none — every parameter in the signature may be omitted.
     // Optional parameters (may be omitted): caller, request
     // remote function <handlerName>(grpc:Caller caller, anydata request) returns stream<anydata, grpc:Error?>|error?;
@@ -1389,6 +1393,7 @@ service grpc:Service "identifier" on new grpc:Listener(int port, grpc:ListenerCo
     // Handles a client streaming RPC, a stream of request messages in and one response message out. Return the response directly, or take a caller and send through it, in which case the method returns error? instead.
     // + caller - Generated caller for this RPC, used to send the response asynchronously. Must come first when present. Declaring it changes the return type to error?.
     // + clientStream - The inbound request messages, consumed as a stream.
+    // The `anydata` member of the return may be narrowed: declare the concrete type you return in place of `anydata`.
     // Required parameters: clientStream
     // Optional parameters (may be omitted): caller
     // remote function <handlerName>(grpc:Caller caller, stream<anydata, grpc:Error?> clientStream) returns anydata|error?;
@@ -1397,6 +1402,7 @@ service grpc:Service "identifier" on new grpc:Listener(int port, grpc:ListenerCo
     // Handles a bidirectional streaming RPC, with request and response messages flowing independently in both directions. Taking a caller is the practical form here, since it lets responses be sent while the request stream is still being consumed.
     // + caller - Generated caller for this RPC, used to send response messages while the request stream is still open. Must come first when present. Declaring it changes the return type to error?.
     // + clientStream - The inbound request messages, consumed as a stream.
+    // The returned stream's `anydata` element may be narrowed: declare the concrete element type in place of `anydata`.
     // Required parameters: clientStream
     // Optional parameters (may be omitted): caller
     // remote function <handlerName>(grpc:Caller caller, stream<anydata, grpc:Error?> clientStream) returns stream<anydata, grpc:Error?>|error?;

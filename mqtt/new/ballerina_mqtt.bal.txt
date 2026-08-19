@@ -344,8 +344,21 @@ client class Client {
 
 // --- Service ---
 
+# Consumes messages delivered on the topics given in the listener's subscriptions.
+# Listener `mqtt:Listener`: Connects to an MQTT broker and dispatches each message received on the subscribed topics to the attached service.
 service mqtt:Service on new mqtt:Listener(string serverUri, string clientId, string|string[]|mqtt:Subscription|mqtt:Subscription[] subscriptions, mqtt:ListenerConfiguration config = {}) {
-    # The `onMessage` remote method will be triggered when a message is received from a subscribed topic.
-    # + message - The messages received for the topic
-    remote function onMessage(mqtt:Message message) returns error?;
+    # Invoked once per message delivered on any topic given in the listener's subscriptions. The message parameter's declared type must be the connector's own mqtt:Message record as-is; unlike Kafka or RabbitMQ there is no narrower payload projection, so the handler decodes message.payload (byte[]) itself.
+    # + message - The delivered message, carrying the raw payload bytes plus topic, QoS, and duplicate/retained flags.
+    # + caller - Handle for completing or responding to the message. Needed only when manualAcks is enabled (caller->complete()) or when replying to a request-style message published with a responseTopic (caller->respond()).
+    # Required parameters: message
+    # Optional parameters (may be omitted): caller
+    remote function onMessage(mqtt:Message message, mqtt:Caller caller) returns error?; // required
+
+    # Invoked when the underlying MQTT client loses its connection to the broker.
+    # + err - The connection failure reported by the client.
+    remote function onError(mqtt:Error err) returns error?; // optional
+
+    # Invoked once a message published through the caller, such as via caller->respond(), has completed delivery to the broker.
+    # + token - Identifies the message ID and topic of the publish that completed delivery.
+    remote function onComplete(mqtt:DeliveryToken token) returns error?; // optional
 }

@@ -1149,3 +1149,38 @@ client class Client {
     # 
     function close() returns sql:Error|(); // Special Agent Note: Error FROM ballerina/sql package
 }
+
+// --- Service ---
+
+# Consumes row-level change events captured from the subscribed Oracle Database tables and dispatches each event to the matching handler.
+# Listener `oracledb:CdcListener`: Streams row-level changes from the Oracle Database redo log via LogMiner and dispatches each captured event to the attached service.
+# Requires: import ballerinax/oracledb.cdc.driver as _;
+# A CDC service must declare at least one change handler. onError alone never receives a change event, so the service would do nothing.
+# Mandatory: this service must carry the @cdc:ServiceConfig annotation. Replace {...} with its fields, which are those of cdc:CdcServiceConfig.
+@cdc:ServiceConfig {...} // required; Special Agent Note: ServiceConfig, CdcServiceConfig FROM ballerinax/cdc package
+service cdc:Service on new oracledb:CdcListener(oracledb:OracleListenerConfiguration config = {database: {databaseName: "", username: "", password: ""}}) { // Special Agent Note: Service FROM ballerinax/cdc package
+    # Invoked for each row captured during the initial snapshot of a table, before streaming of live changes begins.
+    # + afterEntry - The row as captured. Declare a record type to project its columns, see the rowState data-binding rule.
+    # + tableName - Name of the table the row came from, useful when one service handles several tables.
+    remote function onRead(record {} afterEntry, string tableName) returns error?; // optional
+
+    # Invoked when a row is inserted.
+    # + afterEntry - The row's state after the insert. Declare a record type to project its columns, see the rowState data-binding rule.
+    # + tableName - Name of the table the change occurred in.
+    remote function onCreate(record {} afterEntry, string tableName) returns error?; // optional
+
+    # Invoked when a row is updated, with both the pre- and post-change images of the row.
+    # + beforeEntry - The row's state before the update.
+    # + afterEntry - The row's state after the update.
+    # + tableName - Name of the table the change occurred in.
+    remote function onUpdate(record {} beforeEntry, record {} afterEntry, string tableName) returns error?; // optional
+
+    # Invoked when a row is deleted. Only the pre-change image is available.
+    # + beforeEntry - The row's state immediately before it was deleted.
+    # + tableName - Name of the table the change occurred in.
+    remote function onDelete(record {} beforeEntry, string tableName) returns error?; // optional
+
+    # Invoked when the connector fails to capture or dispatch a change event.
+    # + cdcError - The failure that interrupted change capture.
+    remote function onError(cdc:Error cdcError); // optional
+}

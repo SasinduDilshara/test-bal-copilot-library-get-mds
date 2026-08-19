@@ -1149,8 +1149,10 @@
     {
       "type": "fixed",
       "name": "Service",
+      "description": "Receives file system change events for the watched directory: created, modified, and deleted files.",
       "listener": {
         "name": "file:Listener",
+        "description": "Polls the watched directory on its configured interval and dispatches each detected file create, modify, or delete event to the attached service.",
         "parameters": [
           {
             "name": "listenerConfig",
@@ -1169,15 +1171,39 @@
           }
         ]
       },
+      "constraints": [
+        {
+          "id": "$atLeastOneFileHandler",
+          "rule": "structure.atLeastOne",
+          "subjects": [
+            {
+              "kind": "handler",
+              "name": "onCreate",
+              "id": "$service.onCreate"
+            },
+            {
+              "kind": "handler",
+              "name": "onModify",
+              "id": "$service.onModify"
+            },
+            {
+              "kind": "handler",
+              "name": "onDelete",
+              "id": "$service.onDelete"
+            }
+          ],
+          "message": "A Local Files service must declare at least one of onCreate, onModify, or onDelete, otherwise no event is ever dispatched. This connector has no onError handler to mistake for one."
+        }
+      ],
       "methods": [
         {
           "name": "onCreate",
           "type": "remote",
-          "description": "The `onCreate` remote method will be triggered when a file is created in the specified directory",
+          "description": "Invoked when a new file appears in the watched directory, or in one of its subdirectories when the listener is configured to recurse. Declares no return type; the file module rejects any return clause on this handler.",
           "parameters": [
             {
-              "name": "event",
-              "description": "The File event",
+              "name": "fileEvent",
+              "description": "The absolute file URI in name and the triggering operation, always \"create\", in operation.",
               "type": {
                 "name": "FileEvent",
                 "links": [
@@ -1189,45 +1215,16 @@
               }
             }
           ],
-          "return": {
-            "type": {
-              "name": "error?"
-            }
-          }
-        },
-        {
-          "name": "onDelete",
-          "type": "remote",
-          "description": "The `onDelete` remote method will be triggered when a file is deleted in the specified directory",
-          "parameters": [
-            {
-              "name": "event",
-              "description": "The File event",
-              "type": {
-                "name": "FileEvent",
-                "links": [
-                  {
-                    "category": "internal",
-                    "recordName": "FileEvent"
-                  }
-                ]
-              }
-            }
-          ],
-          "return": {
-            "type": {
-              "name": "error?"
-            }
-          }
+          "optional": true
         },
         {
           "name": "onModify",
           "type": "remote",
-          "description": "The `onModify` remote method will be triggered when a file is modified in the specified directory",
+          "description": "Invoked when an existing file\u0027s contents or attributes change in the watched directory. Declares no return type; the file module rejects any return clause on this handler.",
           "parameters": [
             {
-              "name": "event",
-              "description": "The File event",
+              "name": "fileEvent",
+              "description": "The absolute file URI in name and the triggering operation, always \"modify\", in operation.",
               "type": {
                 "name": "FileEvent",
                 "links": [
@@ -1239,11 +1236,28 @@
               }
             }
           ],
-          "return": {
-            "type": {
-              "name": "error?"
+          "optional": true
+        },
+        {
+          "name": "onDelete",
+          "type": "remote",
+          "description": "Invoked when a file disappears from the watched directory. There is no file content or metadata beyond the event itself, because the file is already gone. Declares no return type; the file module rejects any return clause on this handler.",
+          "parameters": [
+            {
+              "name": "fileEvent",
+              "description": "The absolute file URI in name and the triggering operation, always \"delete\", in operation.",
+              "type": {
+                "name": "FileEvent",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "FileEvent"
+                  }
+                ]
+              }
             }
-          }
+          ],
+          "optional": true
         }
       ]
     }

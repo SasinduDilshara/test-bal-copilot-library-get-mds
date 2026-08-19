@@ -898,37 +898,35 @@ client class Client {
 
 // --- Service ---
 
-service mysql:Service on new mysql:CdcListener(mysql:MySqlListenerConfiguration config = {database: {username: "", password: ""}}) {
-    # Triggers initially to read existing records from the monitored table
-    # + afterEntry - The existing record from the monitored table
-    # + tableName - The name of the table where the record was created
-    # Required parameters: afterEntry
-    # Optional parameters (may be omitted): tableName
-    remote function onRead(record {} afterEntry, string tableName) returns error?;
+# Consumes row-level change events captured from the subscribed MySQL tables and dispatches each event to the matching handler.
+# Listener `mysql:CdcListener`: Streams row-level changes from the MySQL binary log and dispatches each captured event to the attached service.
+# Requires: import ballerinax/mysql.cdc.driver as _;
+# A CDC service must declare at least one change handler. onError alone never receives a change event, so the service would do nothing.
+# Mandatory: this service must carry the @cdc:ServiceConfig annotation. Replace {...} with its fields, which are those of cdc:CdcServiceConfig.
+@cdc:ServiceConfig {...} // required; Special Agent Note: ServiceConfig, CdcServiceConfig FROM ballerinax/cdc package
+service cdc:Service on new mysql:CdcListener(mysql:MySqlListenerConfiguration config = {database: {username: "", password: ""}}) { // Special Agent Note: Service FROM ballerinax/cdc package
+    # Invoked for each row captured during the initial snapshot of a table, before streaming of live changes begins.
+    # + afterEntry - The row as captured. Declare a record type to project its columns, see the rowState data-binding rule.
+    # + tableName - Name of the table the row came from, useful when one service handles several tables.
+    remote function onRead(record {} afterEntry, string tableName) returns error?; // optional
 
-    # Triggers when a new record is created in the monitored table
-    # + afterEntry - The new record created in the monitored table
-    # + tableName - The name of the table where the record was created
-    # Required parameters: afterEntry
-    # Optional parameters (may be omitted): tableName
-    remote function onCreate(record {} afterEntry, string tableName) returns error?;
+    # Invoked when a row is inserted.
+    # + afterEntry - The row's state after the insert. Declare a record type to project its columns, see the rowState data-binding rule.
+    # + tableName - Name of the table the change occurred in.
+    remote function onCreate(record {} afterEntry, string tableName) returns error?; // optional
 
-    # Triggers when an existing record is updated in the monitored table
-    # + beforeEntry - The record before the update in the monitored table
-    # + afterEntry - The record after the update in the monitored table
-    # + tableName - The name of the table where the record was created
-    # Required parameters: beforeEntry, afterEntry
-    # Optional parameters (may be omitted): tableName
-    remote function onUpdate(record {} beforeEntry, record {} afterEntry, string tableName) returns error?;
+    # Invoked when a row is updated, with both the pre- and post-change images of the row.
+    # + beforeEntry - The row's state before the update.
+    # + afterEntry - The row's state after the update.
+    # + tableName - Name of the table the change occurred in.
+    remote function onUpdate(record {} beforeEntry, record {} afterEntry, string tableName) returns error?; // optional
 
-    # Triggers when a record is deleted from the monitored table
-    # + beforeEntry - The record before the deletion in the monitored table
-    # + tableName - The name of the table where the record was created
-    # Required parameters: beforeEntry
-    # Optional parameters (may be omitted): tableName
-    remote function onDelete(record {} beforeEntry, string tableName) returns error?;
+    # Invoked when a row is deleted. Only the pre-change image is available.
+    # + beforeEntry - The row's state immediately before it was deleted.
+    # + tableName - Name of the table the change occurred in.
+    remote function onDelete(record {} beforeEntry, string tableName) returns error?; // optional
 
-    # Triggers when an error occurs during event processing before mandatory functions are invoked
-    # + cdcError - The error occurred during message processing
-    remote function onError(cdc:Error cdcError);
+    # Invoked when the connector fails to capture or dispatch a change event.
+    # + cdcError - The failure that interrupted change capture.
+    remote function onError(cdc:Error cdcError); // optional
 }

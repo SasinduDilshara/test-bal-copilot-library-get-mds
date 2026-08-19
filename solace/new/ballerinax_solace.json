@@ -3036,12 +3036,14 @@
     {
       "type": "fixed",
       "name": "Service",
+      "description": "Consumes messages delivered from the queue or topic named in @solace:ServiceConfig.",
       "listener": {
         "name": "solace:Listener",
+        "description": "Connects to a Solace PubSub+ broker and dispatches each delivered message to the attached service.",
         "parameters": [
           {
             "name": "url",
-            "description": "The Solace broker URL in the format `\u003cscheme\u003e://[username]:[password]@\u003chost\u003e[:port]`.\nSupported schemes are `smf` (plain-text) and `smfs` (TLS/SSL).\nMultiple hosts can be specified as a comma-separated list for failover support.\nDefault ports: 55555 (standard), 55003 (compression), 55443 (SSL)",
+            "description": "The broker URL with format: [protocol:]host[:port]",
             "type": {
               "name": "string"
             },
@@ -3049,7 +3051,7 @@
           },
           {
             "name": "config",
-            "description": "configurations used when initializing the listener",
+            "description": "The connection configuration (auth, SSL/TLS, retry, etc.)",
             "type": {
               "name": "ListenerConfiguration",
               "links": [
@@ -3064,15 +3066,58 @@
           }
         ]
       },
+      "annotations": [
+        {
+          "name": "ServiceConfig",
+          "presence": "required",
+          "attachPoint": "service",
+          "typeConstraint": {
+            "name": "ServiceConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ServiceConfiguration"
+              }
+            ]
+          }
+        }
+      ],
+      "constraints": [
+        {
+          "id": "$subscriptionSource",
+          "rule": "structure.exactlyOne",
+          "subjects": [
+            {
+              "kind": "annotationField",
+              "annotation": "ServiceConfig",
+              "annotationId": "$serviceConfig",
+              "path": [
+                "queueName"
+              ],
+              "role": "queue"
+            },
+            {
+              "kind": "annotationField",
+              "annotation": "ServiceConfig",
+              "annotationId": "$serviceConfig",
+              "path": [
+                "topicName"
+              ],
+              "role": "topic"
+            }
+          ],
+          "message": "A Solace service needs its subscription from exactly one source: @solace:ServiceConfig { queueName } for a queue or @solace:ServiceConfig { topicName } for a topic."
+        }
+      ],
       "methods": [
         {
           "name": "onMessage",
           "type": "remote",
-          "description": "Triggers when a message is received from a Solace queue or topic",
+          "description": "Invoked once per message delivered from the queue or topic named in @solace:ServiceConfig. Declare a narrower payload type to project the message payload, see the messagePayload data-binding rule.",
           "parameters": [
             {
               "name": "message",
-              "description": "The received Solace message",
+              "description": "The delivered message. Declare a narrower type to project the payload, see the messagePayload data-binding rule.",
               "type": {
                 "name": "Message",
                 "links": [
@@ -3081,11 +3126,56 @@
                     "recordName": "Message"
                   }
                 ]
+              },
+              "binding": {
+                "typedescs": [
+                  {
+                    "constraint": {
+                      "name": "anydata"
+                    },
+                    "shapes": [
+                      {
+                        "form": "included",
+                        "envelope": {
+                          "name": "Message",
+                          "links": [
+                            {
+                              "category": "internal",
+                              "recordName": "Message"
+                            }
+                          ]
+                        },
+                        "bindableFields": [
+                          "payload"
+                        ],
+                        "fixedFields": [
+                          "deliveryMode",
+                          "priority",
+                          "timeToLive",
+                          "messageId",
+                          "messageType",
+                          "correlationId",
+                          "replyTo",
+                          "senderId",
+                          "senderTimestamp",
+                          "sequenceNumber",
+                          "properties",
+                          "userData",
+                          "receiveTimestamp",
+                          "redelivered",
+                          "destination",
+                          "deliveryCount",
+                          "expiration"
+                        ]
+                      }
+                    ]
+                  }
+                ]
               }
             },
             {
               "name": "caller",
-              "description": "The Solace caller to control transactions and message acknowledgement",
+              "description": "Handle for explicit acknowledgement and transaction control. Needed only when the service\u0027s ackMode is CLIENT_ACK (for caller-\u003eack/caller-\u003enack) or the listener\u0027s connection is transacted (for caller-\u003ecommit/caller-\u003erollback).",
               "type": {
                 "name": "Caller",
                 "links": [
@@ -3100,18 +3190,25 @@
           ],
           "return": {
             "type": {
-              "name": "error?"
+              "name": "Error?",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
             }
-          }
+          },
+          "optional": false
         },
         {
           "name": "onError",
           "type": "remote",
-          "description": "Triggers when an error occurs during message processing",
+          "description": "Invoked when a delivered message cannot be dispatched to onMessage, most commonly because its payload fails to bind to a declared narrowed payload type.",
           "parameters": [
             {
-              "name": "solaceError",
-              "description": "The error occurred during message processing",
+              "name": "err",
+              "description": "The failure that prevented dispatch.",
               "type": {
                 "name": "Error",
                 "links": [
@@ -3125,9 +3222,16 @@
           ],
           "return": {
             "type": {
-              "name": "error?"
+              "name": "Error?",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
             }
-          }
+          },
+          "optional": true
         }
       ]
     }

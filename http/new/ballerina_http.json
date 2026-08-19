@@ -25591,8 +25591,10 @@
     {
       "type": "fixed",
       "name": "Service",
+      "description": "An HTTP service. Each resource method is one endpoint, its accessor the HTTP verb and its path the URL path.",
       "listener": {
         "name": "http:Listener",
+        "description": "HTTP listener that dispatches each inbound request to the resource method matching its verb and path.",
         "parameters": [
           {
             "name": "port",
@@ -25822,11 +25824,15 @@
           ],
           "return": {
             "type": {
-              "name": "anydata|Response|error",
+              "name": "anydata|Response|StatusCodeResponse|error",
               "links": [
                 {
                   "category": "internal",
                   "recordName": "Response"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "StatusCodeResponse"
                 }
               ]
             },
@@ -25845,7 +25851,44 @@
                   ]
                 }
               }
-            ]
+            ],
+            "binding": {
+              "typedescs": [
+                {
+                  "constraint": {
+                    "name": "anydata"
+                  },
+                  "shapes": [
+                    {
+                      "form": "bare"
+                    }
+                  ]
+                },
+                {
+                  "constraint": {
+                    "name": "anydata"
+                  },
+                  "shapes": [
+                    {
+                      "form": "included",
+                      "envelope": {
+                        "name": "StatusCodeResponse",
+                        "links": [
+                          {
+                            "category": "internal",
+                            "recordName": "StatusCodeResponse"
+                          }
+                        ],
+                        "subtypeFamily": true
+                      },
+                      "bindableFields": [
+                        "body"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
           },
           "accessor": "get",
           "accessorValues": [

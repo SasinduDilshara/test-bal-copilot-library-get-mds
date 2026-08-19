@@ -1688,12 +1688,21 @@ function getApplicationPropertyByName(Message message, string name) returns anyd
 
 // --- Service ---
 
+# Consumes messages delivered from the queue, topic, or subscription configured on the listener.
+# Listener `asb:Listener`: Connects to the configured Azure Service Bus entity and dispatches each delivered message to the attached service.
+# This service type attaches to exactly one listener — do not write `on l1, l2`.
+# This listener hosts at most one service in total — any second service, of any type, needs its own listener.
 service asb:Service on new asb:Listener(asb:ListenerConfiguration config = {connectionString: "", entityConfig: {topicName: "", subscriptionName: ""}}) {
-    # Triggers when new message received for the azure service bus
-    # + message - The received message
-    remote function onMessage(asb:Message message) returns error?;
+    # Invoked once per message delivered from the queue, topic, or subscription configured on the listener. The entity to consume from and the receive mode (RECEIVE_AND_DELETE or PEEK_LOCK) are configured on the listener's init config, not on the service.
+    # + message - The delivered message. Declare a narrower type to project the body, see the messageBody data-binding rule.
+    # + caller - Handle for explicitly completing, abandoning, deferring, or dead-lettering the message via its lock token. Needed only when the listener's receiveMode is PEEK_LOCK and autoComplete is disabled; under RECEIVE_AND_DELETE the message is already removed from the entity on retrieval, and with autoComplete enabled the listener settles it automatically.
+    # `message` may bind directly to: anydata — but never asb:Message
+    # `message` may bind to a record that includes `*asb:Message;` and overrides only `body`
+    # Required parameters: message
+    # Optional parameters (may be omitted): caller
+    remote function onMessage(asb:Message message, asb:Caller caller) returns error?; // required
 
-    # Triggers when error occurred in the azure service bus
-    # + asbErr - The messages received for the topic
-    remote function onError(asb:MessageRetrievalError asbErr) returns error?;
+    # Invoked when a message cannot be retrieved from the subscribed entity or cannot be dispatched, most commonly because a delivered message's body fails to bind to the declared parameter type.
+    # + error - The failure that prevented the message from being delivered.
+    remote function onError(asb:MessageRetrievalError error) returns error?; // optional
 }

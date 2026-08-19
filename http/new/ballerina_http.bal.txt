@@ -4616,6 +4616,8 @@ function createHttpSecureClient(string url, ClientConfiguration config) returns 
 
 // --- Service ---
 
+# An HTTP service. Each resource method is one endpoint, its accessor the HTTP verb and its path the URL path.
+# Listener `http:Listener`: HTTP listener that dispatches each inbound request to the resource method matching its verb and path.
 # The service identifier requires a base path, e.g. `/orders` — replace `/basePath`.
 # Optional: this service may carry the @http:ServiceConfig annotation. Replace {...} with its fields, which are those of http:HttpServiceConfig.
 @http:ServiceConfig {...} // optional
@@ -4631,6 +4633,8 @@ service http:Service /basePath on new http:Listener(int port, http:ListenerConfi
     // Resource: the accessor must be one of `get`, `post`, `put`, `delete`, `patch`, `head`, `options`, `default`; a path is required and is author-chosen — replace `pathSegment`.
     // Zero or more further parameters (the `@http:Query` slot) of type string (or int, boolean, decimal, float) may be added, each independently named.
     // Zero or more further parameters (the `@http:Header` slot) of type string (or int, boolean, decimal, float) may be added, each independently named.
+    // The `anydata` member of the return may be narrowed: declare the concrete type you return in place of `anydata`.
+    // The return may instead be a record that includes `*http:StatusCodeResponse;` — or any subtype of `http:StatusCodeResponse` — and overrides only `body`.
     // The `caller` parameter may carry @http:CallerInfo, written `@http:CallerInfo {}` before its type. Its fields are those of http:HttpCallerInfo.
     // The `payload` parameter may carry @http:Payload, written `@http:Payload {}` before its type. Its fields are those of http:HttpPayload.
     // Each repeated `string` parameter may carry @http:Query, written `@http:Query {}` before its type. Its fields are those of http:HttpQuery.
@@ -4640,7 +4644,7 @@ service http:Service /basePath on new http:Listener(int port, http:ListenerConfi
     // Optional parameters (may be omitted): caller, request, headers, payload
     // A handler may carry @http:ResourceConfig. Its fields are those of http:HttpResourceConfig.
     // @http:ResourceConfig {} // optional
-    // resource function get pathSegment(http:Caller caller, http:Request request, http:Headers headers, anydata payload) returns anydata|http:Response|error;
+    // resource function get pathSegment(http:Caller caller, http:Request request, http:Headers headers, anydata payload) returns anydata|http:Response|http:StatusCodeResponse|error;
 }
 
 // --- Annotations ---

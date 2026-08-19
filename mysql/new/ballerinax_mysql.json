@@ -1657,8 +1657,10 @@
     {
       "type": "fixed",
       "name": "Service",
+      "description": "Consumes row-level change events captured from the subscribed MySQL tables and dispatches each event to the matching handler.",
       "listener": {
         "name": "mysql:CdcListener",
+        "description": "Streams row-level changes from the MySQL binary log and dispatches each captured event to the attached service.",
         "parameters": [
           {
             "name": "config",
@@ -1677,135 +1679,260 @@
           }
         ]
       },
+      "serviceTypeModule": "ballerinax/cdc",
+      "requiredImports": [
+        {
+          "module": "ballerinax/mysql.cdc.driver",
+          "alias": "_"
+        }
+      ],
+      "annotations": [
+        {
+          "name": "ServiceConfig",
+          "module": "ballerinax/cdc",
+          "presence": "required",
+          "attachPoint": "service",
+          "typeConstraint": {
+            "name": "CdcServiceConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CdcServiceConfig",
+                "libraryName": "ballerinax/cdc"
+              }
+            ]
+          }
+        }
+      ],
+      "constraints": [
+        {
+          "id": "$atLeastOneChangeHandler",
+          "rule": "structure.atLeastOne",
+          "subjects": [
+            {
+              "kind": "handler",
+              "name": "onRead",
+              "id": "$service.onRead"
+            },
+            {
+              "kind": "handler",
+              "name": "onCreate",
+              "id": "$service.onCreate"
+            },
+            {
+              "kind": "handler",
+              "name": "onUpdate",
+              "id": "$service.onUpdate"
+            },
+            {
+              "kind": "handler",
+              "name": "onDelete",
+              "id": "$service.onDelete"
+            }
+          ],
+          "message": "A CDC service must declare at least one change handler. onError alone never receives a change event, so the service would do nothing."
+        }
+      ],
       "methods": [
         {
           "name": "onRead",
           "type": "remote",
-          "description": "Triggers initially to read existing records from the monitored table",
+          "description": "Invoked for each row captured during the initial snapshot of a table, before streaming of live changes begins.",
           "parameters": [
             {
               "name": "afterEntry",
-              "description": "The existing record from the monitored table",
+              "description": "The row as captured. Declare a record type to project its columns, see the rowState data-binding rule.",
               "type": {
                 "name": "record {}"
+              },
+              "binding": {
+                "typedescs": [
+                  {
+                    "constraint": {
+                      "name": "record {}"
+                    },
+                    "shapes": [
+                      {
+                        "form": "bare"
+                      }
+                    ]
+                  }
+                ]
               }
             },
             {
               "name": "tableName",
-              "description": "The name of the table where the record was created",
+              "description": "Name of the table the row came from, useful when one service handles several tables.",
               "type": {
                 "name": "string"
-              },
-              "optional": true
+              }
             }
           ],
           "return": {
             "type": {
               "name": "error?"
             }
-          }
+          },
+          "optional": true
         },
         {
           "name": "onCreate",
           "type": "remote",
-          "description": "Triggers when a new record is created in the monitored table",
+          "description": "Invoked when a row is inserted.",
           "parameters": [
             {
               "name": "afterEntry",
-              "description": "The new record created in the monitored table",
+              "description": "The row\u0027s state after the insert. Declare a record type to project its columns, see the rowState data-binding rule.",
               "type": {
                 "name": "record {}"
+              },
+              "binding": {
+                "typedescs": [
+                  {
+                    "constraint": {
+                      "name": "record {}"
+                    },
+                    "shapes": [
+                      {
+                        "form": "bare"
+                      }
+                    ]
+                  }
+                ]
               }
             },
             {
               "name": "tableName",
-              "description": "The name of the table where the record was created",
+              "description": "Name of the table the change occurred in.",
               "type": {
                 "name": "string"
-              },
-              "optional": true
+              }
             }
           ],
           "return": {
             "type": {
               "name": "error?"
             }
-          }
+          },
+          "optional": true
         },
         {
           "name": "onUpdate",
           "type": "remote",
-          "description": "Triggers when an existing record is updated in the monitored table",
+          "description": "Invoked when a row is updated, with both the pre- and post-change images of the row.",
           "parameters": [
             {
               "name": "beforeEntry",
-              "description": "The record before the update in the monitored table",
+              "description": "The row\u0027s state before the update.",
               "type": {
                 "name": "record {}"
+              },
+              "binding": {
+                "typedescs": [
+                  {
+                    "constraint": {
+                      "name": "record {}"
+                    },
+                    "shapes": [
+                      {
+                        "form": "bare"
+                      }
+                    ]
+                  }
+                ]
               }
             },
             {
               "name": "afterEntry",
-              "description": "The record after the update in the monitored table",
+              "description": "The row\u0027s state after the update.",
               "type": {
                 "name": "record {}"
+              },
+              "binding": {
+                "typedescs": [
+                  {
+                    "constraint": {
+                      "name": "record {}"
+                    },
+                    "shapes": [
+                      {
+                        "form": "bare"
+                      }
+                    ]
+                  }
+                ]
               }
             },
             {
               "name": "tableName",
-              "description": "The name of the table where the record was created",
+              "description": "Name of the table the change occurred in.",
               "type": {
                 "name": "string"
-              },
-              "optional": true
+              }
             }
           ],
           "return": {
             "type": {
               "name": "error?"
             }
-          }
+          },
+          "optional": true
         },
         {
           "name": "onDelete",
           "type": "remote",
-          "description": "Triggers when a record is deleted from the monitored table",
+          "description": "Invoked when a row is deleted. Only the pre-change image is available.",
           "parameters": [
             {
               "name": "beforeEntry",
-              "description": "The record before the deletion in the monitored table",
+              "description": "The row\u0027s state immediately before it was deleted.",
               "type": {
                 "name": "record {}"
+              },
+              "binding": {
+                "typedescs": [
+                  {
+                    "constraint": {
+                      "name": "record {}"
+                    },
+                    "shapes": [
+                      {
+                        "form": "bare"
+                      }
+                    ]
+                  }
+                ]
               }
             },
             {
               "name": "tableName",
-              "description": "The name of the table where the record was created",
+              "description": "Name of the table the change occurred in.",
               "type": {
                 "name": "string"
-              },
-              "optional": true
+              }
             }
           ],
           "return": {
             "type": {
               "name": "error?"
             }
-          }
+          },
+          "optional": true
         },
         {
           "name": "onError",
           "type": "remote",
-          "description": "Triggers when an error occurs during event processing before mandatory functions are invoked",
+          "description": "Invoked when the connector fails to capture or dispatch a change event.",
           "parameters": [
             {
               "name": "cdcError",
-              "description": "The error occurred during message processing",
+              "description": "The failure that interrupted change capture.",
               "type": {
                 "name": "cdc:Error"
               }
             }
-          ]
+          ],
+          "optional": true
         }
       ]
     }

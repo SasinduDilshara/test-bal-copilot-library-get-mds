@@ -278,8 +278,31 @@ client class Client {
 
 // --- Service ---
 
+# Handles a new TCP connection. Its onConnect handler decides whether to accept the connection and, if so, returns the connection service that will process its bytes.
+# Listener `tcp:Listener`: TCP listener bound to one port. Dispatches each new connection to the attached service's onConnect handler.
+# This listener hosts at most one service in total — any second service, of any type, needs its own listener.
 service tcp:Service on new tcp:Listener(int localPort, tcp:ListenerConfiguration config = {}) {
-    # The `onConnect` remote method will be triggered when a message is received from a tcp client
-    # + caller - The new client connection
-    remote function onConnect(tcp:Caller caller) returns tcp:ConnectionService|tcp:Error?;
+    # Invoked once a new client connects. Returns the connection service instance that will handle this connection's bytes, or an error to reject the connection.
+    # + caller - Handle for the newly connected client, exposing its remote/local host and port. Store it if the returned connection service needs to write back later.
+    remote function onConnect(tcp:Caller caller) returns tcp:ConnectionService|tcp:Error?; // optional
+}
+
+# The per-connection service returned by onConnect. Its handlers are invoked over the lifetime of one TCP connection.
+# Listener `tcp:Listener`: TCP listener bound to one port. Dispatches each new connection to the attached service's onConnect handler.
+// This service type is never attached to a listener — no listener in this library declares it.
+// Write it as a `service class` that includes the type, and return an instance of that class
+// wherever a `tcp:ConnectionService` is required.
+service class ConnectionServiceImpl {
+    *tcp:ConnectionService;
+
+    # Invoked once for each chunk of bytes received from the client. Return bytes to write back to the same client, or () to send nothing.
+    # + data - The bytes received from the client.
+    remote function onBytes(readonly & byte[] data) returns byte[]|tcp:Error? { } // required
+
+    # Invoked when the connection fails, such as a read or write error on the underlying socket.
+    # + err - The failure that occurred on this connection.
+    remote function onError(tcp:Error err) returns tcp:Error? { } // optional
+
+    # Invoked when the connection is closed, by either side.
+    remote function onClose() returns tcp:Error? { } // optional
 }

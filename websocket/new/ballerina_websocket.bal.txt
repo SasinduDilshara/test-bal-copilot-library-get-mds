@@ -875,6 +875,8 @@ function addCookies(ClientConfiguration config) returns ();
 
 // --- Service ---
 
+# Handles the initial HTTP upgrade request and decides which connection service will own the resulting WebSocket connection.
+# Listener `websocket:Listener`: HTTP based listener that accepts the WebSocket upgrade request and, once accepted, drives the resulting connection service.
 # The service identifier requires a base path, e.g. `/orders` — replace `/basePath`.
 # Optional: this service may carry the @websocket:ServiceConfig annotation. Replace {...} with its fields, which are those of websocket:WSServiceConfig.
 @websocket:ServiceConfig {...} // optional
@@ -887,6 +889,8 @@ service websocket:UpgradeService /basePath on new websocket:Listener(int|http:Li
     resource function get pathSegment(http:Request request) returns websocket:Service|websocket:UpgradeError; // required
 }
 
+# The WebSocket connection service returned by the upgrade handler. Its declared handlers are invoked over the lifetime of one connection.
+# Listener `websocket:Listener`: HTTP based listener that accepts the WebSocket upgrade request and, once accepted, drives the resulting connection service.
 # onMessage and onTextMessage cannot coexist, onMessage already receives text frames.
 # onMessage and onBinaryMessage cannot coexist, onMessage already receives binary frames.
 // This service type is never attached to a listener — no listener in this library declares it.
@@ -902,6 +906,7 @@ service class ServiceImpl {
     // A custom dispatched handler. When the service config sets a dispatcherKey, the value of that field in an inbound message picks the handler by name: the value is camel cased and prefixed with on, so an event of "heartbeat" reaches onHeartbeat. A DispatcherConfig annotation overrides that derivation with an explicit dispatcherValue. A message matching nothing falls back to onMessage, or is ignored when that is absent too.
     // + caller - Handle for sending messages back over this connection.
     // + message - The inbound message, bound to the declared type.
+    // The `anydata` member of the return may be narrowed: declare the concrete type you return in place of `anydata`.
     // Required parameters: message
     // Optional parameters (may be omitted): caller
     // A handler may carry @websocket:DispatcherConfig. Its fields are those of websocket:WsDispatcherConfig.
@@ -925,6 +930,7 @@ service class ServiceImpl {
     # Invoked for every inbound message, text or binary alike. Declaring this handler rules out onTextMessage and onBinaryMessage, it already covers both. It is also the fallback for a custom message type that matched no dispatched handler.
     # + caller - Handle for sending messages back over this connection.
     # + data - The inbound message. A text frame deserializes straight to the declared type. A binary frame is read as bytes and then deserialized, unless the declared type is byte[]. A binding failure closes the connection with status 1003.
+    # The `anydata` member of the return may be narrowed: declare the concrete type you return in place of `anydata`.
     # Required parameters: data
     # Optional parameters (may be omitted): caller
     remote function onMessage(websocket:Caller caller, anydata data) returns anydata|websocket:CloseFrame|error? { } // optional
@@ -932,6 +938,7 @@ service class ServiceImpl {
     # Invoked for every inbound text frame.
     # + caller - Handle for sending messages back over this connection.
     # + text - The text frame's content.
+    # The `anydata` member of the return may be narrowed: declare the concrete type you return in place of `anydata`.
     # Required parameters: text
     # Optional parameters (may be omitted): caller
     remote function onTextMessage(websocket:Caller caller, string text) returns anydata|websocket:CloseFrame|error? { } // optional
@@ -939,6 +946,7 @@ service class ServiceImpl {
     # Invoked for every inbound binary frame.
     # + caller - Handle for sending messages back over this connection.
     # + data - The binary frame's content.
+    # The `anydata` member of the return may be narrowed: declare the concrete type you return in place of `anydata`.
     # Required parameters: data
     # Optional parameters (may be omitted): caller
     remote function onBinaryMessage(websocket:Caller caller, byte[] data) returns anydata|websocket:CloseFrame|error? { } // optional

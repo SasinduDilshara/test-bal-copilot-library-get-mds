@@ -4610,8 +4610,10 @@
     {
       "type": "fixed",
       "name": "Service",
+      "description": "A GraphQL service. Each resource method becomes a query field, each remote method a mutation field, and each subscribe resource method a subscription field in the generated schema.",
       "listener": {
         "name": "graphql:Listener",
+        "description": "HTTP based listener that serves the generated GraphQL schema and dispatches each field access to the matching query, mutation, or subscription method.",
         "parameters": [
           {
             "name": "listenTo",
@@ -4660,6 +4662,20 @@
           "basePath"
         ]
       },
+      "constraints": [
+        {
+          "id": "$atLeastOneQueryField",
+          "rule": "structure.atLeastOne",
+          "subjects": [
+            {
+              "kind": "handler",
+              "name": "query",
+              "id": "$service.query"
+            }
+          ],
+          "message": "A GraphQL service must expose at least one query field; a schema with no queries is invalid."
+        }
+      ],
       "handlerTemplates": [
         {
           "name": "*",
@@ -4685,6 +4701,20 @@
           "return": {
             "type": {
               "name": "anydata|error"
+            },
+            "binding": {
+              "typedescs": [
+                {
+                  "constraint": {
+                    "name": "anydata"
+                  },
+                  "shapes": [
+                    {
+                      "form": "bare"
+                    }
+                  ]
+                }
+              ]
             }
           },
           "accessor": "get",
@@ -4734,6 +4764,20 @@
           "return": {
             "type": {
               "name": "anydata|error"
+            },
+            "binding": {
+              "typedescs": [
+                {
+                  "constraint": {
+                    "name": "anydata"
+                  },
+                  "shapes": [
+                    {
+                      "form": "bare"
+                    }
+                  ]
+                }
+              ]
             }
           },
           "annotationRefs": [
@@ -4777,6 +4821,21 @@
           "return": {
             "type": {
               "name": "stream\u003canydata, error?\u003e"
+            },
+            "binding": {
+              "typedescs": [
+                {
+                  "constraint": {
+                    "name": "anydata"
+                  },
+                  "shapes": [
+                    {
+                      "form": "stream",
+                      "element": "bare"
+                    }
+                  ]
+                }
+              ]
             }
           },
           "accessor": "subscribe",

@@ -997,8 +997,10 @@
     {
       "type": "fixed",
       "name": "Service",
+      "description": "Consumes messages delivered on the topics given in the listener\u0027s subscriptions.",
       "listener": {
         "name": "mqtt:Listener",
+        "description": "Connects to an MQTT broker and dispatches each message received on the subscribed topics to the attached service.",
         "parameters": [
           {
             "name": "serverUri",
@@ -1055,11 +1057,11 @@
         {
           "name": "onMessage",
           "type": "remote",
-          "description": "The `onMessage` remote method will be triggered when a message is received from a subscribed topic.",
+          "description": "Invoked once per message delivered on any topic given in the listener\u0027s subscriptions. The message parameter\u0027s declared type must be the connector\u0027s own mqtt:Message record as-is; unlike Kafka or RabbitMQ there is no narrower payload projection, so the handler decodes message.payload (byte[]) itself.",
           "parameters": [
             {
               "name": "message",
-              "description": "The messages received for the topic",
+              "description": "The delivered message, carrying the raw payload bytes plus topic, QoS, and duplicate/retained flags.",
               "type": {
                 "name": "Message",
                 "links": [
@@ -1069,13 +1071,80 @@
                   }
                 ]
               }
+            },
+            {
+              "name": "caller",
+              "description": "Handle for completing or responding to the message. Needed only when manualAcks is enabled (caller-\u003ecomplete()) or when replying to a request-style message published with a responseTopic (caller-\u003erespond()).",
+              "type": {
+                "name": "Caller",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Caller"
+                  }
+                ]
+              },
+              "optional": true
             }
           ],
           "return": {
             "type": {
               "name": "error?"
             }
-          }
+          },
+          "optional": false
+        },
+        {
+          "name": "onError",
+          "type": "remote",
+          "description": "Invoked when the underlying MQTT client loses its connection to the broker.",
+          "parameters": [
+            {
+              "name": "err",
+              "description": "The connection failure reported by the client.",
+              "type": {
+                "name": "Error",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Error"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          },
+          "optional": true
+        },
+        {
+          "name": "onComplete",
+          "type": "remote",
+          "description": "Invoked once a message published through the caller, such as via caller-\u003erespond(), has completed delivery to the broker.",
+          "parameters": [
+            {
+              "name": "token",
+              "description": "Identifies the message ID and topic of the publish that completed delivery.",
+              "type": {
+                "name": "DeliveryToken",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "DeliveryToken"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          },
+          "optional": true
         }
       ]
     }
