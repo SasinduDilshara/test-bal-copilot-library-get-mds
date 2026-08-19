@@ -1,0 +1,4274 @@
+{
+  "name": "ballerina/crypto",
+  "description": "This module provides common cryptographic mechanisms based on different algorithms.",
+  "readme": "## Overview\n\nThis module provides common cryptographic mechanisms based on different algorithms.\n\nThe Ballerina `crypto` module facilitates APIs to do operations like hashing, HMAC generation, checksum generation, encryption, decryption, signing data digitally, verifying digitally signed data, etc., with different cryptographic algorithms.\n\n### Hashes\n\nThe `crypto` module supports generating hashes with 6 different hash algorithms MD5, SHA1, SHA256, SHA384, SHA512, and Keccak256. Also, it supports generating the CRC32B checksum.\n\n### HMAC\n\nThe `crypto` module supports generating HMAC with 5 different hash algorithms: MD5, SHA1, SHA256, SHA384, and SHA512.\n\n### Decode private/public key\n\nThe `crypto` module supports decoding the RSA private key from a `.p12` file and a key file in the `PEM` format. Also, it supports decoding a public key from a `.p12` file and a certificate file in the `X509` format. Additionally, this supports building an RSA public key with the modulus and exponent parameters.\n\n### Encrypt and decrypt\n\nThe `crypto` module supports both symmetric key encryption/decryption and asymmetric key encryption/decryption. The RSA algorithm can be used for asymmetric-key encryption/decryption with the use of private and public keys. The AES algorithm can be used for symmetric-key encryption/decryption with the use of a shared key.\n\n### Sign and verify\n\nThe `crypto` module supports signing data using the RSA private key and verification of the signature using the RSA public key. This supports MD5, SHA1, SHA256, SHA384, and SHA512 digesting algorithms, and ML-DSA-65 post-quantum signature algorithm as well.\n\n### Key Derivation Functions (KDF)\n\nThe `crypto` module supports HMAC-based Key Derivation Function (HKDF). HKDF is a key derivation function that uses a Hash-based Message Authentication Code (HMAC) to derive keys.\n\n### Key Exchange Mechanisms (KEM)\n\nThe `crypto` module supports Key Exchange Mechanisms (KEM). It includes RSA-KEM and post-quantum ML-KEM-768 for both encapsulation and decapsulation.\n\n### Hybrid Public Key Encryption (HPKE)\n\nThe `crypto` module supports Hybrid Public Key Encryption (HPKE). It supports post-quantum ML-KEM-768-HPKE and RSA-KEM-ML-KEM-768-HPKE for encryption and decryption.\n\n",
+  "typeDefs": [
+    {
+      "name": "NONE",
+      "description": "No padding for encryption or decryption.",
+      "type": "Constant",
+      "value": "NONE",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "PKCS1",
+      "description": "The PKCS1 padding mode for RSA encryption and decryption.",
+      "type": "Constant",
+      "value": "PKCS1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "PKCS5",
+      "description": "The PKCS5 padding mode for AES encryption and decryption.",
+      "type": "Constant",
+      "value": "PKCS5",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "OAEPwithMD5andMGF1",
+      "description": "The OAEP padding mode with MD5 and MGF1 for RSA encryption and decryption.",
+      "type": "Constant",
+      "value": "OAEPwithMD5andMGF1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "OAEPWithSHA1AndMGF1",
+      "description": "The OAEP padding mode with SHA-1 and MGF1 for RSA encryption and decryption.",
+      "type": "Constant",
+      "value": "OAEPWithSHA1AndMGF1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "OAEPWithSHA256AndMGF1",
+      "description": "The OAEP padding mode with SHA-256 and MGF1 for RSA encryption and decryption.",
+      "type": "Constant",
+      "value": "OAEPWithSHA256AndMGF1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "OAEPwithSHA384andMGF1",
+      "description": "The OAEP padding mode with SHA-384 and MGF1 for RSA encryption and decryption.",
+      "type": "Constant",
+      "value": "OAEPwithSHA384andMGF1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "OAEPwithSHA512andMGF1",
+      "description": "The OAEP padding mode with SHA-512 and MGF1 for RSA encryption and decryption.",
+      "type": "Constant",
+      "value": "OAEPwithSHA512andMGF1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "SHA1",
+      "description": "",
+      "type": "Constant",
+      "value": "SHA1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "SHA256",
+      "description": "",
+      "type": "Constant",
+      "value": "SHA256",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "SHA512",
+      "description": "",
+      "type": "Constant",
+      "value": "SHA512",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "UNCOMPRESSED",
+      "description": "",
+      "type": "Constant",
+      "value": "0",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "ZIP",
+      "description": "",
+      "type": "Constant",
+      "value": "1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "ZLIB",
+      "description": "",
+      "type": "Constant",
+      "value": "2",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "BZIP2",
+      "description": "",
+      "type": "Constant",
+      "value": "3",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "NULL",
+      "description": "",
+      "type": "Constant",
+      "value": "0",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "IDEA",
+      "description": "",
+      "type": "Constant",
+      "value": "1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "TRIPLE_DES",
+      "description": "",
+      "type": "Constant",
+      "value": "2",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "CAST5",
+      "description": "",
+      "type": "Constant",
+      "value": "3",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "BLOWFISH",
+      "description": "",
+      "type": "Constant",
+      "value": "4",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "SAFER",
+      "description": "",
+      "type": "Constant",
+      "value": "5",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "DES",
+      "description": "",
+      "type": "Constant",
+      "value": "6",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "AES_128",
+      "description": "",
+      "type": "Constant",
+      "value": "7",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "AES_192",
+      "description": "",
+      "type": "Constant",
+      "value": "8",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "AES_256",
+      "description": "",
+      "type": "Constant",
+      "value": "9",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "TWOFISH",
+      "description": "",
+      "type": "Constant",
+      "value": "10",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "CAMELLIA_128",
+      "description": "",
+      "type": "Constant",
+      "value": "11",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "CAMELLIA_192",
+      "description": "",
+      "type": "Constant",
+      "value": "12",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "CAMELLIA_256",
+      "description": "",
+      "type": "Constant",
+      "value": "13",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "RSA",
+      "description": "Represents the `RSA` algorithm.",
+      "type": "Constant",
+      "value": "RSA",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "MLKEM768",
+      "description": "Represents the `ML-KEM-768` algorithm.",
+      "type": "Constant",
+      "value": "ML-KEM-768",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "MLDSA65",
+      "description": "Represents the `ML-DSA-65` algorithm.",
+      "type": "Constant",
+      "value": "ML-DSA-65",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "Error",
+      "description": "Represents the error type of the module.",
+      "type": "Error",
+      "baseType": "error"
+    },
+    {
+      "name": "AesPadding",
+      "description": "The padding algorithms supported by AES encryption and decryption.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "\"NONE\"",
+          "type": {
+            "name": "\"NONE\""
+          }
+        },
+        {
+          "name": "\"PKCS5\"",
+          "type": {
+            "name": "\"PKCS5\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "RsaPadding",
+      "description": "The padding algorithms supported with RSA encryption and decryption.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "\"PKCS1\"",
+          "type": {
+            "name": "\"PKCS1\""
+          }
+        },
+        {
+          "name": "\"OAEPwithMD5andMGF1\"",
+          "type": {
+            "name": "\"OAEPwithMD5andMGF1\""
+          }
+        },
+        {
+          "name": "\"OAEPWithSHA1AndMGF1\"",
+          "type": {
+            "name": "\"OAEPWithSHA1AndMGF1\""
+          }
+        },
+        {
+          "name": "\"OAEPWithSHA256AndMGF1\"",
+          "type": {
+            "name": "\"OAEPWithSHA256AndMGF1\""
+          }
+        },
+        {
+          "name": "\"OAEPwithSHA384andMGF1\"",
+          "type": {
+            "name": "\"OAEPwithSHA384andMGF1\""
+          }
+        },
+        {
+          "name": "\"OAEPwithSHA512andMGF1\"",
+          "type": {
+            "name": "\"OAEPwithSHA512andMGF1\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "HmacAlgorithm",
+      "description": "Supported HMAC algorithms for PBKDF2",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "SHA512",
+          "description": ""
+        },
+        {
+          "name": "SHA256",
+          "description": ""
+        },
+        {
+          "name": "SHA1",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "AesKeySize",
+      "description": "Represents the supported symmetric key sizes for AES algorithm.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "16",
+          "type": {
+            "name": "16"
+          }
+        },
+        {
+          "name": "24",
+          "type": {
+            "name": "24"
+          }
+        },
+        {
+          "name": "32",
+          "type": {
+            "name": "32"
+          }
+        }
+      ]
+    },
+    {
+      "name": "HybridEncryptionResult",
+      "description": "Represents the encapsulated secret and the ciphertext used in Hybrid Public Key Encryption (HPKE).\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "encapsulatedSecret",
+          "description": "The encapsulated secret as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "cipherText",
+          "description": "The encrypted data as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        }
+      ]
+    },
+    {
+      "name": "EncapsulationResult",
+      "description": "Represents the shared secret and its encapsulation used in Key Encapsulation Mechanism (KEM).\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "encapsulatedSecret",
+          "description": "The encapsulated secret, provided as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "sharedSecret",
+          "description": "The shared secret, provided as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Options",
+      "description": "Represents the PGP encryption options.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "compressionAlgorithm",
+          "description": "Specifies the compression algorithm used for PGP encryption",
+          "type": {
+            "name": "CompressionAlgorithmTags",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CompressionAlgorithmTags"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "symmetricKeyAlgorithm",
+          "description": "Specifies the symmetric key algorithm used for encryption",
+          "type": {
+            "name": "SymmetricKeyAlgorithmTags",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SymmetricKeyAlgorithmTags"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "armor",
+          "description": "Indicates whether ASCII armor is enabled for the encrypted output",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "withIntegrityCheck",
+          "description": "Indicates whether an integrity check is included in the encryption",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "markForYourEyesOnly",
+          "description": "Indicates whether the message is marked as \"For Your Eyes Only\". When `true`, the literal data packet filename is set to `_CONSOLE`, which signals PGP-compliant applications to treat the content as sensitive and avoid writing it to disk. Set to `false` to omit this marking",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "CompressionAlgorithmTags",
+      "description": "Represents the compression algorithms available in PGP.\n",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "BZIP2",
+          "description": ""
+        },
+        {
+          "name": "ZLIB",
+          "description": ""
+        },
+        {
+          "name": "ZIP",
+          "description": ""
+        },
+        {
+          "name": "UNCOMPRESSED",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "SymmetricKeyAlgorithmTags",
+      "description": "Represent the symmetric key algorithms available in PGP.\n",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "CAMELLIA_256",
+          "description": ""
+        },
+        {
+          "name": "CAMELLIA_192",
+          "description": ""
+        },
+        {
+          "name": "CAMELLIA_128",
+          "description": ""
+        },
+        {
+          "name": "TWOFISH",
+          "description": ""
+        },
+        {
+          "name": "AES_256",
+          "description": ""
+        },
+        {
+          "name": "AES_192",
+          "description": ""
+        },
+        {
+          "name": "AES_128",
+          "description": ""
+        },
+        {
+          "name": "DES",
+          "description": ""
+        },
+        {
+          "name": "SAFER",
+          "description": ""
+        },
+        {
+          "name": "BLOWFISH",
+          "description": ""
+        },
+        {
+          "name": "CAST5",
+          "description": ""
+        },
+        {
+          "name": "TRIPLE_DES",
+          "description": ""
+        },
+        {
+          "name": "IDEA",
+          "description": ""
+        },
+        {
+          "name": "NULL",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "KeyAlgorithm",
+      "description": "Represents the supported public key algorithms.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "\"RSA\"",
+          "type": {
+            "name": "\"RSA\""
+          }
+        },
+        {
+          "name": "\"ML-KEM-768\"",
+          "type": {
+            "name": "\"ML-KEM-768\""
+          }
+        },
+        {
+          "name": "\"ML-DSA-65\"",
+          "type": {
+            "name": "\"ML-DSA-65\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "KeyStore",
+      "description": "Represents the KeyStore-related configurations.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "path",
+          "description": "The KeyStore file path",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "password",
+          "description": "The KeyStore password",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TrustStore",
+      "description": "Represents the truststore-related configurations.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "path",
+          "description": "The TrustStore file path",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "password",
+          "description": "The TrustStore password",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "PrivateKey",
+      "description": "Represents the private key used in cryptographic operations.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "algorithm",
+          "description": "Specifies the cryptographic algorithm used for the private key. Must be one of the supported algorithms (RSA, MLKEM768, MLDSA65)",
+          "type": {
+            "name": "KeyAlgorithm",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "KeyAlgorithm"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PublicKey",
+      "description": "Represents the public key used in cryptographic operations.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "algorithm",
+          "description": "Specifies the cryptographic algorithm used for the public key. Must be one of the supported algorithms (RSA, MLKEM768, MLDSA65)",
+          "type": {
+            "name": "KeyAlgorithm",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "KeyAlgorithm"
+              }
+            ]
+          }
+        },
+        {
+          "name": "certificate",
+          "description": "Optional X.509 certificate associated with the public key",
+          "type": {
+            "name": "Certificate",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Certificate"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Certificate",
+      "description": "Represents the X509 public key certificate information.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "version0",
+          "description": "Version number of the certificate",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "serial",
+          "description": "Serial number of the certificate",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "issuer",
+          "description": "Issuer name of the certificate",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "subject",
+          "description": "Subject name of the certificate",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "notBefore",
+          "description": "The start of the validity period of the certificate",
+          "type": {
+            "name": "Utc",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Utc",
+                "libraryName": "ballerina/time"
+              }
+            ]
+          }
+        },
+        {
+          "name": "notAfter",
+          "description": "The end of the validity period of the certificate",
+          "type": {
+            "name": "Utc",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Utc",
+                "libraryName": "ballerina/time"
+              }
+            ]
+          }
+        },
+        {
+          "name": "signature",
+          "description": "Raw signature bits of the certificate",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "signingAlgorithm",
+          "description": "The algorithm used to sign the certificate",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "HashValue",
+      "description": "Represents a hash value as either a byte array or a string.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "byte[]",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "string",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    }
+  ],
+  "clients": [],
+  "functions": [
+    {
+      "name": "encryptRsaEcb",
+      "type": "Normal Function",
+      "description": "Returns the RSA-encrypted value for the given data.\n```ballerina\nstring input \u003d \"Hello Ballerina\";\nbyte[] data \u003d input.toBytes();\ncrypto:KeyStore keyStore \u003d {\n    path: \"/path/to/keyStore.p12\",\n    password: \"keyStorePassword\"\n};\ncrypto:PublicKey publicKey \u003d check crypto:decodeRsaPublicKeyFromTrustStore(keyStore, \"keyAlias\");\nbyte[] cipherText \u003d check crypto:encryptRsaEcb(data, publicKey);\n```\n",
+      "parameters": [
+        {
+          "name": "input",
+          "description": "The content to be encrypted, provided as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "key",
+          "description": "The RSA key (private or public) used for encryption. The key must be compatible with the RSA algorithm",
+          "type": {
+            "name": "PrivateKey|PublicKey",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PrivateKey"
+              },
+              {
+                "category": "internal",
+                "recordName": "PublicKey"
+              }
+            ]
+          }
+        },
+        {
+          "name": "padding",
+          "description": "The padding algorithm to use. Supported values are `PKCS1`, `OAEPwithMD5andMGF1`, `OAEPWithSHA1AndMGF1`, `OAEPWithSHA256AndMGF1`, `OAEPwithSHA384andMGF1`, and `OAEPwithSHA512andMGF1`",
+          "type": {
+            "name": "RsaPadding",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RsaPadding"
+              }
+            ]
+          },
+          "optional": true,
+          "default": "PKCS1"
+        }
+      ],
+      "return": {
+        "description": "The encrypted data as a byte array, or a `crypto:Error` if the key is invalid or an error occurs during encryption",
+        "type": {
+          "name": "byte[]|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "encryptAesCbc",
+      "type": "Normal Function",
+      "description": "Returns the AES-CBC-encrypted value for the given data.\n```ballerina\nstring dataString \u003d \"Hello Ballerina!\";\nbyte[] data \u003d dataString.toBytes();\nbyte[16] key \u003d [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];\nforeach int i in 0...15 {\n    key[i] \u003d \u003cbyte\u003e(check random:createIntInRange(0, 255));\n}\nbyte[16] initialVector \u003d [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];\nforeach int i in 0...15 {\n    initialVector[i] \u003d \u003cbyte\u003e(check random:createIntInRange(0, 255));\n}\nbyte[] cipherText \u003d check crypto:encryptAesCbc(data, key, initialVector);\n```\n",
+      "parameters": [
+        {
+          "name": "input",
+          "description": "The content to be encrypted, provided as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "key",
+          "description": "The encryption key used for AES-CBC encryption",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "iv",
+          "description": "The initialization vector used to initialize the AES-CBC encryption process",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "padding",
+          "description": "The padding algorithm to use. Supported value is `PKCS5`",
+          "type": {
+            "name": "AesPadding",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AesPadding"
+              }
+            ]
+          },
+          "optional": true,
+          "default": "PKCS5"
+        }
+      ],
+      "return": {
+        "description": "The encrypted data as a byte array, or a `crypto:Error` if the key, IV, or padding is invalid",
+        "type": {
+          "name": "byte[]|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "encryptAesEcb",
+      "type": "Normal Function",
+      "description": "Returns the AES-ECB-encrypted value for the given data.\n```ballerina\nstring dataString \u003d \"Hello Ballerina!\";\nbyte[] data \u003d dataString.toBytes();\nbyte[16] key \u003d [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];\nforeach int i in 0...15 {\n    key[i] \u003d \u003cbyte\u003e(check random:createIntInRange(0, 255));\n}\nbyte[] cipherText \u003d check crypto:encryptAesEcb(data, key);\n```\n",
+      "parameters": [
+        {
+          "name": "input",
+          "description": "The content to be encrypted, provided as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "key",
+          "description": "The encryption key used for AES-ECB encryption",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "padding",
+          "description": "The padding algorithm to use. Supported value is `PKCS5`",
+          "type": {
+            "name": "AesPadding",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AesPadding"
+              }
+            ]
+          },
+          "optional": true,
+          "default": "PKCS5"
+        }
+      ],
+      "return": {
+        "description": "The encrypted data as a byte array, or a `crypto:Error` if the key or padding is invalid",
+        "type": {
+          "name": "byte[]|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "encryptAesGcm",
+      "type": "Normal Function",
+      "description": "Returns the AES-GCM-encrypted value for the given data.\n```ballerina\nstring dataString \u003d \"Hello Ballerina!\";\nbyte[] data \u003d dataString.toBytes();\nbyte[16] key \u003d [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];\nforeach int i in 0...15 {\n    key[i] \u003d \u003cbyte\u003e(check random:createIntInRange(0, 255));\n}\nbyte[16] initialVector \u003d [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];\nforeach int i in 0...15 {\n    initialVector[i] \u003d \u003cbyte\u003e(check random:createIntInRange(0, 255));\n}\nbyte[] cipherText \u003d check crypto:encryptAesGcm(data, key, initialVector);\n```\n",
+      "parameters": [
+        {
+          "name": "input",
+          "description": "The content to be encrypted, provided as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "key",
+          "description": "The encryption key used for AES-GCM encryption",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "iv",
+          "description": "The initialization vector used to initialize the AES-GCM encryption process",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "padding",
+          "description": "The padding algorithm to use. Supported value is `PKCS5`",
+          "type": {
+            "name": "AesPadding",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AesPadding"
+              }
+            ]
+          },
+          "optional": true,
+          "default": "NONE"
+        },
+        {
+          "name": "tagSize",
+          "description": "The size of the authentication tag in bits. Valid values are 128, 120, 112, 104, or 96",
+          "type": {
+            "name": "int"
+          },
+          "optional": true,
+          "default": "128"
+        }
+      ],
+      "return": {
+        "description": "The encrypted data as a byte array, or a `crypto:Error` if the key, IV, or tag size is invalid",
+        "type": {
+          "name": "byte[]|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "decryptRsaEcb",
+      "type": "Normal Function",
+      "description": "Returns the RSA-decrypted value for the given RSA-encrypted data.\n```ballerina\nstring input \u003d \"Hello Ballerina\";\nbyte[] data \u003d input.toBytes();\ncrypto:KeyStore keyStore \u003d {\n    path: \"/path/to/keyStore.p12\",\n    password: \"keyStorePassword\"\n};\ncrypto:PublicKey publicKey \u003d check crypto:decodeRsaPublicKeyFromTrustStore(keyStore, \"keyAlias\");\ncrypto:PrivateKey privateKey \u003d check crypto:decodeRsaPrivateKeyFromKeyStore(keyStore, \"keyAlias\", \"keyPassword\");\nbyte[] cipherText \u003d check crypto:encryptRsaEcb(data, publicKey);\nbyte[] plainText \u003d check crypto:decryptRsaEcb(cipherText, privateKey);\n```\n",
+      "parameters": [
+        {
+          "name": "input",
+          "description": "The content to be decrypted, provided as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "key",
+          "description": "The RSA key (private or public) used for decryption. The key must be compatible with the RSA algorithm",
+          "type": {
+            "name": "PrivateKey|PublicKey",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PrivateKey"
+              },
+              {
+                "category": "internal",
+                "recordName": "PublicKey"
+              }
+            ]
+          }
+        },
+        {
+          "name": "padding",
+          "description": "The padding algorithm to use. Supported values are `PKCS1`, `OAEPwithMD5andMGF1`, `OAEPWithSHA1AndMGF1`, `OAEPWithSHA256AndMGF1`, `OAEPwithSHA384andMGF1`, and `OAEPwithSHA512andMGF1`",
+          "type": {
+            "name": "RsaPadding",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RsaPadding"
+              }
+            ]
+          },
+          "optional": true,
+          "default": "PKCS1"
+        }
+      ],
+      "return": {
+        "description": "The decrypted data as a byte array, or a `crypto:Error` if the key is invalid or an error occurs during decryption",
+        "type": {
+          "name": "byte[]|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "decryptAesCbc",
+      "type": "Normal Function",
+      "description": "Returns the AES-CBC-decrypted value for the given AES-CBC-encrypted data.\n```ballerina\nstring dataString \u003d \"Hello Ballerina!\";\nbyte[] data \u003d dataString.toBytes();\nbyte[16] key \u003d [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];\nforeach int i in 0...15 {\n    key[i] \u003d \u003cbyte\u003e(check random:createIntInRange(0, 255));\n}\nbyte[16] initialVector \u003d [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];\nforeach int i in 0...15 {\n    initialVector[i] \u003d \u003cbyte\u003e(check random:createIntInRange(0, 255));\n}\nbyte[] cipherText \u003d check crypto:encryptAesCbc(data, key, initialVector);\nbyte[] plainText \u003d check crypto:decryptAesCbc(cipherText, key, initialVector);\n```\n",
+      "parameters": [
+        {
+          "name": "input",
+          "description": "The content to be decrypted, provided as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "key",
+          "description": "The encryption key used for AES-CBC decryption",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "iv",
+          "description": "The initialization vector used to initialize the AES-CBC decryption process",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "padding",
+          "description": "The padding algorithm to use. Supported value is `PKCS5`",
+          "type": {
+            "name": "AesPadding",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AesPadding"
+              }
+            ]
+          },
+          "optional": true,
+          "default": "PKCS5"
+        }
+      ],
+      "return": {
+        "description": "The decrypted data as a byte array, or a `crypto:Error` if the key, IV, or padding is invalid",
+        "type": {
+          "name": "byte[]|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "decryptAesEcb",
+      "type": "Normal Function",
+      "description": "Returns the AES-ECB-decrypted value for the given AES-ECB-encrypted data.\n```ballerina\nstring dataString \u003d \"Hello Ballerina!\";\nbyte[] data \u003d dataString.toBytes();\nbyte[16] key \u003d [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];\nforeach int i in 0...15 {\n    key[i] \u003d \u003cbyte\u003e(check random:createIntInRange(0, 255));\n}\nbyte[] cipherText \u003d check crypto:encryptAesEcb(data, key);\nbyte[] plainText \u003d check crypto:decryptAesEcb(cipherText, key);\n```\n",
+      "parameters": [
+        {
+          "name": "input",
+          "description": "The content to be decrypted, provided as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "key",
+          "description": "The encryption key used for AES-ECB decryption",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "padding",
+          "description": "The padding algorithm to use. Supported value is `PKCS5`",
+          "type": {
+            "name": "AesPadding",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AesPadding"
+              }
+            ]
+          },
+          "optional": true,
+          "default": "PKCS5"
+        }
+      ],
+      "return": {
+        "description": "The decrypted data as a byte array, or a `crypto:Error` if the key or padding is invalid",
+        "type": {
+          "name": "byte[]|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "decryptAesGcm",
+      "type": "Normal Function",
+      "description": "Returns the AES-GCM-decrypted value for the given AES-GCM-encrypted data.\n```ballerina\nstring dataString \u003d \"Hello Ballerina!\";\nbyte[] data \u003d dataString.toBytes();\nbyte[16] key \u003d [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];\nforeach int i in 0...15 {\n    key[i] \u003d \u003cbyte\u003e(check random:createIntInRange(0, 255));\n}\nbyte[16] initialVector \u003d [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];\nforeach int i in 0...15 {\n    initialVector[i] \u003d \u003cbyte\u003e(check random:createIntInRange(0, 255));\n}\nbyte[] cipherText \u003d check crypto:encryptAesGcm(data, key, initialVector);\nbyte[] plainText \u003d check crypto:decryptAesGcm(cipherText, key, initialVector);\n```\n",
+      "parameters": [
+        {
+          "name": "input",
+          "description": "The content to be decrypted, provided as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "key",
+          "description": "The encryption key used for AES-GCM decryption",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "iv",
+          "description": "The initialization vector used to initialize the AES-GCM decryption process",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "padding",
+          "description": "The padding algorithm to use. Supported value is `PKCS5`",
+          "type": {
+            "name": "AesPadding",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AesPadding"
+              }
+            ]
+          },
+          "optional": true,
+          "default": "PKCS5"
+        },
+        {
+          "name": "tagSize",
+          "description": "The size of the authentication tag in bits. Valid values are 128, 120, 112, 104, or 96",
+          "type": {
+            "name": "int"
+          },
+          "optional": true,
+          "default": "128"
+        }
+      ],
+      "return": {
+        "description": "The decrypted data as a byte array, or a `crypto:Error` if the key, IV, or tag size is invalid",
+        "type": {
+          "name": "byte[]|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "encryptPgp",
+      "type": "Normal Function",
+      "description": "Returns the PGP-encrypted value for the given data.\n```ballerina\nbyte[] message \u003d \"Hello Ballerina!\".toBytes();\nbyte[] cipherText \u003d check crypto:encryptPgp(message, \"public_key.asc\");\n```\n",
+      "parameters": [
+        {
+          "name": "plainText",
+          "description": "The content to be encrypted, provided as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "publicKey",
+          "description": "Path to the public key file in ASCII-armored format",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "compressionAlgorithm",
+          "description": "Specifies the compression algorithm used for PGP encryption",
+          "type": {
+            "name": "CompressionAlgorithmTags",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CompressionAlgorithmTags"
+              }
+            ]
+          },
+          "optional": true,
+          "default": "\"1\""
+        },
+        {
+          "name": "symmetricKeyAlgorithm",
+          "description": "Specifies the symmetric key algorithm used for encryption",
+          "type": {
+            "name": "SymmetricKeyAlgorithmTags",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SymmetricKeyAlgorithmTags"
+              }
+            ]
+          },
+          "optional": true,
+          "default": "\"9\""
+        },
+        {
+          "name": "armor",
+          "description": "Indicates whether ASCII armor is enabled for the encrypted output",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true,
+          "default": "true"
+        },
+        {
+          "name": "withIntegrityCheck",
+          "description": "Indicates whether an integrity check is included in the encryption",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true,
+          "default": "true"
+        },
+        {
+          "name": "markForYourEyesOnly",
+          "description": "Indicates whether the message is marked as \"For Your Eyes Only\". When `true`, the literal data packet filename is set to `_CONSOLE`, which signals PGP-compliant applications to treat the content as sensitive and avoid writing it to disk. Set to `false` to omit this marking",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true,
+          "default": "true"
+        },
+        {
+          "name": "options",
+          "description": "Optional PGP encryption options, such as compression or cipher preferences",
+          "type": {
+            "name": "Options",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Options"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ],
+      "return": {
+        "description": "The encrypted data as a byte array, or a `crypto:Error` if the public key is invalid or an error occurs during encryption",
+        "type": {
+          "name": "byte[]|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "encryptStreamAsPgp",
+      "type": "Normal Function",
+      "description": "Returns the PGP-encrypted stream of the content given in the input stream.\n```ballerina\nstream\u003cbyte[], error?\u003e inputStream \u003d check io:fileReadBlocksAsStream(\"input.txt\");\nstream\u003cbyte[], crypto:Error?\u003e|crypto:Error encryptedStream \u003d crypto:encryptStreamAsPgp(inputStream, \"public_key.asc\");\n```\n",
+      "parameters": [
+        {
+          "name": "inputStream",
+          "description": "The content to be encrypted, provided as a stream of byte arrays",
+          "type": {
+            "name": "stream\u003cbyte[], error?\u003e"
+          }
+        },
+        {
+          "name": "publicKey",
+          "description": "Path to the public key file in ASCII-armored format",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "compressionAlgorithm",
+          "description": "Specifies the compression algorithm used for PGP encryption",
+          "type": {
+            "name": "CompressionAlgorithmTags",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CompressionAlgorithmTags"
+              }
+            ]
+          },
+          "optional": true,
+          "default": "\"1\""
+        },
+        {
+          "name": "symmetricKeyAlgorithm",
+          "description": "Specifies the symmetric key algorithm used for encryption",
+          "type": {
+            "name": "SymmetricKeyAlgorithmTags",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SymmetricKeyAlgorithmTags"
+              }
+            ]
+          },
+          "optional": true,
+          "default": "\"9\""
+        },
+        {
+          "name": "armor",
+          "description": "Indicates whether ASCII armor is enabled for the encrypted output",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true,
+          "default": "true"
+        },
+        {
+          "name": "withIntegrityCheck",
+          "description": "Indicates whether an integrity check is included in the encryption",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true,
+          "default": "true"
+        },
+        {
+          "name": "markForYourEyesOnly",
+          "description": "Indicates whether the message is marked as \"For Your Eyes Only\". When `true`, the literal data packet filename is set to `_CONSOLE`, which signals PGP-compliant applications to treat the content as sensitive and avoid writing it to disk. Set to `false` to omit this marking",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true,
+          "default": "true"
+        },
+        {
+          "name": "options",
+          "description": "Optional PGP encryption options, such as compression or cipher preferences",
+          "type": {
+            "name": "Options",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Options"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ],
+      "return": {
+        "description": "The encrypted content as a stream of byte arrays, or a `crypto:Error` if the public key is invalid or an error occurs during encryption",
+        "type": {
+          "name": "stream\u003cbyte[], Error?\u003e|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "decryptPgp",
+      "type": "Normal Function",
+      "description": "Returns the PGP-decrypted value of the given PGP-encrypted data. If the data is signed, the signature is silently\nskipped without verification; only decryption is performed.\n```ballerina\nbyte[] message \u003d \"Hello Ballerina!\".toBytes();\nbyte[] cipherText \u003d check crypto:encryptPgp(message, \"public_key.asc\");\nbyte[] passphrase \u003d check io:fileReadBytes(\"pass_phrase.txt\");\nbyte[] decryptedMessage \u003d check crypto:decryptPgp(cipherText, \"private_key.asc\", passphrase);\n```\n",
+      "parameters": [
+        {
+          "name": "cipherText",
+          "description": "The encrypted content to be decrypted, provided as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "privateKey",
+          "description": "Path to the private key file in ASCII-armored format",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "passphrase",
+          "description": "The passphrase used to unlock the private key",
+          "type": {
+            "name": "byte[]"
+          }
+        }
+      ],
+      "return": {
+        "description": "The decrypted data as a byte array, or a `crypto:Error` if the key or passphrase is invalid",
+        "type": {
+          "name": "byte[]|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "decryptStreamFromPgp",
+      "type": "Normal Function",
+      "description": "Returns the PGP-decrypted stream of the content given in the input stream. If the data is signed, the signature is\nsilently skipped without verification; only decryption is performed.\n```ballerina\nbyte[] passphrase \u003d check io:fileReadBytes(\"pass_phrase.txt\");\nstream\u003cbyte[], error?\u003e inputStream \u003d check io:fileReadBlocksAsStream(\"pgb_encrypted.txt\");\nstream\u003cbyte[], crypto:Error?\u003e|crypto:Error decryptedStream \u003d crypto:decryptStreamFromPgp(inputStream, \"private_key.asc\", passphrase);\n```\n",
+      "parameters": [
+        {
+          "name": "inputStream",
+          "description": "The encrypted content provided as a stream of byte arrays",
+          "type": {
+            "name": "stream\u003cbyte[], error?\u003e"
+          }
+        },
+        {
+          "name": "privateKey",
+          "description": "Path to the private key file in ASCII-armored format",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "passphrase",
+          "description": "The passphrase used to unlock the private key",
+          "type": {
+            "name": "byte[]"
+          }
+        }
+      ],
+      "return": {
+        "description": "The decrypted content as a stream of byte arrays, or a `crypto:Error` if the key or passphrase is invalid",
+        "type": {
+          "name": "stream\u003cbyte[], Error?\u003e|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "hashMd5",
+      "type": "Normal Function",
+      "description": "Returns the MD5 hash of the given data.\n```ballerina\nstring dataString \u003d \"Hello Ballerina\";\nbyte[] data \u003d dataString.toBytes();\nbyte[] hash \u003d crypto:hashMd5(data);\n```\n",
+      "parameters": [
+        {
+          "name": "input",
+          "description": "The data to be hashed, provided as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "salt",
+          "description": "Optional salt to be added to the input, provided as a byte array",
+          "type": {
+            "name": "byte[]|()"
+          },
+          "optional": true,
+          "default": "()"
+        }
+      ],
+      "return": {
+        "description": "The MD5 hash of the input data as a byte array",
+        "type": {
+          "name": "byte[]"
+        }
+      }
+    },
+    {
+      "name": "hashSha1",
+      "type": "Normal Function",
+      "description": "Returns the SHA-1 hash of the given data.\n```ballerina\nstring dataString \u003d \"Hello Ballerina\";\nbyte[] data \u003d dataString.toBytes();\nbyte[] hash \u003d crypto:hashSha1(data);\n```\n",
+      "parameters": [
+        {
+          "name": "input",
+          "description": "The data to be hashed, provided as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "salt",
+          "description": "Optional salt to be added to the input, provided as a byte array",
+          "type": {
+            "name": "byte[]|()"
+          },
+          "optional": true,
+          "default": "()"
+        }
+      ],
+      "return": {
+        "description": "The SHA-1 hash of the input data as a byte array",
+        "type": {
+          "name": "byte[]"
+        }
+      }
+    },
+    {
+      "name": "hashSha256",
+      "type": "Normal Function",
+      "description": "Returns the SHA-256 hash of the given data.\n```ballerina\nstring dataString \u003d \"Hello Ballerina\";\nbyte[] data \u003d dataString.toBytes();\nbyte[] hash \u003d crypto:hashSha256(data);\n```\n",
+      "parameters": [
+        {
+          "name": "input",
+          "description": "The data to be hashed, provided as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "salt",
+          "description": "Optional salt to be added to the input, provided as a byte array",
+          "type": {
+            "name": "byte[]|()"
+          },
+          "optional": true,
+          "default": "()"
+        }
+      ],
+      "return": {
+        "description": "The SHA-256 hash of the input data as a byte array",
+        "type": {
+          "name": "byte[]"
+        }
+      }
+    },
+    {
+      "name": "hashSha384",
+      "type": "Normal Function",
+      "description": "Returns the SHA-384 hash of the given data.\n```ballerina\nstring dataString \u003d \"Hello Ballerina\";\nbyte[] data \u003d dataString.toBytes();\nbyte[] hash \u003d crypto:hashSha384(data);\n```\n",
+      "parameters": [
+        {
+          "name": "input",
+          "description": "The data to be hashed, provided as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "salt",
+          "description": "Optional salt to be added to the input, provided as a byte array",
+          "type": {
+            "name": "byte[]|()"
+          },
+          "optional": true,
+          "default": "()"
+        }
+      ],
+      "return": {
+        "description": "The SHA-384 hash of the input data as a byte array",
+        "type": {
+          "name": "byte[]"
+        }
+      }
+    },
+    {
+      "name": "hashSha512",
+      "type": "Normal Function",
+      "description": "Returns the SHA-512 hash of the given data.\n```ballerina\nstring dataString \u003d \"Hello Ballerina\";\nbyte[] data \u003d dataString.toBytes();\nbyte[] hash \u003d crypto:hashSha512(data);\n```\n",
+      "parameters": [
+        {
+          "name": "input",
+          "description": "The data to be hashed, provided as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "salt",
+          "description": "Optional salt to be added to the input, provided as a byte array",
+          "type": {
+            "name": "byte[]|()"
+          },
+          "optional": true,
+          "default": "()"
+        }
+      ],
+      "return": {
+        "description": "The SHA-512 hash of the input data as a byte array",
+        "type": {
+          "name": "byte[]"
+        }
+      }
+    },
+    {
+      "name": "crc32b",
+      "type": "Normal Function",
+      "description": "Returns the Hex-encoded CRC32B checksum for the given data.\n```ballerina\nstring stringData \u003d \"Hello Ballerina\";\nbyte[] data \u003d stringData.toBytes();\nstring checksum \u003d crypto:crc32b(data);\n```\n",
+      "parameters": [
+        {
+          "name": "input",
+          "description": "The data to generate the checksum for, provided as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        }
+      ],
+      "return": {
+        "description": "The generated CRC32B checksum as a hexadecimal string",
+        "type": {
+          "name": "string"
+        }
+      }
+    },
+    {
+      "name": "hashKeccak256",
+      "type": "Normal Function",
+      "description": "Returns the Keccak-256 hash of the given data.\n```ballerina\nstring dataString \u003d \"Hello Ballerina\";\nbyte[] data \u003d dataString.toBytes();\nbyte[] hash \u003d crypto:hashKeccak256(data);\n```\n",
+      "parameters": [
+        {
+          "name": "input",
+          "description": "The data to be hashed, provided as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "salt",
+          "description": "Optional salt to be added to the input, provided as a byte array",
+          "type": {
+            "name": "byte[]|()"
+          },
+          "optional": true,
+          "default": "()"
+        }
+      ],
+      "return": {
+        "description": "The Keccak-256 hash of the input data as a byte array",
+        "type": {
+          "name": "byte[]"
+        }
+      }
+    },
+    {
+      "name": "hashBcrypt",
+      "type": "Normal Function",
+      "description": "Returns a BCrypt hash of the given password with optional work factor.\n```ballerina\nstring password \u003d \"mySecurePassword123\";\nstring|crypto:Error hash \u003d crypto:hashBcrypt(password);\n```\n",
+      "parameters": [
+        {
+          "name": "password",
+          "description": "Password string to be hashed",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "workFactor",
+          "description": "Optional work factor (cost parameter) between 4 and 31. Default is 12",
+          "type": {
+            "name": "int"
+          },
+          "optional": true,
+          "default": "12"
+        }
+      ],
+      "return": {
+        "description": "The BCrypt hashed password string, or a `crypto:Error` if hashing fails",
+        "type": {
+          "name": "string|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "verifyBcrypt",
+      "type": "Normal Function",
+      "description": "Verifies if a password matches a BCrypt hashed password.\n```ballerina\nstring password \u003d \"mySecurePassword123\";\nstring hashedPassword \u003d \"$2a$12$LQV3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewYpwBAM7RHF.H9m\";\nboolean|crypto:Error matches \u003d crypto:verifyBcrypt(password, hashedPassword);\n```\n",
+      "parameters": [
+        {
+          "name": "password",
+          "description": "Password string to verify",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "hashedPassword",
+          "description": "BCrypt hashed password to verify against",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "A boolean indicating if the password matches, or a `crypto:Error` if verification fails",
+        "type": {
+          "name": "boolean|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "hashArgon2",
+      "type": "Normal Function",
+      "description": "Returns an Argon2id hash of the given password with optional parameters.\n```ballerina\nstring password \u003d \"mySecurePassword123\";\nstring|crypto:Error hash \u003d crypto:hashArgon2(password);\n```\n",
+      "parameters": [
+        {
+          "name": "password",
+          "description": "The password string to be hashed",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "iterations",
+          "description": "Optional number of iterations. Default is 3",
+          "type": {
+            "name": "int"
+          },
+          "optional": true,
+          "default": "3"
+        },
+        {
+          "name": "memory",
+          "description": "Optional memory usage in KB. Default is 65536 (64MB)",
+          "type": {
+            "name": "int"
+          },
+          "optional": true,
+          "default": "65536"
+        },
+        {
+          "name": "parallelism",
+          "description": "Optional degree of parallelism. Default is 4",
+          "type": {
+            "name": "int"
+          },
+          "optional": true,
+          "default": "4"
+        }
+      ],
+      "return": {
+        "description": "The Argon2id hashed password string, or a `crypto:Error` if hashing fails",
+        "type": {
+          "name": "string|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "verifyArgon2",
+      "type": "Normal Function",
+      "description": "Verifies if a password matches an Argon2id hashed password.\n```ballerina\nstring password \u003d \"mySecurePassword123\";\nstring hashedPassword \u003d \"$argon2id$v\u003d19$m\u003d65536,t\u003d3,p\u003d4$c29tZXNhbHQ$hash\";\nboolean|crypto:Error matches \u003d crypto:verifyArgon2(password, hashedPassword);\n```\n",
+      "parameters": [
+        {
+          "name": "password",
+          "description": "Password string to verify",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "hashedPassword",
+          "description": "The Argon2id hashed password string to verify against",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "A boolean indicating if the password matches, or a `crypto:Error` if verification fails",
+        "type": {
+          "name": "boolean|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "hashPbkdf2",
+      "type": "Normal Function",
+      "description": "Returns a PBKDF2 hash of the given password with optional parameters.\n```ballerina\nstring password \u003d \"mySecurePassword123\";\nstring|crypto:Error hash \u003d crypto:hashPbkdf2(password);\n```\n",
+      "parameters": [
+        {
+          "name": "password",
+          "description": "The password string to be hashed",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "iterations",
+          "description": "Optional number of iterations. Default is 10000. Must be a positive integer.",
+          "type": {
+            "name": "int"
+          },
+          "optional": true,
+          "default": "10000"
+        },
+        {
+          "name": "algorithm",
+          "description": "Optional HMAC algorithm (`SHA1`, `SHA256`, `SHA512`). Default is SHA256",
+          "type": {
+            "name": "HmacAlgorithm",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "HmacAlgorithm"
+              }
+            ]
+          },
+          "optional": true,
+          "default": "SHA256"
+        }
+      ],
+      "return": {
+        "description": "The PBKDF2 hashed password string, or a `crypto:Error` if hashing fails",
+        "type": {
+          "name": "string|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "verifyPbkdf2",
+      "type": "Normal Function",
+      "description": "Verifies if a password matches a PBKDF2 hashed password.\n```ballerina\nstring password \u003d \"mySecurePassword123\";\nstring hashedPassword \u003d \"$pbkdf2-sha256$i\u003d10000$salt$hash\";\nboolean|crypto:Error matches \u003d crypto:verifyPbkdf2(password, hashedPassword);\n```\n",
+      "parameters": [
+        {
+          "name": "password",
+          "description": "The password string to verify",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "hashedPassword",
+          "description": "The PBKDF2 hashed password string to verify against",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "A boolean indicating if the password matches, or a `crypto:Error` if verification fails",
+        "type": {
+          "name": "boolean|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "hmacMd5",
+      "type": "Normal Function",
+      "description": "Returns the HMAC using the MD5 hash function of the given data.\n```ballerina\nstring input \u003d \"Hello Ballerina\";\nbyte[] data \u003d input.toBytes();\nstring secret \u003d \"some-secret\";\nbyte[] key \u003d secret.toBytes();\nbyte[] hmac \u003d check crypto:hmacMd5(data, key);\n```\n",
+      "parameters": [
+        {
+          "name": "input",
+          "description": "The data to be hashed, provided as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "key",
+          "description": "The secret key used for HMAC generation, provided as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        }
+      ],
+      "return": {
+        "description": "The HMAC output as a byte array, or a `crypto:Error` if an error occurred",
+        "type": {
+          "name": "byte[]|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "hmacSha1",
+      "type": "Normal Function",
+      "description": "Returns the HMAC using the SHA-1 hash function of the given data.\n```ballerina\nstring input \u003d \"Hello Ballerina\";\nbyte[] data \u003d input.toBytes();\nstring secret \u003d \"some-secret\";\nbyte[] key \u003d secret.toBytes();\nbyte[] hmac \u003d check crypto:hmacSha1(data, key);\n```\n",
+      "parameters": [
+        {
+          "name": "input",
+          "description": "The data to be hashed, provided as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "key",
+          "description": "The secret key used for HMAC generation, provided as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        }
+      ],
+      "return": {
+        "description": "The HMAC output as a byte array, or a `crypto:Error` if an error occurred",
+        "type": {
+          "name": "byte[]|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "hmacSha256",
+      "type": "Normal Function",
+      "description": "Returns the HMAC using the SHA-256 hash function of the given data.\n```ballerina\nstring input \u003d \"Hello Ballerina\";\nbyte[] data \u003d input.toBytes();\nstring secret \u003d \"some-secret\";\nbyte[] key \u003d secret.toBytes();\nbyte[] hmac \u003d check crypto:hmacSha256(data, key);\n```\n",
+      "parameters": [
+        {
+          "name": "input",
+          "description": "The data to be hashed, provided as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "key",
+          "description": "The secret key used for HMAC generation, provided as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        }
+      ],
+      "return": {
+        "description": "The HMAC output as a byte array, or a `crypto:Error` if an error occurred",
+        "type": {
+          "name": "byte[]|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "hmacSha384",
+      "type": "Normal Function",
+      "description": "Returns the HMAC using the SHA-384 hash function of the given data.\n```ballerina\nstring input \u003d \"Hello Ballerina\";\nbyte[] data \u003d input.toBytes();\nstring secret \u003d \"some-secret\";\nbyte[] key \u003d secret.toBytes();\nbyte[] hmac \u003d check crypto:hmacSha384(data, key);\n```\n",
+      "parameters": [
+        {
+          "name": "input",
+          "description": "The data to be hashed, provided as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "key",
+          "description": "The secret key used for HMAC generation, provided as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        }
+      ],
+      "return": {
+        "description": "The HMAC output as a byte array, or a `crypto:Error` if an error occurred",
+        "type": {
+          "name": "byte[]|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "hmacSha512",
+      "type": "Normal Function",
+      "description": "Returns the HMAC using the SHA-512 hash function of the given data.\n```ballerina\nstring input \u003d \"Hello Ballerina\";\nbyte[] data \u003d input.toBytes();\nstring secret \u003d \"some-secret\";\nbyte[] key \u003d secret.toBytes();\nbyte[] hmac \u003d check crypto:hmacSha512(data, key);\n```\n",
+      "parameters": [
+        {
+          "name": "input",
+          "description": "The data to be hashed, provided as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "key",
+          "description": "The secret key used for HMAC generation, provided as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        }
+      ],
+      "return": {
+        "description": "The HMAC output as a byte array, or a `crypto:Error` if an error occurred",
+        "type": {
+          "name": "byte[]|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "encryptMlKem768Hpke",
+      "type": "Normal Function",
+      "description": "Returns the ML-KEM-768-AES-hybrid-encrypted value for the given data.\n```ballerina\nstring input \u003d \"Hello Ballerina\";\nbyte[] data \u003d input.toBytes();\ncrypto:KeyStore keyStore \u003d {\n    path: \"/path/to/keyStore.p12\",\n    password: \"keyStorePassword\"\n};\ncrypto:PublicKey publicKey \u003d check crypto:decodeMlKem768PublicKeyFromTrustStore(keyStore, \"keyAlias\");\ncrypto:HybridEncryptionResult encryptionResult \u003d check crypto:encryptMlKem768Hpke(data, publicKey);\n```",
+      "parameters": [
+        {
+          "name": "input",
+          "description": "The content to be encrypted, provided as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "publicKey",
+          "description": "The public key used for encryption, provided as a `crypto:PublicKey` record",
+          "type": {
+            "name": "PublicKey",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PublicKey"
+              }
+            ]
+          }
+        },
+        {
+          "name": "symmetricKeySize",
+          "description": "The length of the symmetric key in bytes",
+          "type": {
+            "name": "AesKeySize",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AesKeySize"
+              }
+            ]
+          },
+          "optional": true,
+          "default": "32"
+        }
+      ],
+      "return": {
+        "description": "The encrypted data as a `crypto:HybridEncryptionResult`, or a `crypto:Error` if an error occurs",
+        "type": {
+          "name": "HybridEncryptionResult|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "HybridEncryptionResult"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "decryptMlKem768Hpke",
+      "type": "Normal Function",
+      "description": "Returns the ML-KEM-768-AES-hybrid-encrypted value for the given encrypted data.\n```ballerina\nstring input \u003d \"Hello Ballerina\";\nbyte[] data \u003d input.toBytes();\ncrypto:KeyStore keyStore \u003d {\n    path: \"/path/to/keyStore.p12\",\n    password: \"keyStorePassword\"\n};\ncrypto:PublicKey publicKey \u003d check crypto:decodeMlKem768PublicKeyFromTrustStore(keyStore, \"keyAlias\");\ncrypto:HybridEncryptionResult encryptionResult \u003d check crypto:encryptMlKem768Hpke(data, publicKey);\nbyte[] cipherText \u003d encryptionResult.cipherText;\nbyte[] encapsulatedKey \u003d encryptionResult.encapsulatedSecret;\ncrypto:PrivateKey privateKey \u003d check crypto:decodeMlKem768PrivateKeyFromKeyStore(keyStore, \"keyAlias\", \"keyStorePassword\");\nbyte[] decryptedData \u003d check crypto:decryptMlKem768Hpke(cipherText, encapsulatedKey, privateKey);\n```",
+      "parameters": [
+        {
+          "name": "input",
+          "description": "The content to be decrypted, provided as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "encapsulatedKey",
+          "description": "The encapsulated secret, provided as a byte array representing the encrypted key material",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "privateKey",
+          "description": "The MlKem private key used for decryption, provided as a `crypto:PrivateKey` record",
+          "type": {
+            "name": "PrivateKey",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PrivateKey"
+              }
+            ]
+          }
+        },
+        {
+          "name": "symmetricKeySize",
+          "description": "The length of the symmetric key in bytes",
+          "type": {
+            "name": "AesKeySize",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AesKeySize"
+              }
+            ]
+          },
+          "optional": true,
+          "default": "32"
+        }
+      ],
+      "return": {
+        "description": "The decrypted data as a byte array, or a `crypto:Error` if an error occurs",
+        "type": {
+          "name": "byte[]|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "encryptRsaKemMlKem768Hpke",
+      "type": "Normal Function",
+      "description": "Returns the RSA-KEM-ML-KEM-768-AES-hybrid-encrypted value for the given data.\n```ballerina\nstring input \u003d \"Hello Ballerina\";\nbyte[] data \u003d input.toBytes();\ncrypto:KeyStore mlkemKeyStore \u003d {\n    path: \"/path/to/mlkem/keyStore.p12\",\n    password: \"keyStorePassword\"\n};\ncrypto:KeyStore rsaKeyStore \u003d {\n    path: \"/path/to/rsa/keyStore.p12\",\n    password: \"keyStorePassword\"\n};\ncrypto:PublicKey mlkemPublicKey \u003d check crypto:decodeMlKem768PublicKeyFromTrustStore(mlkemKeyStore, \"keyAlias\");\ncrypto:PublicKey rsaPublicKey \u003d check crypto:decodeRsaPublicKeyFromTrustStore(rsaKeyStore, \"keyAlias\");\ncrypto:HybridEncryptionResult encryptionResult \u003d check crypto:encryptRsaKemMlKem768Hpke(data, rsaPublicKey, mlkemPublicKey);\n```",
+      "parameters": [
+        {
+          "name": "input",
+          "description": "The content to be encrypted, provided as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "rsaPublicKey",
+          "description": "The RSA public key used for encryption, provided as a `crypto:PublicKey` record",
+          "type": {
+            "name": "PublicKey",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PublicKey"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mlkemPublicKey",
+          "description": "The ML-KEM public key used for encryption, provided as a `crypto:PublicKey` record",
+          "type": {
+            "name": "PublicKey",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PublicKey"
+              }
+            ]
+          }
+        },
+        {
+          "name": "symmetricKeySize",
+          "description": "The length of the symmetric key in bytes",
+          "type": {
+            "name": "AesKeySize",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AesKeySize"
+              }
+            ]
+          },
+          "optional": true,
+          "default": "32"
+        }
+      ],
+      "return": {
+        "description": "The encrypted data as a `crypto:HybridEncryptionResult`, or a `crypto:Error` if an error occurs",
+        "type": {
+          "name": "HybridEncryptionResult|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "HybridEncryptionResult"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "decryptRsaKemMlKem768Hpke",
+      "type": "Normal Function",
+      "description": "Returns the RSA-KEM-ML-KEM-768-AES-hybrid-encrypted value for the given encrypted data.\n```ballerina\nstring input \u003d \"Hello Ballerina\";\nbyte[] data \u003d input.toBytes();\ncrypto:KeyStore mlkemKeyStore \u003d {\n    path: \"/path/to/mlkem/keyStore.p12\",\n    password: \"keyStorePassword\"\n};\ncrypto:KeyStore rsaKeyStore \u003d {\n    path: \"/path/to/rsa/keyStore.p12\",\n    password: \"keyStorePassword\"\n};\ncrypto:PublicKey mlkemPublicKey \u003d check crypto:decodeMlKem768PublicKeyFromTrustStore(mlkemKeyStore, \"keyAlias\");\ncrypto:PublicKey rsaPublicKey \u003d check crypto:decodeRsaPublicKeyFromTrustStore(rsaKeyStore, \"keyAlias\");\ncrypto:HybridEncryptionResult encryptionResult \u003d check crypto:encryptRsaKemMlKem768Hpke(data, rsaPublicKey, mlkemPublicKey);\nbyte[] cipherText \u003d encryptionResult.cipherText;\nbyte[] encapsulatedKey \u003d encryptionResult.encapsulatedSecret;\ncrypto:PrivateKey mlkemPrivateKey \u003d check crypto:decodeMlKem768PrivateKeyFromKeyStore(mlkemKeyStore, \"keyAlias\", \"keyStorePassword\");\ncrypto:PrivateKey rsaPrivateKey \u003d check crypto:decodeRsaPrivateKeyFromKeyStore(rsaKeyStore, \"keyAlias\", \"keyStorePassword\");\nbyte[] decryptedData \u003d check crypto:decryptRsaKemMlKem768Hpke(cipherText, encapsulatedKey, rsaPrivateKey, mlkemPrivateKey);\n```",
+      "parameters": [
+        {
+          "name": "input",
+          "description": "The content to be decrypted, provided as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "encapsulatedKey",
+          "description": "The encapsulated secret, provided as a byte array representing the encrypted key material",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "rsaPrivateKey",
+          "description": "The RSA private key used for decryption, provided as a `crypto:PrivateKey` record",
+          "type": {
+            "name": "PrivateKey",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PrivateKey"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mlkemPrivateKey",
+          "description": "The MlKem private key used for decryption, provided as a `crypto:PrivateKey` record",
+          "type": {
+            "name": "PrivateKey",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PrivateKey"
+              }
+            ]
+          }
+        },
+        {
+          "name": "symmetricKeySize",
+          "description": "The length of the symmetric key in bytes",
+          "type": {
+            "name": "AesKeySize",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AesKeySize"
+              }
+            ]
+          },
+          "optional": true,
+          "default": "32"
+        }
+      ],
+      "return": {
+        "description": "The decrypted data as a byte array, or a `crypto:Error` if an error occurs",
+        "type": {
+          "name": "byte[]|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "hkdfSha256",
+      "type": "Normal Function",
+      "description": "Returns HKDF (HMAC-based Key Derivation Function) using SHA-256 as the hash function.\n```ballerina\nstring secret \u003d \"some-secret\";\nbyte[] key \u003d secret.toBytes();\nbyte[] hash \u003d crypto:hkdfSha256(key, 32);\n```",
+      "parameters": [
+        {
+          "name": "input",
+          "description": "The input key material, provided as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "length",
+          "description": "The length of the output keying material (OKM) in bytes. Must be a positive integer",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "salt",
+          "description": "An optional salt value, provided as a byte array. Defaults to an empty array if not specified",
+          "type": {
+            "name": "byte[]"
+          },
+          "optional": true,
+          "default": "[]"
+        },
+        {
+          "name": "info",
+          "description": "An optional context and application-specific information, provided as a byte array. Defaults to an empty array if not specified",
+          "type": {
+            "name": "byte[]"
+          },
+          "optional": true,
+          "default": "[]"
+        }
+      ],
+      "return": {
+        "description": "The derived keying material (OKM) of the specified length as a byte array, or a `crypto:Error` if an error occurs",
+        "type": {
+          "name": "byte[]|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "encapsulateMlKem768",
+      "type": "Normal Function",
+      "description": "Creates a shared secret and its encapsulation used for Key Encapsulation Mechanism (KEM) using the ML-KEM-768 (Kyber768) public key.\n```ballerina\ncrypto:KeyStore keyStore \u003d {\n    path: \"/path/to/keyStore.p12\",\n    password: \"keyStorePassword\"\n};\ncrypto:PublicKey publicKey \u003d check crypto:decodeMlKem768PublicKeyFromTrustStore(keyStore, \"keyAlias\");\ncrypto:EncapsulationResult encapsulationResult \u003d check crypto:encapsulateMlKem768(publicKey);\n```",
+      "parameters": [
+        {
+          "name": "publicKey",
+          "description": "The ML-KEM-768 public key used for encapsulation, provided as a `crypto:PublicKey` record",
+          "type": {
+            "name": "PublicKey",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PublicKey"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "The encapsulated secret as a `crypto:EncapsulationResult`, or a `crypto:Error` if the public key is invalid",
+        "type": {
+          "name": "EncapsulationResult|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "EncapsulationResult"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "decapsulateMlKem768",
+      "type": "Normal Function",
+      "description": "Decapsulates the ML-KEM-768 (Kyber768) shared secret used for Key Encapsulation Mechanism (KEM) from the given encapsulation for the given data.\n```ballerina\ncrypto:KeyStore keyStore \u003d {\n    path: \"/path/to/keyStore.p12\",\n    password: \"keyStorePassword\"\n};\ncrypto:PublicKey publicKey \u003d check crypto:decodeMlKem768PublicKeyFromTrustStore(keyStore, \"keyAlias\");\ncrypto:EncapsulationResult encapsulationResult \u003d check crypto:encapsulateMlKem768(publicKey);\nbyte[] encapsulatedSecret \u003d encapsulationResult.encapsulatedSecret;\ncrypto:PrivateKey privateKey \u003d check crypto:decodeMlKem768PrivateKeyFromKeyStore(keyStore, \"keyAlias\", \"keyStorePassword\");\nbyte[] sharedSecret \u003d check crypto:decapsulateMlKem768(encapsulatedSecret, privateKey);\n```",
+      "parameters": [
+        {
+          "name": "encapsulatedSecret",
+          "description": "The encapsulated secret, provided as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "privateKey",
+          "description": "The ML-KEM-768 private key used for decryption, provided as a `crypto:PrivateKey` record",
+          "type": {
+            "name": "PrivateKey",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PrivateKey"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "The shared secret as a byte array, or a `crypto:Error` if the encapsulated secret or the private key is invalid",
+        "type": {
+          "name": "byte[]|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "encapsulateRsaKemMlKem768",
+      "type": "Normal Function",
+      "description": "Creates a shared secret and its encapsulation used for Key Encapsulation Mechanism (KEM) using RSA and ML-KEM-768 (Kyber768) public keys.\n```ballerina\ncrypto:KeyStore mlkemKeyStore \u003d {\n    path: \"/path/to/mlkem/keyStore.p12\",\n    password: \"keyStorePassword\"\n};\ncrypto:KeyStore rsaKeyStore \u003d {\n    path: \"/path/to/rsa/keyStore.p12\",\n    password: \"keyStorePassword\"\n};\ncrypto:PublicKey mlkemPublicKey \u003d check crypto:decodeMlKem768PublicKeyFromTrustStore(mlkemKeyStore, \"keyAlias\");\ncrypto:PublicKey rsaPublicKey \u003d check crypto:decodeRsaPublicKeyFromTrustStore(rsaKeyStore, \"keyAlias\");\ncrypto:EncapsulationResult encapsulationResult \u003d check crypto:encapsulateRsaKemMlKem768(rsaPublicKey, mlkemPublicKey);\n```",
+      "parameters": [
+        {
+          "name": "rsaPublicKey",
+          "description": "The RSA public key used for encapsulation, provided as a `crypto:PublicKey` record",
+          "type": {
+            "name": "PublicKey",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PublicKey"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mlkemPublicKey",
+          "description": "The ML-KEM-768 public key used for encapsulation, provided as a `crypto:PublicKey` record",
+          "type": {
+            "name": "PublicKey",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PublicKey"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "The encapsulated secret as a `crypto:EncapsulationResult`, or a `crypto:Error` if the key size or public keys are invalid",
+        "type": {
+          "name": "EncapsulationResult|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "EncapsulationResult"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "decapsulateRsaKemMlKem768",
+      "type": "Normal Function",
+      "description": "Decapsulates the shared secret used for Key Encapsulation Mechanism (KEM) using RSA and ML-KEM-768 (Kyber768) private keys.\n```ballerina\ncrypto:KeyStore mlkemKeyStore \u003d {\n    path: \"/path/to/mlkem/keyStore.p12\",\n    password: \"keyStorePassword\"\n};\ncrypto:KeyStore rsaKeyStore \u003d {\n    path: \"/path/to/rsa/keyStore.p12\",\n    password: \"keyStorePassword\"\n};\ncrypto:PublicKey mlkemPublicKey \u003d check crypto:decodeMlKem768PublicKeyFromTrustStore(mlkemKeyStore, \"keyAlias\");\ncrypto:PublicKey rsaPublicKey \u003d check crypto:decodeRsaPublicKeyFromTrustStore(rsaKeyStore, \"keyAlias\");\ncrypto:EncapsulationResult encapsulationResult \u003d check crypto:encapsulateRsaKemMlKem768(rsaPublicKey, mlkemPublicKey);\nbyte[] encapsulatedSecret \u003d encapsulationResult.encapsulatedSecret;\ncrypto:PrivateKey mlkemPrivateKey \u003d check crypto:decodeMlKem768PrivateKeyFromKeyStore(mlkemKeyStore, \"keyAlias\", \"keyStorePassword\");\ncrypto:PrivateKey rsaPrivateKey \u003d check crypto:decodeRsaPrivateKeyFromKeyStore(rsaKeyStore, \"keyAlias\", \"keyStorePassword\");\nbyte[] sharedSecret \u003d check crypto:decapsulateRsaKemMlKem768(encapsulatedSecret, rsaPrivateKey, mlkemPrivateKey);\n```",
+      "parameters": [
+        {
+          "name": "encapsulatedSecret",
+          "description": "The encapsulated secret, provided as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "rsaPrivateKey",
+          "description": "The RSA private key used for decryption, provided as a `crypto:PrivateKey` record",
+          "type": {
+            "name": "PrivateKey",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PrivateKey"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mlkemPrivateKey",
+          "description": "The ML-KEM-768 private key used for decryption, provided as a `crypto:PrivateKey` record",
+          "type": {
+            "name": "PrivateKey",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PrivateKey"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "The shared secret as a byte array, or a `crypto:Error` if the encapsulated secret or the private keys are invalid",
+        "type": {
+          "name": "byte[]|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "encapsulateRsaKem",
+      "type": "Normal Function",
+      "description": "Creates a shared secret and its encapsulation used for Key Encapsulation Mechanism (KEM) using the RSA public key.\n```ballerina\ncrypto:KeyStore keyStore \u003d {\n    path: \"/path/to/keyStore.p12\",\n    password: \"keyStorePassword\"\n};\ncrypto:PublicKey publicKey \u003d check crypto:decodeRsaPublicKeyFromTrustStore(keyStore, \"keyAlias\");\ncrypto:EncapsulationResult encapsulationResult \u003d check crypto:encapsulateRsaKem(publicKey);\n```",
+      "parameters": [
+        {
+          "name": "publicKey",
+          "description": "The RSA public key used for encapsulation, provided as a `crypto:PublicKey` record",
+          "type": {
+            "name": "PublicKey",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PublicKey"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "The encapsulated secret as a `crypto:EncapsulationResult`, or a `crypto:Error` if the public key is invalid",
+        "type": {
+          "name": "EncapsulationResult|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "EncapsulationResult"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "decapsulateRsaKem",
+      "type": "Normal Function",
+      "description": "Decapsulates the shared secret used for Key Encapsulation Mechanism (KEM) from the given encapsulation for the given data.\n```ballerina\ncrypto:KeyStore keyStore \u003d {\n    path: \"/path/to/keyStore.p12\",\n    password: \"keyStorePassword\"\n};\ncrypto:PublicKey publicKey \u003d check crypto:decodeRsaPublicKeyFromTrustStore(keyStore, \"keyAlias\");\ncrypto:EncapsulationResult encapsulationResult \u003d check crypto:encapsulateRsaKem(publicKey);\nbyte[] encapsulatedSecret \u003d encapsulationResult.encapsulatedSecret;\ncrypto:PrivateKey privateKey \u003d check crypto:decodeRsaPrivateKeyFromKeyStore(keyStore, \"keyAlias\", \"keyStorePassword\");\nbyte[] sharedSecret \u003d check crypto:decapsulateRsaKem(encapsulatedSecret, privateKey);\n```",
+      "parameters": [
+        {
+          "name": "encapsulatedSecret",
+          "description": "The encapsulated secret, provided as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "privateKey",
+          "description": "The RSA private key used for decryption, provided as a `crypto:PrivateKey` record",
+          "type": {
+            "name": "PrivateKey",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PrivateKey"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "The shared secret as a byte array, or a `crypto:Error` if the encapsulated secret or the private key is invalid",
+        "type": {
+          "name": "byte[]|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "decodeRsaPrivateKeyFromKeyStore",
+      "type": "Normal Function",
+      "description": "Decodes the RSA private key from the given PKCS#12 archive file.\n```ballerina\ncrypto:KeyStore keyStore \u003d {\n    path: \"/path/to/keyStore.p12\",\n    password: \"keyStorePassword\"\n};\ncrypto:PrivateKey privateKey \u003d check crypto:decodeRsaPrivateKeyFromKeyStore(keyStore, \"keyAlias\", \"keyPassword\");\n```\n",
+      "parameters": [
+        {
+          "name": "keyStore",
+          "description": "The KeyStore configurations containing the file path and password",
+          "type": {
+            "name": "KeyStore",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "KeyStore"
+              }
+            ]
+          }
+        },
+        {
+          "name": "keyAlias",
+          "description": "The alias of the private key in the KeyStore",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "keyPassword",
+          "description": "The password used to access the private key in the KeyStore",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "Reference to the private key or else a `crypto:Error` if the private key was unreadable",
+        "type": {
+          "name": "PrivateKey|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "PrivateKey"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "decodeEcPrivateKeyFromKeyStore",
+      "type": "Normal Function",
+      "description": "Decodes the EC private key from the given PKCS#12 archive file.\n```ballerina\ncrypto:KeyStore keyStore \u003d {\n    path: \"/path/to/keyStore.p12\",\n    password: \"keyStorePassword\"\n};\ncrypto:PrivateKey privateKey \u003d check crypto:decodeEcPrivateKeyFromKeyStore(keyStore, \"keyAlias\", \"keyPassword\");\n```\n",
+      "parameters": [
+        {
+          "name": "keyStore",
+          "description": "The KeyStore configurations containing the file path and password",
+          "type": {
+            "name": "KeyStore",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "KeyStore"
+              }
+            ]
+          }
+        },
+        {
+          "name": "keyAlias",
+          "description": "The alias of the private key in the KeyStore",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "keyPassword",
+          "description": "The password used to access the private key in the KeyStore",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "Reference to the private key or else a `crypto:Error` if the private key was unreadable",
+        "type": {
+          "name": "PrivateKey|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "PrivateKey"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "decodeMlDsa65PrivateKeyFromKeyStore",
+      "type": "Normal Function",
+      "description": "Decodes the ML-DSA-65 (Dilithium3) private key from the given PKCS#12 archive file.\n```ballerina\ncrypto:KeyStore keyStore \u003d {\n   path: \"/path/to/keyStore.p12\",\n   password: \"keyStorePassword\"\n};\ncrypto:PrivateKey privateKey \u003d check crypto:decodeMlDsa65PrivateKeyFromKeyStore(keyStore, \"keyAlias\", \"keyPassword\");\n```\n",
+      "parameters": [
+        {
+          "name": "keyStore",
+          "description": "The KeyStore configurations containing the file path and password",
+          "type": {
+            "name": "KeyStore",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "KeyStore"
+              }
+            ]
+          }
+        },
+        {
+          "name": "keyAlias",
+          "description": "The alias of the private key in the KeyStore",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "keyPassword",
+          "description": "The password used to access the private key in the KeyStore",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "Reference to the private key or else a `crypto:Error` if the private key was unreadable",
+        "type": {
+          "name": "PrivateKey|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "PrivateKey"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "decodeMlKem768PrivateKeyFromKeyStore",
+      "type": "Normal Function",
+      "description": "Decodes the ML-KEM-768 (Kyber768) private key from the given PKCS#12 archive file.\n```ballerina\ncrypto:KeyStore keyStore \u003d {\n   path: \"/path/to/keyStore.p12\",\n   password: \"keyStorePassword\"\n};\ncrypto:PrivateKey privateKey \u003d check crypto:decodeMlKem768PrivateKeyFromKeyStore(keyStore, \"keyAlias\", \"keyPassword\");\n```\n",
+      "parameters": [
+        {
+          "name": "keyStore",
+          "description": "The KeyStore configurations containing the file path and password",
+          "type": {
+            "name": "KeyStore",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "KeyStore"
+              }
+            ]
+          }
+        },
+        {
+          "name": "keyAlias",
+          "description": "The alias of the private key in the KeyStore",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "keyPassword",
+          "description": "The password used to access the private key in the KeyStore",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "Reference to the private key or else a `crypto:Error` if the private key was unreadable",
+        "type": {
+          "name": "PrivateKey|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "PrivateKey"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "decodeRsaPrivateKeyFromKeyFile",
+      "type": "Normal Function",
+      "description": "Decodes the RSA private key from the given private key and private key password.\n```ballerina\nstring keyFile \u003d \"/path/to/private.key\";\ncrypto:PrivateKey privateKey \u003d check crypto:decodeRsaPrivateKeyFromKeyFile(keyFile, \"keyPassword\");\n```\n",
+      "parameters": [
+        {
+          "name": "keyFile",
+          "description": "The private key file path",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "keyPassword",
+          "description": "The password used to decrypt the private key file if it is encrypted",
+          "type": {
+            "name": "string|()"
+          },
+          "optional": true,
+          "default": "()"
+        }
+      ],
+      "return": {
+        "description": "Reference to the private key or else a `crypto:Error` if the private key was unreadable",
+        "type": {
+          "name": "PrivateKey|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "PrivateKey"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "decodeRsaPrivateKeyFromContent",
+      "type": "Normal Function",
+      "description": "Decodes the RSA private key from the given private key content as a byte array.\n```ballerina\nbyte[] keyFileContent \u003d [45,45,45,45,45,66,69,71,73,78,...];\ncrypto:PrivateKey privateKey \u003d check crypto:decodeRsaPrivateKeyFromContent(keyFileContent, \"keyPassword\");\n```\n",
+      "parameters": [
+        {
+          "name": "content",
+          "description": "Private key content as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "keyPassword",
+          "description": "Password of the private key if it is encrypted",
+          "type": {
+            "name": "string|()"
+          },
+          "optional": true,
+          "default": "()"
+        }
+      ],
+      "return": {
+        "description": "Reference to the private key or else a `crypto:Error` if the private key was unreadable",
+        "type": {
+          "name": "PrivateKey|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "PrivateKey"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "decodeEcPrivateKeyFromKeyFile",
+      "type": "Normal Function",
+      "description": "Decodes the EC private key from the given private key and private key password.\n```ballerina\nstring keyFile \u003d \"/path/to/private.key\";\ncrypto:PrivateKey privateKey \u003d check crypto:decodeEcPrivateKeyFromKeyFile(keyFile, \"keyPassword\");\n```\n",
+      "parameters": [
+        {
+          "name": "keyFile",
+          "description": "The private key file path",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "keyPassword",
+          "description": "The password used to decrypt the private key file if it is encrypted",
+          "type": {
+            "name": "string|()"
+          },
+          "optional": true,
+          "default": "()"
+        }
+      ],
+      "return": {
+        "description": "Reference to the private key or else a `crypto:Error` if the private key was unreadable",
+        "type": {
+          "name": "PrivateKey|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "PrivateKey"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "decodeMlDsa65PrivateKeyFromKeyFile",
+      "type": "Normal Function",
+      "description": "Decodes the ML-DSA-65 (Dilithium3) private key from the given private key and private key password.\n```ballerina\nstring keyFile \u003d \"/path/to/private.key\";\ncrypto:PrivateKey privateKey \u003d check crypto:decodeMlDsa65PrivateKeyFromKeyFile(keyFile, \"keyPassword\");\n```\n",
+      "parameters": [
+        {
+          "name": "keyFile",
+          "description": "The private key file path",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "keyPassword",
+          "description": "The password used to decrypt the private key file if it is encrypted",
+          "type": {
+            "name": "string|()"
+          },
+          "optional": true,
+          "default": "()"
+        }
+      ],
+      "return": {
+        "description": "Reference to the private key or else a `crypto:Error` if the private key was unreadable",
+        "type": {
+          "name": "PrivateKey|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "PrivateKey"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "decodeMlKem768PrivateKeyFromKeyFile",
+      "type": "Normal Function",
+      "description": "Decodes the ML-KEM-768 (Kyber768) private key from the given private key and private key password.\n```ballerina\nstring keyFile \u003d \"/path/to/private.key\";\ncrypto:PrivateKey privateKey \u003d check crypto:decodeMlKem768PrivateKeyFromKeyFile(keyFile, \"keyPassword\");\n```\n",
+      "parameters": [
+        {
+          "name": "keyFile",
+          "description": "The private key file path",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "keyPassword",
+          "description": "The password used to decrypt the private key file if it is encrypted",
+          "type": {
+            "name": "string|()"
+          },
+          "optional": true,
+          "default": "()"
+        }
+      ],
+      "return": {
+        "description": "Reference to the private key or else a `crypto:Error` if the private key was unreadable",
+        "type": {
+          "name": "PrivateKey|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "PrivateKey"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "decodeRsaPublicKeyFromTrustStore",
+      "type": "Normal Function",
+      "description": "Decodes the RSA public key from the given PKCS#12 archive file.\n```ballerina\ncrypto:TrustStore trustStore \u003d {\n    path: \"/path/tp/truststore.p12\",\n    password: \"truststorePassword\"\n};\ncrypto:PublicKey publicKey \u003d check crypto:decodeRsaPublicKeyFromTrustStore(trustStore, \"keyAlias\");\n```\n",
+      "parameters": [
+        {
+          "name": "trustStore",
+          "description": "The trustStore configurations containing the file path and password",
+          "type": {
+            "name": "TrustStore",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TrustStore"
+              }
+            ]
+          }
+        },
+        {
+          "name": "keyAlias",
+          "description": "The alias of the public key in the TrustStore",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "Reference to the public key or else a `crypto:Error` if the public key was unreadable",
+        "type": {
+          "name": "PublicKey|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "PublicKey"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "decodeEcPublicKeyFromTrustStore",
+      "type": "Normal Function",
+      "description": "Decodes the EC public key from the given PKCS#12 archive file.\n```ballerina\ncrypto:TrustStore trustStore \u003d {\n    path: \"/path/tp/truststore.p12\",\n    password: \"truststorePassword\"\n};\ncrypto:PublicKey publicKey \u003d check crypto:decodeEcPublicKeyFromTrustStore(trustStore, \"keyAlias\");\n```\n",
+      "parameters": [
+        {
+          "name": "trustStore",
+          "description": "The trustStore configurations containing the file path and password",
+          "type": {
+            "name": "TrustStore",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TrustStore"
+              }
+            ]
+          }
+        },
+        {
+          "name": "keyAlias",
+          "description": "The alias of the public key in the TrustStore",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "Reference to the public key or else a `crypto:Error` if the public key was unreadable",
+        "type": {
+          "name": "PublicKey|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "PublicKey"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "decodeMlDsa65PublicKeyFromTrustStore",
+      "type": "Normal Function",
+      "description": "Decodes the ML-DSA-65 (Dilithium3) public key from the given PKCS#12 archive file.\n```ballerina\ncrypto:TrustStore trustStore \u003d {\n   path: \"/path/tp/truststore.p12\",\n   password: \"truststorePassword\"\n};\ncrypto:PublicKey publicKey \u003d check crypto:decodeMlDsa65PublicKeyFromTrustStore(trustStore, \"keyAlias\");\n```\n",
+      "parameters": [
+        {
+          "name": "trustStore",
+          "description": "The trustStore configurations containing the file path and password",
+          "type": {
+            "name": "TrustStore",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TrustStore"
+              }
+            ]
+          }
+        },
+        {
+          "name": "keyAlias",
+          "description": "The alias of the public key in the TrustStore",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "Reference to the public key or else a `crypto:Error` if the public key was unreadable",
+        "type": {
+          "name": "PublicKey|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "PublicKey"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "decodeMlKem768PublicKeyFromTrustStore",
+      "type": "Normal Function",
+      "description": "Decodes the ML-KEM-768 (Kyber768) public key from the given PKCS#12 archive file.\n```ballerina\ncrypto:TrustStore trustStore \u003d {\n   path: \"/path/tp/truststore.p12\",\n   password: \"truststorePassword\"\n};\ncrypto:PublicKey publicKey \u003d check crypto:decodeMlKem768PublicKeyFromTrustStore(trustStore, \"keyAlias\");\n```\n",
+      "parameters": [
+        {
+          "name": "trustStore",
+          "description": "The trustStore configurations containing the file path and password",
+          "type": {
+            "name": "TrustStore",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TrustStore"
+              }
+            ]
+          }
+        },
+        {
+          "name": "keyAlias",
+          "description": "The alias of the public key in the TrustStore",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "Reference to the public key or else a `crypto:Error` if the public key was unreadable",
+        "type": {
+          "name": "PublicKey|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "PublicKey"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "decodeRsaPublicKeyFromCertFile",
+      "type": "Normal Function",
+      "description": "Decodes the RSA public key from the given public certificate file.\n```ballerina\nstring certFile \u003d \"/path/to/public.cert\";\ncrypto:PublicKey publicKey \u003d check crypto:decodeRsaPublicKeyFromCertFile(certFile);\n```\n",
+      "parameters": [
+        {
+          "name": "certFile",
+          "description": "The certificate file path",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "Reference to the public key or else a `crypto:Error` if the public key was unreadable",
+        "type": {
+          "name": "PublicKey|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "PublicKey"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "decodeRsaPublicKeyFromContent",
+      "type": "Normal Function",
+      "description": "Decodes the RSA public key from the given public certificate content.\n```ballerina\nbyte[] certContent \u003d [45,45,45,45,45,66,69,71,73,78,...];\ncrypto:PublicKey publicKey \u003d check crypto:decodeRsaPublicKeyFromContent(certContent);\n```\n",
+      "parameters": [
+        {
+          "name": "content",
+          "description": "The certificate content as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        }
+      ],
+      "return": {
+        "description": "Reference to the public key or else a `crypto:Error` if the public key was unreadable",
+        "type": {
+          "name": "PublicKey|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "PublicKey"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "decodeEcPublicKeyFromCertFile",
+      "type": "Normal Function",
+      "description": "Decodes the EC public key from the given public certificate file.\n```ballerina\nstring certFile \u003d \"/path/to/public.cert\";\ncrypto:PublicKey publicKey \u003d check crypto:decodeEcPublicKeyFromCertFile(certFile);\n```\n",
+      "parameters": [
+        {
+          "name": "certFile",
+          "description": "The certificate file path",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "Reference to the public key or else a `crypto:Error` if the public key was unreadable",
+        "type": {
+          "name": "PublicKey|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "PublicKey"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "decodeMlDsa65PublicKeyFromCertFile",
+      "type": "Normal Function",
+      "description": "Decodes the ML-DSA-65 (Dilithium3) public key from the given public certificate file.\n```ballerina\nstring certFile \u003d \"/path/to/public.cert\";\ncrypto:PublicKey publicKey \u003d check crypto:decodeMlDsa65PublicKeyFromCertFile(certFile);\n```\n",
+      "parameters": [
+        {
+          "name": "certFile",
+          "description": "The certificate file path",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "Reference to the public key or else a `crypto:Error` if the public key was unreadable",
+        "type": {
+          "name": "PublicKey|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "PublicKey"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "decodeMlKem768PublicKeyFromCertFile",
+      "type": "Normal Function",
+      "description": "Decodes the ML-KEM-768 (Kyber768) public key from the given public certificate file.\n```ballerina\nstring certFile \u003d \"/path/to/public.cert\";\ncrypto:PublicKey publicKey \u003d check crypto:decodeMlKem768PublicKeyFromCertFile(certFile);\n```\n",
+      "parameters": [
+        {
+          "name": "certFile",
+          "description": "The certificate file path",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "Reference to the public key or else a `crypto:Error` if the public key was unreadable",
+        "type": {
+          "name": "PublicKey|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "PublicKey"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "buildRsaPublicKey",
+      "type": "Normal Function",
+      "description": "Builds the RSA public key from the given modulus and exponent parameters.\n```ballerina\nstring modulus \u003d \"luZFdW1ynitztkWLC6xKegbRWxky...\";\nstring exponent \u003d \"AQAB\";\ncrypto:PublicKey publicKey \u003d check crypto:buildRsaPublicKey(modulus, exponent);\n```\n",
+      "parameters": [
+        {
+          "name": "modulus",
+          "description": "Modulus value (\u0027n\u0027 parameter) for the RSA public key",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "exponent",
+          "description": "Exponent value (\u0027e\u0027 paramenter) for the RSA public key",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "Reference to the public key or else a `crypto:Error` if the modulus or exponent is invalid",
+        "type": {
+          "name": "PublicKey|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "PublicKey"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "signRsaMd5",
+      "type": "Normal Function",
+      "description": "Returns the RSA-MD5 based signature value for the given data.\n```ballerina\nstring input \u003d \"Hello Ballerina\";\nbyte[] data \u003d input.toBytes();\ncrypto:KeyStore keyStore \u003d {\n    path: \"/path/to/keyStore.p12\",\n    password: \"keyStorePassword\"\n};\ncrypto:PrivateKey privateKey \u003d check crypto:decodeRsaPrivateKeyFromKeyStore(keyStore, \"keyAlias\", \"keyPassword\");\nbyte[] signature \u003d check crypto:signRsaMd5(data, privateKey);\n```\n",
+      "parameters": [
+        {
+          "name": "input",
+          "description": "The content to be signed as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "privateKey",
+          "description": "The private key used for signing",
+          "type": {
+            "name": "PrivateKey",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PrivateKey"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "The generated signature or else a `crypto:Error` if the private key is invalid",
+        "type": {
+          "name": "byte[]|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "signMlDsa65",
+      "type": "Normal Function",
+      "description": "Returns the MlDsa65 based signature value for the given data.\n```ballerina\nstring input \u003d \"Hello Ballerina\";\nbyte[] data \u003d input.toBytes();\ncrypto:KeyStore keyStore \u003d {\n    path: \"/path/to/keyStore.p12\",\n    password: \"keyStorePassword\"\n};\ncrypto:PrivateKey privateKey \u003d check crypto:decodeMlDsa65PrivateKeyFromKeyStore(keyStore, \"keyAlias\", \"keyPassword\");\nbyte[] signature \u003d check crypto:signMlDsa65(data, privateKey);\n```\n",
+      "parameters": [
+        {
+          "name": "input",
+          "description": "The content to be signed as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "privateKey",
+          "description": "The private key used for signing",
+          "type": {
+            "name": "PrivateKey",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PrivateKey"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "The generated signature or else a `crypto:Error` if the private key is invalid",
+        "type": {
+          "name": "byte[]|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "signRsaSha1",
+      "type": "Normal Function",
+      "description": "Returns the RSA-SHA1 based signature value for the given data.\n```ballerina\nstring input \u003d \"Hello Ballerina\";\nbyte[] data \u003d input.toBytes();\ncrypto:KeyStore keyStore \u003d {\n    path: \"/path/to/keyStore.p12\",\n    password: \"keyStorePassword\"\n};\ncrypto:PrivateKey privateKey \u003d check crypto:decodeRsaPrivateKeyFromKeyStore(keyStore, \"keyAlias\", \"keyPassword\");\nbyte[] signature \u003d check crypto:signRsaSha1(data, privateKey);\n```\n",
+      "parameters": [
+        {
+          "name": "input",
+          "description": "The content to be signed as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "privateKey",
+          "description": "The private key used for signing",
+          "type": {
+            "name": "PrivateKey",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PrivateKey"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "The generated signature or else a `crypto:Error` if the private key is invalid",
+        "type": {
+          "name": "byte[]|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "signRsaSha256",
+      "type": "Normal Function",
+      "description": "Returns the RSA-SHA256 based signature value for the given data.\n```ballerina\nstring input \u003d \"Hello Ballerina\";\nbyte[] data \u003d input.toBytes();\ncrypto:KeyStore keyStore \u003d {\n    path: \"/path/to/keyStore.p12\",\n    password: \"keyStorePassword\"\n};\ncrypto:PrivateKey privateKey \u003d check crypto:decodeRsaPrivateKeyFromKeyStore(keyStore, \"keyAlias\", \"keyPassword\");\nbyte[] signature \u003d check crypto:signRsaSha256(data, privateKey);\n```\n",
+      "parameters": [
+        {
+          "name": "input",
+          "description": "The content to be signed as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "privateKey",
+          "description": "The private key used for signing",
+          "type": {
+            "name": "PrivateKey",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PrivateKey"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "The generated signature or else a `crypto:Error` if the private key is invalid",
+        "type": {
+          "name": "byte[]|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "signRsaSha384",
+      "type": "Normal Function",
+      "description": "Returns the RSA-SHA384 based signature value for the given data.\n```ballerina\nstring input \u003d \"Hello Ballerina\";\nbyte[] data \u003d input.toBytes();\ncrypto:KeyStore keyStore \u003d {\n    path: \"/path/to/keyStore.p12\",\n    password: \"keyStorePassword\"\n};\ncrypto:PrivateKey privateKey \u003d check crypto:decodeRsaPrivateKeyFromKeyStore(keyStore, \"keyAlias\", \"keyPassword\");\nbyte[] signature \u003d check crypto:signRsaSha384(data, privateKey);\n```\n",
+      "parameters": [
+        {
+          "name": "input",
+          "description": "The content to be signed as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "privateKey",
+          "description": "The private key used for signing",
+          "type": {
+            "name": "PrivateKey",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PrivateKey"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "The generated signature or else a `crypto:Error` if the private key is invalid",
+        "type": {
+          "name": "byte[]|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "signRsaSha512",
+      "type": "Normal Function",
+      "description": "Returns the RSA-SHA512 based signature value for the given data.\n```ballerina\nstring input \u003d \"Hello Ballerina\";\nbyte[] data \u003d input.toBytes();\ncrypto:KeyStore keyStore \u003d {\n    path: \"/path/to/keyStore.p12\",\n    password: \"keyStorePassword\"\n};\ncrypto:PrivateKey privateKey \u003d check crypto:decodeRsaPrivateKeyFromKeyStore(keyStore, \"keyAlias\", \"keyPassword\");\nbyte[] signature \u003d check crypto:signRsaSha512(data, privateKey);\n```\n",
+      "parameters": [
+        {
+          "name": "input",
+          "description": "The content to be signed as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "privateKey",
+          "description": "The private key used for signing",
+          "type": {
+            "name": "PrivateKey",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PrivateKey"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "The generated signature or else a `crypto:Error` if the private key is invalid",
+        "type": {
+          "name": "byte[]|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "signRsaSsaPss256",
+      "type": "Normal Function",
+      "description": "Returns the RSASSA-PSS with SHA-256 based signature value for the given data.\n```ballerina\nstring input \u003d \"Hello Ballerina\";\nbyte[] data \u003d input.toBytes();\ncrypto:KeyStore keyStore \u003d {\n    path: \"/path/to/keyStore.p12\",\n    password: \"keyStorePassword\"\n};\ncrypto:PrivateKey privateKey \u003d check crypto:decodeRsaPrivateKeyFromKeyStore(keyStore, \"keyAlias\", \"keyPassword\");\nbyte[] signature \u003d check crypto:signRsaSsaPss256(data, privateKey);\n```\n",
+      "parameters": [
+        {
+          "name": "input",
+          "description": "The content to be signed",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "privateKey",
+          "description": "Private key used for signing",
+          "type": {
+            "name": "PrivateKey",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PrivateKey"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "The generated signature or else a `crypto:Error` if the private key is invalid",
+        "type": {
+          "name": "byte[]|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "signSha384withEcdsa",
+      "type": "Normal Function",
+      "description": "Returns the SHA384withECDSA based signature value for the given data.\n```ballerina\nstring input \u003d \"Hello Ballerina\";\nbyte[] data \u003d input.toBytes();\ncrypto:KeyStore keyStore \u003d {\n    path: \"/path/to/keyStore.p12\",\n    password: \"keyStorePassword\"\n};\ncrypto:PrivateKey privateKey \u003d check crypto:decodeEcPrivateKeyFromKeyStore(keyStore, \"keyAlias\", \"keyPassword\");\nbyte[] signature \u003d check crypto:signSha384withEcdsa(data, privateKey);\n```\n",
+      "parameters": [
+        {
+          "name": "input",
+          "description": "The content to be signed as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "privateKey",
+          "description": "The private key used for signing",
+          "type": {
+            "name": "PrivateKey",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PrivateKey"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "The generated signature or else a `crypto:Error` if the private key is invalid",
+        "type": {
+          "name": "byte[]|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "signSha256withEcdsa",
+      "type": "Normal Function",
+      "description": "Returns the SHA256withECDSA based signature value for the given data.\n```ballerina\nstring input \u003d \"Hello Ballerina\";\nbyte[] data \u003d input.toBytes();\ncrypto:KeyStore keyStore \u003d {\n    path: \"/path/to/keyStore.p12\",\n    password: \"keyStorePassword\"\n};\ncrypto:PrivateKey privateKey \u003d check crypto:decodeEcPrivateKeyFromKeyStore(keyStore, \"keyAlias\", \"keyPassword\");\nbyte[] signature \u003d check crypto:signSha256withEcdsa(data, privateKey);\n```\n",
+      "parameters": [
+        {
+          "name": "input",
+          "description": "The content to be signed as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "privateKey",
+          "description": "The private key used for signing",
+          "type": {
+            "name": "PrivateKey",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PrivateKey"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "The generated signature or else a `crypto:Error` if the private key is invalid",
+        "type": {
+          "name": "byte[]|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "verifyRsaMd5Signature",
+      "type": "Normal Function",
+      "description": "Verifies the RSA-MD5 based signature.\n```ballerina\nstring input \u003d \"Hello Ballerina\";\nbyte[] data \u003d input.toBytes();\ncrypto:KeyStore keyStore \u003d {\n    path: \"/path/to/keyStore.p12\",\n    password: \"keyStorePassword\"\n};\ncrypto:PrivateKey privateKey \u003d check crypto:decodeRsaPrivateKeyFromKeyStore(keyStore, \"keyAlias\", \"keyPassword\");\nbyte[] signature \u003d check crypto:signRsaMd5(data, privateKey);\ncrypto:PublicKey publicKey \u003d check crypto:decodeRsaPublicKeyFromTrustStore(keyStore, \"keyAlias\");\nboolean validity \u003d check crypto:verifyRsaMd5Signature(data, signature, publicKey);\n```\n",
+      "parameters": [
+        {
+          "name": "data",
+          "description": "The content to be verified as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "signature",
+          "description": "The signature value as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "publicKey",
+          "description": "The public key used for verification",
+          "type": {
+            "name": "PublicKey",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PublicKey"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "Validity of the signature or else a `crypto:Error` if the public key is invalid",
+        "type": {
+          "name": "boolean|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "verifyMlDsa65Signature",
+      "type": "Normal Function",
+      "description": "Verifies the MlDsa65 based signature.\n```ballerina\nstring input \u003d \"Hello Ballerina\";\nbyte[] data \u003d input.toBytes();\ncrypto:KeyStore keyStore \u003d {\n    path: \"/path/to/keyStore.p12\",\n    password: \"keyStorePassword\"\n};\ncrypto:PrivateKey privateKey \u003d check crypto:decodeMlDsa65PrivateKeyFromKeyStore(keyStore, \"keyAlias\", \"keyPassword\");\nbyte[] signature \u003d check crypto:signMlDsa65(data, privateKey);\ncrypto:PublicKey publicKey \u003d check crypto:decodeMlDsa65PublicKeyFromTrustStore(keyStore, \"keyAlias\");\nboolean validity \u003d check crypto:verifyMlDsa65Signature(data, signature, publicKey);\n```\n",
+      "parameters": [
+        {
+          "name": "data",
+          "description": "The content to be verified as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "signature",
+          "description": "The signature value as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "publicKey",
+          "description": "The public key used for verification",
+          "type": {
+            "name": "PublicKey",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PublicKey"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "Validity of the signature or else a `crypto:Error` if the public key is invalid",
+        "type": {
+          "name": "boolean|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "verifyRsaSha1Signature",
+      "type": "Normal Function",
+      "description": "Verifies the RSA-SHA1 based signature.\n```ballerina\nstring input \u003d \"Hello Ballerina\";\nbyte[] data \u003d input.toBytes();\ncrypto:KeyStore keyStore \u003d {\n    path: \"/path/to/keyStore.p12\",\n    password: \"keyStorePassword\"\n};\ncrypto:PrivateKey privateKey \u003d check crypto:decodeRsaPrivateKeyFromKeyStore(keyStore, \"keyAlias\", \"keyPassword\");\nbyte[] signature \u003d check crypto:signRsaSha1(data, privateKey);\ncrypto:PublicKey publicKey \u003d check crypto:decodeRsaPublicKeyFromTrustStore(keyStore, \"keyAlias\");\nboolean validity \u003d check crypto:verifyRsaSha1Signature(data, signature, publicKey);\n```\n",
+      "parameters": [
+        {
+          "name": "data",
+          "description": "The content to be verified as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "signature",
+          "description": "The signature value as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "publicKey",
+          "description": "The public key used for verification",
+          "type": {
+            "name": "PublicKey",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PublicKey"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "Validity of the signature or else a `crypto:Error` if the public key is invalid",
+        "type": {
+          "name": "boolean|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "verifyRsaSha256Signature",
+      "type": "Normal Function",
+      "description": "Verifies the RSA-SHA256 based signature.\n```ballerina\nstring input \u003d \"Hello Ballerina\";\nbyte[] data \u003d input.toBytes();\ncrypto:KeyStore keyStore \u003d {\n    path: \"/path/to/keyStore.p12\",\n    password: \"keyStorePassword\"\n};\ncrypto:PrivateKey privateKey \u003d check crypto:decodeRsaPrivateKeyFromKeyStore(keyStore, \"keyAlias\", \"keyPassword\");\nbyte[] signature \u003d check crypto:signRsaSha256(data, privateKey);\ncrypto:PublicKey publicKey \u003d check crypto:decodeRsaPublicKeyFromTrustStore(keyStore, \"keyAlias\");\nboolean validity \u003d check crypto:verifyRsaSha256Signature(data, signature, publicKey);\n```\n",
+      "parameters": [
+        {
+          "name": "data",
+          "description": "The content to be verified as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "signature",
+          "description": "The signature value as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "publicKey",
+          "description": "The public key used for verification",
+          "type": {
+            "name": "PublicKey",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PublicKey"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "Validity of the signature or else a `crypto:Error` if the public key is invalid",
+        "type": {
+          "name": "boolean|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "verifyRsaSha384Signature",
+      "type": "Normal Function",
+      "description": "Verifies the RSA-SHA384 based signature.\n```ballerina\nstring input \u003d \"Hello Ballerina\";\nbyte[] data \u003d input.toBytes();\ncrypto:KeyStore keyStore \u003d {\n    path: \"/path/to/keyStore.p12\",\n    password: \"keyStorePassword\"\n};\ncrypto:PrivateKey privateKey \u003d check crypto:decodeRsaPrivateKeyFromKeyStore(keyStore, \"keyAlias\", \"keyPassword\");\nbyte[] signature \u003d check crypto:signRsaSha384(data, privateKey);\ncrypto:PublicKey publicKey \u003d check crypto:decodeRsaPublicKeyFromTrustStore(keyStore, \"keyAlias\");\nboolean validity \u003d check crypto:verifyRsaSha384Signature(data, signature, publicKey);\n```\n",
+      "parameters": [
+        {
+          "name": "data",
+          "description": "The content to be verified as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "signature",
+          "description": "The signature value as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "publicKey",
+          "description": "The public key used for verification",
+          "type": {
+            "name": "PublicKey",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PublicKey"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "Validity of the signature or else a `crypto:Error` if the public key is invalid",
+        "type": {
+          "name": "boolean|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "verifyRsaSha512Signature",
+      "type": "Normal Function",
+      "description": "Verifies the RSA-SHA512 based signature.\n```ballerina\nstring input \u003d \"Hello Ballerina\";\nbyte[] data \u003d input.toBytes();\ncrypto:KeyStore keyStore \u003d {\n    path: \"/path/to/keyStore.p12\",\n    password: \"keyStorePassword\"\n};\ncrypto:PrivateKey privateKey \u003d check crypto:decodeRsaPrivateKeyFromKeyStore(keyStore, \"keyAlias\", \"keyPassword\");\nbyte[] signature \u003d check crypto:signRsaSha512(data, privateKey);\ncrypto:PublicKey publicKey \u003d check crypto:decodeRsaPublicKeyFromTrustStore(keyStore, \"keyAlias\");\nboolean validity \u003d check crypto:verifyRsaSha512Signature(data, signature, publicKey);\n```\n",
+      "parameters": [
+        {
+          "name": "data",
+          "description": "The content to be verified as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "signature",
+          "description": "The signature value as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "publicKey",
+          "description": "The public key used for verification",
+          "type": {
+            "name": "PublicKey",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PublicKey"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "Validity of the signature or else a `crypto:Error` if the public key is invalid",
+        "type": {
+          "name": "boolean|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "verifyRsaSsaPss256Signature",
+      "type": "Normal Function",
+      "description": "Verifies the RSASSA-PSS with SHA-256 based signature.\n```ballerina\nstring input \u003d \"Hello Ballerina\";\nbyte[] data \u003d input.toBytes();\ncrypto:KeyStore keyStore \u003d {\n    path: \"/path/to/keyStore.p12\",\n    password: \"keyStorePassword\"\n};\ncrypto:PrivateKey privateKey \u003d check crypto:decodeRsaPrivateKeyFromKeyStore(keyStore, \"keyAlias\", \"keyPassword\");\nbyte[] signature \u003d check crypto:signRsaSsaPss256(data, privateKey);\ncrypto:PublicKey publicKey \u003d check crypto:decodeRsaPublicKeyFromTrustStore(keyStore, \"keyAlias\");\nboolean validity \u003d check crypto:verifyRsaSsaPss256Signature(data, signature, publicKey);\n```\n",
+      "parameters": [
+        {
+          "name": "data",
+          "description": "The content to be verified",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "signature",
+          "description": "Signature value",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "publicKey",
+          "description": "Public key used for verification",
+          "type": {
+            "name": "PublicKey",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PublicKey"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "Validity of the signature or else a `crypto:Error` if the public key is invalid",
+        "type": {
+          "name": "boolean|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "verifySha384withEcdsaSignature",
+      "type": "Normal Function",
+      "description": "Verifies the SHA384withECDSA based signature.\n```ballerina\nstring input \u003d \"Hello Ballerina\";\nbyte[] data \u003d input.toBytes();\ncrypto:KeyStore keyStore \u003d {\n    path: \"/path/to/keyStore.p12\",\n    password: \"keyStorePassword\"\n};\ncrypto:PrivateKey privateKey \u003d check crypto:decodeEcPrivateKeyFromKeyStore(keyStore, \"keyAlias\", \"keyPassword\");\nbyte[] signature \u003d check crypto:signSha384withEcdsa(data, privateKey);\ncrypto:PublicKey publicKey \u003d check crypto:decodeEcPublicKeyFromTrustStore(keyStore, \"keyAlias\");\nboolean validity \u003d check crypto:verifySha384withEcdsaSignature(data, signature, publicKey);\n```\n",
+      "parameters": [
+        {
+          "name": "data",
+          "description": "The content to be verified as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "signature",
+          "description": "The signature value as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "publicKey",
+          "description": "The public key used for verification",
+          "type": {
+            "name": "PublicKey",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PublicKey"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "Validity of the signature or else a `crypto:Error` if the public key is invalid",
+        "type": {
+          "name": "boolean|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "verifySha256withEcdsaSignature",
+      "type": "Normal Function",
+      "description": "Verifies the SHA256withECDSA based signature.\n```ballerina\nstring input \u003d \"Hello Ballerina\";\nbyte[] data \u003d input.toBytes();\ncrypto:KeyStore keyStore \u003d {\n    path: \"/path/to/keyStore.p12\",\n    password: \"keyStorePassword\"\n};\ncrypto:PrivateKey privateKey \u003d check crypto:decodeEcPrivateKeyFromKeyStore(keyStore, \"keyAlias\", \"keyPassword\");\nbyte[] signature \u003d check crypto:signSha256withEcdsa(data, privateKey);\ncrypto:PublicKey publicKey \u003d check crypto:decodeEcPublicKeyFromTrustStore(keyStore, \"keyAlias\");\nboolean validity \u003d check crypto:verifySha256withEcdsaSignature(data, signature, publicKey);\n```\n",
+      "parameters": [
+        {
+          "name": "data",
+          "description": "The content to be verified as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "signature",
+          "description": "The signature value as a byte array",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "publicKey",
+          "description": "The public key used for verification",
+          "type": {
+            "name": "PublicKey",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PublicKey"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "Validity of the signature or else a `crypto:Error` if the public key is invalid",
+        "type": {
+          "name": "boolean|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "equalConstantTime",
+      "type": "Normal Function",
+      "description": "Compares two hash values in constant time.\n",
+      "parameters": [
+        {
+          "name": "value",
+          "description": "The hash value to compare, provided as a byte array or string",
+          "type": {
+            "name": "HashValue",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "HashValue"
+              }
+            ]
+          }
+        },
+        {
+          "name": "expectedValue",
+          "description": "The expected hash value to compare against, provided as a byte array or string",
+          "type": {
+            "name": "HashValue",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "HashValue"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "`true` if the two values are equal, `false` otherwise",
+        "type": {
+          "name": "boolean"
+        }
+      }
+    }
+  ],
+  "services": [],
+  "annotations": []
+}

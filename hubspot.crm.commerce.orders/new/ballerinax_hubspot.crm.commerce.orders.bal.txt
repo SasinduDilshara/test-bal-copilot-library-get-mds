@@ -1,0 +1,786 @@
+// ============================================================
+// Library: ballerinax/hubspot.crm.commerce.orders
+// [HubSpot](https://www.hubspot.com) is an AI-powered customer relationship management (CRM) platform.
+// ============================================================
+import ballerinax/hubspot.crm.commerce.orders;
+
+// --- README ---
+## Overview
+
+[HubSpot](https://www.hubspot.com) is an AI-powered customer relationship management (CRM) platform.
+
+The HubSpot connector offers APIs to connect and interact with [HubSpot API for CRM Commerce Orders](https://developers.hubspot.com/docs/reference/api/crm/commerce/orders) endpoints, specifically based on [HubSpot CRM Commerce Orders REST API](https://developers.hubspot.com/docs/reference/api).
+
+### Key Features
+
+- Create, read, update, and delete order records in HubSpot CRM
+- Batch operations for bulk order management
+- Search orders with filtering support
+- Manage order associations with other CRM objects
+
+## Setup guide
+
+To use the HubSpot Commerce Orders connector, you must have access to the HubSpot API through a HubSpot developer account and a HubSpot App under it. Therefore you need to register for a developer account at HubSpot if you don't have one already.
+
+### Step 1: Create/Login to a HubSpot Developer Account
+
+If you have an account already, go to the [HubSpot developer portal](https://app.hubspot.com/)
+
+If you don't have a HubSpot Developer Account you can sign up to a free account [here](https://developers.hubspot.com/get-started)
+
+### Step 2 (Optional): Create a Developer Test Account
+
+Within app developer accounts, you can create [developer test account](https://developers.hubspot.com/beta-docs/getting-started/account-types#developer-test-accounts) under your account to test apps and integrations without affecting any real HubSpot data.
+
+>**Note:** These accounts are only for development and testing purposes. In production you should not use Developer Test Accounts.
+
+1. Go to Test Account section from the left sidebar.
+
+   ![Hubspot Developer Portal](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.commerce.orders/main/docs/setup/resources/test_acc_1.png)
+
+2. Click Create developer test account.
+
+   ![Hubspot Developer Test Account](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.commerce.orders/main/docs/setup/resources/test_acc_2.png)
+
+3. In the dialogue box, give a name to your test account and click create.
+
+   ![Hubspot Developer Test Account](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.commerce.orders/main/docs/setup/resources/test_acc_3.png)
+
+### Step 3: Create a HubSpot App under your account
+
+1. In your developer account, navigate to the "Apps" section. Click on "Create App"
+
+   ![Hubspot Create App](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.commerce.orders/main/docs/setup/resources/create_app_1.png)
+
+2. Provide the necessary details, including the app name and description.
+
+### Step 4: Configure the Authentication Flow
+
+1. Move to the Auth Tab. (Second tab next to App Info)
+
+   ![Hubspot Developer Config Auth](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.commerce.orders/main/docs/setup/resources/auth_section.png)
+
+2. In the Scopes section, add the following scope for your app using the "Add new scope" button.
+
+   - `crm.objects.orders.read`
+   - `crm.objects.orders.write`
+   - `crm.objects.deals.read`
+   - `crm.objects.deals.write`
+   - `crm.objects.carts.read`
+   - `crm.objects.commercepayments.read`
+   - `crm.objects.companies.read`
+   - `crm.objects.contacts.read`
+   - `crm.objects.invoices.read`
+   - `crm.objects.line_items.read`
+   - `crm.objects.quotes.read`
+   - `crm.objects.subscriptions.read`
+
+   ![Hubspot Developer App Add Scopes](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.commerce.orders/main/docs/setup/resources/scopes.png)
+
+3. Add your Redirect URI in the relevant section. You can also use `localhost` addresses for local development purposes. Click Create App.
+
+   ![Hubspot Create Developer App](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.commerce.orders/main/docs/setup/resources/create_app_final.png)
+
+### Step 5: Get your Client ID and Client Secret
+
+- Navigate to the Auth section of your app. Make sure to save the provided Client ID and Client Secret.
+
+  ![Hubspot Get Credentials](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.commerce.orders/main/docs/setup/resources/get_credentials.png)
+
+### Step 6: Setup Authentication Flow
+
+Before proceeding with the Quickstart, ensure you have obtained the Access Token using the following steps:
+
+1. Create an authorization URL using the following format:
+
+   ```
+   https://app.hubspot.com/oauth/authorize?client_id=<YOUR_CLIENT_ID>&scope=<YOUR_SCOPES>&redirect_uri=<YOUR_REDIRECT_URI>
+   ```
+
+   Replace the `<YOUR_CLIENT_ID>`, `<YOUR_REDIRECT_URI>`, and `<YOUR_SCOPES>` with your specific value.
+
+   ![Hubspot Get Auth Code](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.commerce.orders/main/docs/setup/resources/install_app.png)
+
+2. A code will be displayed in the browser. Copy the code.
+
+3. Run the following curl command. Replace the `<YOUR_CLIENT_ID>`, `<YOUR_REDIRECT_URI>`, and `<YOUR_CLIENT_SECRET>` with your specific value. Use the code you received in the above step 3 as the `<CODE>`.
+
+   - Linux/macOS
+
+     ```bash
+     curl --request POST \
+     --url https://api.hubapi.com/oauth/v1/token \
+     --header 'content-type: application/x-www-form-urlencoded' \
+     --data 'grant_type=authorization_code&code=<CODE>&redirect_uri=<YOUR_REDIRECT_URI>&client_id=<YOUR_CLIENT_ID>&client_secret=<YOUR_CLIENT_SECRET>'
+     ```
+
+   - Windows
+
+     ```bash
+     curl --request POST ^
+     --url https://api.hubapi.com/oauth/v1/token ^
+     --header 'content-type: application/x-www-form-urlencoded' ^
+     --data 'grant_type=authorization_code&code=<CODE>&redirect_uri=<YOUR_REDIRECT_URI>&client_id=<YOUR_CLIENT_ID>&client_secret=<YOUR_CLIENT_SECRET>'
+     ```
+
+   This command will return the access token necessary for API calls.
+
+   ```json
+   {
+     "token_type": "bearer",
+     "refresh_token": "<Refresh Token>",
+     "access_token": "<Access Token>",
+     "expires_in": 1800
+   }
+   ```
+
+4. Store the access token securely for use in your application.
+
+## Quickstart
+
+To use the `HubSpot Commerce Orders` connector in your Ballerina application, update the `.bal` file as follows:
+
+### Step 1: Import the module
+
+Import the `hubspot.crm.commerce.orders` module and `oauth2` module.
+
+```ballerina
+import ballerina/oauth2;
+import ballerinax/hubspot.crm.commerce.orders as orders;
+```
+
+### Step 2: Instantiate a new connector
+
+1. Create a `Config.toml` file and, configure the obtained credentials in the above steps as follows:
+
+   ```toml
+    clientId = <Client Id>
+    clientSecret = <Client Secret>
+    refreshToken = <Refresh Token>
+   ```
+
+2. Instantiate a `orders:ConnectionConfig` with the obtained credentials and initialize the connector with it.
+
+   ```ballerina
+   configurable string clientId = ?;
+   configurable string clientSecret = ?;
+   configurable string refreshToken = ?;
+
+   final orders:ConnectionConfig config = {
+       auth : {
+           clientId,
+           clientSecret,
+           refreshToken,
+           credentialBearer: oauth2:POST_BODY_BEARER
+       }
+   };
+   final orders:Client baseClient = check new (config);
+   ```
+
+### Step 3: Invoke the connector operation
+
+Now, utilize the available connector operations. A sample use case is shown below.
+
+#### Read an order by ID
+
+```ballerina
+public function main() returns error? {
+     orders:CollectionResponseSimplePublicObjectWithAssociationsForwardPaging listOfOrdersResponse = check baseClient->/orders;
+}
+```
+
+## Examples
+
+The `HubSpot CRM Commerce Orders` connector provides practical examples illustrating usage in various scenarios. Explore these [examples](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.commerce.orders/tree/main/examples/), covering the following use cases:
+
+1. [Batch Operations](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.commerce.orders/tree/main/examples/batch-operations) - Perform Batch operations on Orders in HubSpot
+2. [Order Management](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.commerce.orders/tree/main/examples/order-management) - Perform CRUD operations on Orders in HubSpot
+3. [Search Operation](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.commerce.orders/tree/main/examples/search-operation) - Perform Search operations on Orders in HubSpot
+
+// --- END README ---
+
+// --- Types ---
+
+# Standard error response structure returned by the Orders API
+
+type StandardError record {
+    # Optional sub-category providing additional error classification
+    record {|anydata...;|} subCategory?;
+    # Contextual metadata map with string array values for the error
+    record {|string[]...;|} context;
+    # Map of relevant links associated with the error response
+    record {|string...;|} links;
+    # Unique identifier for the error instance
+    string id?;
+    # High-level category classifying the type of error
+    string category;
+    # Human-readable message describing the error
+    string message;
+    # List of detailed error objects providing granular error info
+    ErrorDetail[] errors;
+    # HTTP status code or status string associated with the error
+    string status;
+};
+
+# Detailed information about a specific error encountered during a request
+
+type ErrorDetail record {
+    # A specific category that contains more specific detail about the error
+    string subCategory?;
+    # The status code associated with the error detail
+    string code?;
+    # The name of the field or parameter in which the error was found
+    string 'in?;
+    # Context about the error condition
+    record {|string[]...;|} context?;
+    # A human readable message describing the error along with remediation steps where appropriate
+    string message;
+};
+
+# Represents the Queries record for the operation: get-/crm/v3/objects/orders/{orderId}
+
+type GetCrmV3ObjectsOrdersOrderIdQueries record {
+    # A comma separated list of object types to retrieve associated IDs for. If any of the specified associations do not exist, they will be ignored
+    string[] associations?;
+    # Whether to return only results that have been archived
+    boolean archived?;
+    # A comma separated list of the properties to be returned along with their history of previous values. If any of the specified properties are not present on the requested object(s), they will be ignored
+    string[] propertiesWithHistory?;
+    # The name of a property whose values are unique for this object type
+    string idProperty?;
+    # A comma separated list of the properties to be returned in the response. If any of the specified properties are not present on the requested object(s), they will be ignored
+    string[] properties?;
+};
+
+# Paginated collection of associated object IDs
+
+type CollectionResponseAssociatedId record {
+    # Pagination object containing cursors for navigating to the next or previous result page
+    Paging paging?;
+    # Array of associated object IDs returned in the response
+    AssociatedId[] results;
+};
+
+# Pagination object containing cursors for navigating to the next or previous result page
+
+type Paging record {
+    # Pagination cursor details for retrieving the next page of results
+    NextPage next?;
+    # Pagination cursor details for navigating to the previous page of results
+    PreviousPage prev?;
+};
+
+# Pagination cursor details for retrieving the next page of results
+
+type NextPage record {
+    # The URL query string to fetch the next page of results
+    string link?;
+    # The cursor token used to retrieve the next page of results
+    string after;
+};
+
+# Pagination cursor details for navigating to the previous page of results
+
+type PreviousPage record {
+    # The cursor token representing the start of the previous page
+    string before;
+    # The URL link to retrieve the previous page of results
+    string link?;
+};
+
+# Represents an associated object's ID and association type
+
+type AssociatedId record {
+    # The unique identifier of the associated object
+    string id;
+    # The type of association between the objects
+    string 'type;
+};
+
+# Represents the Queries record for the operation: get-/crm/v3/objects/orders
+
+type GetCrmV3ObjectsOrdersQueries record {
+    # A comma separated list of object types to retrieve associated IDs for. If any of the specified associations do not exist, they will be ignored
+    string[] associations?;
+    # Whether to return only results that have been archived
+    boolean archived?;
+    # A comma separated list of the properties to be returned along with their history of previous values. If any of the specified properties are not present on the requested object(s), they will be ignored. Usage of this parameter will reduce the maximum number of objects that can be read by a single request
+    string[] propertiesWithHistory?;
+    # The maximum number of results to display per page
+    int:Signed32 'limit?;
+    # The paging cursor token of the last successfully read resource will be returned as the `paging.next.after` JSON property of a paged response containing more results
+    string after?;
+    # A comma separated list of the properties to be returned in the response. If any of the specified properties are not present on the requested object(s), they will be ignored
+    string[] properties?;
+};
+
+# Defines association targets and their types for a given object
+
+type PublicAssociationsForObject record {
+    # List of association type specifications for the relationship
+    AssociationSpec[] types;
+    # Represents a public object identifier containing a unique ID string
+    PublicObjectId to;
+};
+
+# Defines the category and type of an association between two objects
+
+type AssociationSpec record {
+    # Category of the association: HUBSPOT_DEFINED, USER_DEFINED, or INTEGRATOR_DEFINED
+    "HUBSPOT_DEFINED"|"USER_DEFINED"|"INTEGRATOR_DEFINED" associationCategory;
+    # Numeric identifier for the specific association type
+    int:Signed32 associationTypeId;
+};
+
+# Represents a public object identifier containing a unique ID string
+
+type PublicObjectId record {
+    # Unique identifier of the public object
+    string id;
+};
+
+# Batch operation response containing results and processing status
+
+type BatchResponseSimplePublicObject record {
+    # Timestamp indicating when the batch operation completed
+    string completedAt;
+    # Timestamp indicating when the batch operation was requested
+    string requestedAt?;
+    # Timestamp indicating when the batch operation started processing
+    string startedAt;
+    # Map of relevant links associated with the batch response
+    record {|string...;|} links?;
+    # Array of order objects returned by the batch operation
+    SimplePublicObject[] results;
+    # Current processing status of the batch request
+    "PENDING"|"PROCESSING"|"CANCELED"|"COMPLETE" status;
+};
+
+# Represents a single order object with its properties, metadata, and optional history
+
+type SimplePublicObject record {
+    # Timestamp when the order was created
+    string createdAt;
+    # Indicates whether the order is archived
+    boolean archived?;
+    # Timestamp when the order was archived
+    string archivedAt?;
+    # Map of order properties including their historical values with timestamps
+    record {|ValueWithTimestamp[]...;|} propertiesWithHistory?;
+    # Unique identifier of the order object
+    string id;
+    # Map of order property names to their current values
+    record {|string?...;|} properties;
+    # Timestamp when the order was last updated
+    string updatedAt;
+};
+
+# A property value paired with its source metadata and the timestamp of the last update
+
+type ValueWithTimestamp record {
+    # Identifier of the source that set this value
+    string sourceId?;
+    # Type of source that originated this value
+    string sourceType;
+    # Human-readable label describing the value's source
+    string sourceLabel?;
+    # ID of the user who last updated this value
+    int:Signed32 updatedByUserId?;
+    # The property value as a string
+    string value;
+    # Timestamp indicating when the value was last updated
+    string timestamp;
+};
+
+# A logical grouping of filters applied together when searching orders
+
+type FilterGroup record {
+    # Array of filter conditions within this group
+    Filter[] filters;
+};
+
+# Defines a filter condition using a property, operator, and comparison value
+
+type Filter record {
+    # Upper bound value used with the BETWEEN operator
+    string highValue?;
+    # The name of the property to filter by
+    string propertyName;
+    # A list of values to match against the filter property
+    string[] values?;
+    # The single value to match against the filter property
+    string value?;
+    # The comparison operator used to evaluate the filter condition
+    "EQ"|"NEQ"|"LT"|"LTE"|"GT"|"GTE"|"BETWEEN"|"IN"|"NOT_IN"|"HAS_PROPERTY"|"NOT_HAS_PROPERTY"|"CONTAINS_TOKEN"|"NOT_CONTAINS_TOKEN" operator;
+};
+
+# Pagination metadata for forward-only cursor-based navigation
+
+type ForwardPaging record {
+    # Pagination cursor details for retrieving the next page of results
+    NextPage next?;
+};
+
+# A minimal object representation containing only a unique identifier
+
+type SimplePublicObjectId record {
+    # The unique identifier of the object
+    string id;
+};
+
+# Batch upsert response including results, errors, and processing status details
+
+type BatchResponseSimplePublicUpsertObjectWithErrors record {
+    # Timestamp when the batch operation completed
+    string completedAt;
+    # Total number of errors encountered during the batch operation
+    int:Signed32 numErrors?;
+    # Timestamp when the batch operation was requested
+    string requestedAt?;
+    # Timestamp when the batch operation began processing
+    string startedAt;
+    # Map of relevant hyperlinks associated with the batch response
+    record {|string...;|} links?;
+    # Array of successfully upserted order objects
+    SimplePublicUpsertObject[] results;
+    # Array of errors encountered for individual records in the batch
+    StandardError[] errors?;
+    # Current processing status of the batch upsert request
+    "PENDING"|"PROCESSING"|"CANCELED"|"COMPLETE" status;
+};
+
+# Represents an order object returned after an upsert operation, including metadata and property values
+
+type SimplePublicUpsertObject record {
+    # The timestamp when the object was created
+    string createdAt;
+    # Indicates whether the object is archived
+    boolean archived?;
+    # The timestamp when the object was archived
+    string archivedAt?;
+    # Indicates whether the object was newly created by the upsert
+    boolean 'new;
+    # A map of property names to their historical values with timestamps
+    record {|ValueWithTimestamp[]...;|} propertiesWithHistory?;
+    # The unique identifier of the object
+    string id;
+    # A map of property names to their current string values
+    record {|string...;|} properties;
+    # The timestamp when the object was last updated
+    string updatedAt;
+};
+
+# Input payload for batch reading orders by ID, including requested properties
+
+type BatchReadInputSimplePublicObjectId record {
+    # List of properties for which historical values should be returned
+    string[] propertiesWithHistory;
+    # The property to use as the unique identifier for lookup
+    string idProperty?;
+    # List of object IDs to retrieve in the batch read
+    SimplePublicObjectId[] inputs;
+    # List of property names to include in the response
+    string[] properties;
+};
+
+# Response object containing the status, timing, and results of a batch upsert operation
+
+type BatchResponseSimplePublicUpsertObject record {
+    # Timestamp indicating when the batch operation completed
+    string completedAt;
+    # Timestamp indicating when the batch operation was requested
+    string requestedAt?;
+    # Timestamp indicating when the batch operation started
+    string startedAt;
+    # Map of relevant links associated with the batch response
+    record {|string...;|} links?;
+    # List of upserted objects returned by the batch operation
+    SimplePublicUpsertObject[] results;
+    # Current processing status of the batch operation
+    "PENDING"|"PROCESSING"|"CANCELED"|"COMPLETE" status;
+};
+
+# Input schema containing a list of object IDs for a batch operation
+
+type BatchInputSimplePublicObjectId record {
+    # List of object IDs to process in the batch operation
+    SimplePublicObjectId[] inputs;
+};
+
+# OAuth2 Refresh Token Grant Configs
+
+type OAuth2RefreshTokenGrantConfig record {
+    # Refresh URL
+    string refreshUrl?;
+    string refreshToken;
+    string clientId;
+    string clientSecret;
+    string|string[] scopes?;
+    decimal defaultTokenExpTime?;
+    decimal clockSkew?;
+    map<string> optionalParams?;
+    oauth2:CredentialBearer credentialBearer?; // Special Agent Note: CredentialBearer FROM ballerina/oauth2 package
+    oauth2:ClientConfiguration clientConfig?; // Special Agent Note: ClientConfiguration FROM ballerina/oauth2 package
+};
+
+# Represents the Queries record for the operation: post-/crm/v3/objects/orders/batch/read
+
+type PostCrmV3ObjectsOrdersBatchReadQueries record {
+    # Whether to return only results that have been archived
+    boolean archived?;
+};
+
+# Input schema containing a list of objects to create or update in a batch upsert operation
+
+type BatchInputSimplePublicObjectBatchInputUpsert record {
+    # Array of order objects to upsert in batch
+    SimplePublicObjectBatchInputUpsert[] inputs;
+};
+
+# Input object for upserting an order, containing an identifier and a map of property values
+
+type SimplePublicObjectBatchInputUpsert record {
+    # The property name used as the unique identifier for the upsert
+    string idProperty?;
+    # Trace identifier for tracking the write operation
+    string objectWriteTraceId?;
+    # The unique identifier of the order to upsert
+    string id;
+    # Key-value map of order property names and their values
+    record {|string...;|} properties;
+};
+
+# A paginated collection of order objects with a total count and forward paging cursor
+
+type CollectionResponseWithTotalSimplePublicObjectForwardPaging record {
+    # Total number of orders matching the request
+    int:Signed32 total;
+    # Pagination metadata for forward-only cursor-based navigation
+    ForwardPaging paging?;
+    # Array of order objects returned in the current page
+    SimplePublicObject[] results;
+};
+
+# Provides a set of configurations for controlling the behaviours when communicating with a remote HTTP endpoint
+
+@display {label: "Connection Config"}
+type ConnectionConfig record {
+    # Provides Auth configurations needed when communicating with a remote HTTP endpoint
+    http:BearerTokenConfig|OAuth2RefreshTokenGrantConfig|ApiKeysConfig auth; // Special Agent Note: BearerTokenConfig FROM ballerina/http package
+    # The HTTP version understood by the client
+    http:HttpVersion httpVersion?; // Special Agent Note: HttpVersion FROM ballerina/http package
+    # Configurations related to HTTP/1.x protocol
+    http:ClientHttp1Settings http1Settings?; // Special Agent Note: ClientHttp1Settings FROM ballerina/http package
+    # Configurations related to HTTP/2 protocol
+    http:ClientHttp2Settings http2Settings?; // Special Agent Note: ClientHttp2Settings FROM ballerina/http package
+    # The maximum time to wait (in seconds) for a response before closing the connection
+    decimal timeout?;
+    # The choice of setting `forwarded`/`x-forwarded` header
+    string forwarded?;
+    # Configurations associated with Redirection
+    http:FollowRedirects followRedirects?; // Special Agent Note: FollowRedirects FROM ballerina/http package
+    # Configurations associated with request pooling
+    http:PoolConfiguration poolConfig?; // Special Agent Note: PoolConfiguration FROM ballerina/http package
+    # HTTP caching related configurations
+    http:CacheConfig cache?; // Special Agent Note: CacheConfig FROM ballerina/http package
+    # Specifies the way of handling compression (`accept-encoding`) header
+    http:Compression compression?; // Special Agent Note: Compression FROM ballerina/http package
+    # Configurations associated with the behaviour of the Circuit Breaker
+    http:CircuitBreakerConfig circuitBreaker?; // Special Agent Note: CircuitBreakerConfig FROM ballerina/http package
+    # Configurations associated with retrying
+    http:RetryConfig retryConfig?; // Special Agent Note: RetryConfig FROM ballerina/http package
+    # Configurations associated with cookies
+    http:CookieConfig cookieConfig?; // Special Agent Note: CookieConfig FROM ballerina/http package
+    # Configurations associated with inbound response size limits
+    http:ResponseLimitConfigs responseLimits?; // Special Agent Note: ResponseLimitConfigs FROM ballerina/http package
+    # SSL/TLS-related options
+    http:ClientSecureSocket secureSocket?; // Special Agent Note: ClientSecureSocket FROM ballerina/http package
+    # Proxy server related options
+    http:ProxyConfig proxy?; // Special Agent Note: ProxyConfig FROM ballerina/http package
+    # Provides settings related to client socket configuration
+    http:ClientSocketConfig socketConfig?; // Special Agent Note: ClientSocketConfig FROM ballerina/http package
+    # Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default
+    boolean validation?;
+    # Enables relaxed data binding on the client side. When enabled, `nil` values are treated as optional, 
+and absent fields are handled as `nilable` types. Enabled by default
+    boolean laxDataBinding?;
+};
+
+# Provides API key configurations needed when communicating with a remote HTTP endpoint
+
+type ApiKeysConfig record {
+    string privateAppLegacy;
+    string privateApp;
+};
+
+# Request payload for searching orders with filters, sorting, and pagination options
+
+type PublicObjectSearchRequest record {
+    # Full-text search query string to match against order records
+    string query?;
+    # Maximum number of results to return in the response
+    int:Signed32 'limit?;
+    # Cursor token for retrieving the next page of results
+    string after?;
+    # List of property names to sort results by
+    string[] sorts?;
+    # List of property names to include in the response
+    string[] properties?;
+    # Groups of filters to apply when narrowing search results
+    FilterGroup[] filterGroups?;
+};
+
+# Batch operation response containing results, status, timestamps, and any errors encountered
+
+type BatchResponseSimplePublicObjectWithErrors record {
+    # Timestamp indicating when the batch operation completed
+    string completedAt;
+    # Total number of errors encountered during the batch operation
+    int:Signed32 numErrors?;
+    # Timestamp indicating when the batch operation was requested
+    string requestedAt?;
+    # Timestamp indicating when the batch operation started processing
+    string startedAt;
+    # Map of relevant link names to associated URIs for the response
+    record {|string...;|} links?;
+    # List of successfully processed order objects from the batch
+    SimplePublicObject[] results;
+    # List of errors encountered for individual records in the batch
+    StandardError[] errors?;
+    # Current processing status of the batch operation
+    "PENDING"|"PROCESSING"|"CANCELED"|"COMPLETE" status;
+};
+
+# Input schema for creating or updating an order object with properties and associations
+
+type SimplePublicObjectInput record {
+    # Trace identifier for tracking the write operation
+    string objectWriteTraceId?;
+    # Key-value map of order property names and their string values
+    record {|string...;|} properties;
+};
+
+# Paginated collection of order objects including their associated records
+
+type CollectionResponseSimplePublicObjectWithAssociationsForwardPaging record {
+    # Pagination metadata for forward-only cursor-based navigation
+    ForwardPaging paging?;
+    # Array of order objects returned in the current page
+    SimplePublicObjectWithAssociations[] results;
+};
+
+# An order object including its properties, metadata, and associated records
+
+type SimplePublicObjectWithAssociations record {
+    # Map of associated object collections keyed by association type
+    record {|CollectionResponseAssociatedId...;|} associations?;
+    # Timestamp when the order record was created
+    string createdAt;
+    # Indicates whether the order record is archived
+    boolean archived?;
+    # Timestamp when the order record was archived
+    string archivedAt?;
+    # Map of property names to their historical values with timestamps
+    record {|ValueWithTimestamp[]...;|} propertiesWithHistory?;
+    # Unique identifier of the order record
+    string id;
+    # Key-value map of the order's current property names and values
+    record {|string?...;|} properties;
+    # Timestamp when the order record was last updated
+    string updatedAt;
+};
+
+# Represents the Queries record for the operation: patch-/crm/v3/objects/orders/{orderId}
+
+type PatchCrmV3ObjectsOrdersOrderIdQueries record {
+    # The name of a property whose values are unique for this object type
+    string idProperty?;
+};
+
+# A batch input wrapper containing an array of objects to create
+
+type BatchInputSimplePublicObjectInputForCreate record {
+    # An array of objects to be created in the batch operation
+    SimplePublicObjectInputForCreate[] inputs;
+};
+
+# Input schema for creating a new order with properties and associations
+
+type SimplePublicObjectInputForCreate record {
+    # List of associated objects to link to the new order
+    PublicAssociationsForObject[] associations;
+    # Trace ID for tracking the write operation
+    string objectWriteTraceId?;
+    # Key-value pairs of order properties to set on creation
+    record {|string...;|} properties;
+};
+
+# A batch input wrapper containing an array of objects to update
+
+type BatchInputSimplePublicObjectBatchInput record {
+    # An array of objects to be updated in the batch operation
+    SimplePublicObjectBatchInput[] inputs;
+};
+
+# Input schema for updating a single order in a batch operation
+
+type SimplePublicObjectBatchInput record {
+    # The property name used as the unique identifier for the order
+    string idProperty?;
+    # Trace ID for tracking the write operation
+    string objectWriteTraceId?;
+    # The unique identifier of the order to update
+    string id;
+    # Key-value pairs of order properties to update
+    record {|string...;|} properties;
+};
+
+// --- Client ---
+
+client class Client {
+    function init(ConnectionConfig config, string serviceUrl = "https://api.hubapi.com/crm/v3/objects/orders") returns error?;
+
+    # Read a batch of orders by ID
+    # 
+    resource function post batch/read(BatchReadInputSimplePublicObjectId payload, map<string|string[]> headers = {}, boolean archived = false, PostCrmV3ObjectsOrdersBatchReadQueries queries) returns BatchResponseSimplePublicObject|BatchResponseSimplePublicObjectWithErrors|error;
+
+    # Retrieve an order by ID
+    # 
+    resource function get [string orderId](map<string|string[]> headers = {}, string[] associations = [], boolean archived = false, string[] propertiesWithHistory = [], string idProperty = "", string[] properties = [], GetCrmV3ObjectsOrdersOrderIdQueries queries) returns SimplePublicObjectWithAssociations|error;
+
+    # Archive an order by ID
+    # 
+    resource function delete [string orderId](map<string|string[]> headers = {}) returns error?;
+
+    # Update an order by ID
+    # 
+    resource function patch [string orderId](SimplePublicObjectInput payload, map<string|string[]> headers = {}, string idProperty = "", PatchCrmV3ObjectsOrdersOrderIdQueries queries) returns SimplePublicObject|error;
+
+    # Archive a batch of orders by ID
+    # 
+    resource function post batch/archive(BatchInputSimplePublicObjectId payload, map<string|string[]> headers = {}) returns error?;
+
+    # Create a batch of orders
+    # 
+    resource function post batch/create(BatchInputSimplePublicObjectInputForCreate payload, map<string|string[]> headers = {}) returns BatchResponseSimplePublicObject|BatchResponseSimplePublicObjectWithErrors|error;
+
+    # Update a batch of orders
+    # 
+    resource function post batch/update(BatchInputSimplePublicObjectBatchInput payload, map<string|string[]> headers = {}) returns BatchResponseSimplePublicObject|BatchResponseSimplePublicObjectWithErrors|error;
+
+    # List all orders
+    # 
+    resource function get (map<string|string[]> headers = {}, string[] associations = [], boolean archived = false, string[] propertiesWithHistory = [], int:Signed32 limit = 0, string after = "", string[] properties = [], GetCrmV3ObjectsOrdersQueries queries) returns CollectionResponseSimplePublicObjectWithAssociationsForwardPaging|error;
+
+    # Create a new order
+    # 
+    resource function post (SimplePublicObjectInputForCreate payload, map<string|string[]> headers = {}) returns SimplePublicObject|error;
+
+    # Upsert orders by property values
+    # 
+    resource function post batch/upsert(BatchInputSimplePublicObjectBatchInputUpsert payload, map<string|string[]> headers = {}) returns BatchResponseSimplePublicUpsertObject|BatchResponseSimplePublicUpsertObjectWithErrors|error;
+
+    # Search orders
+    # 
+    resource function post search(PublicObjectSearchRequest payload, map<string|string[]> headers = {}) returns CollectionResponseWithTotalSimplePublicObjectForwardPaging|error;
+}

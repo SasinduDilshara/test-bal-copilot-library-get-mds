@@ -1,0 +1,6149 @@
+{
+  "name": "ballerinax/paypal.subscriptions",
+  "description": "[PayPal](https://www.paypal.com/) is a global online payment platform that enables individuals and businesses to securely send and receive money, process transactions, and access merchant services.",
+  "readme": "## Overview\n\n[PayPal](https://www.paypal.com/) is a global online payment platform that enables individuals and businesses to securely send and receive money, process transactions, and access merchant services.\n\nThe PayPal Subscriptions connector offers APIs to connect and interact with the [PayPal Subscriptions API v1](https://developer.paypal.com/docs/api/subscriptions/v1/), enabling the creation, management, and monitoring of subscription-based billing plans and subscriptions.\n\n### Key Features\n\n- Create and manage subscription plans programmatically\n- Support for PayPal Subscriptions API v1\n- Monitor and track recurring billing status\n- Manage customer subscriptions and payment cycles\n\n## Setup Guide\n\nTo use the PayPal Subscriptions connector, you must have access to a [PayPal Developer account](https://developer.paypal.com/).\n\n### Step 1: Create a business account\n\n1. Open the [PayPal Developer Dashboard](https://developer.paypal.com/dashboard).\n\n   ![Sandbox accounts](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-paypal.subscriptions/main/docs/setup/resources/sandbox-accounts.png)\n\n3. Create a business account.\n   \u003e **Note:** Some PayPal options and features may vary by region or country; check availability before creating an account.\n\n   ![Create business account](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-paypal.subscriptions/main/docs/setup/resources/create-account.png)\n\n### Step 2: Create a REST API app\n\n1. Navigate to the \"Apps and Credentials\" tab and create a new merchant app.\n2. Provide a name for the application and select the Business account created earlier.\n   ![Create app](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-paypal.subscriptions/main/docs/setup/resources/create-app.png)\n\n### Step 3: Obtain Client ID and Client Secret\n\n1. After creating the app, you will see your **Client ID** and **Client Secret**. Copy and securely store these credentials.\n\n   ![Credentials](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-paypal.subscriptions/main/docs/setup/resources/get-credentials.png)\n\n## Quickstart\n\nTo use the `paypal.subscriptions` connector in your Ballerina application, update the `.bal` file as follows:\n\n### Step 1: Import the module\n\nImport the `paypal.subscriptions` module.\n\n```ballerina\nimport ballerinax/paypal.subscriptions as paypal;\n```\n\n### Step 2: Instantiate a new connector\n\n1. Create a `Config.toml` file and configure the obtained credentials and URLs:\n   ```toml\n   clientId \u003d \"\u003cyour-client-id\u003e\"\n   clientSecret \u003d \"\u003cyour-client-secret\u003e\"\n\n   serviceUrl \u003d \"\u003cpaypal-service-url\u003e\"\n   tokenUrl \u003d \"\u003cpaypal-token-url\u003e\"\n   ```\n\n2. Create a `paypal:ConnectionConfig` with the credentials and initialize the connector:\n   ```ballerina\n   configurable string clientId \u003d ?;\n   configurable string clientSecret \u003d ?;\n   configurable string serviceUrl \u003d ?;\n   configurable string tokenUrl \u003d ?;\n\n   final paypal:Client paypal \u003d check new ({\n       auth: {\n           clientId,\n           clientSecret,\n           tokenUrl\n       }\n   }, serviceUrl);\n   ```\n\n### Step 3: Invoke a connector operation\n\n#### Create a subscription plan\n\n```ballerina\npublic function main() returns error? {\n    paypal:PlanRequestPOST plan \u003d {\n        product_id: \"PROD-1234567890\",\n        name: \"Basic Subscription Plan\",\n        status: \"ACTIVE\",\n        billing_cycles: [\n            {\n                frequency: {\n                    interval_unit: \"MONTH\",\n                    interval_count: 1\n                },\n                tenure_type: \"REGULAR\",\n                sequence: 1,\n                total_cycles: 0,\n                pricing_scheme: {\n                    fixed_price: {\n                        value: \"10.00\",\n                        currency_code: \"USD\"\n                    }\n                }\n            }\n        ],\n        payment_preferences: {\n            auto_bill_outstanding: true,\n            setup_fee: {\n                value: \"0.00\",\n                currency_code: \"USD\"\n            },\n            setup_fee_failure_action: \"CONTINUE\",\n            payment_failure_threshold: 3\n        }\n    };\n    paypal:Plan response \u003d check paypal-\u003e/plans.post(plan);\n}\n```\n\n### Step 4: Run the Ballerina application\n\n```bash\nbal run\n```\n\n## Examples\n\nThe `PayPal Subscriptions` connector provides practical examples illustrating usage in various scenarios. Explore these [examples](https://github.com/ballerina-platform/module-ballerinax-paypal.subscriptions/tree/main/examples/), covering the following use cases:\n\n1. [**Create and List Plans**](https://github.com/ballerina-platform/module-ballerinax-paypal.subscriptions/tree/main/examples/create-and-list-plans): Create a subscription plan and list all available plans.\n2. [**Monitor and Manage Subscription Status**](https://github.com/ballerina-platform/module-ballerinax-paypal.subscriptions/tree/main/examples/monitor-and-manage-subscription): Retrieve a subscription’s status and suspend or reactivate it based on its state.\n3. [**Manage Premium Subscription**](https://github.com/ballerina-platform/module-ballerinax-paypal.subscriptions/tree/main/examples/manage-premium-subscription): Create a subscription plan, enroll a customer, and retrieve subscription details for a premium membership.\n",
+  "typeDefs": [
+    {
+      "name": "OAuth2ClientCredentialsGrantConfig",
+      "description": "OAuth2 Client Credentials Grant Configs",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "tokenUrl",
+          "description": "Token URL",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "clientId",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "clientSecret",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "scopes",
+          "description": "",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "defaultTokenExpTime",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "clockSkew",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "optionalParams",
+          "description": "",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "credentialBearer",
+          "description": "",
+          "type": {
+            "name": "CredentialBearer",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CredentialBearer",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "clientConfig",
+          "description": "",
+          "type": {
+            "name": "ClientConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientConfiguration",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Email",
+      "description": "The internationalized email address.\u003cblockquote\u003e\u003cstrong\u003eNote:\u003c/strong\u003e Up to 64 characters are allowed before and 255 characters are allowed after the \u003ccode\u003e@\u003c/code\u003e sign. However, the generally accepted maximum length for an email address is 254 characters. The pattern verifies that an unquoted \u003ccode\u003e@\u003c/code\u003e sign exists.\u003c/blockquote\u003e",
+      "type": "Other",
+      "baseType": "string",
+      "annotations": [
+        {
+          "name": "String",
+          "module": "ballerina/constraint",
+          "value": "{maxLength: 254}"
+        }
+      ]
+    },
+    {
+      "name": "AccountId",
+      "description": "The account identifier for a PayPal account",
+      "type": "Other",
+      "baseType": "string",
+      "annotations": [
+        {
+          "name": "String",
+          "module": "ballerina/constraint",
+          "value": "{maxLength: 13, minLength: 13, pattern: re `^[2-9A-HJ-NP-Z]{13}$`}"
+        }
+      ]
+    },
+    {
+      "name": "SubscriptionReviseRequest",
+      "description": "The request to update the quantity of the product or service in a subscription. You can also use this method to switch the plan and update the `shipping_amount` and `shipping_address` values for the subscription. This type of update requires the buyer\u0027s consent",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "shipping_amount",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "quantity",
+          "description": "The quantity of the product or service in the subscription",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 32, minLength: 1, pattern: re `^([0-9]+|([0-9]+)?[.][0-9]+)$`}"
+            }
+          ]
+        },
+        {
+          "name": "application_context",
+          "description": "",
+          "type": {
+            "name": "ApplicationContext",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ApplicationContext"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "shipping_address",
+          "description": "",
+          "type": {
+            "name": "ShippingDetail",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ShippingDetail"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "plan",
+          "description": "An inline plan object to customise the subscription. You can override plan level default attributes by providing customised values for the subscription in this object",
+          "type": {
+            "name": "PlanOverride",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PlanOverride"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "plan_id",
+          "description": "The unique PayPal-generated ID for the plan",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 50, minLength: 3}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Money",
+      "description": "The currency and amount for a financial transaction, such as a balance or payment due",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "value",
+          "description": "The value, which might be:\u003cul\u003e\u003cli\u003eAn integer for currencies like `JPY` that are not typically fractional.\u003c/li\u003e\u003cli\u003eA decimal fraction for currencies like `TND` that are subdivided into thousandths.\u003c/li\u003e\u003c/ul\u003eFor the required number of decimal places for a currency code, see [Currency Codes](/docs/integration/direct/rest/currency-codes/)",
+          "type": {
+            "name": "string"
+          },
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 32, pattern: re `^((-?[0-9]+)|(-?([0-9]+)?[.][0-9]+))$`}"
+            }
+          ]
+        },
+        {
+          "name": "currency_code",
+          "description": "",
+          "type": {
+            "name": "CurrencyCode",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CurrencyCode"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "CurrencyCode",
+      "description": "The [three-character ISO-4217 currency code](/docs/integration/direct/rest/currency-codes/) that identifies the currency",
+      "type": "Other",
+      "baseType": "string",
+      "annotations": [
+        {
+          "name": "String",
+          "module": "ballerina/constraint",
+          "value": "{maxLength: 3, minLength: 3}"
+        }
+      ]
+    },
+    {
+      "name": "ApplicationContext",
+      "description": "The application context, which customizes the payer experience during the subscription approval process with PayPal",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "user_action",
+          "description": "Configures the label name to `Continue` or `Subscribe Now` for subscription consent experience",
+          "type": {
+            "name": "\"CONTINUE\"|\"SUBSCRIBE_NOW\""
+          },
+          "optional": true
+        },
+        {
+          "name": "return_url",
+          "description": "The URL where the customer is redirected after the customer approves the payment",
+          "type": {
+            "name": "string"
+          },
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 4000, minLength: 10}"
+            }
+          ]
+        },
+        {
+          "name": "brand_name",
+          "description": "The label that overrides the business name in the PayPal account on the PayPal site",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 127, minLength: 1}"
+            }
+          ]
+        },
+        {
+          "name": "locale",
+          "description": "The [language tag](https://tools.ietf.org/html/bcp47#section-2) for the language in which to localize the error-related strings, such as messages, issues, and suggested actions. The tag is made up of the [ISO 639-2 language code](https://www.loc.gov/standards/iso639-2/php/code_list.php), the optional [ISO-15924 script tag](https://www.unicode.org/iso15924/codelists.html), and the [ISO-3166 alpha-2 country code](/docs/integration/direct/rest/country-codes/)",
+          "type": {
+            "name": "Language",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Language"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "cancel_url",
+          "description": "The URL where the customer is redirected after the customer cancels the payment",
+          "type": {
+            "name": "string"
+          },
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 4000, minLength: 10}"
+            }
+          ]
+        },
+        {
+          "name": "shipping_preference",
+          "description": "The location from which the shipping address is derived",
+          "type": {
+            "name": "\"GET_FROM_FILE\"|\"NO_SHIPPING\"|\"SET_PROVIDED_ADDRESS\""
+          },
+          "optional": true
+        },
+        {
+          "name": "payment_method",
+          "description": "",
+          "type": {
+            "name": "PaymentMethod",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PaymentMethod"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Language",
+      "description": "The [language tag](https://tools.ietf.org/html/bcp47#section-2) for the language in which to localize the error-related strings, such as messages, issues, and suggested actions. The tag is made up of the [ISO 639-2 language code](https://www.loc.gov/standards/iso639-2/php/code_list.php), the optional [ISO-15924 script tag](https://www.unicode.org/iso15924/codelists.html), and the [ISO-3166 alpha-2 country code](/docs/integration/direct/rest/country-codes/)",
+      "type": "Other",
+      "baseType": "string",
+      "annotations": [
+        {
+          "name": "String",
+          "module": "ballerina/constraint",
+          "value": "{maxLength: 10, minLength: 2, pattern: re `^[a-z]{2}(?:-[A-Z][a-z]{3})?(?:-(?:[A-Z]{2}))?$`}"
+        }
+      ]
+    },
+    {
+      "name": "PaymentMethod",
+      "description": "The customer and merchant payment preferences",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "payer_selected",
+          "description": "The customer-selected payment method on the merchant site",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{minLength: 1, pattern: re `^[0-9A-Z_]+$`}"
+            }
+          ]
+        },
+        {
+          "name": "payee_preferred",
+          "description": "",
+          "type": {
+            "name": "PayeePaymentMethodPreference",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PayeePaymentMethodPreference"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "standard_entry_class_code",
+          "description": "NACHA (the regulatory body governing the ACH network) requires that API callers (merchants, partners) obtain the consumer’s explicit authorization before initiating a transaction. To stay compliant, you’ll need to make sure that you retain a compliant authorization for each transaction that you originate to the ACH Network using this API. ACH transactions are categorized (using SEC codes) by how you capture authorization from the Receiver (the person whose bank account is being debited or credited). PayPal supports the following SEC codes",
+          "type": {
+            "name": "\"TEL\"|\"WEB\"|\"CCD\"|\"PPD\""
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "PayeePaymentMethodPreference",
+      "description": "The merchant-preferred payment methods",
+      "type": "Union",
+      "members": [
+        {
+          "name": "\"UNRESTRICTED\"",
+          "type": {
+            "name": "\"UNRESTRICTED\""
+          }
+        },
+        {
+          "name": "\"IMMEDIATE_PAYMENT_REQUIRED\"",
+          "type": {
+            "name": "\"IMMEDIATE_PAYMENT_REQUIRED\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "ShippingDetail",
+      "description": "The shipping details",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "address",
+          "description": "The portable international postal address. Maps to [AddressValidationMetadata](https://github.com/googlei18n/libaddressinput/wiki/AddressValidationMetadata) and HTML 5.1 [Autofilling form controls: the autocomplete attribute](https://www.w3.org/TR/html51/sec-forms.html#autofilling-form-controls-the-autocomplete-attribute)",
+          "type": {
+            "name": "AddressPortable",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AddressPortable"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "name",
+          "description": "The name of the party",
+          "type": {
+            "name": "Name",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Name"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "\u0027type",
+          "description": "The method by which the payer wants to get their items from the payee e.g shipping, in-person pickup. Either type or options but not both may be present",
+          "type": {
+            "name": "\"SHIPPING\"|\"PICKUP_IN_PERSON\""
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "AddressPortable",
+      "description": "The portable international postal address. Maps to [AddressValidationMetadata](https://github.com/googlei18n/libaddressinput/wiki/AddressValidationMetadata) and HTML 5.1 [Autofilling form controls: the autocomplete attribute](https://www.w3.org/TR/html51/sec-forms.html#autofilling-form-controls-the-autocomplete-attribute)",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "country_code",
+          "description": "",
+          "type": {
+            "name": "CountryCode",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CountryCode"
+              }
+            ]
+          }
+        },
+        {
+          "name": "admin_area_1",
+          "description": "The highest level sub-division in a country, which is usually a province, state, or ISO-3166-2 subdivision. Format for postal delivery. For example, `CA` and not `California`. Value, by country, is:\u003cul\u003e\u003cli\u003eUK. A county.\u003c/li\u003e\u003cli\u003eUS. A state.\u003c/li\u003e\u003cli\u003eCanada. A province.\u003c/li\u003e\u003cli\u003eJapan. A prefecture.\u003c/li\u003e\u003cli\u003eSwitzerland. A kanton.\u003c/li\u003e\u003c/ul\u003e",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 300}"
+            }
+          ]
+        },
+        {
+          "name": "address_line_1",
+          "description": "The first line of the address. For example, number or street. For example, `173 Drury Lane`. Required for data entry and compliance and risk checks. Must contain the full address",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 300}"
+            }
+          ]
+        },
+        {
+          "name": "admin_area_3",
+          "description": "A sub-locality, suburb, neighborhood, or district. Smaller than `admin_area_level_2`. Value is:\u003cul\u003e\u003cli\u003eBrazil. Suburb, bairro, or neighborhood.\u003c/li\u003e\u003cli\u003eIndia. Sub-locality or district. Street name information is not always available but a sub-locality or district can be a very small area.\u003c/li\u003e\u003c/ul\u003e",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 100}"
+            }
+          ]
+        },
+        {
+          "name": "address_details",
+          "description": "",
+          "type": {
+            "name": "AddressDetails",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AddressDetails"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "admin_area_2",
+          "description": "A city, town, or village. Smaller than `admin_area_level_1`",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 120}"
+            }
+          ]
+        },
+        {
+          "name": "address_line_3",
+          "description": "The third line of the address, if needed. For example, a street complement for Brazil, direction text, such as `next to Walmart`, or a landmark in an Indian address",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 100}"
+            }
+          ]
+        },
+        {
+          "name": "address_line_2",
+          "description": "The second line of the address. For example, suite or apartment number",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 300}"
+            }
+          ]
+        },
+        {
+          "name": "admin_area_4",
+          "description": "The neighborhood, ward, or district. Smaller than `admin_area_level_3` or `sub_locality`. Value is:\u003cul\u003e\u003cli\u003eThe postal sorting code for Guernsey and many French territories, such as French Guiana.\u003c/li\u003e\u003cli\u003eThe fine-grained administrative levels in China.\u003c/li\u003e\u003c/ul\u003e",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 100}"
+            }
+          ]
+        },
+        {
+          "name": "postal_code",
+          "description": "The postal code, which is the zip code or equivalent. Typically required for countries with a postal code or an equivalent. See [postal code](https://en.wikipedia.org/wiki/Postal_code)",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 60}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "CountryCode",
+      "description": "The [two-character ISO 3166-1 code](/docs/integration/direct/rest/country-codes/) that identifies the country or region.\u003cblockquote\u003e\u003cstrong\u003eNote:\u003c/strong\u003e The country code for Great Britain is \u003ccode\u003eGB\u003c/code\u003e and not \u003ccode\u003eUK\u003c/code\u003e as used in the top-level domain names for that country. Use the `C2` country code for China worldwide for comparable uncontrolled price (CUP) method, bank card, and cross-border transactions.\u003c/blockquote\u003e",
+      "type": "Other",
+      "baseType": "string",
+      "annotations": [
+        {
+          "name": "String",
+          "module": "ballerina/constraint",
+          "value": "{maxLength: 2, minLength: 2, pattern: re `^([A-Z]{2}|C2)$`}"
+        }
+      ]
+    },
+    {
+      "name": "AddressDetails",
+      "description": "The non-portable additional address details that are sometimes needed for compliance, risk, or other scenarios where fine-grain address information might be needed. Not portable with common third party and open source. Redundant with core fields.\u003cbr/\u003eFor example, `address_portable.address_line_1` is usually a combination of `address_details.street_number`, `street_name`, and `street_type`",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "building_name",
+          "description": "A named locations that represents the premise. Usually a building name or number or collection of buildings with a common name or number. For example, \u003ccode\u003eCraven House\u003c/code\u003e",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 100}"
+            }
+          ]
+        },
+        {
+          "name": "street_number",
+          "description": "The street number",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 100}"
+            }
+          ]
+        },
+        {
+          "name": "street_type",
+          "description": "The street type. For example, avenue, boulevard, road, or expressway",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 100}"
+            }
+          ]
+        },
+        {
+          "name": "sub_building",
+          "description": "The first-order entity below a named building or location that represents the sub-premises. Usually a single building within a collection of buildings with a common name. Can be a flat, story, floor, room, or apartment",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 100}"
+            }
+          ]
+        },
+        {
+          "name": "delivery_service",
+          "description": "The delivery service. Post office box, bag number, or post office name",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 100}"
+            }
+          ]
+        },
+        {
+          "name": "street_name",
+          "description": "The street name. Just `Drury` in `Drury Lane`",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 100}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Name",
+      "description": "The name of the party",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "full_name",
+          "description": "When the party is a person, the party\u0027s full name",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 300}"
+            }
+          ]
+        },
+        {
+          "name": "prefix",
+          "description": "The prefix, or title, to the party\u0027s name",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 140}"
+            }
+          ]
+        },
+        {
+          "name": "surname",
+          "description": "When the party is a person, the party\u0027s surname or family name. Also known as the last name. Required when the party is a person. Use also to store multiple surnames including the matronymic, or mother\u0027s, surname",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 140}"
+            }
+          ]
+        },
+        {
+          "name": "given_name",
+          "description": "When the party is a person, the party\u0027s given, or first, name",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 140}"
+            }
+          ]
+        },
+        {
+          "name": "middle_name",
+          "description": "When the party is a person, the party\u0027s middle name. Use also to store multiple middle names including the patronymic, or father\u0027s, middle name",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 140}"
+            }
+          ]
+        },
+        {
+          "name": "suffix",
+          "description": "The suffix for the party\u0027s name",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 140}"
+            }
+          ]
+        },
+        {
+          "name": "alternate_full_name",
+          "description": "DEPRECATED. The party\u0027s alternate name. Can be a business name, nickname, or any other name that cannot be split into first, last name. Required when the party is a business",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 300}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "PlanOverride",
+      "description": "An inline plan object to customise the subscription. You can override plan level default attributes by providing customised values for the subscription in this object",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "payment_preferences",
+          "description": "",
+          "type": {
+            "name": "PaymentPreferencesOverride",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PaymentPreferencesOverride"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "billing_cycles",
+          "description": "An array of billing cycles for trial billing and regular billing. The subscription billing cycle definition has to adhere to the plan billing cycle definition",
+          "type": {
+            "name": "BillingCycleOverride[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "BillingCycleOverride"
+              }
+            ]
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "Array",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 12, minLength: 1}"
+            }
+          ]
+        },
+        {
+          "name": "taxes",
+          "description": "The tax details",
+          "type": {
+            "name": "TaxesOverride",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TaxesOverride"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "PaymentPreferencesOverride",
+      "description": "The payment preferences to override at subscription level",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "setup_fee",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "setup_fee_failure_action",
+          "description": "The action to take on the subscription if the initial payment for the setup fails",
+          "type": {
+            "name": "\"CONTINUE\"|\"CANCEL\""
+          },
+          "optional": true
+        },
+        {
+          "name": "auto_bill_outstanding",
+          "description": "Indicates whether to automatically bill the outstanding amount in the next billing cycle",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "payment_failure_threshold",
+          "description": "The maximum number of payment failures before a subscription is suspended. For example, if `payment_failure_threshold` is `2`, the subscription automatically updates to the `SUSPEND` state if two consecutive payments fail",
+          "type": {
+            "name": "int"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "Int",
+              "module": "ballerina/constraint",
+              "value": "{minValue: 0, maxValue: 999}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "BillingCycleOverride",
+      "description": "The billing cycle details to override at subscription level. The subscription billing cycle definition has to adhere to the plan billing cycle definition",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "sequence",
+          "description": "The order in which this cycle is to run among other billing cycles. For example, a trial billing cycle has a `sequence` of `1` while a regular billing cycle has a `sequence` of `2`, so that trial cycle runs before the regular cycle",
+          "type": {
+            "name": "int"
+          },
+          "annotations": [
+            {
+              "name": "Int",
+              "module": "ballerina/constraint",
+              "value": "{minValue: 1, maxValue: 99}"
+            }
+          ]
+        },
+        {
+          "name": "total_cycles",
+          "description": "The number of times this billing cycle gets executed. Trial billing cycles can only be executed a finite number of times (value between \u003ccode\u003e1\u003c/code\u003e and \u003ccode\u003e999\u003c/code\u003e for \u003ccode\u003etotal_cycles\u003c/code\u003e). Regular billing cycles can be executed infinite times (value of \u003ccode\u003e0\u003c/code\u003e for \u003ccode\u003etotal_cycles\u003c/code\u003e) or a finite number of times (value between \u003ccode\u003e1\u003c/code\u003e and \u003ccode\u003e999\u003c/code\u003e for \u003ccode\u003etotal_cycles\u003c/code\u003e)",
+          "type": {
+            "name": "int"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "Int",
+              "module": "ballerina/constraint",
+              "value": "{minValue: 0, maxValue: 999}"
+            }
+          ]
+        },
+        {
+          "name": "pricing_scheme",
+          "description": "",
+          "type": {
+            "name": "PricingScheme",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PricingScheme"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "PricingScheme",
+      "description": "The pricing scheme details",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "tiers",
+          "description": "An array of pricing tiers which are used for billing volume/tiered plans. pricing_model field has to be specified",
+          "type": {
+            "name": "PricingTier[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PricingTier"
+              }
+            ]
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "Array",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 32, minLength: 1}"
+            }
+          ]
+        },
+        {
+          "name": "update_time",
+          "description": "",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "create_time",
+          "description": "",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "pricing_model",
+          "description": "The pricing model for tiered plan. The `tiers` parameter is required",
+          "type": {
+            "name": "\"VOLUME\"|\"TIERED\""
+          },
+          "optional": true
+        },
+        {
+          "name": "fixed_price",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "version",
+          "description": "The version of the pricing scheme",
+          "type": {
+            "name": "int"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "Int",
+              "module": "ballerina/constraint",
+              "value": "{minValue: 0, maxValue: 999}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "PricingTier",
+      "description": "The pricing tier details",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "starting_quantity",
+          "description": "The starting quantity for the tier",
+          "type": {
+            "name": "string"
+          },
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 32, minLength: 1, pattern: re `^([0-9]+|([0-9]+)?[.][0-9]+)$`}"
+            }
+          ]
+        },
+        {
+          "name": "amount",
+          "description": "The currency and amount for a financial transaction, such as a balance or payment due",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ending_quantity",
+          "description": "The ending quantity for the tier. Optional for the last tier",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 32, minLength: 1, pattern: re `^([0-9]+|([0-9]+)?[.][0-9]+)$`}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "DateTime",
+      "description": "The date and time, in [Internet date and time format](https://tools.ietf.org/html/rfc3339#section-5.6). Seconds are required while fractional seconds are optional.\u003cblockquote\u003e\u003cstrong\u003eNote:\u003c/strong\u003e The regular expression provides guidance but does not reject all invalid dates.\u003c/blockquote\u003e",
+      "type": "Other",
+      "baseType": "string",
+      "annotations": [
+        {
+          "name": "String",
+          "module": "ballerina/constraint",
+          "value": "{maxLength: 64, minLength: 20, pattern: re `^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])[T,t]([0-1][0-9]|2[0-3]):[0-5][0-9]:([0-5][0-9]|60)([.][0-9]+)?([Zz]|[+-][0-9]{2}:[0-9]{2})$`}"
+        }
+      ]
+    },
+    {
+      "name": "TaxesOverride",
+      "description": "The tax details",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "inclusive",
+          "description": "Indicates whether the tax was already included in the billing amount",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "percentage",
+          "description": "The percentage, as a fixed-point, signed decimal number. For example, define a 19.99% interest rate as `19.99`",
+          "type": {
+            "name": "Percentage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Percentage"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Percentage",
+      "description": "The percentage, as a fixed-point, signed decimal number. For example, define a 19.99% interest rate as `19.99`",
+      "type": "Other",
+      "baseType": "string",
+      "annotations": [
+        {
+          "name": "String",
+          "module": "ballerina/constraint",
+          "value": "{pattern: re `^((-?[0-9]+)|(-?([0-9]+)?[.][0-9]+))$`}"
+        }
+      ]
+    },
+    {
+      "name": "SubscriptionReviseResponseAllOf2",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "plan_overridden",
+          "description": "Indicates whether the subscription has overridden any plan attributes.",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "links",
+          "description": "An array of request-related [HATEOAS links](/docs/api/reference/api-responses/#hateoas-links).",
+          "type": {
+            "name": "LinkDescription[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "LinkDescription"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "LinkDescription",
+      "description": "The request-related [HATEOAS link](/docs/api/reference/api-responses/#hateoas-links) information",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "method",
+          "description": "The HTTP method required to make the related call",
+          "type": {
+            "name": "\"GET\"|\"POST\"|\"PUT\"|\"DELETE\"|\"HEAD\"|\"CONNECT\"|\"OPTIONS\"|\"PATCH\""
+          },
+          "optional": true
+        },
+        {
+          "name": "rel",
+          "description": "The [link relation type](https://tools.ietf.org/html/rfc5988#section-4), which serves as an ID for a link that unambiguously describes the semantics of the link. See [Link Relations](https://www.iana.org/assignments/link-relations/link-relations.xhtml)",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "href",
+          "description": "The complete target URL. To make the related call, combine the method with this [URI Template-formatted](https://tools.ietf.org/html/rfc6570) link. For pre-processing, include the `$`, `(`, and `)` characters. The `href` is the key HATEOAS component that links a completed call with a subsequent call",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SubscriptionReviseResponse",
+      "description": "The response to a request to update the quantity of the product or service in a subscription. You can also use this method to switch the plan and update the `shipping_amount` and `shipping_address` values for the subscription. This type of update requires the buyer\u0027s consent",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "shipping_amount",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "quantity",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "application_context",
+          "description": "",
+          "type": {
+            "name": "ApplicationContext",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ApplicationContext"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "shipping_address",
+          "description": "",
+          "type": {
+            "name": "ShippingDetail",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ShippingDetail"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "plan",
+          "description": "",
+          "type": {
+            "name": "PlanOverride",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PlanOverride"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "plan_id",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "plan_overridden",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "links",
+          "description": "",
+          "type": {
+            "name": "LinkDescription[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "LinkDescription"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "UpdatePricingSchemeRequest",
+      "description": "The update pricing scheme request details",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "billing_cycle_sequence",
+          "description": "The billing cycle sequence",
+          "type": {
+            "name": "int"
+          },
+          "annotations": [
+            {
+              "name": "Int",
+              "module": "ballerina/constraint",
+              "value": "{minValue: 1, maxValue: 99}"
+            }
+          ]
+        },
+        {
+          "name": "pricing_scheme",
+          "description": "",
+          "type": {
+            "name": "PricingScheme",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PricingScheme"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PaymentSource",
+      "description": "The payment source definition. To be eligible to create subscription using debit or credit card, you will need to sign up here (https://www.paypal.com/bizsignup/entry/product/ppcp). Please note, its available only for non-3DS cards and for merchants in US and AU regions",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "card",
+          "description": "The payment card to use to fund a payment. Can be a credit or debit card",
+          "type": {
+            "name": "Card",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Card"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Card",
+      "description": "The payment card to use to fund a payment. Can be a credit or debit card",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "number",
+          "description": "The primary account number (PAN) for the payment card",
+          "type": {
+            "name": "string"
+          },
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 19, minLength: 13}"
+            }
+          ]
+        },
+        {
+          "name": "security_code",
+          "description": "The three- or four-digit security code of the card. Also known as the CVV, CVC, CVN, CVE, or CID. This parameter cannot be present in the request when `payment_initiator\u003dMERCHANT`",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{pattern: re `[0-9]{3,4}`}"
+            }
+          ]
+        },
+        {
+          "name": "name",
+          "description": "The card holder\u0027s name as it appears on the card",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 300}"
+            }
+          ]
+        },
+        {
+          "name": "billing_address",
+          "description": "",
+          "type": {
+            "name": "AddressPortable",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AddressPortable"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "id",
+          "description": "The PayPal-generated ID for the card",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "expiry",
+          "description": "The year and month, in ISO-8601 `YYYY-MM` date format. See [Internet date and time format](https://tools.ietf.org/html/rfc3339#section-5.6)",
+          "type": {
+            "name": "DateYearMonth",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateYearMonth"
+              }
+            ]
+          }
+        },
+        {
+          "name": "card_type",
+          "description": "",
+          "type": {
+            "name": "CardBrand",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CardBrand"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "last_digits",
+          "description": "The last digits of the payment card",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{pattern: re `[0-9]{2,}`}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "DateYearMonth",
+      "description": "The year and month, in ISO-8601 `YYYY-MM` date format. See [Internet date and time format](https://tools.ietf.org/html/rfc3339#section-5.6)",
+      "type": "Other",
+      "baseType": "string",
+      "annotations": [
+        {
+          "name": "String",
+          "module": "ballerina/constraint",
+          "value": "{maxLength: 7, minLength: 7, pattern: re `^[0-9]{4}-(0[1-9]|1[0-2])$`}"
+        }
+      ]
+    },
+    {
+      "name": "CardBrand",
+      "description": "The card network or brand. Applies to credit, debit, gift, and payment cards",
+      "type": "Union",
+      "members": [
+        {
+          "name": "\"VISA\"",
+          "type": {
+            "name": "\"VISA\""
+          }
+        },
+        {
+          "name": "\"MASTERCARD\"",
+          "type": {
+            "name": "\"MASTERCARD\""
+          }
+        },
+        {
+          "name": "\"DISCOVER\"",
+          "type": {
+            "name": "\"DISCOVER\""
+          }
+        },
+        {
+          "name": "\"AMEX\"",
+          "type": {
+            "name": "\"AMEX\""
+          }
+        },
+        {
+          "name": "\"SOLO\"",
+          "type": {
+            "name": "\"SOLO\""
+          }
+        },
+        {
+          "name": "\"JCB\"",
+          "type": {
+            "name": "\"JCB\""
+          }
+        },
+        {
+          "name": "\"STAR\"",
+          "type": {
+            "name": "\"STAR\""
+          }
+        },
+        {
+          "name": "\"DELTA\"",
+          "type": {
+            "name": "\"DELTA\""
+          }
+        },
+        {
+          "name": "\"SWITCH\"",
+          "type": {
+            "name": "\"SWITCH\""
+          }
+        },
+        {
+          "name": "\"MAESTRO\"",
+          "type": {
+            "name": "\"MAESTRO\""
+          }
+        },
+        {
+          "name": "\"CB_NATIONALE\"",
+          "type": {
+            "name": "\"CB_NATIONALE\""
+          }
+        },
+        {
+          "name": "\"CONFIGOGA\"",
+          "type": {
+            "name": "\"CONFIGOGA\""
+          }
+        },
+        {
+          "name": "\"CONFIDIS\"",
+          "type": {
+            "name": "\"CONFIDIS\""
+          }
+        },
+        {
+          "name": "\"ELECTRON\"",
+          "type": {
+            "name": "\"ELECTRON\""
+          }
+        },
+        {
+          "name": "\"CETELEM\"",
+          "type": {
+            "name": "\"CETELEM\""
+          }
+        },
+        {
+          "name": "\"CHINA_UNION_PAY\"",
+          "type": {
+            "name": "\"CHINA_UNION_PAY\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "TransactionAllOf2",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "id",
+          "description": "The PayPal-generated transaction ID.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 50, minLength: 3}"
+            }
+          ]
+        },
+        {
+          "name": "amount_with_breakdown",
+          "description": "The breakdown details for the amount. Includes the gross, tax, fee, and shipping amounts",
+          "type": {
+            "name": "AmountWithBreakdown",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AmountWithBreakdown"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "payer_name",
+          "description": "The name of the party",
+          "type": {
+            "name": "Name",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Name"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "payer_email",
+          "description": "The internationalized email address.\u003cblockquote\u003e\u003cstrong\u003eNote:\u003c/strong\u003e Up to 64 characters are allowed before and 255 characters are allowed after the \u003ccode\u003e@\u003c/code\u003e sign. However, the generally accepted maximum length for an email address is 254 characters. The pattern verifies that an unquoted \u003ccode\u003e@\u003c/code\u003e sign exists.\u003c/blockquote\u003e",
+          "type": {
+            "name": "EmailAddress",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "EmailAddress"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "time",
+          "description": "The date and time, in [Internet date and time format](https://tools.ietf.org/html/rfc3339#section-5.6). Seconds are required while fractional seconds are optional.\u003cblockquote\u003e\u003cstrong\u003eNote:\u003c/strong\u003e The regular expression provides guidance but does not reject all invalid dates.\u003c/blockquote\u003e",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "AmountWithBreakdown",
+      "description": "The breakdown details for the amount. Includes the gross, tax, fee, and shipping amounts",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "shipping_amount",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "tax_amount",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "fee_amount",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "total_item_amount",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "gross_amount",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          }
+        },
+        {
+          "name": "net_amount",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "EmailAddress",
+      "description": "The internationalized email address.\u003cblockquote\u003e\u003cstrong\u003eNote:\u003c/strong\u003e Up to 64 characters are allowed before and 255 characters are allowed after the \u003ccode\u003e@\u003c/code\u003e sign. However, the generally accepted maximum length for an email address is 254 characters. The pattern verifies that an unquoted \u003ccode\u003e@\u003c/code\u003e sign exists.\u003c/blockquote\u003e",
+      "type": "Other",
+      "baseType": "string",
+      "annotations": [
+        {
+          "name": "String",
+          "module": "ballerina/constraint",
+          "value": "{maxLength: 254, minLength: 3, pattern: re `^.+@[^\"\\-].+$`}"
+        }
+      ]
+    },
+    {
+      "name": "PaymentPreferences",
+      "description": "The payment preferences for a subscription",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "setup_fee",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "setup_fee_failure_action",
+          "description": "The action to take on the subscription if the initial payment for the setup fails",
+          "type": {
+            "name": "\"CONTINUE\"|\"CANCEL\""
+          },
+          "optional": true
+        },
+        {
+          "name": "auto_bill_outstanding",
+          "description": "Indicates whether to automatically bill the outstanding amount in the next billing cycle",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "payment_failure_threshold",
+          "description": "The maximum number of payment failures before a subscription is suspended. For example, if `payment_failure_threshold` is `2`, the subscription automatically updates to the `SUSPEND` state if two consecutive payments fail",
+          "type": {
+            "name": "int"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "Int",
+              "module": "ballerina/constraint",
+              "value": "{minValue: 0, maxValue: 999}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Enrolled",
+      "description": "Status of Authentication eligibility",
+      "type": "Union",
+      "members": [
+        {
+          "name": "\"Y\"",
+          "type": {
+            "name": "\"Y\""
+          }
+        },
+        {
+          "name": "\"N\"",
+          "type": {
+            "name": "\"N\""
+          }
+        },
+        {
+          "name": "\"U\"",
+          "type": {
+            "name": "\"U\""
+          }
+        },
+        {
+          "name": "\"B\"",
+          "type": {
+            "name": "\"B\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "TransactionsList",
+      "description": "The list transactions for a subscription request details",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "links",
+          "description": "An array of request-related [HATEOAS links](/docs/api/reference/api-responses/#hateoas-links)",
+          "type": {
+            "name": "LinkDescription[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "LinkDescription"
+              }
+            ]
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "Array",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 10, minLength: 1}"
+            }
+          ]
+        },
+        {
+          "name": "total_pages",
+          "description": "The total number of pages",
+          "type": {
+            "name": "int"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "Int",
+              "module": "ballerina/constraint",
+              "value": "{minValue: 0, maxValue: 100000000}"
+            }
+          ]
+        },
+        {
+          "name": "transactions",
+          "description": "An array of transactions",
+          "type": {
+            "name": "Transaction[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Transaction"
+              }
+            ]
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "Array",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 32767}"
+            }
+          ]
+        },
+        {
+          "name": "total_items",
+          "description": "The total number of items",
+          "type": {
+            "name": "int"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "Int",
+              "module": "ballerina/constraint",
+              "value": "{minValue: 0, maxValue: 500000000}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "CaptureStatus",
+      "description": "The status of a captured payment",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "status_details",
+          "description": "",
+          "type": {
+            "name": "CaptureStatusDetails",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CaptureStatusDetails"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "status",
+          "description": "The status of the captured payment",
+          "type": {
+            "name": "\"COMPLETED\"|\"DECLINED\"|\"PARTIALLY_REFUNDED\"|\"PENDING\"|\"REFUNDED\""
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "CaptureStatusDetails",
+      "description": "The details of the captured payment status",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "reason",
+          "description": "The reason why the captured payment status is `PENDING` or `DENIED`",
+          "type": {
+            "name": "\"BUYER_COMPLAINT\"|\"CHARGEBACK\"|\"ECHECK\"|\"INTERNATIONAL_WITHDRAWAL\"|\"OTHER\"|\"PENDING_REVIEW\"|\"RECEIVING_PREFERENCE_MANDATES_MANUAL_ACTION\"|\"REFUNDED\"|\"TRANSACTION_APPROVED_AWAITING_FUNDING\"|\"UNILATERAL\"|\"VERIFICATION_REQUIRED\""
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Transaction",
+      "description": "The transaction details",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "time",
+          "description": "",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          }
+        },
+        {
+          "name": "amount_with_breakdown",
+          "description": "",
+          "type": {
+            "name": "AmountWithBreakdown",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AmountWithBreakdown"
+              }
+            ]
+          }
+        },
+        {
+          "name": "id",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "status_details",
+          "description": "",
+          "type": {
+            "name": "CaptureStatusDetails",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CaptureStatusDetails"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "status",
+          "description": "",
+          "type": {
+            "name": "\"COMPLETED\"|\"DECLINED\"|\"PARTIALLY_REFUNDED\"|\"PENDING\"|\"REFUNDED\""
+          },
+          "optional": true
+        },
+        {
+          "name": "payer_name",
+          "description": "",
+          "type": {
+            "name": "Name",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Name"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "payer_email",
+          "description": "",
+          "type": {
+            "name": "EmailAddress",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "EmailAddress"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "PhoneWithType",
+      "description": "The phone information",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "phone_type",
+          "description": "",
+          "type": {
+            "name": "PhoneType",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PhoneType"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "phone_number",
+          "description": "",
+          "type": {
+            "name": "Phone",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Phone"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PhoneType",
+      "description": "The phone type",
+      "type": "Union",
+      "members": [
+        {
+          "name": "\"FAX\"",
+          "type": {
+            "name": "\"FAX\""
+          }
+        },
+        {
+          "name": "\"HOME\"",
+          "type": {
+            "name": "\"HOME\""
+          }
+        },
+        {
+          "name": "\"MOBILE\"",
+          "type": {
+            "name": "\"MOBILE\""
+          }
+        },
+        {
+          "name": "\"OTHER\"",
+          "type": {
+            "name": "\"OTHER\""
+          }
+        },
+        {
+          "name": "\"PAGER\"",
+          "type": {
+            "name": "\"PAGER\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "Phone",
+      "description": "The phone number, in its canonical international [E.164 numbering plan format](https://www.itu.int/rec/T-REC-E.164/en)",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "country_code",
+          "description": "The country calling code (CC), in its canonical international [E.164 numbering plan format](https://www.itu.int/rec/T-REC-E.164/en). The combined length of the CC and the national number must not be greater than 15 digits. The national number consists of a national destination code (NDC) and subscriber number (SN)",
+          "type": {
+            "name": "string"
+          },
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 3, minLength: 1, pattern: re `^[0-9]{1,3}?$`}"
+            }
+          ]
+        },
+        {
+          "name": "extension_number",
+          "description": "The extension number",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 15, minLength: 1, pattern: re `^[0-9]{1,15}?$`}"
+            }
+          ]
+        },
+        {
+          "name": "national_number",
+          "description": "The national number, in its canonical international [E.164 numbering plan format](https://www.itu.int/rec/T-REC-E.164/en). The combined length of the country calling code (CC) and the national number must not be greater than 15 digits. The national number consists of a national destination code (NDC) and subscriber number (SN)",
+          "type": {
+            "name": "string"
+          },
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 14, minLength: 1, pattern: re `^[0-9]{1,14}?$`}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "PayerBase",
+      "description": "The customer who approves and pays for the order. The customer is also known as the payer",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "email_address",
+          "description": "",
+          "type": {
+            "name": "Email",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Email"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "payer_id",
+          "description": "",
+          "type": {
+            "name": "AccountId",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AccountId"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "PayerAllOf2",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "name",
+          "description": "The name of the party",
+          "type": {
+            "name": "Name",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Name"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "phone",
+          "description": "The phone information",
+          "type": {
+            "name": "PhoneWithType",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PhoneWithType"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "birth_date",
+          "description": "The stand-alone date, in [Internet date and time format](https://tools.ietf.org/html/rfc3339#section-5.6). To represent special legal values, such as a date of birth, you should use dates with no associated time or time-zone data. Whenever possible, use the standard `date_time` type. This regular expression does not validate all dates. For example, February 31 is valid and nothing is known about leap years",
+          "type": {
+            "name": "DateNoTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateNoTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "tax_info",
+          "description": "The tax ID of the customer. The customer is also known as the payer. Both `tax_id` and `tax_id_type` are required",
+          "type": {
+            "name": "TaxInfo",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TaxInfo"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "address",
+          "description": "The portable international postal address. Maps to [AddressValidationMetadata](https://github.com/googlei18n/libaddressinput/wiki/AddressValidationMetadata) and HTML 5.1 [Autofilling form controls: the autocomplete attribute](https://www.w3.org/TR/html51/sec-forms.html#autofilling-form-controls-the-autocomplete-attribute)",
+          "type": {
+            "name": "AddressPortable",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AddressPortable"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "DateNoTime",
+      "description": "The stand-alone date, in [Internet date and time format](https://tools.ietf.org/html/rfc3339#section-5.6). To represent special legal values, such as a date of birth, you should use dates with no associated time or time-zone data. Whenever possible, use the standard `date_time` type. This regular expression does not validate all dates. For example, February 31 is valid and nothing is known about leap years",
+      "type": "Other",
+      "baseType": "string",
+      "annotations": [
+        {
+          "name": "String",
+          "module": "ballerina/constraint",
+          "value": "{maxLength: 10, minLength: 10, pattern: re `^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])$`}"
+        }
+      ]
+    },
+    {
+      "name": "TaxInfo",
+      "description": "The tax ID of the customer. The customer is also known as the payer. Both `tax_id` and `tax_id_type` are required",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "tax_id_type",
+          "description": "The customer\u0027s tax ID type",
+          "type": {
+            "name": "\"BR_CPF\"|\"BR_CNPJ\""
+          }
+        },
+        {
+          "name": "tax_id",
+          "description": "The customer\u0027s tax ID value",
+          "type": {
+            "name": "string"
+          },
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 14}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Payer",
+      "description": "The customer who approves and pays for the order. The customer is also known as the payer",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "email_address",
+          "description": "",
+          "type": {
+            "name": "Email",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Email"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "payer_id",
+          "description": "",
+          "type": {
+            "name": "AccountId",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AccountId"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "name",
+          "description": "",
+          "type": {
+            "name": "Name",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Name"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "phone",
+          "description": "",
+          "type": {
+            "name": "PhoneWithType",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PhoneWithType"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "birth_date",
+          "description": "",
+          "type": {
+            "name": "DateNoTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateNoTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "tax_info",
+          "description": "",
+          "type": {
+            "name": "TaxInfo",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TaxInfo"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "address",
+          "description": "",
+          "type": {
+            "name": "AddressPortable",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AddressPortable"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "SubscriberAllOf2",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "shipping_address",
+          "description": "The shipping details",
+          "type": {
+            "name": "ShippingDetail",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ShippingDetail"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "payment_source",
+          "description": "The payment source used to fund the payment",
+          "type": {
+            "name": "PaymentSourceResponse",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PaymentSourceResponse"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "PaymentSourceResponse",
+      "description": "The payment source used to fund the payment",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "card",
+          "description": "The payment card used to fund the payment. Card can be a credit or debit card",
+          "type": {
+            "name": "CardResponseWithBillingAddress",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CardResponseWithBillingAddress"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "CardResponse",
+      "description": "The payment card to use to fund a payment. Card can be a credit or debit card",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "authentication_result",
+          "description": "",
+          "type": {
+            "name": "AuthenticationResponse",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AuthenticationResponse"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "\u0027type",
+          "description": "The payment card type",
+          "type": {
+            "name": "\"CREDIT\"|\"DEBIT\"|\"PREPAID\"|\"UNKNOWN\""
+          },
+          "optional": true
+        },
+        {
+          "name": "last_digits",
+          "description": "The last digits of the payment card",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{pattern: re `[0-9]{2,}`}"
+            }
+          ]
+        },
+        {
+          "name": "brand",
+          "description": "The card network or brand. Applies to credit, debit, gift, and payment cards",
+          "type": {
+            "name": "CardBrand",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CardBrand"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "AuthenticationResponse",
+      "description": "Results of Authentication such as 3D Secure",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "liability_shift",
+          "description": "",
+          "type": {
+            "name": "LiabilityShift",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "LiabilityShift"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "three_d_secure",
+          "description": "",
+          "type": {
+            "name": "ThreeDSecureAuthenticationResponse",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ThreeDSecureAuthenticationResponse"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "LiabilityShift",
+      "description": "Liability shift indicator. The outcome of the issuer\u0027s authentication",
+      "type": "Union",
+      "members": [
+        {
+          "name": "\"YES\"",
+          "type": {
+            "name": "\"YES\""
+          }
+        },
+        {
+          "name": "\"NO\"",
+          "type": {
+            "name": "\"NO\""
+          }
+        },
+        {
+          "name": "\"POSSIBLE\"",
+          "type": {
+            "name": "\"POSSIBLE\""
+          }
+        },
+        {
+          "name": "\"UNKNOWN\"",
+          "type": {
+            "name": "\"UNKNOWN\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "ThreeDSecureAuthenticationResponse",
+      "description": "Results of 3D Secure Authentication",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "authentication_status",
+          "description": "",
+          "type": {
+            "name": "ParesStatus",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ParesStatus"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "enrollment_status",
+          "description": "",
+          "type": {
+            "name": "Enrolled",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Enrolled"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ParesStatus",
+      "description": "Transactions status result identifier. The outcome of the issuer\u0027s authentication",
+      "type": "Union",
+      "members": [
+        {
+          "name": "\"Y\"",
+          "type": {
+            "name": "\"Y\""
+          }
+        },
+        {
+          "name": "\"N\"",
+          "type": {
+            "name": "\"N\""
+          }
+        },
+        {
+          "name": "\"U\"",
+          "type": {
+            "name": "\"U\""
+          }
+        },
+        {
+          "name": "\"A\"",
+          "type": {
+            "name": "\"A\""
+          }
+        },
+        {
+          "name": "\"C\"",
+          "type": {
+            "name": "\"C\""
+          }
+        },
+        {
+          "name": "\"R\"",
+          "type": {
+            "name": "\"R\""
+          }
+        },
+        {
+          "name": "\"D\"",
+          "type": {
+            "name": "\"D\""
+          }
+        },
+        {
+          "name": "\"I\"",
+          "type": {
+            "name": "\"I\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "CardResponseWithBillingAddressAllOf2",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "name",
+          "description": "The card holder\u0027s name as it appears on the card.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 300, minLength: 2}"
+            }
+          ]
+        },
+        {
+          "name": "billing_address",
+          "description": "The portable international postal address. Maps to [AddressValidationMetadata](https://github.com/googlei18n/libaddressinput/wiki/AddressValidationMetadata) and HTML 5.1 [Autofilling form controls: the autocomplete attribute](https://www.w3.org/TR/html51/sec-forms.html#autofilling-form-controls-the-autocomplete-attribute)",
+          "type": {
+            "name": "AddressPortable",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AddressPortable"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "expiry",
+          "description": "The year and month, in ISO-8601 `YYYY-MM` date format. See [Internet date and time format](https://tools.ietf.org/html/rfc3339#section-5.6)",
+          "type": {
+            "name": "DateYearMonth",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateYearMonth"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "currency_code",
+          "description": "The [three-character ISO-4217 currency code](/docs/integration/direct/rest/currency-codes/) that identifies the currency",
+          "type": {
+            "name": "CurrencyCode",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CurrencyCode"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "CardResponseWithBillingAddress",
+      "description": "The payment card used to fund the payment. Card can be a credit or debit card",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "authentication_result",
+          "description": "",
+          "type": {
+            "name": "AuthenticationResponse",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AuthenticationResponse"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "\u0027type",
+          "description": "",
+          "type": {
+            "name": "\"CREDIT\"|\"DEBIT\"|\"PREPAID\"|\"UNKNOWN\""
+          },
+          "optional": true
+        },
+        {
+          "name": "last_digits",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "brand",
+          "description": "",
+          "type": {
+            "name": "CardBrand",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CardBrand"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "name",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "billing_address",
+          "description": "",
+          "type": {
+            "name": "AddressPortable",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AddressPortable"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "expiry",
+          "description": "",
+          "type": {
+            "name": "DateYearMonth",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateYearMonth"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "currency_code",
+          "description": "",
+          "type": {
+            "name": "CurrencyCode",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CurrencyCode"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Subscriber",
+      "description": "The subscriber response information",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "email_address",
+          "description": "",
+          "type": {
+            "name": "Email",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Email"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "payer_id",
+          "description": "",
+          "type": {
+            "name": "AccountId",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AccountId"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "name",
+          "description": "",
+          "type": {
+            "name": "Name",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Name"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "phone",
+          "description": "",
+          "type": {
+            "name": "PhoneWithType",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PhoneWithType"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "birth_date",
+          "description": "",
+          "type": {
+            "name": "DateNoTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateNoTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "tax_info",
+          "description": "",
+          "type": {
+            "name": "TaxInfo",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TaxInfo"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "address",
+          "description": "",
+          "type": {
+            "name": "AddressPortable",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AddressPortable"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "shipping_address",
+          "description": "",
+          "type": {
+            "name": "ShippingDetail",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ShippingDetail"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "payment_source",
+          "description": "",
+          "type": {
+            "name": "PaymentSourceResponse",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PaymentSourceResponse"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "SubscriptionRequestPost",
+      "description": "The create subscription request details",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "shipping_amount",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "start_time",
+          "description": "",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "quantity",
+          "description": "The quantity of the product in the subscription",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 32, minLength: 1, pattern: re `^([0-9]+|([0-9]+)?[.][0-9]+)$`}"
+            }
+          ]
+        },
+        {
+          "name": "subscriber",
+          "description": "The subscriber request information",
+          "type": {
+            "name": "SubscriberRequest",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SubscriberRequest"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "custom_id",
+          "description": "The custom id for the subscription. Can be invoice id",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 127, minLength: 1}"
+            }
+          ]
+        },
+        {
+          "name": "application_context",
+          "description": "",
+          "type": {
+            "name": "ApplicationContext",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ApplicationContext"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "plan",
+          "description": "An inline plan object to customise the subscription. You can override plan level default attributes by providing customised values for the subscription in this object",
+          "type": {
+            "name": "PlanOverride",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PlanOverride"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "plan_id",
+          "description": "The ID of the plan",
+          "type": {
+            "name": "string"
+          },
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 50, minLength: 3}"
+            }
+          ]
+        },
+        {
+          "name": "auto_renewal",
+          "description": "DEPRECATED. Indicates whether the subscription auto-renews after the billing cycles complete\n",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true,
+          "isDeprecated": true
+        }
+      ]
+    },
+    {
+      "name": "SubscriberRequestAllOf2",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "shipping_address",
+          "description": "The shipping details",
+          "type": {
+            "name": "ShippingDetail",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ShippingDetail"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "payment_source",
+          "description": "The payment source definition. To be eligible to create subscription using debit or credit card, you will need to sign up here (https://www.paypal.com/bizsignup/entry/product/ppcp). Please note, its available only for non-3DS cards and for merchants in US and AU regions",
+          "type": {
+            "name": "PaymentSource",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PaymentSource"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "SubscriberRequest",
+      "description": "The subscriber request information",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "email_address",
+          "description": "",
+          "type": {
+            "name": "Email",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Email"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "payer_id",
+          "description": "",
+          "type": {
+            "name": "AccountId",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AccountId"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "name",
+          "description": "",
+          "type": {
+            "name": "Name",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Name"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "phone",
+          "description": "",
+          "type": {
+            "name": "PhoneWithType",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PhoneWithType"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "birth_date",
+          "description": "",
+          "type": {
+            "name": "DateNoTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateNoTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "tax_info",
+          "description": "",
+          "type": {
+            "name": "TaxInfo",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "TaxInfo"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "address",
+          "description": "",
+          "type": {
+            "name": "AddressPortable",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AddressPortable"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "shipping_address",
+          "description": "",
+          "type": {
+            "name": "ShippingDetail",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ShippingDetail"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "payment_source",
+          "description": "",
+          "type": {
+            "name": "PaymentSource",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PaymentSource"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "PlansCreateHeaders",
+      "description": "Represents the Headers record for the operation: plans.create",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "PayPal\\-Request\\-Id",
+          "description": "The server stores keys for 72 hours",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "Prefer",
+          "description": "The preferred server response upon successful completion of the request. Value is:\u003cul\u003e\u003cli\u003e\u003ccode\u003ereturn\u003dminimal\u003c/code\u003e. The server returns a minimal response to optimize communication between the API caller and the server. A minimal response includes the \u003ccode\u003eid\u003c/code\u003e, \u003ccode\u003estatus\u003c/code\u003e and HATEOAS links.\u003c/li\u003e\u003cli\u003e\u003ccode\u003ereturn\u003drepresentation\u003c/code\u003e. The server returns a complete resource representation, including the current state of the resource.\u003c/li\u003e\u003c/ul\u003e",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "SubscriptionStatus",
+      "description": "The subscription status details",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "status_change_note",
+          "description": "The reason or notes for the status of the subscription",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 128, minLength: 1}"
+            }
+          ]
+        },
+        {
+          "name": "status",
+          "description": "The status of the subscription",
+          "type": {
+            "name": "\"APPROVAL_PENDING\"|\"APPROVED\"|\"ACTIVE\"|\"SUSPENDED\"|\"CANCELLED\"|\"EXPIRED\""
+          },
+          "optional": true
+        },
+        {
+          "name": "status_update_time",
+          "description": "",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "SubscriptionAllOf2",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "id",
+          "description": "The PayPal-generated ID for the subscription.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 50, minLength: 3}"
+            }
+          ]
+        },
+        {
+          "name": "plan_id",
+          "description": "The ID of the plan.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 50, minLength: 3}"
+            }
+          ]
+        },
+        {
+          "name": "start_time",
+          "description": "The date and time, in [Internet date and time format](https://tools.ietf.org/html/rfc3339#section-5.6). Seconds are required while fractional seconds are optional.\u003cblockquote\u003e\u003cstrong\u003eNote:\u003c/strong\u003e The regular expression provides guidance but does not reject all invalid dates.\u003c/blockquote\u003e",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "quantity",
+          "description": "The quantity of the product in the subscription.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 32, minLength: 1, pattern: re `^([0-9]+|([0-9]+)?[.][0-9]+)$`}"
+            }
+          ]
+        },
+        {
+          "name": "shipping_amount",
+          "description": "The currency and amount for a financial transaction, such as a balance or payment due",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "subscriber",
+          "description": "The subscriber response information",
+          "type": {
+            "name": "Subscriber",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Subscriber"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "billing_info",
+          "description": "The billing details for the subscription. If the subscription was or is active, these fields are populated",
+          "type": {
+            "name": "SubscriptionBillingInfo",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SubscriptionBillingInfo"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "create_time",
+          "description": "The date and time, in [Internet date and time format](https://tools.ietf.org/html/rfc3339#section-5.6). Seconds are required while fractional seconds are optional.\u003cblockquote\u003e\u003cstrong\u003eNote:\u003c/strong\u003e The regular expression provides guidance but does not reject all invalid dates.\u003c/blockquote\u003e",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "update_time",
+          "description": "The date and time, in [Internet date and time format](https://tools.ietf.org/html/rfc3339#section-5.6). Seconds are required while fractional seconds are optional.\u003cblockquote\u003e\u003cstrong\u003eNote:\u003c/strong\u003e The regular expression provides guidance but does not reject all invalid dates.\u003c/blockquote\u003e",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "custom_id",
+          "description": "The custom id for the subscription. Can be invoice id.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 127, minLength: 1}"
+            }
+          ]
+        },
+        {
+          "name": "plan_overridden",
+          "description": "Indicates whether the subscription has overridden any plan attributes.",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "plan",
+          "description": "The plan details",
+          "type": {
+            "name": "Plan",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Plan"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "links",
+          "description": "An array of request-related [HATEOAS links](/docs/api/reference/api-responses/#hateoas-links).",
+          "type": {
+            "name": "LinkDescription[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "LinkDescription"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "SubscriptionBillingInfo",
+      "description": "The billing details for the subscription. If the subscription was or is active, these fields are populated",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "final_payment_time",
+          "description": "",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "cycle_executions",
+          "description": "The trial and regular billing executions",
+          "type": {
+            "name": "CycleExecution[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CycleExecution"
+              }
+            ]
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "Array",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 3}"
+            }
+          ]
+        },
+        {
+          "name": "failed_payments_count",
+          "description": "The number of consecutive payment failures. Resets to `0` after a successful payment. If this reaches the `payment_failure_threshold` value, the subscription updates to the `SUSPENDED` state",
+          "type": {
+            "name": "int"
+          },
+          "annotations": [
+            {
+              "name": "Int",
+              "module": "ballerina/constraint",
+              "value": "{minValue: 0, maxValue: 999}"
+            }
+          ]
+        },
+        {
+          "name": "next_billing_time",
+          "description": "",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "last_failed_payment",
+          "description": "",
+          "type": {
+            "name": "FailedPaymentDetails",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "FailedPaymentDetails"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "outstanding_balance",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          }
+        },
+        {
+          "name": "last_payment",
+          "description": "",
+          "type": {
+            "name": "LastPaymentDetails",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "LastPaymentDetails"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "CycleExecution",
+      "description": "The regular and trial execution details for a billing cycle",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "sequence",
+          "description": "The order in which to run this cycle among other billing cycles",
+          "type": {
+            "name": "int"
+          },
+          "annotations": [
+            {
+              "name": "Int",
+              "module": "ballerina/constraint",
+              "value": "{minValue: 0, maxValue: 99}"
+            }
+          ]
+        },
+        {
+          "name": "cycles_remaining",
+          "description": "For a finite billing cycle, cycles_remaining is the number of remaining cycles. For an infinite billing cycle, cycles_remaining is set as 0",
+          "type": {
+            "name": "int"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "Int",
+              "module": "ballerina/constraint",
+              "value": "{minValue: 0, maxValue: 9999}"
+            }
+          ]
+        },
+        {
+          "name": "tenure_type",
+          "description": "The type of the billing cycle",
+          "type": {
+            "name": "\"REGULAR\"|\"TRIAL\""
+          }
+        },
+        {
+          "name": "cycles_completed",
+          "description": "The number of billing cycles that have completed",
+          "type": {
+            "name": "int"
+          },
+          "annotations": [
+            {
+              "name": "Int",
+              "module": "ballerina/constraint",
+              "value": "{minValue: 0, maxValue: 9999}"
+            }
+          ]
+        },
+        {
+          "name": "current_pricing_scheme_version",
+          "description": "The active pricing scheme version for the billing cycle",
+          "type": {
+            "name": "int"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "Int",
+              "module": "ballerina/constraint",
+              "value": "{minValue: 1, maxValue: 99}"
+            }
+          ]
+        },
+        {
+          "name": "total_cycles",
+          "description": "The number of times this billing cycle gets executed. Trial billing cycles can only be executed a finite number of times (value between \u003ccode\u003e1\u003c/code\u003e and \u003ccode\u003e999\u003c/code\u003e for \u003ccode\u003etotal_cycles\u003c/code\u003e). Regular billing cycles can be executed infinite times (value of \u003ccode\u003e0\u003c/code\u003e for \u003ccode\u003etotal_cycles\u003c/code\u003e) or a finite number of times (value between \u003ccode\u003e1\u003c/code\u003e and \u003ccode\u003e999\u003c/code\u003e for \u003ccode\u003etotal_cycles\u003c/code\u003e)",
+          "type": {
+            "name": "int"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "Int",
+              "module": "ballerina/constraint",
+              "value": "{minValue: 0, maxValue: 999}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "FailedPaymentDetails",
+      "description": "The details for the failed payment of the subscription",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "reason_code",
+          "description": "The reason code for the payment failure",
+          "type": {
+            "name": "\"PAYMENT_DENIED\"|\"INTERNAL_SERVER_ERROR\"|\"PAYEE_ACCOUNT_RESTRICTED\"|\"PAYER_ACCOUNT_RESTRICTED\"|\"PAYER_CANNOT_PAY\"|\"SENDING_LIMIT_EXCEEDED\"|\"TRANSACTION_RECEIVING_LIMIT_EXCEEDED\"|\"CURRENCY_MISMATCH\""
+          },
+          "optional": true
+        },
+        {
+          "name": "amount",
+          "description": "The currency and amount for a financial transaction, such as a balance or payment due",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          }
+        },
+        {
+          "name": "next_payment_retry_time",
+          "description": "",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "time",
+          "description": "The date and time, in [Internet date and time format](https://tools.ietf.org/html/rfc3339#section-5.6). Seconds are required while fractional seconds are optional.\u003cblockquote\u003e\u003cstrong\u003eNote:\u003c/strong\u003e The regular expression provides guidance but does not reject all invalid dates.\u003c/blockquote\u003e",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "LastPaymentDetailsAllOf1",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "amount",
+          "description": "The currency and amount for a financial transaction, such as a balance or payment due",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "time",
+          "description": "The date and time, in [Internet date and time format](https://tools.ietf.org/html/rfc3339#section-5.6). Seconds are required while fractional seconds are optional.\u003cblockquote\u003e\u003cstrong\u003eNote:\u003c/strong\u003e The regular expression provides guidance but does not reject all invalid dates.\u003c/blockquote\u003e",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "LastPaymentDetails",
+      "description": "The details for the last payment",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "amount",
+          "description": "The currency and amount for a financial transaction, such as a balance or payment due",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "time",
+          "description": "The date and time, in [Internet date and time format](https://tools.ietf.org/html/rfc3339#section-5.6). Seconds are required while fractional seconds are optional.\u003cblockquote\u003e\u003cstrong\u003eNote:\u003c/strong\u003e The regular expression provides guidance but does not reject all invalid dates.\u003c/blockquote\u003e",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Plan",
+      "description": "The plan details",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "quantity_supported",
+          "description": "Indicates whether you can subscribe to this plan by providing a quantity for the goods or service",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "update_time",
+          "description": "",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "create_time",
+          "description": "",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "payment_preferences",
+          "description": "",
+          "type": {
+            "name": "PaymentPreferences",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PaymentPreferences"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "product_id",
+          "description": "The ID for the product",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 50, minLength: 6}"
+            }
+          ]
+        },
+        {
+          "name": "name",
+          "description": "The plan name",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 127, minLength: 1}"
+            }
+          ]
+        },
+        {
+          "name": "billing_cycles",
+          "description": "An array of billing cycles for trial billing and regular billing. A plan can have at most two trial cycles and only one regular cycle",
+          "type": {
+            "name": "BillingCycle[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "BillingCycle"
+              }
+            ]
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "Array",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 12, minLength: 1}"
+            }
+          ]
+        },
+        {
+          "name": "description",
+          "description": "The detailed description of the plan",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 127, minLength: 1}"
+            }
+          ]
+        },
+        {
+          "name": "taxes",
+          "description": "The tax details",
+          "type": {
+            "name": "Taxes",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Taxes"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "links",
+          "description": "An array of request-related [HATEOAS links](/docs/api/reference/api-responses/#hateoas-links)",
+          "type": {
+            "name": "LinkDescription[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "LinkDescription"
+              }
+            ]
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "Array",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 10, minLength: 1}"
+            }
+          ]
+        },
+        {
+          "name": "id",
+          "description": "The unique PayPal-generated ID for the plan",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 50, minLength: 3}"
+            }
+          ]
+        },
+        {
+          "name": "status",
+          "description": "The plan status",
+          "type": {
+            "name": "\"CREATED\"|\"INACTIVE\"|\"ACTIVE\""
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "BillingCycle",
+      "description": "The billing cycle details",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "sequence",
+          "description": "The order in which this cycle is to run among other billing cycles. For example, a trial billing cycle has a `sequence` of `1` while a regular billing cycle has a `sequence` of `2`, so that trial cycle runs before the regular cycle",
+          "type": {
+            "name": "int"
+          },
+          "annotations": [
+            {
+              "name": "Int",
+              "module": "ballerina/constraint",
+              "value": "{minValue: 1, maxValue: 99}"
+            }
+          ]
+        },
+        {
+          "name": "tenure_type",
+          "description": "The tenure type of the billing cycle. In case of a plan having trial cycle, only 2 trial cycles are allowed per plan",
+          "type": {
+            "name": "\"REGULAR\"|\"TRIAL\""
+          }
+        },
+        {
+          "name": "total_cycles",
+          "description": "The number of times this billing cycle gets executed. Trial billing cycles can only be executed a finite number of times (value between \u003ccode\u003e1\u003c/code\u003e and \u003ccode\u003e999\u003c/code\u003e for \u003ccode\u003etotal_cycles\u003c/code\u003e). Regular billing cycles can be executed infinite times (value of \u003ccode\u003e0\u003c/code\u003e for \u003ccode\u003etotal_cycles\u003c/code\u003e) or a finite number of times (value between \u003ccode\u003e1\u003c/code\u003e and \u003ccode\u003e999\u003c/code\u003e for \u003ccode\u003etotal_cycles\u003c/code\u003e)",
+          "type": {
+            "name": "int"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "Int",
+              "module": "ballerina/constraint",
+              "value": "{minValue: 0, maxValue: 999}"
+            }
+          ]
+        },
+        {
+          "name": "pricing_scheme",
+          "description": "",
+          "type": {
+            "name": "PricingScheme",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PricingScheme"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "frequency",
+          "description": "The frequency of the billing cycle",
+          "type": {
+            "name": "Frequency",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Frequency"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Frequency",
+      "description": "The frequency of the billing cycle",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "interval_count",
+          "description": "The number of intervals after which a subscriber is billed. For example, if the `interval_unit` is `DAY` with an `interval_count` of  `2`, the subscription is billed once every two days. The following table lists the maximum allowed values for the `interval_count` for each `interval_unit`:\u003ctable\u003e\u003cthead\u003e\u003ctr\u003e\u003cth\u003e\u003ccode\u003eInterval unit\u003c/code\u003e\u003c/th\u003e\u003cth\u003eMaximum interval count\u003c/th\u003e\u003c/tr\u003e\u003c/thead\u003e\u003ctbody\u003e\u003ctr\u003e\u003ctd\u003e\u003ccode\u003eDAY\u003c/code\u003e\u003c/td\u003e\u003ctd align\u003d\"right\"\u003e365\u003c/td\u003e\u003c/tr\u003e\u003ctr\u003e\u003ctd\u003e\u003ccode\u003eWEEK\u003c/code\u003e\u003c/td\u003e\u003ctd align\u003d\"right\"\u003e52\u003c/td\u003e\u003c/tr\u003e\u003ctr\u003e\u003ctd\u003e\u003ccode\u003eMONTH\u003c/code\u003e\u003c/td\u003e\u003ctd align\u003d\"right\"\u003e12\u003c/td\u003e\u003c/tr\u003e\u003ctr\u003e\u003ctd\u003e\u003ccode\u003eYEAR\u003c/code\u003e\u003c/td\u003e\u003ctd align\u003d\"right\"\u003e1\u003c/td\u003e\u003c/tr\u003e\u003c/tbody\u003e\u003c/table\u003e",
+          "type": {
+            "name": "int"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "Int",
+              "module": "ballerina/constraint",
+              "value": "{minValue: 1, maxValue: 365}"
+            }
+          ]
+        },
+        {
+          "name": "interval_unit",
+          "description": "The interval at which the subscription is charged or billed",
+          "type": {
+            "name": "\"DAY\"|\"WEEK\"|\"MONTH\"|\"YEAR\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "Taxes",
+      "description": "The tax details",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "inclusive",
+          "description": "Indicates whether the tax was already included in the billing amount",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "percentage",
+          "description": "The percentage, as a fixed-point, signed decimal number. For example, define a 19.99% interest rate as `19.99`",
+          "type": {
+            "name": "Percentage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Percentage"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Subscription",
+      "description": "The subscription details",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "status_change_note",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "status",
+          "description": "",
+          "type": {
+            "name": "\"APPROVAL_PENDING\"|\"APPROVED\"|\"ACTIVE\"|\"SUSPENDED\"|\"CANCELLED\"|\"EXPIRED\""
+          },
+          "optional": true
+        },
+        {
+          "name": "status_update_time",
+          "description": "",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "id",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "plan_id",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "start_time",
+          "description": "",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "quantity",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "shipping_amount",
+          "description": "",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "subscriber",
+          "description": "",
+          "type": {
+            "name": "Subscriber",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Subscriber"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "billing_info",
+          "description": "",
+          "type": {
+            "name": "SubscriptionBillingInfo",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SubscriptionBillingInfo"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "create_time",
+          "description": "",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "update_time",
+          "description": "",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "custom_id",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "plan_overridden",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "plan",
+          "description": "",
+          "type": {
+            "name": "Plan",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Plan"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "links",
+          "description": "",
+          "type": {
+            "name": "LinkDescription[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "LinkDescription"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "SubscriptionCancelRequest",
+      "description": "The cancel subscription request details",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "reason",
+          "description": "The reason for the cancellation of a subscription",
+          "type": {
+            "name": "string"
+          },
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 128, minLength: 1}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "SubscriptionsGetQueries",
+      "description": "Represents the Queries record for the operation: subscriptions.get",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "fields",
+          "description": "List of fields that are to be returned in the response. Possible value for fields are last_failed_payment and plan",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 100, minLength: 1}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ConnectionConfig",
+      "description": "Provides a set of configurations for controlling the behaviours when communicating with a remote HTTP endpoint.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "auth",
+          "description": "Configurations related to client authentication",
+          "type": {
+            "name": "OAuth2ClientCredentialsGrantConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OAuth2ClientCredentialsGrantConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "httpVersion",
+          "description": "The HTTP version understood by the client",
+          "type": {
+            "name": "HttpVersion",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "HttpVersion",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "http1Settings",
+          "description": "Configurations related to HTTP/1.x protocol",
+          "type": {
+            "name": "ClientHttp1Settings",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientHttp1Settings",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "http2Settings",
+          "description": "Configurations related to HTTP/2 protocol",
+          "type": {
+            "name": "ClientHttp2Settings",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientHttp2Settings",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "timeout",
+          "description": "The maximum time to wait (in seconds) for a response before closing the connection",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "forwarded",
+          "description": "The choice of setting `forwarded`/`x-forwarded` header",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "followRedirects",
+          "description": "Configurations associated with Redirection",
+          "type": {
+            "name": "FollowRedirects",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "FollowRedirects",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "poolConfig",
+          "description": "Configurations associated with request pooling",
+          "type": {
+            "name": "PoolConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "PoolConfiguration",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "cache",
+          "description": "HTTP caching related configurations",
+          "type": {
+            "name": "CacheConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CacheConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "compression",
+          "description": "Specifies the way of handling compression (`accept-encoding`) header",
+          "type": {
+            "name": "Compression",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Compression",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "circuitBreaker",
+          "description": "Configurations associated with the behaviour of the Circuit Breaker",
+          "type": {
+            "name": "CircuitBreakerConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CircuitBreakerConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "retryConfig",
+          "description": "Configurations associated with retrying",
+          "type": {
+            "name": "RetryConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "RetryConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "cookieConfig",
+          "description": "Configurations associated with cookies",
+          "type": {
+            "name": "CookieConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CookieConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "responseLimits",
+          "description": "Configurations associated with inbound response size limits",
+          "type": {
+            "name": "ResponseLimitConfigs",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ResponseLimitConfigs",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "SSL/TLS-related options",
+          "type": {
+            "name": "ClientSecureSocket",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientSecureSocket",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "proxy",
+          "description": "Proxy server related options",
+          "type": {
+            "name": "ProxyConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ProxyConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "socketConfig",
+          "description": "Provides settings related to client socket configuration",
+          "type": {
+            "name": "ClientSocketConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientSocketConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "validation",
+          "description": "Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "laxDataBinding",
+          "description": "Enables relaxed data binding on the client side. When enabled, `nil` values are treated as optional,\nand absent fields are handled as `nilable` types. Enabled by default.",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ],
+      "annotations": [
+        {
+          "name": "display",
+          "value": "{label: \"Connection Config\"}"
+        }
+      ]
+    },
+    {
+      "name": "SubscriptionSuspendRequest",
+      "description": "The suspend subscription request details",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "reason",
+          "description": "The reason for suspenson of the subscription",
+          "type": {
+            "name": "string"
+          },
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 128, minLength: 1}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Patch",
+      "description": "The JSON patch object to apply partial updates to resources",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "op",
+          "description": "The operation",
+          "type": {
+            "name": "\"add\"|\"remove\"|\"replace\"|\"move\"|\"copy\"|\"test\""
+          }
+        },
+        {
+          "name": "path",
+          "description": "The \u003ca href\u003d\"https://tools.ietf.org/html/rfc6901\"\u003eJSON Pointer\u003c/a\u003e to the target document location at which to complete the operation",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "\u0027from",
+          "description": "The \u003ca href\u003d\"https://tools.ietf.org/html/rfc6901\"\u003eJSON Pointer\u003c/a\u003e to the target document location from which to move the value. Required for the \u003ccode\u003emove\u003c/code\u003e operation",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "value",
+          "description": "The value to apply. The \u003ccode\u003eremove\u003c/code\u003e operation does not require a value",
+          "type": {
+            "name": "anydata"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "PatchRequest",
+      "description": "An array of JSON patch objects to apply partial updates to resources",
+      "type": "Other",
+      "baseType": "Patch[]"
+    },
+    {
+      "name": "SubscriptionsCreateHeaders",
+      "description": "Represents the Headers record for the operation: subscriptions.create",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "PayPal\\-Request\\-Id",
+          "description": "The server stores keys for 72 hours",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "Prefer",
+          "description": "The preferred server response upon successful completion of the request. Value is:\u003cul\u003e\u003cli\u003e\u003ccode\u003ereturn\u003dminimal\u003c/code\u003e. The server returns a minimal response to optimize communication between the API caller and the server. A minimal response includes the \u003ccode\u003eid\u003c/code\u003e, \u003ccode\u003estatus\u003c/code\u003e and HATEOAS links.\u003c/li\u003e\u003cli\u003e\u003ccode\u003ereturn\u003drepresentation\u003c/code\u003e. The server returns a complete resource representation, including the current state of the resource.\u003c/li\u003e\u003c/ul\u003e",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "UpdatePricingSchemesListRequest",
+      "description": "The update pricing scheme request details",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "pricing_schemes",
+          "description": "An array of pricing schemes",
+          "type": {
+            "name": "UpdatePricingSchemeRequest[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "UpdatePricingSchemeRequest"
+              }
+            ]
+          },
+          "annotations": [
+            {
+              "name": "Array",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 99, minLength: 1}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "PlanRequestPOST",
+      "description": "The create plan request details",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "quantity_supported",
+          "description": "Indicates whether you can subscribe to this plan by providing a quantity for the goods or service",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "payment_preferences",
+          "description": "",
+          "type": {
+            "name": "PaymentPreferences",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PaymentPreferences"
+              }
+            ]
+          }
+        },
+        {
+          "name": "product_id",
+          "description": "The ID of the product created through Catalog Products API",
+          "type": {
+            "name": "string"
+          },
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 50, minLength: 6}"
+            }
+          ]
+        },
+        {
+          "name": "name",
+          "description": "The plan name",
+          "type": {
+            "name": "string"
+          },
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 127, minLength: 1}"
+            }
+          ]
+        },
+        {
+          "name": "billing_cycles",
+          "description": "An array of billing cycles for trial billing and regular billing. A plan can have at most two trial cycles and only one regular cycle",
+          "type": {
+            "name": "BillingCycle[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "BillingCycle"
+              }
+            ]
+          },
+          "annotations": [
+            {
+              "name": "Array",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 12, minLength: 1}"
+            }
+          ]
+        },
+        {
+          "name": "description",
+          "description": "The detailed description of the plan",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 127, minLength: 1}"
+            }
+          ]
+        },
+        {
+          "name": "taxes",
+          "description": "The tax details",
+          "type": {
+            "name": "Taxes",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Taxes"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "status",
+          "description": "The initial state of the plan. Allowed input values are CREATED and ACTIVE",
+          "type": {
+            "name": "\"CREATED\"|\"INACTIVE\"|\"ACTIVE\""
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "SubscriptionsTransactionsQueries",
+      "description": "Represents the Queries record for the operation: subscriptions.transactions",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "start_time",
+          "description": "The start time of the range of transactions to list",
+          "type": {
+            "name": "string"
+          },
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 64, minLength: 20, pattern: re `^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])[T,t]([0-1][0-9]|2[0-3]):[0-5][0-9]:([0-5][0-9]|60)([.][0-9]+)?([Zz]|[+-][0-9]{2}:[0-9]{2})$`}"
+            }
+          ]
+        },
+        {
+          "name": "end_time",
+          "description": "The end time of the range of transactions to list",
+          "type": {
+            "name": "string"
+          },
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 64, minLength: 20, pattern: re `^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])[T,t]([0-1][0-9]|2[0-3]):[0-5][0-9]:([0-5][0-9]|60)([.][0-9]+)?([Zz]|[+-][0-9]{2}:[0-9]{2})$`}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "SubscriptionActivateRequest",
+      "description": "The activate subscription request details",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "reason",
+          "description": "The reason for activation of a subscription. Required to reactivate the subscription",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 128, minLength: 1}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "SubscriptionsCaptureHeaders",
+      "description": "Represents the Headers record for the operation: subscriptions.capture",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "PayPal\\-Request\\-Id",
+          "description": "The server stores keys for 72 hours",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "PlansListQueries",
+      "description": "Represents the Queries record for the operation: plans.list",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "product_id",
+          "description": "Filters the response by a Product ID",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 50, minLength: 6}"
+            }
+          ]
+        },
+        {
+          "name": "plan_ids",
+          "description": "Filters the response by list of plan IDs. Filter supports upto 10 plan IDs",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "page",
+          "description": "A non-zero integer which is the start index of the entire list of items to return in the response. The combination of `page\u003d1` and `page_size\u003d20` returns the first 20 items. The combination of `page\u003d2` and `page_size\u003d20` returns the next 20 items",
+          "type": {
+            "name": "int"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "Int",
+              "module": "ballerina/constraint",
+              "value": "{minValue: 1, maxValue: 100000}"
+            }
+          ]
+        },
+        {
+          "name": "total_required",
+          "description": "Indicates whether to show the total count in the response",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "page_size",
+          "description": "The number of items to return in the response",
+          "type": {
+            "name": "int"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "Int",
+              "module": "ballerina/constraint",
+              "value": "{minValue: 1, maxValue: 20}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "PlansListHeaders",
+      "description": "Represents the Headers record for the operation: plans.list",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "Prefer",
+          "description": "The preferred server response upon successful completion of the request. Value is:\u003cul\u003e\u003cli\u003e\u003ccode\u003ereturn\u003dminimal\u003c/code\u003e. The server returns a minimal response to optimize communication between the API caller and the server. A minimal response includes the \u003ccode\u003eid\u003c/code\u003e, \u003ccode\u003estatus\u003c/code\u003e and HATEOAS links.\u003c/li\u003e\u003cli\u003e\u003ccode\u003ereturn\u003drepresentation\u003c/code\u003e. The server returns a complete resource representation, including the current state of the resource.\u003c/li\u003e\u003c/ul\u003e",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "SubscriptionCaptureRequest",
+      "description": "The charge amount from the subscriber",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "note",
+          "description": "The reason or note for the subscription charge",
+          "type": {
+            "name": "string"
+          },
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 128, minLength: 1}"
+            }
+          ]
+        },
+        {
+          "name": "amount",
+          "description": "The currency and amount for a financial transaction, such as a balance or payment due",
+          "type": {
+            "name": "Money",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Money"
+              }
+            ]
+          }
+        },
+        {
+          "name": "capture_type",
+          "description": "The type of capture",
+          "type": {
+            "name": "\"OUTSTANDING_BALANCE\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "PlanCollection",
+      "description": "The list of plans with details",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "plans",
+          "description": "An array of plans",
+          "type": {
+            "name": "Plan[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Plan"
+              }
+            ]
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "Array",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 32767}"
+            }
+          ]
+        },
+        {
+          "name": "links",
+          "description": "An array of request-related [HATEOAS links](/docs/api/reference/api-responses/#hateoas-links)",
+          "type": {
+            "name": "LinkDescription[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "LinkDescription"
+              }
+            ]
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "Array",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 10, minLength: 1}"
+            }
+          ]
+        },
+        {
+          "name": "total_pages",
+          "description": "The total number of pages",
+          "type": {
+            "name": "int"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "Int",
+              "module": "ballerina/constraint",
+              "value": "{minValue: 0, maxValue: 100000000}"
+            }
+          ]
+        },
+        {
+          "name": "total_items",
+          "description": "The total number of items",
+          "type": {
+            "name": "int"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "Int",
+              "module": "ballerina/constraint",
+              "value": "{minValue: 0, maxValue: 500000000}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "name": "Client",
+      "description": "You can use billing plans and subscriptions to create subscriptions that process recurring PayPal payments for physical or digital goods, or services. A plan includes pricing and billing cycle information that defines the amount and frequency of charge for a subscription. You can also define a fixed plan, such as a $5 basic plan or a volume- or graduated-based plan with pricing tiers based on the quantity purchased. For more information, see \u003ca href\u003d\"/docs/subscriptions/\"\u003eSubscriptions Overview\u003c/a\u003e.",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Gets invoked to initialize the `connector`.\n",
+          "parameters": [
+            {
+              "name": "config",
+              "description": "The configurations to be used when initializing the `connector`",
+              "type": {
+                "name": "ConnectionConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ConnectionConfig"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "serviceUrl",
+              "description": "URL of the target service",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"https://api-m.sandbox.paypal.com/v1/billing\""
+            }
+          ],
+          "return": {
+            "description": "An error if connector initialization failed",
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "List plans\n",
+          "accessor": "get",
+          "paths": [
+            "plans"
+          ],
+          "parameters": [
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request",
+              "type": {
+                "name": "PlansListHeaders",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "PlansListHeaders"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "product_id",
+              "description": "Filters the response by a Product ID",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "plan_ids",
+              "description": "Filters the response by list of plan IDs. Filter supports upto 10 plan IDs",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "page",
+              "description": "A non-zero integer which is the start index of the entire list of items to return in the response. The combination of `page\u003d1` and `page_size\u003d20` returns the first 20 items. The combination of `page\u003d2` and `page_size\u003d20` returns the next 20 items",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "0"
+            },
+            {
+              "name": "total_required",
+              "description": "Indicates whether to show the total count in the response",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "page_size",
+              "description": "The number of items to return in the response",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "0"
+            },
+            {
+              "name": "queries",
+              "description": "Queries to be sent with the request",
+              "type": {
+                "name": "PlansListQueries",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "PlansListQueries"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "PlanCollection|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "PlanCollection"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Create plan\n",
+          "accessor": "post",
+          "paths": [
+            "plans"
+          ],
+          "parameters": [
+            {
+              "name": "payload",
+              "type": {
+                "name": "PlanRequestPOST",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "PlanRequestPOST"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request",
+              "type": {
+                "name": "PlansCreateHeaders",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "PlansCreateHeaders"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "Plan|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Plan"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Show plan details\n",
+          "accessor": "get",
+          "paths": [
+            "plans",
+            {
+              "name": "id",
+              "type": "string"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "id",
+              "description": "The ID of the subscription",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "Plan|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Plan"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Update plan\n",
+          "accessor": "patch",
+          "paths": [
+            "plans",
+            {
+              "name": "id",
+              "type": "string"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "id",
+              "description": "The ID of the subscription",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "payload",
+              "type": {
+                "name": "PatchRequest",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "PatchRequest"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Activate plan\n",
+          "accessor": "post",
+          "paths": [
+            "plans",
+            {
+              "name": "id",
+              "type": "string"
+            },
+            "activate"
+          ],
+          "parameters": [
+            {
+              "name": "id",
+              "description": "The ID of the subscription",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Deactivate plan\n",
+          "accessor": "post",
+          "paths": [
+            "plans",
+            {
+              "name": "id",
+              "type": "string"
+            },
+            "deactivate"
+          ],
+          "parameters": [
+            {
+              "name": "id",
+              "description": "The ID of the subscription",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Update pricing\n",
+          "accessor": "post",
+          "paths": [
+            "plans",
+            {
+              "name": "id",
+              "type": "string"
+            },
+            "update\\-pricing\\-schemes"
+          ],
+          "parameters": [
+            {
+              "name": "id",
+              "description": "The ID of the subscription",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "payload",
+              "type": {
+                "name": "UpdatePricingSchemesListRequest",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "UpdatePricingSchemesListRequest"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Create subscription\n",
+          "accessor": "post",
+          "paths": [
+            "subscriptions"
+          ],
+          "parameters": [
+            {
+              "name": "payload",
+              "type": {
+                "name": "SubscriptionRequestPost",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "SubscriptionRequestPost"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request",
+              "type": {
+                "name": "SubscriptionsCreateHeaders",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "SubscriptionsCreateHeaders"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "Subscription|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Subscription"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Show subscription details\n",
+          "accessor": "get",
+          "paths": [
+            "subscriptions",
+            {
+              "name": "id",
+              "type": "string"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "id",
+              "description": "The ID of the subscription",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "fields",
+              "description": "List of fields that are to be returned in the response. Possible value for fields are last_failed_payment and plan",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "queries",
+              "description": "Queries to be sent with the request",
+              "type": {
+                "name": "SubscriptionsGetQueries",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "SubscriptionsGetQueries"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "Subscription|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Subscription"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Update subscription\n",
+          "accessor": "patch",
+          "paths": [
+            "subscriptions",
+            {
+              "name": "id",
+              "type": "string"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "id",
+              "description": "The ID of the subscription",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "payload",
+              "type": {
+                "name": "PatchRequest",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "PatchRequest"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Revise plan or quantity of subscription\n",
+          "accessor": "post",
+          "paths": [
+            "subscriptions",
+            {
+              "name": "id",
+              "type": "string"
+            },
+            "revise"
+          ],
+          "parameters": [
+            {
+              "name": "id",
+              "description": "The ID of the subscription",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "payload",
+              "type": {
+                "name": "SubscriptionReviseRequest",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "SubscriptionReviseRequest"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "SubscriptionReviseResponse|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "SubscriptionReviseResponse"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Suspend subscription\n",
+          "accessor": "post",
+          "paths": [
+            "subscriptions",
+            {
+              "name": "id",
+              "type": "string"
+            },
+            "suspend"
+          ],
+          "parameters": [
+            {
+              "name": "id",
+              "description": "The ID of the subscription",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "payload",
+              "type": {
+                "name": "SubscriptionSuspendRequest",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "SubscriptionSuspendRequest"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Cancel subscription\n",
+          "accessor": "post",
+          "paths": [
+            "subscriptions",
+            {
+              "name": "id",
+              "type": "string"
+            },
+            "cancel"
+          ],
+          "parameters": [
+            {
+              "name": "id",
+              "description": "The ID of the subscription",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "payload",
+              "type": {
+                "name": "SubscriptionCancelRequest",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "SubscriptionCancelRequest"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Activate subscription\n",
+          "accessor": "post",
+          "paths": [
+            "subscriptions",
+            {
+              "name": "id",
+              "type": "string"
+            },
+            "activate"
+          ],
+          "parameters": [
+            {
+              "name": "id",
+              "description": "The ID of the subscription",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "payload",
+              "type": {
+                "name": "SubscriptionActivateRequest",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "SubscriptionActivateRequest"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Capture authorized payment on subscription\n",
+          "accessor": "post",
+          "paths": [
+            "subscriptions",
+            {
+              "name": "id",
+              "type": "string"
+            },
+            "capture"
+          ],
+          "parameters": [
+            {
+              "name": "id",
+              "description": "The ID of the subscription",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "payload",
+              "type": {
+                "name": "SubscriptionCaptureRequest",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "SubscriptionCaptureRequest"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request",
+              "type": {
+                "name": "SubscriptionsCaptureHeaders",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "SubscriptionsCaptureHeaders"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "Transaction|error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Transaction"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "List transactions for subscription\n",
+          "accessor": "get",
+          "paths": [
+            "subscriptions",
+            {
+              "name": "id",
+              "type": "string"
+            },
+            "transactions"
+          ],
+          "parameters": [
+            {
+              "name": "id",
+              "description": "The ID of the subscription",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "start_time",
+              "description": "The start time of the range of transactions to list",
+              "type": {
+                "name": "string"
+              },
+              "default": "\"\""
+            },
+            {
+              "name": "end_time",
+              "description": "The end time of the range of transactions to list",
+              "type": {
+                "name": "string"
+              },
+              "default": "\"\""
+            },
+            {
+              "name": "queries",
+              "description": "Queries to be sent with the request",
+              "type": {
+                "name": "SubscriptionsTransactionsQueries",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "SubscriptionsTransactionsQueries"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "TransactionsList|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "TransactionsList"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "functions": [],
+  "services": [],
+  "annotations": []
+}

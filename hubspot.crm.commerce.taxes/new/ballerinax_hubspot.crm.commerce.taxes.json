@@ -1,0 +1,2539 @@
+{
+  "name": "ballerinax/hubspot.crm.commerce.taxes",
+  "description": "[HubSpot](https://www.hubspot.com) is an AI-powered customer relationship management (CRM) platform.",
+  "readme": "## Overview\n\n[HubSpot](https://www.hubspot.com) is an AI-powered customer relationship management (CRM) platform.\n\nThe HubSpot connector offers APIs to connect and interact with the [Taxes](https://developers.hubspot.com/docs/guides/api/crm/commerce/taxes) endpoints, specifically based on the [HubSpot REST API](https://developers.hubspot.com/docs/reference/api)\n\n### Key Features\n\n- Create, read, update, and delete tax records in HubSpot CRM\n- Batch operations for bulk tax management\n- Search taxes with filtering support\n- Manage tax associations with other CRM objects\n\n## Setup guide\n\nYou need a [HubSpot developer account](https://developers.hubspot.com/get-started) with an [app](https://developers.hubspot.com/docs/guides/apps/public-apps/overview) to use HubSpot connectors.\n\n### Step 1: Create HubSpot Developer Project\n\n1. [Login](https://app.hubspot.com/login) to HubSpot developer account.\n\n2. Create a public app by clicking on Create app.\n\n   ![Create public app](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.commerce.taxes/main/docs/setup/resources/build_public_app.png)\n\n3. Click on \"Create app\".\n   ![Create app](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.commerce.taxes/main/docs/setup/resources/create_app.png)\n\n4. Under \"App Info\"\n   - Enter \"Public app name\".\n   - Update \"App logo\" (optional).\n   - Update \"Description\" (optional).\n\n   ![Enter app details](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.commerce.taxes/main/docs/setup/resources/enter_app_details.png)\n\n   Then move to the \"Auth\" tab.\n\n5. Setup the \"Redirect URLs\" with respective links.\n\n   ![Auth page](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.commerce.taxes/main/docs/setup/resources/auth_page.png)\n\n6. Finally click on \"Create app\".\n\n### Step 2: Get `Client ID` and `Client secret`\n\nNavigate to the \"Auth\" tab.\n\n![Client Id, secret](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.commerce.taxes/main/docs/setup/resources/client_id_secret.png)\n\n### Step 3: Get `access token` and `refresh token`\n\n1. Set scopes under \"Auth\" tab for your app based on the [API requirements](https://developers.hubspot.com/docs/reference/api).\n\n   ![Api Reference ](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.commerce.taxes/main/docs/setup/resources/exmaple_api_reference.png)\n\n   Enable scopes required for HubSpot CRM Taxes API based on your use case.\n   - `crm.objects.line_items.read`\n   - `crm.objects.line_items.write`\n   - `oauth`\n\n2. In the \"Auth\" tab under \"Sample install URL (OAuth)\" section \"Copy full URL\".\n   \u003e **Note:** The above copied URL is in the following format.\n\n   ```\n   https://app.hubspot.com/oauth/authorize?client_id\u003d\u003cclient_id\u003e\u0026redirect_uri\u003d\u003credirect_url\u003e\u0026scope\u003d\u003cscopes\u003e\n   ```\n\n3. Choose the preferred account.\n\n   ![Choose Account](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.commerce.taxes/main/docs/setup/resources/account_chose.png)\n\n   Choose account and authorize the client.\n\n4. \"This site can’t be reached\" message will appear. Look in the URL and find the authorization code.\n\n5. Send a http request to the HubSpot.\n\n   - Linux/macOS\n\n     ```bash\n     curl --request POST \\\n     --url https://api.hubapi.com/oauth/v1/token \\\n     --header \u0027content-type: application/x-www-form-urlencoded\u0027 \\\n     --data \u0027grant_type\u003dauthorization_code\u0026code\u003d\u003cCODE\u003e\u0026redirect_uri\u003d\u003cYOUR_REDIRECT_URI\u003e\u0026client_id\u003d\u003cYOUR_CLIENT_ID\u003e\u0026client_secret\u003d\u003cYOUR_CLIENT_SECRET\u003e\u0027\n     ```\n\n   - Windows\n\n     ```bash\n     curl --request POST ^\n     --url https://api.hubapi.com/oauth/v1/token ^\n     --header \u0027content-type: application/x-www-form-urlencoded\u0027 ^\n     --data \u0027grant_type\u003dauthorization_code\u0026code\u003d\u003cCODE\u003e\u0026redirect_uri\u003d\u003cYOUR_REDIRECT_URI\u003e\u0026client_id\u003d\u003cYOUR_CLIENT_ID\u003e\u0026client_secret\u003d\u003cYOUR_CLIENT_SECRET\u003e\u0027\n     ```\n\n6. Above command returns the `access token` and `refresh token`.\n\n7. Use these tokens to authorize the client.\n\n## Quickstart\n\nTo use the `HubSpot CRM Commerce Taxes` connector in your Ballerina application, update the `.bal` file as follows:\n\n### Step 1: Import the module\n\nImport the `hubspot.crm.commerce.taxes` module and `oauth2` module.\n\n```ballerina\nimport ballerina/oauth2;\nimport ballerinax/hubspot.crm.commerce.taxes;\n```\n\n### Step 2: Instantiate a new connector\n\n1. Create a `Config.toml` file and, configure the obtained credentials obtained in the above steps as follows:\n\n   ```toml\n    clientId \u003d \u003cClient Id\u003e\n    clientSecret \u003d \u003cClient Secret\u003e\n    refreshToken \u003d \u003cRefresh Token\u003e\n   ```\n\n2. Instantiate a `OAuth2RefreshTokenGrantConfig` with the obtained credentials and initialize the connector with it.\n\n    ```ballerina\n   configurable string clientId \u003d ?;\n   configurable string clientSecret \u003d ?;\n   configurable string refreshToken \u003d ?;\n\n   taxes:ConnectionConfig config \u003d {\n      auth : {\n         clientId,\n         clientSecret,\n         refreshToken,\n         credentialBearer: oauth2:POST_BODY_BEARER\n      }\n   };\n   final taxes:Client hubSpotClient \u003d check new (config);\n   ```\n\n### Step 3: Invoke the connector operation\n\nNow, utilize the available connector operations. A sample use case is shown below.\n\n#### Create a New Tax\n\n```ballerina\n\n   taxes:SimplePublicObjectInputForCreate payload \u003d {\n\n      associations: [],\n      objectWriteTraceId: \"1234\",\n      properties: {\n         \"hs_label\": \"A percentage-based tax of 6%\",\n         \"hs_type\": \"PERCENT\",\n         \"hs_value\": \"6\"\n      }\n      taxes:SimplePublicObject response \u003d check hubspotClientTax-\u003e/.post(payload);\n   };\n```\n\n## Examples\n\nThe `HubSpot CRM Commerce Taxes` connector provides practical examples illustrating usage in various scenarios. Explore these [examples](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.commerce.taxes/tree/main/examples), covering the following use cases:\n\n1. [Manage Taxes](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.commerce.taxes/tree/main/examples/manage-taxes/) - see how the Ballerina `hubspot.crm.commerce.taxes` connector can be used to create a tax and manage it through the sales pipeline.\n2. [Search Taxes](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.commerce.taxes/tree/main/examples/search_taxes/) - see how the Ballerina `hubspot.crm.commerce.taxes` connector can be used to search for taxes using properties and create a batch of taxes\n",
+  "typeDefs": [
+    {
+      "name": "StandardError",
+      "description": "Standard error response structure returned by the Taxes API.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "subCategory",
+          "description": "Optional sub-category providing additional error classification.",
+          "type": {
+            "name": "record {|anydata...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "context",
+          "description": "Key-value map of contextual data related to the error.",
+          "type": {
+            "name": "record {|string[]...;|}"
+          }
+        },
+        {
+          "name": "links",
+          "description": "Map of relevant links associated with the error.",
+          "type": {
+            "name": "record {|string...;|}"
+          }
+        },
+        {
+          "name": "id",
+          "description": "Unique identifier for the error instance.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "category",
+          "description": "High-level category classifying the error type.",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "message",
+          "description": "Human-readable message describing the error.",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "errors",
+          "description": "List of detailed error entries associated with the failure.",
+          "type": {
+            "name": "ErrorDetail[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ErrorDetail"
+              }
+            ]
+          }
+        },
+        {
+          "name": "status",
+          "description": "HTTP status code or status label for the error response.",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ErrorDetail",
+      "description": "Detailed information about a specific error condition.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "subCategory",
+          "description": "A specific category that contains more specific detail about the error",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "code",
+          "description": "The status code associated with the error detail",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "\u0027in",
+          "description": "The name of the field or parameter in which the error was found",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "context",
+          "description": "Context about the error condition",
+          "type": {
+            "name": "record {|string[]...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "message",
+          "description": "A human readable message describing the error along with remediation steps where appropriate",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "PatchCrmV3ObjectsTaxesTaxIdUpdateQueries",
+      "description": "Represents the Queries record for the operation: patch-/crm/v3/objects/taxes/{taxId}_update",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "idProperty",
+          "description": "The name of a property whose values are unique for this object type",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "CollectionResponseAssociatedId",
+      "description": "Paginated collection of associated object IDs.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "paging",
+          "description": "Pagination object containing cursors for navigating to the next or previous page.",
+          "type": {
+            "name": "Paging",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Paging"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "results",
+          "description": "Array of associated IDs returned in the response.",
+          "type": {
+            "name": "AssociatedId[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AssociatedId"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Paging",
+      "description": "Pagination object containing cursors for navigating to the next or previous page.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "next",
+          "description": "Pagination details for retrieving the next page of results.",
+          "type": {
+            "name": "NextPage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "NextPage"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "prev",
+          "description": "Pagination cursor details for navigating to the previous page of results.",
+          "type": {
+            "name": "PreviousPage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PreviousPage"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "NextPage",
+      "description": "Pagination details for retrieving the next page of results.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "link",
+          "description": "The full URL link to the next page of results.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "after",
+          "description": "Cursor token representing the start of the next page.",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "PreviousPage",
+      "description": "Pagination cursor details for navigating to the previous page of results.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "before",
+          "description": "The cursor token representing the start of the previous page.",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "link",
+          "description": "A direct URL link to the previous page of results.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "AssociatedId",
+      "description": "Represents an associated object with its ID and association type.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "id",
+          "description": "The unique identifier of the associated object.",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "\u0027type",
+          "description": "The type defining the association relationship.",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "PublicAssociationsForObject",
+      "description": "Defines an association target object and its association types.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "types",
+          "description": "List of association type specifications for the target object.",
+          "type": {
+            "name": "AssociationSpec[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AssociationSpec"
+              }
+            ]
+          }
+        },
+        {
+          "name": "to",
+          "description": "Represents a public object identifier containing a unique ID string.",
+          "type": {
+            "name": "PublicObjectId",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PublicObjectId"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "AssociationSpec",
+      "description": "Defines the category and type of an association between objects.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "associationCategory",
+          "description": "Source category of the association: HUBSPOT_DEFINED, USER_DEFINED, or INTEGRATOR_DEFINED.",
+          "type": {
+            "name": "\"HUBSPOT_DEFINED\"|\"USER_DEFINED\"|\"INTEGRATOR_DEFINED\""
+          }
+        },
+        {
+          "name": "associationTypeId",
+          "description": "Numeric identifier specifying the association type.",
+          "type": {
+            "name": "int:Signed32"
+          }
+        }
+      ]
+    },
+    {
+      "name": "PublicObjectId",
+      "description": "Represents a public object identifier containing a unique ID string.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "id",
+          "description": "Unique identifier of the public object.",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "BatchResponseSimplePublicObject",
+      "description": "Batch operation response containing results and processing status.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "completedAt",
+          "description": "Timestamp when the batch operation completed.",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "requestedAt",
+          "description": "Timestamp when the batch operation was requested.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "startedAt",
+          "description": "Timestamp when the batch operation started processing.",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "links",
+          "description": "Map of supplemental links related to the batch response.",
+          "type": {
+            "name": "record {|string...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "results",
+          "description": "Array of tax objects returned by the batch operation.",
+          "type": {
+            "name": "SimplePublicObject[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SimplePublicObject"
+              }
+            ]
+          }
+        },
+        {
+          "name": "status",
+          "description": "Current status of the batch operation.",
+          "type": {
+            "name": "\"PENDING\"|\"PROCESSING\"|\"CANCELED\"|\"COMPLETE\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "SimplePublicObject",
+      "description": "Represents a tax record with its properties, timestamps, and archival status.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "createdAt",
+          "description": "Timestamp when the tax record was created.",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "archived",
+          "description": "Indicates whether the tax record is archived.",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "archivedAt",
+          "description": "Timestamp when the tax record was archived.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "propertiesWithHistory",
+          "description": "Map of property names to their historical values with timestamps.",
+          "type": {
+            "name": "record {|ValueWithTimestamp[]...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "id",
+          "description": "Unique identifier of the tax record.",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "properties",
+          "description": "Key-value map of the tax record\u0027s property names and their current values.",
+          "type": {
+            "name": "record {|string?...;|}"
+          }
+        },
+        {
+          "name": "updatedAt",
+          "description": "Timestamp when the tax record was last updated.",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ValueWithTimestamp",
+      "description": "A property value paired with its source metadata and recorded timestamp.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "sourceId",
+          "description": "Identifier of the source that provided the value.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "sourceType",
+          "description": "The type of source that set or modified the value.",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "sourceLabel",
+          "description": "Human-readable label describing the value\u0027s source.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "updatedByUserId",
+          "description": "ID of the user who last updated the value.",
+          "type": {
+            "name": "int:Signed32"
+          },
+          "optional": true
+        },
+        {
+          "name": "value",
+          "description": "The property value recorded at the associated timestamp.",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "timestamp",
+          "description": "Datetime when the value was recorded or last updated.",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "FilterGroup",
+      "description": "A group of filters combined to narrow search results.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "filters",
+          "description": "Array of filter conditions applied within this group.",
+          "type": {
+            "name": "Filter[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Filter"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Filter",
+      "description": "Defines a filter condition using a property, operator, and comparison value.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "highValue",
+          "description": "Upper bound value for BETWEEN range filter operations.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "propertyName",
+          "description": "The name of the property to filter by.",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "values",
+          "description": "A list of values to match against the filter property.",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "value",
+          "description": "A single value to match against the filter property.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "operator",
+          "description": "The comparison operator used to evaluate the filter condition against the property value.",
+          "type": {
+            "name": "\"EQ\"|\"NEQ\"|\"LT\"|\"LTE\"|\"GT\"|\"GTE\"|\"BETWEEN\"|\"IN\"|\"NOT_IN\"|\"HAS_PROPERTY\"|\"NOT_HAS_PROPERTY\"|\"CONTAINS_TOKEN\"|\"NOT_CONTAINS_TOKEN\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "ForwardPaging",
+      "description": "Pagination object for forward-direction cursor navigation.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "next",
+          "description": "Pagination details for retrieving the next page of results.",
+          "type": {
+            "name": "NextPage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "NextPage"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "SimplePublicObjectId",
+      "description": "An object containing a unique identifier for a public record.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "id",
+          "description": "The unique identifier of the object.",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "BatchResponseSimplePublicUpsertObjectWithErrors",
+      "description": "Batch upsert response including results, errors, and status details.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "completedAt",
+          "description": "Timestamp when the batch operation completed.",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "numErrors",
+          "description": "Total number of errors encountered during the batch operation.",
+          "type": {
+            "name": "int:Signed32"
+          },
+          "optional": true
+        },
+        {
+          "name": "requestedAt",
+          "description": "Timestamp when the batch operation was requested.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "startedAt",
+          "description": "Timestamp when the batch operation began processing.",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "links",
+          "description": "Map of relevant links associated with the batch response.",
+          "type": {
+            "name": "record {|string...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "results",
+          "description": "Array of successfully upserted tax objects.",
+          "type": {
+            "name": "SimplePublicUpsertObject[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SimplePublicUpsertObject"
+              }
+            ]
+          }
+        },
+        {
+          "name": "errors",
+          "description": "Array of errors encountered during the batch upsert.",
+          "type": {
+            "name": "StandardError[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "StandardError"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "status",
+          "description": "Current status of the batch upsert operation.",
+          "type": {
+            "name": "\"PENDING\"|\"PROCESSING\"|\"CANCELED\"|\"COMPLETE\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "SimplePublicUpsertObject",
+      "description": "Represents a tax object returned after an upsert operation, indicating whether it was newly created or updated.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "createdAt",
+          "description": "The datetime when the object was originally created.",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "archived",
+          "description": "Indicates whether the object has been archived.",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "archivedAt",
+          "description": "The datetime when the object was archived.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "\u0027new",
+          "description": "Indicates whether the object was newly created by the upsert.",
+          "type": {
+            "name": "boolean"
+          }
+        },
+        {
+          "name": "propertiesWithHistory",
+          "description": "A map of property values including their historical change timestamps.",
+          "type": {
+            "name": "record {|ValueWithTimestamp[]...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "id",
+          "description": "The unique identifier of the upserted object.",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "properties",
+          "description": "A map of property names to their current string values.",
+          "type": {
+            "name": "record {|string...;|}"
+          }
+        },
+        {
+          "name": "updatedAt",
+          "description": "The datetime when the object was last updated.",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "BatchReadInputSimplePublicObjectId",
+      "description": "Input schema for batch reading tax objects by ID.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "propertiesWithHistory",
+          "description": "List of properties to return along with their historical values.",
+          "type": {
+            "name": "string[]"
+          }
+        },
+        {
+          "name": "idProperty",
+          "description": "The property name used to identify objects in the batch.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "inputs",
+          "description": "Array of object IDs to retrieve in the batch read operation.",
+          "type": {
+            "name": "SimplePublicObjectId[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SimplePublicObjectId"
+              }
+            ]
+          }
+        },
+        {
+          "name": "properties",
+          "description": "List of property names to include in the response.",
+          "type": {
+            "name": "string[]"
+          }
+        }
+      ]
+    },
+    {
+      "name": "BatchResponseSimplePublicUpsertObject",
+      "description": "Response object containing the results and status of a batch upsert operation.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "completedAt",
+          "description": "Datetime when the batch operation completed.",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "requestedAt",
+          "description": "Datetime when the batch operation was requested.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "startedAt",
+          "description": "Datetime when the batch operation started processing.",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "links",
+          "description": "Map of related resource links associated with the batch response.",
+          "type": {
+            "name": "record {|string...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "results",
+          "description": "Array of upserted objects returned by the batch operation.",
+          "type": {
+            "name": "SimplePublicUpsertObject[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SimplePublicUpsertObject"
+              }
+            ]
+          }
+        },
+        {
+          "name": "status",
+          "description": "Current status of the batch operation: PENDING, PROCESSING, CANCELED, or COMPLETE.",
+          "type": {
+            "name": "\"PENDING\"|\"PROCESSING\"|\"CANCELED\"|\"COMPLETE\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "BatchInputSimplePublicObjectId",
+      "description": "Input schema for a batch operation containing a list of object IDs.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "inputs",
+          "description": "Array of object IDs to process in the batch operation.",
+          "type": {
+            "name": "SimplePublicObjectId[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SimplePublicObjectId"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "OAuth2RefreshTokenGrantConfig",
+      "description": "OAuth2 Refresh Token Grant Configs",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "refreshUrl",
+          "description": "Refresh URL",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "refreshToken",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "clientId",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "clientSecret",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "scopes",
+          "description": "",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "defaultTokenExpTime",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "clockSkew",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "optionalParams",
+          "description": "",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "credentialBearer",
+          "description": "",
+          "type": {
+            "name": "CredentialBearer",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CredentialBearer",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "clientConfig",
+          "description": "",
+          "type": {
+            "name": "ClientConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientConfiguration",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "BatchInputSimplePublicObjectBatchInputUpsert",
+      "description": "Input schema for a batch upsert operation containing objects to create or update.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "inputs",
+          "description": "Array of tax records to upsert in batch.",
+          "type": {
+            "name": "SimplePublicObjectBatchInputUpsert[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SimplePublicObjectBatchInputUpsert"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SimplePublicObjectBatchInputUpsert",
+      "description": "Input payload for upserting a single tax object in a batch operation.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "idProperty",
+          "description": "The property name used as the unique identifier for upsert.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "objectWriteTraceId",
+          "description": "Trace identifier for tracking the object write operation.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "id",
+          "description": "Unique identifier of the tax object to upsert.",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "properties",
+          "description": "Key-value map of tax object properties to create or update.",
+          "type": {
+            "name": "record {|string...;|}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "CollectionResponseWithTotalSimplePublicObjectForwardPaging",
+      "description": "Paginated collection of tax records with a total count and forward paging cursor.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "total",
+          "description": "Total number of tax records matching the request.",
+          "type": {
+            "name": "int:Signed32"
+          }
+        },
+        {
+          "name": "paging",
+          "description": "Pagination object for forward-direction cursor navigation.",
+          "type": {
+            "name": "ForwardPaging",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ForwardPaging"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "results",
+          "description": "Array of tax records returned in the current page.",
+          "type": {
+            "name": "SimplePublicObject[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SimplePublicObject"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "ConnectionConfig",
+      "description": "Provides a set of configurations for controlling the behaviours when communicating with a remote HTTP endpoint.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "auth",
+          "description": "Provides Auth configurations needed when communicating with a remote HTTP endpoint.",
+          "type": {
+            "name": "BearerTokenConfig|OAuth2RefreshTokenGrantConfig|ApiKeysConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "BearerTokenConfig",
+                "libraryName": "ballerina/http"
+              },
+              {
+                "category": "internal",
+                "recordName": "OAuth2RefreshTokenGrantConfig"
+              },
+              {
+                "category": "internal",
+                "recordName": "ApiKeysConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "httpVersion",
+          "description": "The HTTP version understood by the client",
+          "type": {
+            "name": "HttpVersion",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "HttpVersion",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "http1Settings",
+          "description": "Configurations related to HTTP/1.x protocol",
+          "type": {
+            "name": "ClientHttp1Settings",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientHttp1Settings",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "http2Settings",
+          "description": "Configurations related to HTTP/2 protocol",
+          "type": {
+            "name": "ClientHttp2Settings",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientHttp2Settings",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "timeout",
+          "description": "The maximum time to wait (in seconds) for a response before closing the connection",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "forwarded",
+          "description": "The choice of setting `forwarded`/`x-forwarded` header",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "followRedirects",
+          "description": "Configurations associated with Redirection",
+          "type": {
+            "name": "FollowRedirects",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "FollowRedirects",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "poolConfig",
+          "description": "Configurations associated with request pooling",
+          "type": {
+            "name": "PoolConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "PoolConfiguration",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "cache",
+          "description": "HTTP caching related configurations",
+          "type": {
+            "name": "CacheConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CacheConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "compression",
+          "description": "Specifies the way of handling compression (`accept-encoding`) header",
+          "type": {
+            "name": "Compression",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Compression",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "circuitBreaker",
+          "description": "Configurations associated with the behaviour of the Circuit Breaker",
+          "type": {
+            "name": "CircuitBreakerConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CircuitBreakerConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "retryConfig",
+          "description": "Configurations associated with retrying",
+          "type": {
+            "name": "RetryConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "RetryConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "cookieConfig",
+          "description": "Configurations associated with cookies",
+          "type": {
+            "name": "CookieConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CookieConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "responseLimits",
+          "description": "Configurations associated with inbound response size limits",
+          "type": {
+            "name": "ResponseLimitConfigs",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ResponseLimitConfigs",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "SSL/TLS-related options",
+          "type": {
+            "name": "ClientSecureSocket",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientSecureSocket",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "proxy",
+          "description": "Proxy server related options",
+          "type": {
+            "name": "ProxyConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ProxyConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "socketConfig",
+          "description": "Provides settings related to client socket configuration",
+          "type": {
+            "name": "ClientSocketConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientSocketConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "validation",
+          "description": "Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "laxDataBinding",
+          "description": "Enables relaxed data binding on the client side. When enabled, `nil` values are treated as optional, \nand absent fields are handled as `nilable` types. Enabled by default.",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ],
+      "annotations": [
+        {
+          "name": "display",
+          "value": "{label: \"Connection Config\"}"
+        }
+      ]
+    },
+    {
+      "name": "ApiKeysConfig",
+      "description": "Provides API key configurations needed when communicating with a remote HTTP endpoint.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "privateAppLegacy",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "privateApp",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "GetCrmV3ObjectsTaxesTaxIdGetByIdQueries",
+      "description": "Represents the Queries record for the operation: get-/crm/v3/objects/taxes/{taxId}_getById",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "associations",
+          "description": "A comma separated list of object types to retrieve associated IDs for. If any of the specified associations do not exist, they will be ignored",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "archived",
+          "description": "Whether to return only results that have been archived",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "propertiesWithHistory",
+          "description": "A comma separated list of the properties to be returned along with their history of previous values. If any of the specified properties are not present on the requested object(s), they will be ignored",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "idProperty",
+          "description": "The name of a property whose values are unique for this object type",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "properties",
+          "description": "A comma separated list of the properties to be returned in the response. If any of the specified properties are not present on the requested object(s), they will be ignored",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "GetCrmV3ObjectsTaxesGetPageQueries",
+      "description": "Represents the Queries record for the operation: get-/crm/v3/objects/taxes_getPage",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "associations",
+          "description": "A comma separated list of object types to retrieve associated IDs for. If any of the specified associations do not exist, they will be ignored",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "archived",
+          "description": "Whether to return only results that have been archived",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "propertiesWithHistory",
+          "description": "A comma separated list of the properties to be returned along with their history of previous values. If any of the specified properties are not present on the requested object(s), they will be ignored. Usage of this parameter will reduce the maximum number of objects that can be read by a single request",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "\u0027limit",
+          "description": "The maximum number of results to display per page",
+          "type": {
+            "name": "int:Signed32"
+          },
+          "optional": true
+        },
+        {
+          "name": "after",
+          "description": "The paging cursor token of the last successfully read resource will be returned as the `paging.next.after` JSON property of a paged response containing more results",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "properties",
+          "description": "A comma separated list of the properties to be returned in the response. If any of the specified properties are not present on the requested object(s), they will be ignored",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "PublicObjectSearchRequest",
+      "description": "Request payload for searching tax records with filters, sorting, and pagination.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "query",
+          "description": "Full-text search query string to filter tax records.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "\u0027limit",
+          "description": "Maximum number of results to return per page.",
+          "type": {
+            "name": "int:Signed32"
+          },
+          "optional": true
+        },
+        {
+          "name": "after",
+          "description": "Pagination cursor token for the next page of results.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "sorts",
+          "description": "List of sort criteria to order the search results.",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "properties",
+          "description": "List of property names to include in the response.",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "filterGroups",
+          "description": "Groups of filters used to narrow search results.",
+          "type": {
+            "name": "FilterGroup[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "FilterGroup"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "BatchResponseSimplePublicObjectWithErrors",
+      "description": "Batch operation response containing results, errors, and processing status for tax objects.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "completedAt",
+          "description": "Timestamp when the batch operation completed.",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "numErrors",
+          "description": "Total number of errors encountered during the batch operation.",
+          "type": {
+            "name": "int:Signed32"
+          },
+          "optional": true
+        },
+        {
+          "name": "requestedAt",
+          "description": "Timestamp when the batch operation was requested.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "startedAt",
+          "description": "Timestamp when the batch operation began processing.",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "links",
+          "description": "Map of relevant links associated with the batch response.",
+          "type": {
+            "name": "record {|string...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "results",
+          "description": "List of successfully processed tax objects from the batch.",
+          "type": {
+            "name": "SimplePublicObject[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SimplePublicObject"
+              }
+            ]
+          }
+        },
+        {
+          "name": "errors",
+          "description": "List of errors encountered for individual objects in the batch.",
+          "type": {
+            "name": "StandardError[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "StandardError"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "status",
+          "description": "Current processing status of the batch operation.",
+          "type": {
+            "name": "\"PENDING\"|\"PROCESSING\"|\"CANCELED\"|\"COMPLETE\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "SimplePublicObjectInput",
+      "description": "Input payload for creating or updating a tax object with its properties.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "objectWriteTraceId",
+          "description": "Trace identifier for auditing the write operation.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "properties",
+          "description": "Key-value map of tax property names and their string values.",
+          "type": {
+            "name": "record {|string...;|}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "CollectionResponseSimplePublicObjectWithAssociationsForwardPaging",
+      "description": "Paginated collection of tax objects including their associated records.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "paging",
+          "description": "Pagination object for forward-direction cursor navigation.",
+          "type": {
+            "name": "ForwardPaging",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ForwardPaging"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "results",
+          "description": "Array of tax objects returned in the current page.",
+          "type": {
+            "name": "SimplePublicObjectWithAssociations[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SimplePublicObjectWithAssociations"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SimplePublicObjectWithAssociations",
+      "description": "A tax object including its properties, metadata, and associated records.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "associations",
+          "description": "Map of associated object types to their related record collections.",
+          "type": {
+            "name": "record {|CollectionResponseAssociatedId...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "createdAt",
+          "description": "Timestamp when the tax record was created.",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "archived",
+          "description": "Indicates whether the tax record is archived.",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "archivedAt",
+          "description": "Timestamp when the tax record was archived.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "propertiesWithHistory",
+          "description": "Map of property names to their historical values with timestamps.",
+          "type": {
+            "name": "record {|ValueWithTimestamp[]...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "id",
+          "description": "Unique identifier of the tax record.",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "properties",
+          "description": "Key-value map of the tax record\u0027s current property values.",
+          "type": {
+            "name": "record {|string?...;|}"
+          }
+        },
+        {
+          "name": "updatedAt",
+          "description": "Timestamp when the tax record was last updated.",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "PostCrmV3ObjectsTaxesBatchReadReadQueries",
+      "description": "Represents the Queries record for the operation: post-/crm/v3/objects/taxes/batch/read_read",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "archived",
+          "description": "Whether to return only results that have been archived",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "BatchInputSimplePublicObjectInputForCreate",
+      "description": "A batch input wrapper containing an array of objects to create in bulk.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "inputs",
+          "description": "An array of objects to be created in bulk.",
+          "type": {
+            "name": "SimplePublicObjectInputForCreate[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SimplePublicObjectInputForCreate"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SimplePublicObjectInputForCreate",
+      "description": "Input payload for creating a new tax object with properties and associations.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "associations",
+          "description": "List of associations linking this tax to other CRM objects.",
+          "type": {
+            "name": "PublicAssociationsForObject[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PublicAssociationsForObject"
+              }
+            ]
+          }
+        },
+        {
+          "name": "objectWriteTraceId",
+          "description": "Trace ID for tracking the object write operation.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "properties",
+          "description": "Key-value pairs of property values for the new tax object.",
+          "type": {
+            "name": "record {|string...;|}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "BatchInputSimplePublicObjectBatchInput",
+      "description": "A batch input wrapper containing an array of objects to update in bulk.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "inputs",
+          "description": "An array of batch input objects to be updated.",
+          "type": {
+            "name": "SimplePublicObjectBatchInput[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SimplePublicObjectBatchInput"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SimplePublicObjectBatchInput",
+      "description": "Represents a single tax object in a batch update request, identified by ID and containing property values to update.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "idProperty",
+          "description": "The unique property name used to identify the object.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "objectWriteTraceId",
+          "description": "Trace ID for tracking the object write operation.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "id",
+          "description": "The unique identifier of the object to update.",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "properties",
+          "description": "Key-value pairs of properties to set on the object.",
+          "type": {
+            "name": "record {|string...;|}"
+          }
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "name": "Client",
+      "description": "",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Gets invoked to initialize the `connector`.\n",
+          "parameters": [
+            {
+              "name": "config",
+              "description": "The configurations to be used when initializing the `connector` ",
+              "type": {
+                "name": "ConnectionConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ConnectionConfig"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "serviceUrl",
+              "description": "URL of the target service ",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"https://api.hubapi.com/crm/v3/objects/taxes\""
+            }
+          ],
+          "return": {
+            "description": "An error if connector initialization failed ",
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Read a batch of taxes by ID\n",
+          "accessor": "post",
+          "paths": [
+            "batch",
+            "read"
+          ],
+          "parameters": [
+            {
+              "name": "payload",
+              "type": {
+                "name": "BatchReadInputSimplePublicObjectId",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "BatchReadInputSimplePublicObjectId"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "archived",
+              "description": "Whether to return only results that have been archived",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "queries",
+              "description": "Queries to be sent with the request ",
+              "type": {
+                "name": "PostCrmV3ObjectsTaxesBatchReadReadQueries",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "PostCrmV3ObjectsTaxesBatchReadReadQueries"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "BatchResponseSimplePublicObject|BatchResponseSimplePublicObjectWithErrors|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "BatchResponseSimplePublicObject"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "BatchResponseSimplePublicObjectWithErrors"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Retrieve a tax by ID\n",
+          "accessor": "get",
+          "paths": [
+            {
+              "name": "taxId",
+              "type": "string"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "taxId",
+              "description": "The unique identifier of the tax record to retrieve.",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "associations",
+              "description": "A comma separated list of object types to retrieve associated IDs for. If any of the specified associations do not exist, they will be ignored",
+              "type": {
+                "name": "string[]"
+              },
+              "optional": true,
+              "default": "[]"
+            },
+            {
+              "name": "archived",
+              "description": "Whether to return only results that have been archived",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "propertiesWithHistory",
+              "description": "A comma separated list of the properties to be returned along with their history of previous values. If any of the specified properties are not present on the requested object(s), they will be ignored",
+              "type": {
+                "name": "string[]"
+              },
+              "optional": true,
+              "default": "[]"
+            },
+            {
+              "name": "idProperty",
+              "description": "The name of a property whose values are unique for this object type",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "properties",
+              "description": "A comma separated list of the properties to be returned in the response. If any of the specified properties are not present on the requested object(s), they will be ignored",
+              "type": {
+                "name": "string[]"
+              },
+              "optional": true,
+              "default": "[]"
+            },
+            {
+              "name": "queries",
+              "description": "Queries to be sent with the request ",
+              "type": {
+                "name": "GetCrmV3ObjectsTaxesTaxIdGetByIdQueries",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "GetCrmV3ObjectsTaxesTaxIdGetByIdQueries"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "SimplePublicObjectWithAssociations|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "SimplePublicObjectWithAssociations"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Archive a tax by ID\n",
+          "accessor": "delete",
+          "paths": [
+            {
+              "name": "taxId",
+              "type": "string"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "taxId",
+              "description": "The unique identifier of the tax record to archive.",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Partially update a tax\n",
+          "accessor": "patch",
+          "paths": [
+            {
+              "name": "taxId",
+              "type": "string"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "taxId",
+              "description": "The unique identifier of the tax record to update.",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "payload",
+              "type": {
+                "name": "SimplePublicObjectInput",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "SimplePublicObjectInput"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "idProperty",
+              "description": "The name of a property whose values are unique for this object type",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "queries",
+              "description": "Queries to be sent with the request ",
+              "type": {
+                "name": "PatchCrmV3ObjectsTaxesTaxIdUpdateQueries",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "PatchCrmV3ObjectsTaxesTaxIdUpdateQueries"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "SimplePublicObject|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "SimplePublicObject"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Archive a batch of taxes by ID\n",
+          "accessor": "post",
+          "paths": [
+            "batch",
+            "archive"
+          ],
+          "parameters": [
+            {
+              "name": "payload",
+              "type": {
+                "name": "BatchInputSimplePublicObjectId",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "BatchInputSimplePublicObjectId"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Create a batch of taxes\n",
+          "accessor": "post",
+          "paths": [
+            "batch",
+            "create"
+          ],
+          "parameters": [
+            {
+              "name": "payload",
+              "type": {
+                "name": "BatchInputSimplePublicObjectInputForCreate",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "BatchInputSimplePublicObjectInputForCreate"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "BatchResponseSimplePublicObject|BatchResponseSimplePublicObjectWithErrors|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "BatchResponseSimplePublicObject"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "BatchResponseSimplePublicObjectWithErrors"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Update a batch of taxes\n",
+          "accessor": "post",
+          "paths": [
+            "batch",
+            "update"
+          ],
+          "parameters": [
+            {
+              "name": "payload",
+              "type": {
+                "name": "BatchInputSimplePublicObjectBatchInput",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "BatchInputSimplePublicObjectBatchInput"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "BatchResponseSimplePublicObject|BatchResponseSimplePublicObjectWithErrors|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "BatchResponseSimplePublicObject"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "BatchResponseSimplePublicObjectWithErrors"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Retrieve a page of taxes\n",
+          "accessor": "get",
+          "paths": [],
+          "parameters": [
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "associations",
+              "description": "A comma separated list of object types to retrieve associated IDs for. If any of the specified associations do not exist, they will be ignored",
+              "type": {
+                "name": "string[]"
+              },
+              "optional": true,
+              "default": "[]"
+            },
+            {
+              "name": "archived",
+              "description": "Whether to return only results that have been archived",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "propertiesWithHistory",
+              "description": "A comma separated list of the properties to be returned along with their history of previous values. If any of the specified properties are not present on the requested object(s), they will be ignored. Usage of this parameter will reduce the maximum number of objects that can be read by a single request",
+              "type": {
+                "name": "string[]"
+              },
+              "optional": true,
+              "default": "[]"
+            },
+            {
+              "name": "limit",
+              "description": "The maximum number of results to display per page",
+              "type": {
+                "name": "int:Signed32"
+              },
+              "optional": true,
+              "default": "0"
+            },
+            {
+              "name": "after",
+              "description": "The paging cursor token of the last successfully read resource will be returned as the `paging.next.after` JSON property of a paged response containing more results",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "properties",
+              "description": "A comma separated list of the properties to be returned in the response. If any of the specified properties are not present on the requested object(s), they will be ignored",
+              "type": {
+                "name": "string[]"
+              },
+              "optional": true,
+              "default": "[]"
+            },
+            {
+              "name": "queries",
+              "description": "Queries to be sent with the request ",
+              "type": {
+                "name": "GetCrmV3ObjectsTaxesGetPageQueries",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "GetCrmV3ObjectsTaxesGetPageQueries"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "CollectionResponseSimplePublicObjectWithAssociationsForwardPaging|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "CollectionResponseSimplePublicObjectWithAssociationsForwardPaging"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Create a new tax\n",
+          "accessor": "post",
+          "paths": [],
+          "parameters": [
+            {
+              "name": "payload",
+              "type": {
+                "name": "SimplePublicObjectInputForCreate",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "SimplePublicObjectInputForCreate"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "SimplePublicObject|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "SimplePublicObject"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Upsert a batch of taxes\n",
+          "accessor": "post",
+          "paths": [
+            "batch",
+            "upsert"
+          ],
+          "parameters": [
+            {
+              "name": "payload",
+              "type": {
+                "name": "BatchInputSimplePublicObjectBatchInputUpsert",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "BatchInputSimplePublicObjectBatchInputUpsert"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "BatchResponseSimplePublicUpsertObject|BatchResponseSimplePublicUpsertObjectWithErrors|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "BatchResponseSimplePublicUpsertObject"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "BatchResponseSimplePublicUpsertObjectWithErrors"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Search for taxes\n",
+          "accessor": "post",
+          "paths": [
+            "search"
+          ],
+          "parameters": [
+            {
+              "name": "payload",
+              "type": {
+                "name": "PublicObjectSearchRequest",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "PublicObjectSearchRequest"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "CollectionResponseWithTotalSimplePublicObjectForwardPaging|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "CollectionResponseWithTotalSimplePublicObjectForwardPaging"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "functions": [],
+  "services": [],
+  "annotations": []
+}

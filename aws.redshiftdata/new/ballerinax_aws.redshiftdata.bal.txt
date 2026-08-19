@@ -1,0 +1,540 @@
+// ============================================================
+// Library: ballerinax/aws.redshiftdata
+// [Amazon Redshift](https://docs.aws.amazon.com/redshift/latest/mgmt/welcome.html) is a powerful and fully-managed data warehouse service provided by Amazon Web Services (AWS), designed to efficiently analyze large datasets with high performance and scalability.
+// ============================================================
+import ballerinax/aws.redshiftdata;
+
+// --- README ---
+## Overview
+
+[Amazon Redshift](https://docs.aws.amazon.com/redshift/latest/mgmt/welcome.html) is a powerful and fully-managed data warehouse service provided by Amazon Web Services (AWS), designed to efficiently analyze large datasets with high performance and scalability.
+
+The `ballerinax/aws.redshiftdata` package allows developers to interact with Amazon Redshift Data API seamlessly using Ballerina. The Redshift Data API simplifies data access by eliminating the need for managing persistent database connections or the Redshift JDBC driver.
+
+## Setup guide
+
+### Login to AWS Console
+
+Log into the [AWS Management Console](https://console.aws.amazon.com/console). If you don’t have an AWS account yet, you can create one by visiting the AWS [sign-up](https://aws.amazon.com/free/) page. Sign up is free, and you can explore many services under the Free Tier.
+
+### Create a user
+
+1. In the AWS Management Console, search for IAM in the services search bar.
+2. Click on IAM
+
+   ![create-user-1.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws.redshiftdata/main/docs/setup/resources/create-user-1.png)
+
+3. Click Users
+
+   ![create-user-2.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws.redshiftdata/main/docs/setup/resources/create-user-2.png)
+
+4. Click Create User
+
+   ![create-user-3.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws.redshiftdata/main/docs/setup/resources/create-user-3.png)
+
+5. Provide a suitable name for the user and continue
+
+   ![specify-user-details.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws.redshiftdata/main/docs/setup/resources/specify-user-details.png)
+
+6. Add necessary permissions by adding the user to a user group, copy permissions or directly attach the policies. And click next.
+
+   ![set-user-permissions.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws.redshiftdata/main/docs/setup/resources/set-user-permissions.png)
+
+7. Review and create the user
+
+   ![review-create-user.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws.redshiftdata/main/docs/setup/resources/review-create-user.png)
+
+### Get user access keys
+
+1. Click the user that created
+
+   ![users.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws.redshiftdata/main/docs/setup/resources/users.png)
+
+2. Click `Create access key`
+
+   ![create-access-key-1.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws.redshiftdata/main/docs/setup/resources/create-access-key-1.png)
+
+3. Click your use case and click next.
+
+   ![select-usecase.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws.redshiftdata/main/docs/setup/resources/select-usecase.png)
+
+4. Record the Access Key and Secret access key. These credentials will be used to authenticate your Ballerina application with the Redshift cluster.
+
+   ![retrieve-access-key.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws.redshiftdata/main/docs/setup/resources/retrieve-access-key.png)
+
+### Setup a Cluster
+
+To use the Ballerina AWS Redshift data connector, follow these steps to set up an Amazon Redshift cluster:
+
+#### Step 1: Navigate to Amazon Redshift and create a cluster
+
+1. In the AWS Management Console, search for Redshift in the services search bar.
+2. Click on Amazon Redshift.
+
+   ![create-cluster-1.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws.redshiftdata/main/docs/setup/resources/create-cluster-1.png)
+
+3. Click on the `Create cluster` button to initiate the process of creating a new Amazon Redshift cluster.
+
+   ![create-cluster-2.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws.redshiftdata/main/docs/setup/resources/create-cluster-2.png)
+
+#### Step 2: Configure cluster settings
+
+1. Configure your Redshift cluster settings, including cluster identifier, database name, credentials, and other relevant parameters.
+
+   ![configure-cluster-1.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws.redshiftdata/main/docs/setup/resources/configure-cluster-1.png)
+
+2. Configure security groups to control inbound and outbound traffic to your Redshift cluster. Ensure that your Ballerina application will have the necessary permissions to access the cluster.
+
+   ![configure-security-groups.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws.redshiftdata/main/docs/setup/resources/configure-security-groups.png)
+
+3. Record the username during the cluster configuration. This will be used to authenticate your Ballerina application with the Redshift cluster.
+
+   ![database-configurations.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws.redshiftdata/main/docs/setup/resources/database-configurations.png)
+
+4. Finally, review your configuration settings, and once satisfied, click `Create cluster` to launch your Amazon Redshift cluster.
+
+#### Step 3: Wait for cluster availability
+
+1. It may take some time for your Redshift cluster to be available. Monitor the cluster status in the AWS Console until it shows as "Available".
+
+   ![wait-for-availability.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws.redshiftdata/main/docs/setup/resources/wait-for-availability.png)
+
+> **Note:** Amazon Redshift now offers a serverless option, allowing you to use the data warehouse without managing infrastructure. Redshift Serverless automatically scales to handle your workloads, providing a flexible and efficient way to run analytics. To configure a **Redshift serverless** setup, please refer to [AWS documentation.](https://docs.aws.amazon.com/redshift/latest/gsg/new-user-serverless.html)
+
+## Quickstart
+
+To use the `aws.redshiftdata` connector in your Ballerina project, modify the .bal file as follows:
+
+### Step 1: Import the module
+
+```ballerina
+import ballerinax/aws.redshiftdata;
+```
+
+### Step 2: Instantiate a new connector
+
+Create a new `redshiftdata:Client` by providing the region, authentication configurations and dbAccessConfig.
+
+The `dbAccessConfig` in the `ConnectionConfig` record defines the database access configuration for connecting to the Redshift Data API. It can be set to either a Cluster or a WorkGroup (Serverless mode). Additionally, users can override this configuration for specific requests by providing it in individual calls to methods like execute or batchExecute, allowing for more granular control over database access per execution.
+
+```ballerina
+configurable string accessKeyId = ?;
+configurable string secretAccessKey = ?;
+configurable redshiftdata:Cluster dbAccessConfig = ?;
+
+redshiftdata:Client redshiftdata = check new ({
+   region: redshiftdata:US_EAST_2,
+   auth: {
+      accessKeyId,
+      secretAccessKey
+   },
+   dbAccessConfig
+});
+```
+
+### Step 3: Invoke the connector operations
+
+Now, utilize the available connector operations.
+
+```ballerina
+redshiftdata:ExecutionResponse response = check redshiftdata->execute(`SELECT * FROM Users`);
+
+redshiftdata:DescriptionResponse descriptionResponse = check redshiftdata->describe(response.statementId);
+
+stream<User, redshiftdata:Error?> statementResult = check redshiftdata->getResultAsStream(response.statementId);
+```
+
+### Step 4: Run the Ballerina application
+
+Use the following command to compile and run the Ballerina program.
+
+```bash
+bal run
+```
+
+## Examples
+
+The `aws.redshiftdata` connector provides practical examples illustrating usage in various scenarios. Explore these [examples](https://github.com/ballerina-platform/module-ballerinax-aws.redshiftdata/tree/main/examples).
+
+1. [Manage users](https://github.com/ballerina-platform/module-ballerinax-aws.redshiftdata/tree/main/examples/manage-users/) - This example demonstrates how to use the Ballerina Redshift Data connector to perform SQL operations on an AWS Redshift cluster. It includes creating a table, inserting data, and querying data.
+
+2. [Music store](https://github.com/ballerina-platform/module-ballerinax-aws.redshiftdata/tree/main/examples/music-store) - This example illustrates the process of creating an HTTP RESTful API with Ballerina to perform basic CRUD operations on a database, specifically AWS Redshift, involving setup, configuration, and running examples.
+
+// --- END README ---
+
+// --- Types ---
+
+const string AF_SOUTH_1 = "af-south-1";
+
+const string AP_EAST_1 = "ap-east-1";
+
+const string AP_NORTHEAST_1 = "ap-northeast-1";
+
+const string AP_NORTHEAST_2 = "ap-northeast-2";
+
+const string AP_NORTHEAST_3 = "ap-northeast-3";
+
+const string AP_SOUTH_1 = "ap-south-1";
+
+const string AP_SOUTH_2 = "ap-south-2";
+
+const string AP_SOUTHEAST_1 = "ap-southeast-1";
+
+const string AP_SOUTHEAST_2 = "ap-southeast-2";
+
+const string AP_SOUTHEAST_3 = "ap-southeast-3";
+
+const string AP_SOUTHEAST_4 = "ap-southeast-4";
+
+const string AWS_CN_GLOBAL = "aws-cn-global";
+
+const string AWS_GLOBAL = "aws-global";
+
+const string AWS_ISO_GLOBAL = "aws-iso-global";
+
+const string AWS_ISO_B_GLOBAL = "aws-iso-b-global";
+
+const string AWS_US_GOV_GLOBAL = "aws-us-gov-global";
+
+const string CA_WEST_1 = "ca-west-1";
+
+const string CA_CENTRAL_1 = "ca-central-1";
+
+const string CN_NORTH_1 = "cn-north-1";
+
+const string CN_NORTHWEST_1 = "cn-northwest-1";
+
+const string EU_CENTRAL_1 = "eu-central-1";
+
+const string EU_CENTRAL_2 = "eu-central-2";
+
+const string EU_ISOE_WEST_1 = "eu-isoe-west-1";
+
+const string EU_NORTH_1 = "eu-north-1";
+
+const string EU_SOUTH_1 = "eu-south-1";
+
+const string EU_SOUTH_2 = "eu-south-2";
+
+const string EU_WEST_1 = "eu-west-1";
+
+const string EU_WEST_2 = "eu-west-2";
+
+const string EU_WEST_3 = "eu-west-3";
+
+const string IL_CENTRAL_1 = "il-central-1";
+
+const string ME_CENTRAL_1 = "me-central-1";
+
+const string ME_SOUTH_1 = "me-south-1";
+
+const string SA_EAST_1 = "sa-east-1";
+
+const string US_EAST_1 = "us-east-1";
+
+const string US_EAST_2 = "us-east-2";
+
+const string US_GOV_EAST_1 = "us-gov-east-1";
+
+const string US_GOV_WEST_1 = "us-gov-west-1";
+
+const string US_ISOB_EAST_1 = "us-isob-east-1";
+
+const string US_ISO_EAST_1 = "us-iso-east-1";
+
+const string US_ISO_WEST_1 = "us-iso-west-1";
+
+const string US_WEST_1 = "us-west-1";
+
+const string US_WEST_2 = "us-west-2";
+
+const string SUBMITTED = "SUBMITTED";
+
+const string PICKED = "PICKED";
+
+const string STARTED = "STARTED";
+
+const string FINISHED = "FINISHED";
+
+const string ABORTED = "ABORTED";
+
+const string FAILED = "FAILED";
+
+const string ALL = "ALL";
+
+# The error details type for the AWS Redshift Data module.
+
+type ErrorDetails record {
+    # The HTTP status code for the error
+    int httpStatusCode?;
+    # The HTTP status text returned from the service
+    string httpStatusText?;
+    # The error code associated with the response
+    string errorCode?;
+    # The human-readable error message provided by the service
+    string errorMessage?;
+};
+
+# Represents a AWS Redshift Data distinct error.
+type Error error<ErrorDetails>;
+
+# Represents connection configurations related to Redshift Data API.
+# 
+
+type ConnectionConfig record {
+    # The AWS region with which the connector should communicate
+    Region region;
+    # The authentication configurations for the Redshift Data API
+    StaticAuthConfig|EC2IAMRoleConfig auth;
+    # The database access configurations for the Redshift Data API
+This can be overridden in the individual `execute` and `batchExecute` requests
+    Cluster|WorkGroup dbAccessConfig?;
+};
+
+# An Amazon Web Services region that hosts a set of Amazon services.
+enum Region {
+    US_WEST_2,
+    US_WEST_1,
+    US_ISO_WEST_1,
+    US_ISO_EAST_1,
+    US_ISOB_EAST_1,
+    US_GOV_WEST_1,
+    US_GOV_EAST_1,
+    US_EAST_2,
+    US_EAST_1,
+    SA_EAST_1,
+    ME_SOUTH_1,
+    ME_CENTRAL_1,
+    IL_CENTRAL_1,
+    EU_WEST_3,
+    EU_WEST_2,
+    EU_WEST_1,
+    EU_SOUTH_2,
+    EU_SOUTH_1,
+    EU_NORTH_1,
+    EU_ISOE_WEST_1,
+    EU_CENTRAL_2,
+    EU_CENTRAL_1,
+    CN_NORTHWEST_1,
+    CN_NORTH_1,
+    CA_CENTRAL_1,
+    CA_WEST_1,
+    AWS_US_GOV_GLOBAL,
+    AWS_ISO_B_GLOBAL,
+    AWS_ISO_GLOBAL,
+    AWS_GLOBAL,
+    AWS_CN_GLOBAL,
+    AP_SOUTHEAST_4,
+    AP_SOUTHEAST_3,
+    AP_SOUTHEAST_2,
+    AP_SOUTHEAST_1,
+    AP_SOUTH_2,
+    AP_SOUTH_1,
+    AP_NORTHEAST_3,
+    AP_NORTHEAST_2,
+    AP_NORTHEAST_1,
+    AP_EAST_1,
+    AF_SOUTH_1
+}
+
+# Represents static authentication configurations for the Redshift Data API.
+# 
+
+type StaticAuthConfig record {
+    # The AWS access key ID, used to identify the user interacting with AWS
+    string accessKeyId;
+    # The AWS secret access key, used to authenticate the user interacting with AWS
+    string secretAccessKey;
+    # The AWS session token, used for authenticating a user with temporary permission to a resource
+    string sessionToken?;
+};
+
+# Represents the EC2 IAM role based authentication configurations for the Redshift Data API.
+# 
+
+type EC2IAMRoleConfig record {
+    # Configure the profile name used for loading IMDS-related configuration,
+like the endpoint mode (IPv4 vs IPv6)
+    string profileName?;
+    # The path to the file containing the profile configuration
+    string profileFile?;
+};
+
+# Represents the configuration details required for connecting to an Amazon Redshift cluster.
+# 
+
+type Cluster record {
+    # The cluster identifier 
+    @constraint:String { minLength: { value: 1, message: "The cluster ID should be at least 1 character long" }, maxLength: { value: 63, message: "The cluster ID should be at most 63 characters long" } }
+    string id;
+    # The name of the database
+    string database;
+    # The database user name 
+    string dbUser?;
+    # The name or ARN of the secret that enables access to the database
+    string secretArn?;
+    # The number of seconds to keep the session alive after the query finishes
+    @constraint:Int { minValue: { value: 0, message: "The sessionKeepAliveSeconds should be greater than or equal to 0" }, maxValue: { value: 86400, message: "The sessionKeepAliveSeconds should be less than or equal to 86400" } }
+    int sessionKeepAliveSeconds?;
+};
+
+# Represents the configuration details required for connecting to an Amazon Redshift serverless workgroup.
+# 
+
+type WorkGroup record {
+    # The serverless workgroup name or Amazon Resource Name (ARN)
+    string name;
+    # The name of the database 
+    string database;
+    # The name or ARN of the secret that enables access to the database
+    string secretArn?;
+    # The number of seconds to keep the session alive after the query finishes
+    @constraint:Int { minValue: { value: 0, message: "The sessionKeepAliveSeconds should be greater than or equal to 0" }, maxValue: { value: 86400, message: "The sessionKeepAliveSeconds should be less than or equal to 86400" } }
+    int sessionKeepAliveSeconds?;
+};
+
+# The session identifier of the query.
+@constraint:String { pattern: { value: re `^[a-z0-9]{8}(-[a-z0-9]{4}){3}-[a-z0-9]{12}(:\d+)?$`, message: "Invalid session ID format" } }
+type SessionId string;
+
+# Represents the configuration details required for `execute` method.
+# 
+
+type ExecutionConfig record {
+    # The database access configurations for the Redshift Data
+If a `dbAccessConfig` is provided in the ExecutionConfig , it will override the init level dbAccessConfig
+    Cluster|WorkGroup|SessionId dbAccessConfig?;
+    # A unique, case-sensitive identifier that you provide to ensure the idempotency of the request 
+    string clientToken?;
+    # The name of the SQL statement
+    @constraint:String { minLength: { value: 1, message: "The statement name should be at least 1 character long" }, maxLength: { value: 500, message: "The statement name should be at most 500 characters long" } }
+    string statementName?;
+    # Flag which indicates to send an event after the SQL statement execution 
+to an event bus instance running in Amazon EventBridge
+    boolean withEvent?;
+};
+
+# The response from the `execute` method.
+# 
+
+type ExecutionResponse record {
+    # The date and time (UTC) the statement was created
+    time:Utc createdAt; // Special Agent Note: Utc FROM ballerina/time package
+    # A list of colon (:) separated names of database groups
+    string[] dbGroups?;
+    # The identifier of the SQL statement whose results are to be fetched
+    StatementId statementId;
+    # The session identifier of the query
+    SessionId sessionId?;
+};
+
+# The identifier of the SQL statement
+@constraint:String { pattern: { message: "Invalid statement ID format", value: re `^[a-z0-9]{8}(-[a-z0-9]{4}){3}-[a-z0-9]{12}(:\d+)?$` } }
+type StatementId string;
+
+# Information about an SQL statement.
+# 
+
+type StatementData record {
+    # The identifier of the SQL statement described
+    StatementId statementId;
+    # The date and time (UTC) when the SQL statement was submitted to run 
+    time:Utc createdAt; // Special Agent Note: Utc FROM ballerina/time package
+    # The amount of time in seconds that the statement ran 
+    decimal duration;
+    # The error message from the cluster if the SQL statement encountered an error while running
+    string 'error?;
+    # A value that indicates whether the statement has a result set 
+    boolean hasResultSet;
+    # The SQL statement text
+    string queryString?;
+    # The identifier of the query generated by Amazon Redshift
+    int redshiftQueryId;
+    # Either the number of rows returned from the SQL statement or the number of rows affected
+    int resultRows;
+    # The size in bytes of the returned results
+    int resultSize;
+    # The status of the SQL statement being described
+    Status status;
+    # The date and time (UTC) that the statement metadata was last updated
+    time:Utc updatedAt; // Special Agent Note: Utc FROM ballerina/time package
+};
+
+# The status of the SQL statement being described. 
+# 
+enum Status {
+    ALL,
+    FAILED,
+    ABORTED,
+    FINISHED,
+    STARTED,
+    PICKED,
+    SUBMITTED
+}
+
+# Describes the details about a specific instance when a query was run by the Amazon Redshift Data API.
+# 
+
+type DescriptionResponse record {
+    # The SQL statements from a multiple statement run
+    StatementData[] subStatements?;
+    # The process identifier from Amazon Redshift
+    int redshiftPid;
+    # The session identifier of the query
+    SessionId sessionId?;
+    StatementId statementId;
+    time:Utc createdAt; // Special Agent Note: Utc FROM ballerina/time package
+    decimal duration;
+    string 'error?;
+    boolean hasResultSet;
+    string queryString?;
+    int redshiftQueryId;
+    int resultRows;
+    int resultSize;
+    Status status;
+    time:Utc updatedAt; // Special Agent Note: Utc FROM ballerina/time package
+};
+
+// --- Client ---
+
+# The AWS Redshift Data API client.
+client class Client {
+    function init(Region region = "us-west-2", StaticAuthConfig|EC2IAMRoleConfig auth = {accessKeyId: "", secretAccessKey: ""}, Cluster|WorkGroup dbAccessConfig = {id: "", database: ""}, ConnectionConfig connectionConfig) returns Error?;
+
+    # Runs an SQL statement, which can be data manipulation language (DML) or data definition language (DDL).
+    # ```ballerina
+    # redshiftdata:ExecutionResponse response = check redshift->execute(`SELECT * FROM Users`);
+    # ```
+    # 
+    remote function execute(sql:ParameterizedQuery statement, Cluster|WorkGroup|SessionId dbAccessConfig = {id: "", database: ""}, string clientToken = "", string statementName = "", boolean withEvent = false, ExecutionConfig executionConfig) returns ExecutionResponse|Error; // Special Agent Note: ParameterizedQuery FROM ballerina/sql package
+
+    # Runs one or more SQL statements, which can be data manipulation language (DML) or data definition language (DDL).
+    # The batch size should not exceed 40.
+    # ```ballerina
+    # redshiftdata:ExecutionResponse response = check redshift->batchExecute([`<statement>`,
+    #    `<statement>`]);
+    # ```
+    # 
+    remote function batchExecute(sql:ParameterizedQuery[] statements, Cluster|WorkGroup|SessionId dbAccessConfig = {id: "", database: ""}, string clientToken = "", string statementName = "", boolean withEvent = false, ExecutionConfig executionConfig) returns ExecutionResponse|Error; // Special Agent Note: ParameterizedQuery FROM ballerina/sql package
+
+    # Retrieves the results for a previously executed SQL statement.
+    # ```ballerina
+    # stream<User, Error?> response = check redshift->getResultAsStream("<statement-id>");
+    # ```
+    # 
+    remote function getResultAsStream(StatementId statementId, record {|anydata...;|} rowTypes = record {|anydata...;|}) returns stream<rowTypes, Error?>|Error;
+
+    # Retrieves the execution status for a previously executed SQL statement.
+    # ```ballerina
+    # redshiftdata:DescriptionResponse response = check redshift->describe("<statement-id>");
+    # ```
+    # 
+    remote function describe(StatementId statementId) returns DescriptionResponse|Error;
+
+    # Gracefully closes AWS Redshift Data API client resources.
+    # ```ballerina
+    # check redshift->close();
+    # ```
+    # 
+    remote function close() returns Error|();
+}

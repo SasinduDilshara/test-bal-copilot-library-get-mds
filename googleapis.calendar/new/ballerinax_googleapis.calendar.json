@@ -1,0 +1,3575 @@
+{
+  "name": "ballerinax/googleapis.calendar",
+  "description": "Connects to Google Calendar from Ballerina",
+  "readme": "Connects to Google Calendar from Ballerina\n\n## Package overview\nThe `ballerinax/googleapis.calendar` is a [Ballerina](https://ballerina.io/) connector for Google Calendar. It is comprised of the following capabilities.\n\n* Perform Google Calendar related operations programmatically. The `ballerinax/googleapis.calendar` module provides this capability.\n\n### Compatibility\n|                     | Version            |\n|---------------------|--------------------|\n| Ballerina Language  | Swan Lake 2201.4.1 |\n| Google Calendar API | V3                 |\n\n## Report issues\nTo report bugs, request new features, start new discussions, view project boards, etc., go to the [Ballerina Extended Library repository](https://github.com/ballerina-platform/ballerina-extended-library)\n\n## Useful links\n- Discuss code changes of the Ballerina project in [ballerina-dev@googlegroups.com](mailto:ballerina-dev@googlegroups.com).\n- Chat live with us via our [Discord server](https://discord.gg/ballerinalang).\n- Post all technical questions on Stack Overflow with the [#ballerina](https://stackoverflow.com/questions/tagged/ballerina) tag\n\n\n## Module: googleapis.calendar\n\n## Overview\nThe Google Calendar Connector provides the capability to manage events and calendar operations. It also provides the capability to support service account authorization that can provide delegated domain-wide access to the GSuite domain and support admins to do operations on behalf of the domain users.\n\nThis module supports [Google Calendar API V3](https://developers.google.com/calendar/api).\n \n## Prerequisites\nBefore using this connector in your Ballerina application, complete the following:\n1. Create a [Google account](https://accounts.google.com/signup/v2/webcreateaccount?utm_source\u003dga-ob-search\u0026utm_medium\u003dgoogle-account\u0026flowName\u003dGlifWebSignIn\u0026flowEntry\u003dSignUp).\n2. Obtain tokens - Follow the steps [here](https://developers.google.com/identity/protocols/oauth2) to obtain tokens.\n\n## Quickstart\nTo use the Google Calendar connector in your Ballerina application, update the .bal file as follows:\n\n### Step 1: Import connector\nImport the `ballerinax/googleapis.calendar` module into the Ballerina project.\n```ballerina\nimport ballerinax/googleapis.calendar;\n```\n\n### Step 2: Create a new connector instance\nCreate a `calendar:ConnectionConfig` with the OAuth2.0 tokens obtained and initialize the connector with it.\n```ballerina\ncalendar:ConnectionConfig config \u003d {\n    auth: {\n        clientId: \u003cCLIENT_ID\u003e,\n        clientSecret: \u003cCLIENT_SECRET\u003e\n        refreshToken: \u003cREFRESH_TOKEN\u003e,\n        refreshUrl: \u003cREFRESH_URL\u003e,\n    }\n};\n\ncalendar:Client calendarClient \u003d check new(config);\n```\n\n### Step 3: Invoke connector operation\n1. Now you can use the operations available within the connector. Note that they are in the form of remote operations.  \nFollowing is an example on how to create quick event using the connector.\n\n    ```ballerina\n    string calendarId \u003d \"primary\";\n    string title \u003d \"Sample Event\";\n\n    public function main() returns error? {\n        calendar:Event response \u003d check calendarClient-\u003equickAddEvent(calendarId, title);\n    }\n    ``` \n2. Use `bal run` command to compile and run the Ballerina program.\n\n**[You can find a list of samples here](https://github.com/ballerina-platform/module-ballerinax-googleapis.calendar/tree/master/samples)**\n",
+  "typeDefs": [
+    {
+      "name": "START_TIME",
+      "description": "",
+      "type": "Constant",
+      "value": "startTime",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "UPDATED",
+      "description": "",
+      "type": "Constant",
+      "value": "updated",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "ConnectionConfig",
+      "description": "Client configuration details.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "auth",
+          "description": "Configurations related to client authentication",
+          "type": {
+            "name": "BearerTokenConfig|OAuth2RefreshTokenGrantConfig|JwtIssuerConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "BearerTokenConfig",
+                "libraryName": "ballerina/http"
+              },
+              {
+                "category": "external",
+                "recordName": "OAuth2RefreshTokenGrantConfig",
+                "libraryName": "ballerinax/client.config"
+              },
+              {
+                "category": "external",
+                "recordName": "JwtIssuerConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          }
+        },
+        {
+          "name": "httpVersion",
+          "description": "",
+          "type": {
+            "name": "HttpVersion",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "HttpVersion",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "http1Settings",
+          "description": "",
+          "type": {
+            "name": "ClientHttp1Settings",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientHttp1Settings",
+                "libraryName": "ballerinax/client.config"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "http2Settings",
+          "description": "",
+          "type": {
+            "name": "ClientHttp2Settings",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientHttp2Settings",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "timeout",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "forwarded",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "poolConfig",
+          "description": "",
+          "type": {
+            "name": "PoolConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "PoolConfiguration",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "cache",
+          "description": "",
+          "type": {
+            "name": "CacheConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CacheConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "compression",
+          "description": "",
+          "type": {
+            "name": "Compression",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Compression",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "circuitBreaker",
+          "description": "",
+          "type": {
+            "name": "CircuitBreakerConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CircuitBreakerConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "retryConfig",
+          "description": "",
+          "type": {
+            "name": "RetryConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "RetryConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "responseLimits",
+          "description": "",
+          "type": {
+            "name": "ResponseLimitConfigs",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ResponseLimitConfigs",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "",
+          "type": {
+            "name": "ClientSecureSocket",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientSecureSocket",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "proxy",
+          "description": "",
+          "type": {
+            "name": "ProxyConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ProxyConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "validation",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ],
+      "annotations": [
+        {
+          "name": "display",
+          "value": "{label: \"Connection Config\"}"
+        }
+      ]
+    },
+    {
+      "name": "InputEvent",
+      "description": "Represents the elements representing event input.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "summary",
+          "description": "Title of the event",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Event Title\"}"
+            }
+          ]
+        },
+        {
+          "name": "description",
+          "description": "Description of the event",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Event Description\"}"
+            }
+          ]
+        },
+        {
+          "name": "location",
+          "description": "Location of the event",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Event Location\"}"
+            }
+          ]
+        },
+        {
+          "name": "colorId",
+          "description": "Color Id of the event",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Event Color Id\"}"
+            }
+          ]
+        },
+        {
+          "name": "id",
+          "description": "Opaque identifier of the event",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Event Id\"}"
+            }
+          ]
+        },
+        {
+          "name": "\u0027start",
+          "description": "",
+          "type": {
+            "name": "Time",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Time"
+              }
+            ]
+          },
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Event Start Time\"}"
+            }
+          ]
+        },
+        {
+          "name": "end",
+          "description": "End time of the event",
+          "type": {
+            "name": "Time",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Time"
+              }
+            ]
+          },
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Event End Time\"}"
+            }
+          ]
+        },
+        {
+          "name": "recurrence",
+          "description": "List of RRULE, EXRULE, RDATE and EXDATE lines for a recurring event, as specified in RFC5545",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Recurrence Config\"}"
+            }
+          ]
+        },
+        {
+          "name": "originalStartTime",
+          "description": "The start time of the event in recurring events",
+          "type": {
+            "name": "Time",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Time"
+              }
+            ]
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Start Time in Recurrent Event\"}"
+            }
+          ]
+        },
+        {
+          "name": "transparency",
+          "description": "Whether the event blocks time on the calendar",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Time Blocks Config\"}"
+            }
+          ]
+        },
+        {
+          "name": "visibility",
+          "description": "Visibility of the event",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Event Visibility\"}"
+            }
+          ]
+        },
+        {
+          "name": "sequence",
+          "description": "Sequence number as per iCalendar",
+          "type": {
+            "name": "int"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Sequence Number\"}"
+            }
+          ]
+        },
+        {
+          "name": "attendees",
+          "description": "The attendees of the event",
+          "type": {
+            "name": "Attendee[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Attendee"
+              }
+            ]
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Attendees List\"}"
+            }
+          ]
+        },
+        {
+          "name": "extendedProperties",
+          "description": "Properties of the event that appears on this calendar",
+          "type": {
+            "name": "ExtendedProperties",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ExtendedProperties"
+              }
+            ]
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Extended Config\"}"
+            }
+          ]
+        },
+        {
+          "name": "conferenceData",
+          "description": "The conference-related information",
+          "type": {
+            "name": "ConferenceInputData",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ConferenceInputData"
+              }
+            ]
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Conference Config\"}"
+            }
+          ]
+        },
+        {
+          "name": "anyoneCanAddSelf",
+          "description": "Whether anyone can invite themselves to the event",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Can Anyone Invite Themselves?\"}"
+            }
+          ]
+        },
+        {
+          "name": "guestsCanInviteOthers",
+          "description": "Whether attendees other than the organizer can invite others to the event",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Can Guests Invite Others?\"}"
+            }
+          ]
+        },
+        {
+          "name": "guestsCanModify",
+          "description": "Whether attendees other than the organizer can modify the event",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Can Guests Modify Event?\"}"
+            }
+          ]
+        },
+        {
+          "name": "guestsCanSeeOtherGuests",
+          "description": "Whether attendees other than the organizer can see who the event\u0027s attendees are",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Can Guests See Attendees?\"}"
+            }
+          ]
+        },
+        {
+          "name": "reminders",
+          "description": "Information about the event\u0027s reminders",
+          "type": {
+            "name": "Reminders",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Reminders"
+              }
+            ]
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Reminder Config\"}"
+            }
+          ]
+        },
+        {
+          "name": "\u0027source",
+          "description": "",
+          "type": {
+            "name": "Source",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Source"
+              }
+            ]
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Event Source\"}"
+            }
+          ]
+        },
+        {
+          "name": "attachments",
+          "description": "Attachments of the events",
+          "type": {
+            "name": "Attachment[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Attachment"
+              }
+            ]
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"List of Attachments\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Time",
+      "description": "Defines time.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "date",
+          "description": "The date, in the format \"yyyy-mm-dd\"",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Date\"}"
+            }
+          ]
+        },
+        {
+          "name": "dateTime",
+          "description": "A combined date-time value formatted according to RFC3339",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Date And Time\"}"
+            }
+          ]
+        },
+        {
+          "name": "timeZone",
+          "description": "The time zone in which the time is specified",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Time Zone\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Attendee",
+      "description": "Defines attendee.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "id",
+          "description": "The attendee\u0027s Profile ID",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "email",
+          "description": "The attendee\u0027s email address",
+          "type": {
+            "name": "string"
+          },
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Email Address\"}"
+            }
+          ]
+        },
+        {
+          "name": "displayName",
+          "description": "The attendee\u0027s name",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "organizer",
+          "description": "Whether the attendee is the organizer of the event",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "self",
+          "description": "Whether this entry represents the calendar on which this copy of the event appears",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "\u0027resource",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "optional",
+          "description": "Whether this is an optional attendee",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Is Optional\"}"
+            }
+          ]
+        },
+        {
+          "name": "responseStatus",
+          "description": "The attendee\u0027s response status",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Status\"}"
+            }
+          ]
+        },
+        {
+          "name": "comment",
+          "description": "The attendee\u0027s response comment",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Comment\"}"
+            }
+          ]
+        },
+        {
+          "name": "additionalGuests",
+          "description": "Number of additional guests",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Private",
+      "description": "Defines private event properties.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "",
+          "description": "Rest field",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Shared",
+      "description": "Defines shared event properties.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "",
+          "description": "Rest field",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ExtendedProperties",
+      "description": "Extended properties of the event.",
+      "type": "Record",
+      "fields": []
+    },
+    {
+      "name": "ConferenceInputData",
+      "description": "Defines conference-related information.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "createRequest",
+          "description": "A request to generate a new conference and attach it to the event",
+          "type": {
+            "name": "CreateRequest",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CreateRequest"
+              }
+            ]
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Request to Generate Conference\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "CreateRequest",
+      "description": "Defines a request to generate a new conference and attach it to the event.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "requestId",
+          "description": "The client-generated unique ID for this request",
+          "type": {
+            "name": "string"
+          },
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Request Id\"}"
+            }
+          ]
+        },
+        {
+          "name": "conferenceSolutionKey",
+          "description": "The conference solution",
+          "type": {
+            "name": "ConferenceSolutionKey",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ConferenceSolutionKey"
+              }
+            ]
+          },
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Conference Solution Type\"}"
+            }
+          ]
+        },
+        {
+          "name": "status",
+          "description": "The status of the conference create request",
+          "type": {
+            "name": "Status",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Status"
+              }
+            ]
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Request Status\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ConferenceSolutionKey",
+      "description": "Defines conference solution key.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "\u0027type",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Conference Type\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Status",
+      "description": "Defines status.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "statusCode",
+          "description": "The current status of the conference create request",
+          "type": {
+            "name": "string"
+          },
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Request Status Code\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Reminders",
+      "description": "Defines reminders.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "useDefault",
+          "description": "Whether the default reminders of the calendar apply to the event",
+          "type": {
+            "name": "boolean"
+          },
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Use Default Reminder?\"}"
+            }
+          ]
+        },
+        {
+          "name": "overrides",
+          "description": "List the reminders specific to the event",
+          "type": {
+            "name": "Reminder[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Reminder"
+              }
+            ]
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Reminders List\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Reminder",
+      "description": "Represents default reminders on the calendar for the authenticated user.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "method",
+          "description": "The method used by the reminder",
+          "type": {
+            "name": "string"
+          },
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Reminder Method\"}"
+            }
+          ]
+        },
+        {
+          "name": "minutes",
+          "description": "Number of minutes before the start of the event when the reminder should trigger",
+          "type": {
+            "name": "int"
+          },
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Reminder Before (Mins)\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Source",
+      "description": "Defines source.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "url",
+          "description": "URL of the source pointing to a resource",
+          "type": {
+            "name": "string"
+          },
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Source Url\"}"
+            }
+          ]
+        },
+        {
+          "name": "title",
+          "description": "Title of the source",
+          "type": {
+            "name": "string"
+          },
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Source Name\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Attachment",
+      "description": "Defines Attachment.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "fileUrl",
+          "description": "URL link to the attachment",
+          "type": {
+            "name": "string"
+          },
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"File Url\"}"
+            }
+          ]
+        },
+        {
+          "name": "title",
+          "description": "Attachment title",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "mimeType",
+          "description": "Internet media type (MIME type) of the attachment",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "iconLink",
+          "description": "URL link to the attachment\u0027s icon",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "fileId",
+          "description": "ID of the attached file",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "EventsToAccess",
+      "description": "Represents the optional query parameters of creating event.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "conferenceDataVersion",
+          "description": "Version number of conference data supported by the API client",
+          "type": {
+            "name": "int?"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Conference Data Version\"}"
+            }
+          ]
+        },
+        {
+          "name": "maxAttendees",
+          "description": "The maximum number of attendees to include in the response",
+          "type": {
+            "name": "int?"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Number of Attendees\"}"
+            }
+          ]
+        },
+        {
+          "name": "sendUpdates",
+          "description": "Whether to send notifications about the creation of the new event",
+          "type": {
+            "name": "string?"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Notification Config\"}"
+            }
+          ]
+        },
+        {
+          "name": "supportsAttachments",
+          "description": "Whether API client performing operation supports event attachment",
+          "type": {
+            "name": "boolean?"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Attachment Config\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "CalendarResource",
+      "description": "Defines Calendar.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "kind",
+          "description": "Type of the resource",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "etag",
+          "description": "ETag of the resource",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "id",
+          "description": "Identifier of the calendar",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "summary",
+          "description": "Title of the calendar",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "description",
+          "description": "Description of the calendar",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "location",
+          "description": "Geographic location of the calendar as free-form text",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "timeZone",
+          "description": "The time zone of the calendar",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "conferenceProperties",
+          "description": "Conferencing properties for this calendar",
+          "type": {
+            "name": "ConferenceProperties",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ConferenceProperties"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "ConferenceProperties",
+      "description": "Defines conference properties.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "allowedConferenceSolutionTypes",
+          "description": "Types of conference solutions that are supported for this calendar",
+          "type": {
+            "name": "string[]"
+          }
+        }
+      ]
+    },
+    {
+      "name": "EventResponse",
+      "description": "Defines event response.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "kind",
+          "description": "Type of the collection",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "etag",
+          "description": "ETag of the collection",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "summary",
+          "description": "Title of the calendar",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "updated",
+          "description": "Last modification time of the calendar",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "timeZone",
+          "description": "The time zone of the calendar",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "accessRole",
+          "description": "The user\u0027s access role for this calendar",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "defaultReminders",
+          "description": "The default reminders on the calendar for the authenticated user",
+          "type": {
+            "name": "Reminder[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Reminder"
+              }
+            ]
+          }
+        },
+        {
+          "name": "nextSyncToken",
+          "description": "Token used to retrieve only the entries that have changed since this result was returned",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "nextPageToken",
+          "description": "Token used to access the next page of this result",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "items",
+          "description": "List of events on the calendar",
+          "type": {
+            "name": "Event[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Event"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Event",
+      "description": "Defines Event.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "kind",
+          "description": "Type of the resource",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "etag",
+          "description": "ETag of the resource",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "id",
+          "description": "Opaque identifier of the event",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "status",
+          "description": "Status of the event",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "htmlLink",
+          "description": "An absolute link to this event in the Google Calendar Web UI",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "created",
+          "description": "Creation time of the event",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "updated",
+          "description": "Last modification time of the event",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "summary",
+          "description": "Title of the event",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "description",
+          "description": "Description of the event",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "location",
+          "description": "Geographic location of the event as free-form text",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "colorId",
+          "description": "The color id of the event",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "creator",
+          "description": "The creator of the event",
+          "type": {
+            "name": "User",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "User"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "organizer",
+          "description": "The organizer of the event",
+          "type": {
+            "name": "User",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "User"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "\u0027start",
+          "description": "",
+          "type": {
+            "name": "Time",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Time"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "end",
+          "description": "The end time of the event",
+          "type": {
+            "name": "Time",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Time"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "endTimeUnspecified",
+          "description": "Whether the end time is actually unspecified",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "recurrence",
+          "description": "List of RRULE, EXRULE, RDATE and EXDATE lines for a recurring event, as specified in RFC5545",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "recurringEventId",
+          "description": "The id of the recurring event",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "originalStartTime",
+          "description": "The start time of the event in recurring events",
+          "type": {
+            "name": "Time",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Time"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "transparency",
+          "description": "Whether the event blocks time on the calendar",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "visibility",
+          "description": "Visibility of the event",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "iCalUID",
+          "description": "Event unique identifier as defined in RFC5545",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "sequence",
+          "description": "Sequence number as per iCalendar",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "attendees",
+          "description": "The attendees of the event",
+          "type": {
+            "name": "Attendee[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Attendee"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "extendedProperties",
+          "description": "Extended properties of the event",
+          "type": {
+            "name": "ExtendedProperties",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ExtendedProperties"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "attendeesOmitted",
+          "description": "Whether attendees may have been omitted from the event\u0027s representation",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "hangoutLink",
+          "description": "An absolute link to the Google+ hangout associated with this event",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "conferenceData",
+          "description": "The conference-related information",
+          "type": {
+            "name": "ConferenceData",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ConferenceData"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "gadget",
+          "description": "A gadget that extends this event",
+          "type": {
+            "name": "Gadget",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Gadget"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "anyoneCanAddSelf",
+          "description": "Whether anyone can invite themselves to the event",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "guestsCanInviteOthers",
+          "description": "Whether attendees other than the organizer can invite others to the event",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "guestsCanModify",
+          "description": "Whether attendees other than the organizer can modify the event",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "guestsCanSeeOtherGuests",
+          "description": "Whether attendees other than the organizer can see who the event\u0027s attendees are",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "privateCopy",
+          "description": "Whether enable event propagation",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "locked",
+          "description": "Whether this is a locked event copy",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "reminders",
+          "description": "Information about the event\u0027s reminders",
+          "type": {
+            "name": "Reminders",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Reminders"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "\u0027source",
+          "description": "",
+          "type": {
+            "name": "Source",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Source"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "attachments",
+          "description": "File attachments for the event",
+          "type": {
+            "name": "Attachment[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Attachment"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "eventType",
+          "description": "Specific type of the event [Default/ OutOfOffice]",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "User",
+      "description": "Defines user.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "id",
+          "description": "Id of the user",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "email",
+          "description": "Email of the user",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "displayName",
+          "description": "Name of the user",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "self",
+          "description": "Whether the creator corresponds to the calendar on which this copy of the event appears",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ConferenceData",
+      "description": "Represents information about conferences associated with calendar events.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "conferenceId",
+          "description": "The ID of the conference.\nCan be used by developers to keep track of conferences, should not be displayed to users.\nThe ID value is formed differently for each conference solution type:  \n- eventHangout: ID is not set. (This conference type is deprecated.)\n- eventNamedHangout: ID is the name of the Hangout. (This conference type is deprecated.)\n- hangoutsMeet: ID is the 10-letter meeting code, for example aaa-bbbb-ccc.\n- addOn: ID is defined by the third-party provider.  Optional.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "conferenceSolution",
+          "description": "Information about the conference solution, including its name and user-visible icon. Optional.",
+          "type": {
+            "name": "ConferenceSolution",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ConferenceSolution"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "createRequest",
+          "description": "Specifies a request to create a conference. Optional.",
+          "type": {
+            "name": "CreateConferenceRequest",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "CreateConferenceRequest"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "entryPoints",
+          "description": "Information about individual conference entry points, such as URLs or phone numbers.\nAll of them must belong to the same conference.\nEither conferenceSolution and at least one entryPoint, or createRequest is required.",
+          "type": {
+            "name": "EntryPoint[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "EntryPoint"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "notes",
+          "description": "Additional notes (such as instructions from the domain administrator, legal notices) to display to the user. Can contain HTML. The maximum length is 2048 characters. Optional.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "parameters",
+          "description": "Includes parameters related to the conference",
+          "type": {
+            "name": "ConferenceParameters",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ConferenceParameters"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "signature",
+          "description": "The signature of the conference data.\nGenerated on server side.\nUnset for a conference with a failed create request.\nOptional for a conference with a pending create request.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ConferenceSolution",
+      "description": "Defines conference solution.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "key",
+          "description": "The key which can uniquely identify the conference solution for this event",
+          "type": {
+            "name": "Key",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Key"
+              }
+            ]
+          }
+        },
+        {
+          "name": "name",
+          "description": "The user-visible name of this solution",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "iconUri",
+          "description": "The user-visible icon for this solution",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Key",
+      "description": "Defines key.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "\u0027type",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "CreateConferenceRequest",
+      "description": "Represents the request to create a conference within a calendar event.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "conferenceSolutionKey",
+          "description": "Specifies the key identifying the conference solution for this request.",
+          "type": {
+            "name": "ConferenceSolutionKey",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ConferenceSolutionKey"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "requestId",
+          "description": "The client-generated unique ID for this request.\nClients should regenerate this ID for every new request. If an ID provided is the same as for the previous request, the request is ignored.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "status",
+          "description": "Represents the current status of the conference create request",
+          "type": {
+            "name": "ConferenceRequestStatus",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ConferenceRequestStatus"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ConferenceRequestStatus",
+      "description": "Provides information about the current status of a conference create request.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "statusCode",
+          "description": "The current status of the conference create request. Read-only.\nThe possible values are:  \n- \"pending\": the conference create request is still being processed.\n- \"success\": the conference create request succeeded, the entry points are populated.\n- \"failure\": the conference create request failed, there are no entry points.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "EntryPoint",
+      "description": "Defines conference entry points.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "entryPointType",
+          "description": "The type of the conference entry point",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "uri",
+          "description": "The URI of the entry point",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "label",
+          "description": "The label for the URI",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "pin",
+          "description": "The PIN to access the conference",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "accessCode",
+          "description": "The access code to access the conference",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "meetingCode",
+          "description": "The meeting code to access the conference",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "passcode",
+          "description": "The passcode to access the conference",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "password",
+          "description": "The password to access the conference",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "regionCode",
+          "description": "The region code of the conference",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ConferenceParameters",
+      "description": "Represents parameters related to conference settings for events.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "addOnParameters",
+          "description": "Specify additional parameters for third-party conferencing solutions",
+          "type": {
+            "name": "ConferenceParametersAddOnParameters",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ConferenceParametersAddOnParameters"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ConferenceParametersAddOnParameters",
+      "description": "This type is used for adding parameters that control the behavior of a conference.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "parameters",
+          "description": "Additional parameters controlling the behavior of the conference add-on.",
+          "type": {
+            "name": "record {|string...;|}"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Gadget",
+      "description": "Defines gadget.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "preferences",
+          "description": "Preferences",
+          "type": {
+            "name": "Preferences",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Preferences"
+              }
+            ]
+          }
+        },
+        {
+          "name": "\u0027type",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "title",
+          "description": "Title of the gadget",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "link",
+          "description": "URL of the gadget",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "iconLink",
+          "description": "Icon URL of the gadget",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "width",
+          "description": "Width of the gadget in pixel",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "height",
+          "description": "Height of the gadget in pixel",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "display",
+          "description": "Display mode of the gadget",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Preferences",
+      "description": "Defines preferences.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "",
+          "description": "Rest field",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "WatchResponse",
+      "description": "Defines watch response.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "kind",
+          "description": "Identifies this as a notification channel used to watch for changes to a resource",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "id",
+          "description": "A UUID or similar unique string that identifies this channel",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "resourceId",
+          "description": "An opaque ID that identifies the resource being watched on this channel",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "resourceUri",
+          "description": "A version-specific identifier for the watched resource",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "token",
+          "description": "An arbitrary string delivered to the target address",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "expiration",
+          "description": "Date and time of notification channel expiration",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Calendar",
+      "description": "Represents Calendar.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "kind",
+          "description": "Type of the resource",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "etag",
+          "description": "ETag of the resource",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "id",
+          "description": "Identifier of the calendar",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "summary",
+          "description": "Title of the calendar",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "description",
+          "description": "Description of the calendar",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "location",
+          "description": "Geographic location of the calendar",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "timeZone",
+          "description": "The time zone of the calendar",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "summaryOverride",
+          "description": "The summary that the authenticated user has set for this calendar",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "colorId",
+          "description": "The color id of the calendar.",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "selected",
+          "description": "Whether the calendar content shows up in the calendar UI",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "backgroundColor",
+          "description": "The main color of the calendar in the hexadecimal format",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "foregroundColor",
+          "description": "The foreground color of the calendar in the hexadecimal format",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "hidden",
+          "description": "Whether the calendar has been hidden from the list",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "deleted",
+          "description": "The effective access role that the authenticated user has on the calendar",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "accessRole",
+          "description": "The effective access role that the authenticated user has on the calendar",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "defaultReminders",
+          "description": "The default reminders that the authenticated user has for this calendar",
+          "type": {
+            "name": "Reminder[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Reminder"
+              }
+            ]
+          }
+        },
+        {
+          "name": "conferenceProperties",
+          "description": "Conferencing properties for this calendar",
+          "type": {
+            "name": "ConferenceProperties",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ConferenceProperties"
+              }
+            ]
+          }
+        },
+        {
+          "name": "primary",
+          "description": "Whether the calendar is the primary calendar of the authenticated user",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "notificationSettings",
+          "description": "The notifications that the authenticated user is receiving for the calendar",
+          "type": {
+            "name": "NotificationSettings",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "NotificationSettings"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "NotificationSettings",
+      "description": "Defines notification settings.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "notifications",
+          "description": "The list of notifications set for this calendar",
+          "type": {
+            "name": "Notification[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Notification"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notification",
+      "description": "Defines notification.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "\u0027type",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "method",
+          "description": "The type of notification",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "CalendarsToAccess",
+      "description": "Defines optionals for calendar list request.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "minAccessRole",
+          "description": "The minimum access role for the user in the returned entries",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Access Role of User\"}"
+            }
+          ]
+        },
+        {
+          "name": "showDeleted",
+          "description": "Whether to include deleted calendar list entries in the result",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Show Deleted Calendars\"}"
+            }
+          ]
+        },
+        {
+          "name": "showHidden",
+          "description": "Whether to show hidden entries",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Show Hidden Calendars\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "CalendarResponse",
+      "description": "Defines calendar list response.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "kind",
+          "description": "Type of the collection",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "etag",
+          "description": "ETag of the collection",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "nextSyncToken",
+          "description": "Token used to retrieve only the entries that have changed since this result was returned",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "nextPageToken",
+          "description": "Token used to access the next page of this result",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "items",
+          "description": "List of calendars",
+          "type": {
+            "name": "Calendar[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Calendar"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "EventFilterCriteria",
+      "description": "Defines get events optional parameters.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "iCalUID",
+          "description": "Event unique identifier",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"iCalUID\"}"
+            }
+          ]
+        },
+        {
+          "name": "maxAttendees",
+          "description": "The maximum number of attendees to include in the response",
+          "type": {
+            "name": "int"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Maximum Attendess\"}"
+            }
+          ]
+        },
+        {
+          "name": "orderBy",
+          "description": "The order of the events returned in the result",
+          "type": {
+            "name": "OrderBy",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OrderBy"
+              }
+            ]
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Order by\"}"
+            }
+          ]
+        },
+        {
+          "name": "privateExtendedProperty",
+          "description": "Extended private properties constraint specified as propertyName\u003dvalue",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Private Extended Property\"}"
+            }
+          ]
+        },
+        {
+          "name": "q",
+          "description": "Free text search terms to find events that match these terms in any field, except for extended properties",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Search Term\"}"
+            }
+          ]
+        },
+        {
+          "name": "sharedExtendedProperty",
+          "description": "Extended shared properties constraint specified as propertyName\u003dvalue",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Shared Extended Property\"}"
+            }
+          ]
+        },
+        {
+          "name": "showDeleted",
+          "description": "Whether to include deleted events (with status equals \"cancelled\") in the result",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Show Deleted?\"}"
+            }
+          ]
+        },
+        {
+          "name": "showHiddenInvitations",
+          "description": "Whether to include hidden invitations in the result",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Show Hidden Invitations?\"}"
+            }
+          ]
+        },
+        {
+          "name": "singleEvents",
+          "description": "Whether to expand recurring events into instances and only return single one-off events",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Single Events?\"}"
+            }
+          ]
+        },
+        {
+          "name": "timeMax",
+          "description": "Upper bound (exclusive) for an event\u0027s start time to filter by. Must be an RFC3339 timestamp",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Start Time Max\"}"
+            }
+          ]
+        },
+        {
+          "name": "timeMin",
+          "description": "Lower bound (exclusive) for an event\u0027s end time to filter by. Must be an RFC3339 timestamp",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Start Time Min\"}"
+            }
+          ]
+        },
+        {
+          "name": "timeZone",
+          "description": "Time zone used in the response",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Time Zone\"}"
+            }
+          ]
+        },
+        {
+          "name": "updatedMin",
+          "description": "Lower bound for an event\u0027s last modification time (as a RFC3339 timestamp) to filter by",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Updated Time Min\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "OrderBy",
+      "description": "Events order by.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "UPDATED",
+          "description": ""
+        },
+        {
+          "name": "START_TIME",
+          "description": ""
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "name": "Client",
+      "description": "Ballerina Google Calendar connector provides the capability to access Google Calendar API.\nThe connector let you perform calendar and event management operations.\n",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes the connector. During initialization you can pass either BearerTokenConfig if you have a bearer\ntoken or OAuth2RefreshTokenGrantConfig if you have Oauth tokens.\nCreate a Google account and obtain tokens following \n[this guide](https://developers.google.com/identity/protocols/oauth2). \n",
+          "parameters": [
+            {
+              "name": "config",
+              "description": "Configurations required to initialize the client",
+              "type": {
+                "name": "ConnectionConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ConnectionConfig"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "An error on failure of initialization or else `()`",
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "name": "getCalendars",
+          "type": "Remote Function",
+          "description": "Gets calendars.\n",
+          "parameters": [
+            {
+              "name": "optional",
+              "description": "Record that contains optionals",
+              "type": {
+                "name": "CalendarsToAccess|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "CalendarsToAccess"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()",
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Calendars to Access\"}"
+                }
+              ]
+            },
+            {
+              "name": "userAccount",
+              "description": "The email address of the user for requesting delegated access in service account",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()",
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"User Account\"}"
+                }
+              ]
+            }
+          ],
+          "return": {
+            "description": "Stream of Calendars on success or else an error",
+            "type": {
+              "name": "stream\u003cCalendar, error?\u003e|error"
+            }
+          },
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Get Calendars\"}"
+            }
+          ]
+        },
+        {
+          "name": "createCalendar",
+          "type": "Remote Function",
+          "description": "Creates a calendar.\n",
+          "parameters": [
+            {
+              "name": "title",
+              "description": "Calendar name",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Calendar Name\"}"
+                }
+              ]
+            },
+            {
+              "name": "userAccount",
+              "description": "The email address of the user for requesting delegated access in service account",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()",
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"User Account\"}"
+                }
+              ]
+            }
+          ],
+          "return": {
+            "description": "Created calendar on success or else an error",
+            "type": {
+              "name": "CalendarResource|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "CalendarResource"
+                }
+              ]
+            }
+          },
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Create Calendar\"}"
+            }
+          ]
+        },
+        {
+          "name": "deleteCalendar",
+          "type": "Remote Function",
+          "description": "Deletes a calendar.\n",
+          "parameters": [
+            {
+              "name": "calendarId",
+              "description": "Calendar ID",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Calendar ID\"}"
+                }
+              ]
+            },
+            {
+              "name": "userAccount",
+              "description": "The email address of the user for requesting delegated access in service account",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()",
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"User Account\"}"
+                }
+              ]
+            }
+          ],
+          "return": {
+            "description": "`()` or error on failure",
+            "type": {
+              "name": "error?"
+            }
+          },
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Delete Calendar\"}"
+            }
+          ]
+        },
+        {
+          "name": "createEvent",
+          "type": "Remote Function",
+          "description": "Creates an event.\n",
+          "parameters": [
+            {
+              "name": "calendarId",
+              "description": "Calendar ID",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Calendar ID\"}"
+                }
+              ]
+            },
+            {
+              "name": "event",
+              "description": "Record that contains event information",
+              "type": {
+                "name": "InputEvent",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "InputEvent"
+                  }
+                ]
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Event Details\"}"
+                }
+              ]
+            },
+            {
+              "name": "optional",
+              "description": "Record that contains optional query parameters",
+              "type": {
+                "name": "EventsToAccess|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "EventsToAccess"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()",
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Events to Access\"}"
+                }
+              ]
+            },
+            {
+              "name": "userAccount",
+              "description": "The email address of the user for requesting delegated access in service account",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()",
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"User Account\"}"
+                }
+              ]
+            }
+          ],
+          "return": {
+            "description": "Created Event on success or else an error",
+            "type": {
+              "name": "Event|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Event"
+                }
+              ]
+            }
+          },
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Create Event\"}"
+            }
+          ]
+        },
+        {
+          "name": "quickAddEvent",
+          "type": "Remote Function",
+          "description": "Creates an event at the moment with simple text.\n",
+          "parameters": [
+            {
+              "name": "calendarId",
+              "description": "Calendar ID",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Calendar ID\"}"
+                }
+              ]
+            },
+            {
+              "name": "text",
+              "description": "Event description",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Event Description\"}"
+                }
+              ]
+            },
+            {
+              "name": "sendUpdates",
+              "description": "Configuration for notifing the creation",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()",
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Send Creation Updates\"}"
+                }
+              ]
+            },
+            {
+              "name": "userAccount",
+              "description": "The email address of the user for requesting delegated access in service account",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()",
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"User Account\"}"
+                }
+              ]
+            }
+          ],
+          "return": {
+            "description": "Created event on success or else an error",
+            "type": {
+              "name": "Event|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Event"
+                }
+              ]
+            }
+          },
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Create Quick Event\"}"
+            }
+          ]
+        },
+        {
+          "name": "updateEvent",
+          "type": "Remote Function",
+          "description": "Updates an existing event.\n",
+          "parameters": [
+            {
+              "name": "calendarId",
+              "description": "Calendar ID",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Calendar ID\"}"
+                }
+              ]
+            },
+            {
+              "name": "eventId",
+              "description": "Event ID",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Event ID\"}"
+                }
+              ]
+            },
+            {
+              "name": "event",
+              "description": "Record that contains updated information",
+              "type": {
+                "name": "InputEvent",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "InputEvent"
+                  }
+                ]
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Event Details\"}"
+                }
+              ]
+            },
+            {
+              "name": "optional",
+              "description": "Record that contains optional query parameters",
+              "type": {
+                "name": "EventsToAccess|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "EventsToAccess"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()",
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Events to Access\"}"
+                }
+              ]
+            },
+            {
+              "name": "userAccount",
+              "description": "The email address of the user for requesting delegated access in service account",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()",
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"User Account\"}"
+                }
+              ]
+            }
+          ],
+          "return": {
+            "description": "Updated event on success or else an error",
+            "type": {
+              "name": "Event|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Event"
+                }
+              ]
+            }
+          },
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Update Event\"}"
+            }
+          ]
+        },
+        {
+          "name": "getEvents",
+          "type": "Remote Function",
+          "description": "Gets events.\n",
+          "parameters": [
+            {
+              "name": "calendarId",
+              "description": "Calendar ID",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Calendar ID\"}"
+                }
+              ]
+            },
+            {
+              "name": "filter",
+              "description": "Record that contains filtering criteria",
+              "type": {
+                "name": "EventFilterCriteria|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "EventFilterCriteria"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()",
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Filtering Criteria\"}"
+                }
+              ]
+            },
+            {
+              "name": "userAccount",
+              "description": "The email address of the user for requesting delegated access in service account",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()",
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"User Account\"}"
+                }
+              ]
+            }
+          ],
+          "return": {
+            "description": "Event stream on success or else an error",
+            "type": {
+              "name": "stream\u003cEvent, error?\u003e|error"
+            }
+          },
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Get Events\"}"
+            }
+          ]
+        },
+        {
+          "name": "getEvent",
+          "type": "Remote Function",
+          "description": "Gets an event.\n",
+          "parameters": [
+            {
+              "name": "calendarId",
+              "description": "Calendar ID",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Calendar ID\"}"
+                }
+              ]
+            },
+            {
+              "name": "eventId",
+              "description": "Event ID",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Event ID\"}"
+                }
+              ]
+            },
+            {
+              "name": "userAccount",
+              "description": "The email address of the user for requesting delegated access in service account",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()",
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"User Account\"}"
+                }
+              ]
+            }
+          ],
+          "return": {
+            "description": "An Event object on success or else an error",
+            "type": {
+              "name": "Event|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Event"
+                }
+              ]
+            }
+          },
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Get Event\"}"
+            }
+          ]
+        },
+        {
+          "name": "deleteEvent",
+          "type": "Remote Function",
+          "description": "Deletes an event.\n",
+          "parameters": [
+            {
+              "name": "calendarId",
+              "description": "Calendar ID",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Calendar ID\"}"
+                }
+              ]
+            },
+            {
+              "name": "eventId",
+              "description": "Event ID",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Event ID\"}"
+                }
+              ]
+            },
+            {
+              "name": "userAccount",
+              "description": "The email address of the user for requesting delegated access in service account",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()",
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"User Account\"}"
+                }
+              ]
+            }
+          ],
+          "return": {
+            "description": "`()` or else an error on failure",
+            "type": {
+              "name": "error?"
+            }
+          },
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Delete Event\"}"
+            }
+          ]
+        },
+        {
+          "name": "getEventsResponse",
+          "type": "Remote Function",
+          "description": "Gets events response.\n",
+          "parameters": [
+            {
+              "name": "calendarId",
+              "description": "Calendar ID",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Calendar ID\"}"
+                }
+              ]
+            },
+            {
+              "name": "count",
+              "description": "Number of events required in one page",
+              "type": {
+                "name": "int|()"
+              },
+              "optional": true,
+              "default": "()",
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Number of Events Required\"}"
+                }
+              ]
+            },
+            {
+              "name": "pageToken",
+              "description": "Token for retrieving next page",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()",
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Token for Next Page\"}"
+                }
+              ]
+            },
+            {
+              "name": "syncToken",
+              "description": "Token for getting incremental sync",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()",
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Token for Incremental Sync\"}"
+                }
+              ]
+            },
+            {
+              "name": "filter",
+              "description": "Record that contains filtering criteria",
+              "type": {
+                "name": "EventFilterCriteria|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "EventFilterCriteria"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()",
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Filtering Criteria\"}"
+                }
+              ]
+            },
+            {
+              "name": "userAccount",
+              "description": "The email address of the user for requesting delegated access in service account",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()",
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"User Account\"}"
+                }
+              ]
+            }
+          ],
+          "return": {
+            "description": "EventResponse object on success or else an error",
+            "type": {
+              "name": "EventResponse|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "EventResponse"
+                }
+              ]
+            }
+          },
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Get Events By Page\"}"
+            }
+          ]
+        }
+      ],
+      "annotations": [
+        {
+          "name": "display",
+          "value": "{label: \"Google Calendar\", iconPath: \"icon.png\"}"
+        }
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "name": "prepareUrlWithEventsOptionalParams",
+      "type": "Normal Function",
+      "description": "Prepare URL with optional parameters.\n",
+      "parameters": [
+        {
+          "name": "calendarId",
+          "description": "calendar Id",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "count",
+          "description": "Number of events required in one page",
+          "type": {
+            "name": "int|()"
+          },
+          "optional": true,
+          "default": "()"
+        },
+        {
+          "name": "pageToken",
+          "description": "Token for retrieving next page",
+          "type": {
+            "name": "string|()"
+          },
+          "optional": true,
+          "default": "()"
+        },
+        {
+          "name": "syncToken",
+          "description": "Token for getting incremental sync",
+          "type": {
+            "name": "string|()"
+          },
+          "optional": true,
+          "default": "()"
+        },
+        {
+          "name": "optional",
+          "description": "Record that contains optional parameters",
+          "type": {
+            "name": "EventFilterCriteria|()",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "EventFilterCriteria"
+              }
+            ]
+          },
+          "optional": true,
+          "default": "()"
+        }
+      ],
+      "return": {
+        "description": "The prepared URL with encoded query",
+        "type": {
+          "name": "string"
+        }
+      }
+    }
+  ],
+  "services": [],
+  "annotations": []
+}

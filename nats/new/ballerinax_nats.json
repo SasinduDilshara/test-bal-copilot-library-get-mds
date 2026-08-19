@@ -1,0 +1,1799 @@
+{
+  "name": "ballerinax/nats",
+  "description": "NATS is a cloud-native, open-source messaging system that provides a high-performance, lightweight, and scalable communication infrastructure for modern distributed systems. The NATS connector enables seamless integration with NATS, making it easy to build reactive and event-driven applications. It supports various messaging patterns, including publish-subscribe, request-reply, and load-balanced queues, and provides advanced features such as JetStream for persistent messaging.",
+  "readme": "## Overview\n\nNATS is a cloud-native, open-source messaging system that provides a high-performance, lightweight, and scalable communication infrastructure for modern distributed systems. The NATS connector enables seamless integration with NATS, making it easy to build reactive and event-driven applications. It supports various messaging patterns, including publish-subscribe, request-reply, and load-balanced queues, and provides advanced features such as JetStream for persistent messaging.\n\n### Key Features\n\n- Support for core NATS messaging (Pub/Sub, Request-Reply)\n- Advanced persistent messaging with NATS JetStream\n- Simplified production and consumption of messages\n- Load-balanced message processing with queue groups\n- Secure communication with TLS and various authentication methods\n- GraalVM compatible for native image builds\n\n### Basic usage\n\n#### Set up the connection\n\nFirst, you need to set up the connection with the NATS Basic server. The following ways can be used to connect to a\nNATS Basic server.\n\n1. Connect to a server using the default URL:\n```ballerina\nnats:Client natsClient \u003d check new(nats:DEFAULT_URL);\n```\n\n2. Connect to a server using the URL:\n```ballerina\nnats:Client natsClient \u003d check new(\"nats://serverone:4222\");\n```\n\n3. Connect to one or more servers with custom configurations:\n```ballerina\nnats:ConnectionConfiguration config \u003d {\n    connectionName: \"my-nats\",\n    noEcho: true\n};\nnats:Client natsClient \u003d check new([\"nats://serverone:4222\",  \"nats://servertwo:4222\"],  config);\n```\n\n#### Publish messages\n\n##### Publish messages to the NATS basic server\n\nOnce connected, publishing is accomplished via one of the three methods below.\n\n1. Publish with the subject and the message content:\n```ballerina\nstring message \u003d \"hello world\";\nnats:Error? result \u003d \n    natsClient-\u003epublishMessage({ content: message.toBytes(), subject: \"demo.nats.basic\"});\n```\n\n2. Publish as a request that expects a reply:\n```ballerina\nstring message \u003d \"hello world\";\nnats:AnydataMessage|nats:Error reqReply \u003d \n    natsClient-\u003erequestMessage({ content: message.toBytes(), subject: \"demo.nats.basic\"}, 5);\n```\n\n3. Publish messages with a `replyTo` subject:\n```ballerina\nstring message \u003d \"hello world\";\nnats:Error? result \u003d natsClient-\u003epublish({ content: message.toBytes(), subject: \"demo.nats.basic\",\n                                                    replyTo: \"demo.reply\" });\n```\n\n#### Listen to incoming messages\n\n##### Listen to messages from a NATS server\n\n1. Listen to incoming messages with the `onMessage` remote method:\n```ballerina\n// Binds the consumer to listen to the messages published to the \u0027demo.example.*\u0027 subject\n@nats:ServiceConfig {\n    subject: \"demo.example.*\"\n}\nservice nats:Service on new nats:Listener(nats:DEFAULT_URL) {\n\n    remote function onMessage(nats:AnydataMessage message) {\n    }\n}\n```\n\n2. Listen to incoming messages and reply directly with the `onRequest` remote method:\n```ballerina\n// Binds the consumer to listen to the messages published to the \u0027demo.example.*\u0027 subject\n@nats:ServiceConfig {\n    subject: \"demo.example.*\"\n}\nservice nats:Service on new nats:Listener(nats:DEFAULT_URL) {\n\n    // The returned message will be published to the replyTo subject of the consumed message\n    remote function onRequest(nats:AnydataMessage message) returns string? {\n        return \"Reply Message\";\n    }\n}\n```\n\n### Advanced usage\n\n#### Set up TLS\n\nThe Ballerina NATS package allows the use of TLS in communication. This setting expects a secure socket to be\nset in the connection configuration as shown below.\n\n##### Configure TLS in the `nats:Listener`\n```ballerina\nnats:SecureSocket secured \u003d {\n    cert: {\n        path: \"\u003cpath\u003e/truststore.p12\",\n        password: \"password\"\n    },\n    key: {\n        path: \"\u003cpath\u003e/keystore.p12\",\n        password: \"password\"\n    }\n};\nnats:Listener natsListener \u003d check new(\"nats://serverone:4222\", secureSocket \u003d secured);\n```\n\n##### Configure TLS in the `nats:Client`\n```ballerina\nnats:SecureSocket secured \u003d {\n    cert: {\n        path: \"\u003cpath\u003e/truststore.p12\",\n        password: \"password\"\n    },\n    key: {\n        path: \"\u003cpath\u003e/keystore.p12\",\n        password: \"password\"\n    }\n};\nnats:Client natsClient \u003d check new(\"nats://serverone:4222\", secureSocket \u003d secured);\n```\n\n### Report issues\n\nTo report bugs, request new features, start new discussions, view project boards, etc., go to the [Ballerina standard library parent repository](https://github.com/ballerina-platform/ballerina-standard-library).\n\n### Useful links\n\n- Chat live with us via our [Discord server](https://discord.gg/ballerinalang).\n- Post all technical questions on Stack Overflow with the [#ballerina](https://stackoverflow.com/questions/tagged/ballerina) tag.",
+  "typeDefs": [
+    {
+      "name": "LIMITS",
+      "description": "",
+      "type": "Constant",
+      "value": "LIMITS",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "INTEREST",
+      "description": "",
+      "type": "Constant",
+      "value": "INTEREST",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "WORKQUEUE",
+      "description": "",
+      "type": "Constant",
+      "value": "WORKQUEUE",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "FILE",
+      "description": "",
+      "type": "Constant",
+      "value": "FILE",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "MEMORY",
+      "description": "",
+      "type": "Constant",
+      "value": "MEMORY",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "NEW",
+      "description": "",
+      "type": "Constant",
+      "value": "NEW",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "OLD",
+      "description": "",
+      "type": "Constant",
+      "value": "OLD",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "SSL",
+      "description": "",
+      "type": "Constant",
+      "value": "SSL",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "TLS",
+      "description": "",
+      "type": "Constant",
+      "value": "TLS",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "DTLS",
+      "description": "",
+      "type": "Constant",
+      "value": "DTLS",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "DEFAULT_URL",
+      "description": "Default URL for NATS connections.",
+      "type": "Constant",
+      "value": "nats://localhost:4222",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "Error",
+      "description": "Represents the NATS module related errors.",
+      "type": "Error",
+      "baseType": "error"
+    },
+    {
+      "name": "PayloadBindingError",
+      "description": "Represents an error, which occurred due to payload binding.",
+      "type": "Error",
+      "baseType": "error"
+    },
+    {
+      "name": "PayloadValidationError",
+      "description": "Represents an error, which occurred due to payload constraint validation.",
+      "type": "Error",
+      "baseType": "error"
+    },
+    {
+      "name": "StreamConfiguration",
+      "description": "Determines the properties for a stream.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "name",
+          "description": "A name for the stream",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "description",
+          "description": "A short description of the purpose of this stream ",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "subjects",
+          "description": "Which NATS subject/subjects to populate this stream with. Supports wildcards. Defaults to just the\nconfigured stream name",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "retentionPolicy",
+          "description": "How message retention is considered, Limits (default), Interest or WorkQueue",
+          "type": {
+            "name": "RetentionPolicy",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RetentionPolicy"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "maxConsumers",
+          "description": "How many consumers can be defined for the stream, -1 for unlimited",
+          "type": {
+            "name": "float"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxMsgs",
+          "description": "How large the stream may become in total messages before the configured discard policy takes action",
+          "type": {
+            "name": "float"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxMsgsPerSubject",
+          "description": "Maximum amount of messages to retain per subject ",
+          "type": {
+            "name": "float"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxBytes",
+          "description": "How large the stream may become in total bytes before the configured discard policy takes action",
+          "type": {
+            "name": "float"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxAge",
+          "description": "Maximum age of any message in the stream, expressed in seconds  ",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxMsgSize",
+          "description": "The largest message that will be accepted by the Stream  ",
+          "type": {
+            "name": "float"
+          },
+          "optional": true
+        },
+        {
+          "name": "storageType",
+          "description": "The type of storage backend, File and Memory",
+          "type": {
+            "name": "StorageType",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "StorageType"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "replicas",
+          "description": "The number of replicas to store this message on",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "noAck",
+          "description": "If set, then acknowledgements are not sent back to the client",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "discardPolicy",
+          "description": "When a stream has reached its configured maxBytes or maxMsgs, this policy takes action",
+          "type": {
+            "name": "DiscardPolicy",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DiscardPolicy"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "RetentionPolicy",
+      "description": "How message retention is considered, Limits (default), Interest or WorkQueue",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "WORKQUEUE",
+          "description": ""
+        },
+        {
+          "name": "INTEREST",
+          "description": ""
+        },
+        {
+          "name": "LIMITS",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "StorageType",
+      "description": "The type of storage backend, File and Memory",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "MEMORY",
+          "description": ""
+        },
+        {
+          "name": "FILE",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "DiscardPolicy",
+      "description": "When a Stream has reached its configured maxMsgs or maxBytes, this policy kicks in. \nNew refuses new messages or Old (default) deletes old messages to make space",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "OLD",
+          "description": ""
+        },
+        {
+          "name": "NEW",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "JetStreamServiceConfigData",
+      "description": "The configurations for the NATS JetStream subscription.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "subject",
+          "description": "Name of the subject",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "queueName",
+          "description": "Name of the queue group",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "autoAck",
+          "description": "Acknowledges the message automatically",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "JetStreamMessage",
+      "description": "A message consumed from a stream.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "subject",
+          "description": "Subject of the message  ",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "content",
+          "description": "Payload of the message",
+          "type": {
+            "name": "byte[]"
+          }
+        }
+      ]
+    },
+    {
+      "name": "JetStreamService",
+      "description": "The NATS JetStream service type.",
+      "type": "Class"
+    },
+    {
+      "name": "ConnectionConfiguration",
+      "description": "Configurations related to initializing the NATS client and listener.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "connectionName",
+          "description": "The name of the connection",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "retryConfig",
+          "description": "The configurations related to connection reconnect attempts",
+          "type": {
+            "name": "RetryConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RetryConfig"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "ping",
+          "description": "The configurations related to pinging the server",
+          "type": {
+            "name": "Ping",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Ping"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "auth",
+          "description": "The configurations related to authentication",
+          "type": {
+            "name": "Credentials|Tokens",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Credentials"
+              },
+              {
+                "category": "internal",
+                "recordName": "Tokens"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "inboxPrefix",
+          "description": "The connection\u0027s inbox prefix, which all inboxes will start with",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "noEcho",
+          "description": "Turns off echoing. This prevents the server from echoing messages back to the connection if it\nhas subscriptions on the subject being published to",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "The configurations related to SSL/TLS",
+          "type": {
+            "name": "SecureSocket",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SecureSocket"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "validation",
+          "description": "Configuration related to constraint validation check",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "RetryConfig",
+      "description": "Configurations related to connection reconnect attempts.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "maxReconnect",
+          "description": "Maximum number of reconnect attempts. The reconnect state is triggered when an already established\nconnection is lost. During the initial connection attempt, the client will cycle\nover its server list one time regardless of the `maxReconnects` value that is set.\nUse 0 to turn off auto reconnecting.\nUse -1 to turn on infinite reconnects.",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "reconnectWait",
+          "description": "The time(in seconds) to wait between the reconnect attempts to reconnect to the same server",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "connectionTimeout",
+          "description": "The timeout (in seconds) for the connection attempts",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Ping",
+      "description": "Configurations related to pinging the server.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "pingInterval",
+          "description": "The interval (in seconds) between the attempts of pinging the server",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxPingsOut",
+          "description": "The maximum number of pings the client can have in flight",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Credentials",
+      "description": "Configurations related to basic authentication.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "username",
+          "description": "The username for basic authentication",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "password",
+          "description": "The password for basic authentication",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tokens",
+      "description": "Configurations related to token based authentication.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "token",
+          "description": "The token for token-based authentication",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SecureSocket",
+      "description": "Configurations related to facilitating a secure communication.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "cert",
+          "description": "Configurations associated with `crypto:TrustStore` or single certificate file that the client trusts",
+          "type": {
+            "name": "TrustStore|string",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "TrustStore",
+                "libraryName": "ballerina/crypto"
+              }
+            ]
+          }
+        },
+        {
+          "name": "key",
+          "description": "Configurations associated with `crypto:KeyStore` or combination of certificate and private key of the client",
+          "type": {
+            "name": "KeyStore|CertKey",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "KeyStore",
+                "libraryName": "ballerina/crypto"
+              },
+              {
+                "category": "internal",
+                "recordName": "CertKey"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "protocol",
+          "description": "SSL/TLS protocol related options",
+          "type": {
+            "name": "record {|Protocol name;|}"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "CertKey",
+      "description": "Represents combination of certificate, private key and private key password if encrypted.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "certFile",
+          "description": "A file containing the certificate",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "keyFile",
+          "description": "A file containing the private key in PKCS8 format",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "keyPassword",
+          "description": "Password of the private key if it is encrypted",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Protocol",
+      "description": "Represents protocol options.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "DTLS",
+          "description": ""
+        },
+        {
+          "name": "TLS",
+          "description": ""
+        },
+        {
+          "name": "SSL",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "AnydataMessage",
+      "description": "Represents the anydata message, which a NATS server sends to its subscribed services.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "content",
+          "description": "The message content, which can of type anydata",
+          "type": {
+            "name": "anydata"
+          }
+        },
+        {
+          "name": "subject",
+          "description": "The subject to which the message was sent to",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "replyTo",
+          "description": "The `replyTo` subject of the message",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "BytesMessage",
+      "description": "Represents the subtype of `AnydataMessage` record where the message content is a byte array.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "content",
+          "description": "Message content in bytes",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "subject",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "replyTo",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ServiceConfigData",
+      "description": "The configurations for the NATS basic subscription.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "subject",
+          "description": "Name of the subject",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "queueName",
+          "description": "Name of the queue group",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "pendingLimits",
+          "description": "Parameters to set limits on the maximum number of pending messages\nor maximum size of pending messages",
+          "type": {
+            "name": "PendingLimits",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PendingLimits"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "PendingLimits",
+      "description": "The configurations to set limits on the maximum number of messages or maximum size of messages this consumer will\nhold before it starts to drop new messages waiting for the resource functions to drain the queue.\nSetting a value less than or equal to 0 will disable this check.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "maxMessages",
+          "description": "Maximum number of pending messages retrieved and held by the consumer service.\nThe default value is 65536",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "maxBytes",
+          "description": "Total size of pending messages in bytes retrieved and held by the consumer service.\nThe default value is 67108864",
+          "type": {
+            "name": "int"
+          }
+        }
+      ]
+    },
+    {
+      "name": "NatsPayload",
+      "description": "Defines the Payload remote function parameter.",
+      "type": "Record",
+      "fields": []
+    },
+    {
+      "name": "Service",
+      "description": "The NATS service type.",
+      "type": "Class"
+    },
+    {
+      "name": "JetStreamListener",
+      "description": "Initializes the NATS JetStream listener.\n",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes the NATS JetStream listener.\n",
+          "parameters": [
+            {
+              "name": "natsClient",
+              "description": "NATS client object to create the streaming client. ",
+              "type": {
+                "name": "Client",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Client"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "Error?"
+            }
+          }
+        },
+        {
+          "name": "attach",
+          "type": "Normal Function",
+          "description": "Binds a service to the `nats:JetStreamListener`.\n```ballerina\ncheck jetStreamListener.attach(service, \"serviceName\");\n```\n",
+          "parameters": [
+            {
+              "name": "s",
+              "description": "The type descriptor of the service",
+              "type": {
+                "name": "JetStreamService",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "JetStreamService"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "name",
+              "description": "The name of the service",
+              "type": {
+                "name": "string[]|string|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "`()` or else a `nats:Error` upon failure to attach",
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "name": "detach",
+          "type": "Normal Function",
+          "description": "Stops consuming messages and detaches the service from the `nats:JetStreamListener`.\n```ballerina\ncheck jetStreamListener.detach(service);\n```\n",
+          "parameters": [
+            {
+              "name": "s",
+              "description": "The type descriptor of the service",
+              "type": {
+                "name": "JetStreamService",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "JetStreamService"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "`()` or else a `nats:Error` upon failure to detach",
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "name": "\u0027start",
+          "type": "Normal Function",
+          "description": "Starts the `nats:JetStreamListener`.\n```ballerina\ncheck jetStreamListener.\u0027start();\n```\n",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "name": "gracefulStop",
+          "type": "Normal Function",
+          "description": "Stops the `nats:JetStreamListener` gracefully.\n```ballerina\ncheck jetStreamListener.gracefulStop();\n```\n",
+          "parameters": [],
+          "return": {
+            "description": "`()` or else a `nats:Error` upon failure to stop the listener",
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "name": "immediateStop",
+          "type": "Normal Function",
+          "description": "Stops the `nats:JetStreamListener` forcefully.\n```ballerina\ncheck jetStreamListener.immediateStop();\n```\n",
+          "parameters": [],
+          "return": {
+            "description": "`()` or else a `nats:Error` upon failure to stop the listener",
+            "type": {
+              "name": "error?"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Listener",
+      "description": "Initializes the NATS listener.\n```ballerina\nnats:Listener natsListener \u003d check new(nats:DEFAULT_URL);\n```\n",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes the NATS listener.\n```ballerina\nnats:Listener natsListener \u003d check new(nats:DEFAULT_URL);\n```\n",
+          "parameters": [
+            {
+              "name": "url",
+              "description": "The NATS broker URL. For a clustered use case, provide the URLs as a string array",
+              "type": {
+                "name": "string|string[]"
+              }
+            },
+            {
+              "name": "connectionName",
+              "description": "The name of the connection",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"ballerina-nats\""
+            },
+            {
+              "name": "retryConfig",
+              "description": "The configurations related to connection reconnect attempts",
+              "type": {
+                "name": "RetryConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "RetryConfig"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "ping",
+              "description": "The configurations related to pinging the server",
+              "type": {
+                "name": "Ping",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Ping"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "auth",
+              "description": "The configurations related to authentication",
+              "type": {
+                "name": "Credentials|Tokens",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Credentials"
+                  },
+                  {
+                    "category": "internal",
+                    "recordName": "Tokens"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{username: \"\", password: \"\"}"
+            },
+            {
+              "name": "inboxPrefix",
+              "description": "The connection\u0027s inbox prefix, which all inboxes will start with",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"_INBOX.\""
+            },
+            {
+              "name": "noEcho",
+              "description": "Turns off echoing. This prevents the server from echoing messages back to the connection if it\nhas subscriptions on the subject being published to",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "secureSocket",
+              "description": "The configurations related to SSL/TLS",
+              "type": {
+                "name": "SecureSocket",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "SecureSocket"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{cert: {path: \"\", password: \"\"}}"
+            },
+            {
+              "name": "validation",
+              "description": "Configuration related to constraint validation check",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "true"
+            },
+            {
+              "name": "config",
+              "description": "The connection configurations",
+              "type": {
+                "name": "ConnectionConfiguration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ConnectionConfiguration"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "Error?"
+            }
+          }
+        },
+        {
+          "name": "attach",
+          "type": "Normal Function",
+          "description": "Binds a service to the `nats:Listener`.\n```ballerina\ncheck natsListener.attach(service, \"serviceName\");\n```\n",
+          "parameters": [
+            {
+              "name": "s",
+              "description": "The type descriptor of the service",
+              "type": {
+                "name": "Service",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Service"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "name",
+              "description": "The name of the service",
+              "type": {
+                "name": "string[]|string|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "`()` or else a `nats:Error` upon failure to attach",
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "name": "detach",
+          "type": "Normal Function",
+          "description": "Stops consuming messages and detaches the service from the `nats:Listener`.\n```ballerina\ncheck natsListener.detach(service);\n```\n",
+          "parameters": [
+            {
+              "name": "s",
+              "description": "The type descriptor of the service",
+              "type": {
+                "name": "Service",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Service"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "`()` or else a `nats:Error` upon failure to detach",
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "name": "\u0027start",
+          "type": "Normal Function",
+          "description": "Starts the `nats:Listener`.\n```ballerina\ncheck natsListener.\u0027start();\n```\n",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "name": "gracefulStop",
+          "type": "Normal Function",
+          "description": "Stops the `nats:Listener` gracefully.\n```ballerina\ncheck natsListener.gracefulStop();\n```\n",
+          "parameters": [],
+          "return": {
+            "description": "`()` or else a `nats:Error` upon failure to stop the listener",
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "name": "immediateStop",
+          "type": "Normal Function",
+          "description": "Stops the `nats:Listener` forcefully.\n```ballerina\ncheck natsListener.immediateStop();\n```\n",
+          "parameters": [],
+          "return": {
+            "description": "`()` or else a `nats:Error` upon failure to stop the listener",
+            "type": {
+              "name": "error?"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "name": "Client",
+      "description": "The client provides the capability to publish messages to the NATS server.",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes the NATS client.\n```ballerina\nnats:Client natsClient \u003d check new(nats:DEFAULT_URL);\n```\n",
+          "parameters": [
+            {
+              "name": "url",
+              "description": "The NATS broker URL. For a clustered use case, provide the URLs as a string array",
+              "type": {
+                "name": "string|string[]"
+              }
+            },
+            {
+              "name": "connectionName",
+              "description": "The name of the connection",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"ballerina-nats\""
+            },
+            {
+              "name": "retryConfig",
+              "description": "The configurations related to connection reconnect attempts",
+              "type": {
+                "name": "RetryConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "RetryConfig"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "ping",
+              "description": "The configurations related to pinging the server",
+              "type": {
+                "name": "Ping",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Ping"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "auth",
+              "description": "The configurations related to authentication",
+              "type": {
+                "name": "Credentials|Tokens",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Credentials"
+                  },
+                  {
+                    "category": "internal",
+                    "recordName": "Tokens"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{username: \"\", password: \"\"}"
+            },
+            {
+              "name": "inboxPrefix",
+              "description": "The connection\u0027s inbox prefix, which all inboxes will start with",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"_INBOX.\""
+            },
+            {
+              "name": "noEcho",
+              "description": "Turns off echoing. This prevents the server from echoing messages back to the connection if it\nhas subscriptions on the subject being published to",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "secureSocket",
+              "description": "The configurations related to SSL/TLS",
+              "type": {
+                "name": "SecureSocket",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "SecureSocket"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{cert: {path: \"\", password: \"\"}}"
+            },
+            {
+              "name": "validation",
+              "description": "Configuration related to constraint validation check",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "true"
+            },
+            {
+              "name": "config",
+              "description": "The connection configurations",
+              "type": {
+                "name": "ConnectionConfiguration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ConnectionConfiguration"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "Error?"
+            }
+          }
+        },
+        {
+          "name": "publishMessage",
+          "type": "Remote Function",
+          "description": "Publishes data to a given subject.\n```ballerina\ncheck natsClient-\u003epublishMessage(message);\n```\n",
+          "parameters": [
+            {
+              "name": "message",
+              "description": "The message to be published",
+              "type": {
+                "name": "AnydataMessage",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "AnydataMessage"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "`()` or else a `nats:Error` if an error occurred",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "requestMessage",
+          "type": "Remote Function",
+          "description": "Publishes data to a given subject and waits for a response.\n```ballerina\ncheck natsClient-\u003erequestMessage(message, 5);\n```\n",
+          "parameters": [
+            {
+              "name": "message",
+              "description": "The message to be published",
+              "type": {
+                "name": "AnydataMessage",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "AnydataMessage"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "duration",
+              "description": "The time (in seconds) to wait for the response",
+              "type": {
+                "name": "decimal|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "T",
+              "description": "Type of AnydataMessage to be returned",
+              "type": {
+                "name": "AnydataMessage",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "AnydataMessage"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "nats:AnydataMessage"
+            }
+          ],
+          "return": {
+            "description": "The response or else a `nats:Error` if an error occurred",
+            "type": {
+              "name": "T|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "T"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "close",
+          "type": "Normal Function",
+          "description": "Closes the NATS client connection.\n```ballerina\ncheck natsClient.close();\n```\n",
+          "parameters": [],
+          "return": {
+            "description": "`()` or else a `nats:Error` if an error is occurred",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "JetStreamCaller",
+      "description": "The client that provides functionality related to acknowledging a JetStream message.",
+      "functions": [
+        {
+          "name": "ack",
+          "type": "Remote Function",
+          "description": "Acknowledges a JetStream messages received from a Consumer, indicating\nthe message should not be received again later.\n```ballerina\ncheck jetStreamCaller-\u003eack();\n```\n",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "()"
+            }
+          }
+        },
+        {
+          "name": "nak",
+          "type": "Remote Function",
+          "description": "Acknowledges a JetStream message has been received but indicates \nthat the message is not completely processed and should be sent again later.\n```ballerina\ncheck jetStreamCaller-\u003enak();\n```\n",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "()"
+            }
+          }
+        },
+        {
+          "name": "inProgress",
+          "type": "Remote Function",
+          "description": "Indicates that this message is being worked on and reset redelivery timer \nin the server.\n```ballerina\ncheck jetStreamCaller-\u003einProgress();\n```\n",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "JetStreamClient",
+      "description": "The client provides the capability to publish messages to the NATS JetStream server and \nmanage streams.",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes the NATS JetStream client.\n",
+          "parameters": [
+            {
+              "name": "natsClient",
+              "description": "NATS client object to create the streaming client",
+              "type": {
+                "name": "Client",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Client"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "Error?"
+            }
+          }
+        },
+        {
+          "name": "publishMessage",
+          "type": "Remote Function",
+          "description": "Publishes data to a given subject.\n```ballerina\ncheck jetStreamClient-\u003epublishMessage(message);\n```\n",
+          "parameters": [
+            {
+              "name": "message",
+              "description": "The JetStream message to send to",
+              "type": {
+                "name": "JetStreamMessage",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "JetStreamMessage"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "`()` or else a `nats:Error` if an error is occurred",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "consumeMessage",
+          "type": "Remote Function",
+          "description": "Retrieves a message synchronously from the given subject.\n```ballerina\nnats:JetStreamMessage message \u003d check jetStreamClient-\u003econsumeMessage(\"subjectName\");\n```\n",
+          "parameters": [
+            {
+              "name": "subject",
+              "description": "The name of the subject",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "timeout",
+              "description": "Timeout in seconds",
+              "type": {
+                "name": "decimal"
+              }
+            }
+          ],
+          "return": {
+            "description": "`nats:JetStreamMessage` or else a `nats:Error` if an error is occurred",
+            "type": {
+              "name": "JetStreamMessage|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "JetStreamMessage"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "ack",
+          "type": "Remote Function",
+          "description": "Acknowledges a JetStream messages received from a Consumer, indicating\nthe message should not be received again later.\n```ballerina\ncheck jetStreamCaller-\u003eack(message);\n```\n",
+          "parameters": [
+            {
+              "name": "message",
+              "description": "The message to be acknowledged",
+              "type": {
+                "name": "JetStreamMessage",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "JetStreamMessage"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "()"
+            }
+          }
+        },
+        {
+          "name": "nak",
+          "type": "Remote Function",
+          "description": "Acknowledges a JetStream message has been received but indicates\nthat the message is not completely processed and should be sent again later.\n```ballerina\ncheck jetStreamCaller-\u003enak(message);\n```\n",
+          "parameters": [
+            {
+              "name": "message",
+              "description": "The message to be acknowledged",
+              "type": {
+                "name": "JetStreamMessage",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "JetStreamMessage"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "()"
+            }
+          }
+        },
+        {
+          "name": "inProgress",
+          "type": "Remote Function",
+          "description": "Indicates that this message is being worked on and reset redelivery timer\nin the server.\n```ballerina\ncheck jetStreamCaller-\u003einProgress(message);\n```\n",
+          "parameters": [
+            {
+              "name": "message",
+              "description": "The message to be acknowledged",
+              "type": {
+                "name": "JetStreamMessage",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "JetStreamMessage"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "()"
+            }
+          }
+        },
+        {
+          "name": "addStream",
+          "type": "Remote Function",
+          "description": "Loads or creates a stream.\n```ballerina\ncheck jetStreamClient-\u003eaddStream(streamConfig);\n```\n",
+          "parameters": [
+            {
+              "name": "streamConfig",
+              "description": "Configurations required to load or create a stream",
+              "type": {
+                "name": "StreamConfiguration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "StreamConfiguration"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "() or else a `nats:Error` if an error occurred",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "updateStream",
+          "type": "Remote Function",
+          "description": "Updates an existing stream.\n```ballerina\ncheck jetStreamClient-\u003eupdateStream(streamConfig);\n```\n",
+          "parameters": [
+            {
+              "name": "streamConfig",
+              "description": "Configurations required to update a stream",
+              "type": {
+                "name": "StreamConfiguration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "StreamConfiguration"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "() or else a `nats:Error` if an error occurred",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "deleteStream",
+          "type": "Remote Function",
+          "description": "Deletes an existing stream.\n```ballerina\ncheck jetStreamClient-\u003edeleteStream(\"name\");\n```\n",
+          "parameters": [
+            {
+              "name": "streamName",
+              "description": "Name of the stream to be deleted",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "`()` or else a `nats:Error` if an error is occurred",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "purgeStream",
+          "type": "Remote Function",
+          "description": "Purge stream messages.\n```ballerina\ncheck jetStreamClient-\u003epurgeStream(\"name\");\n```\n",
+          "parameters": [
+            {
+              "name": "streamName",
+              "description": "Name of the stream to be purged",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "`()` or else a `nats:Error` if an error is occurred",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "functions": [],
+  "services": [],
+  "annotations": [
+    {
+      "name": "StreamServiceConfig",
+      "attachmentPoint": "SERVICE",
+      "description": "The annotation, which is used to configure the basic subscription.",
+      "typeConstraint": {
+        "name": "JetStreamServiceConfigData",
+        "links": [
+          {
+            "category": "internal",
+            "recordName": "JetStreamServiceConfigData"
+          }
+        ]
+      }
+    },
+    {
+      "name": "StreamServiceConfig",
+      "attachmentPoint": "CLASS",
+      "description": "The annotation, which is used to configure the basic subscription.",
+      "typeConstraint": {
+        "name": "JetStreamServiceConfigData",
+        "links": [
+          {
+            "category": "internal",
+            "recordName": "JetStreamServiceConfigData"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Payload",
+      "attachmentPoint": "PARAMETER",
+      "description": "The annotation which is used to define the payload parameter in the `onMessage` service method.",
+      "typeConstraint": {
+        "name": "NatsPayload",
+        "links": [
+          {
+            "category": "internal",
+            "recordName": "NatsPayload"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ServiceConfig",
+      "attachmentPoint": "SERVICE",
+      "description": "The annotation, which is used to configure the basic subscription.",
+      "typeConstraint": {
+        "name": "ServiceConfigData",
+        "links": [
+          {
+            "category": "internal",
+            "recordName": "ServiceConfigData"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ServiceConfig",
+      "attachmentPoint": "CLASS",
+      "description": "The annotation, which is used to configure the basic subscription.",
+      "typeConstraint": {
+        "name": "ServiceConfigData",
+        "links": [
+          {
+            "category": "internal",
+            "recordName": "ServiceConfigData"
+          }
+        ]
+      }
+    }
+  ]
+}

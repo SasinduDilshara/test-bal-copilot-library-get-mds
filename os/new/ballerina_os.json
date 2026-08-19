@@ -1,0 +1,297 @@
+{
+  "name": "ballerina/os",
+  "description": "This module provides APIs to retrieve information about the environment variables and the current users of the Operating System.",
+  "readme": "## Overview\n\nThis module provides APIs to retrieve information about the environment variables and the current users of the Operating System.\n\nThe APIs are platform-independent, i.e., uniform across all operating systems.\n\nFor information on the operations, which you can perform with the `os` module, see the below **Functions**.\n",
+  "typeDefs": [
+    {
+      "name": "Command",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "value",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "arguments",
+          "description": "",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "EnvProperties",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "command",
+          "description": "",
+          "type": {
+            "name": "never"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Error",
+      "description": "Represents OS module related errors.",
+      "type": "Error",
+      "baseType": "error"
+    },
+    {
+      "name": "ProcessExecError",
+      "description": "Process Execution error that returns when the os:Exec function fails.",
+      "type": "Error",
+      "baseType": "error"
+    },
+    {
+      "name": "Process",
+      "description": "This object contains information on a process being created from Ballerina.\nThis is returned from the `exec` function in the `os` module.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "waitForExit",
+          "type": "Normal Function",
+          "description": "Waits for the process to finish its work and exit. \nThis will return 0 if successful, or a different value during failure depending on the operating system.\n```ballerina\nint|os:Error exitCode \u003d process.waitForExit();\n```\n",
+          "parameters": [],
+          "return": {
+            "description": "The exit code of the process if it exits successfully, or an Error",
+            "type": {
+              "name": "int|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "output",
+          "type": "Normal Function",
+          "description": "Returns the standard output as default. Option provided to return standard error by providing file descriptor.\nIf the process was not finished and exited explicitly by running process.waitForExit(), then process.output() will finish the work and exit and return the output. \n```ballerina\nbyte[]|os:Error err \u003d process.output(io:stderr);\n```\n",
+          "parameters": [
+            {
+              "name": "fileOutputStream",
+              "description": "The output stream (`io:stdout` or `io:stderr`) content needs to be returned",
+              "type": {
+                "name": "FileOutputStream",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "FileOutputStream",
+                    "libraryName": "ballerina/io"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "1"
+            }
+          ],
+          "return": {
+            "description": "The `byte[]`, which represents the process\u0027s \u0027standard error\u0027, or the \u0027standard out\u0027, or an Error",
+            "type": {
+              "name": "byte[]|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "exit",
+          "type": "Normal Function",
+          "description": "Terminates the process.\n```ballerina\nprocess.exit();\n```\n",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "clients": [],
+  "functions": [
+    {
+      "name": "getEnv",
+      "type": "Normal Function",
+      "description": "Returns the environment variable value associated with the provided name.\n```ballerina\nstring port \u003d os:getEnv(\"HTTP_PORT\");\n```\n",
+      "parameters": [
+        {
+          "name": "name",
+          "description": "Name of the environment variable",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "Environment variable value if it exists or else, an empty string",
+        "type": {
+          "name": "string"
+        }
+      }
+    },
+    {
+      "name": "getUsername",
+      "type": "Normal Function",
+      "description": "Returns the current user\u0027s name.\n```ballerina\nstring username \u003d os:getUsername();\n```\n",
+      "parameters": [],
+      "return": {
+        "description": "Current user\u0027s name if it can be determined or else, an empty string",
+        "type": {
+          "name": "string"
+        }
+      }
+    },
+    {
+      "name": "getUserHome",
+      "type": "Normal Function",
+      "description": "Returns the current user\u0027s home directory path.\n```ballerina\nstring userHome \u003d os:getUserHome();\n```\n",
+      "parameters": [],
+      "return": {
+        "description": "Current user\u0027s home directory if it can be determined or else, an empty string",
+        "type": {
+          "name": "string"
+        }
+      }
+    },
+    {
+      "name": "setEnv",
+      "type": "Normal Function",
+      "description": "Sets the value of the environment variable named by the key. \nNote that the parameter key cannot be an empty string or \"\u003d\u003d\" sign.\n```ballerina\nos:Error? err \u003d os:setEnv(\"BALCONFIGFILE\", \"/path/to/Config.toml\");\n```\n",
+      "parameters": [
+        {
+          "name": "key",
+          "description": "Key of the environment variable",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "value",
+          "description": "Value of the environment variable",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "An `os:Error` if setting the environment variable fails, () otherwise",
+        "type": {
+          "name": "Error|()",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "unsetEnv",
+      "type": "Normal Function",
+      "description": "Removes a single environment variable from the system if it exists.\nNote that the parameter key cannot be an empty string.\n```ballerina\nos:Error? err \u003d os:unsetEnv(\"BALCONFIGFILE\");\n```\n",
+      "parameters": [
+        {
+          "name": "key",
+          "description": "Key of the environment variable",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "An `os:Error` if unsetting the environment variable fails, () otherwise",
+        "type": {
+          "name": "Error|()",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "listEnv",
+      "type": "Normal Function",
+      "description": "Returns a map of environment variables.\n```ballerina\nmap\u003cstring\u003e envs \u003d os:listEnv();\n```\n",
+      "parameters": [],
+      "return": {
+        "description": "Map of environment variables",
+        "type": {
+          "name": "map\u003cstring\u003e"
+        }
+      }
+    },
+    {
+      "name": "exec",
+      "type": "Normal Function",
+      "description": "Executes an operating system command as a subprocess of the current process.\n```ballerina\nos:Process|os:Error result \u003d os:exec({value: \"bal\", arguments: [\"run\", filepath]}, BAL_CONFIG_FILE \u003d \"/abc/Config.toml\");\n```\n",
+      "parameters": [
+        {
+          "name": "command",
+          "description": "The command to be executed",
+          "type": {
+            "name": "Command",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Command"
+              }
+            ]
+          }
+        },
+        {
+          "name": "envProperties",
+          "description": "The environment properties",
+          "type": {
+            "name": "EnvProperties",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "EnvProperties"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ],
+      "return": {
+        "description": "Process object in success, or an Error if a failure occurs",
+        "type": {
+          "name": "Process|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Process"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "services": [],
+  "annotations": []
+}

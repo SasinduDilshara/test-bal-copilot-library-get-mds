@@ -1,0 +1,2275 @@
+{
+  "name": "ballerinax/hubspot.crm.associations",
+  "description": "[HubSpot](https://developers.hubspot.com) is an AI-powered customer relationship management (CRM) platform.",
+  "readme": "## Overview\n\n[HubSpot](https://developers.hubspot.com) is an AI-powered customer relationship management (CRM) platform.\n\nThe HubSpot connector offers APIs to connect and interact with the [HubSpot Association Details API](https://developers.hubspot.com/docs/reference/api/crm/associations/association-details) endpoints, specifically based on the [HubSpot REST API](https://developers.hubspot.com/docs/reference/api).\n\n### Key Features\n\n- Create and manage associations between CRM objects\n- Batch operations for bulk association management\n- Read and delete associations by type\n- Support for default and custom association types\n\n## Setup guide\n\nTo use the HubSpot Association connector, you need a HubSpot developer account and an associated app with API access. If you don’t have one, register for a HubSpot developer account first.\n\n### Step 1: Login to the HubSpot developer account\n\nIf you don\u0027t have a HubSpot Developer Account you can sign up to a free account [here](https://developers.hubspot.com/get-started)\n\nIf you have an account already, go to the [HubSpot developer portal](https://app.hubspot.com/)\n\n### Step 2: Create a developer test account (Optional)\n\nWithin app developer accounts, you can create a [developer test account](https://developers.hubspot.com/beta-docs/getting-started/account-types#developer-test-accounts) under your account to test apps and integrations without affecting any real HubSpot data.\n\n\u003e **Note:** These accounts are only for development and testing purposes. In production you should not use developer test accounts.\n\n1. Go to the Test accounts section from the left sidebar.\n   ![Test accounts section](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.associations/refs/heads/main/docs/resources/test_account.png)\n\n2. Click on the `Create developer test account` button on the top right corner.\n   ![Create developer test account](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.associations/refs/heads/main/docs/resources/create_test_account.png)\n\n3. In the pop-up window, provide a name for the test account and click on the `Create` button.\n   ![Create test account](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.associations/refs/heads/main/docs/resources/create_account.png)\n   You will see the newly created test account in the list of test accounts.\n   ![Test account portal](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.associations/refs/heads/main/docs/resources/test_account_portal.png)\n\n### Step 3: Create a HubSpot app\n\n1. Now navigate to the `Apps` section from the left sidebar and click on the `Create app` button on the top right corner.\n   ![Create app](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.associations/refs/heads/main/docs/resources/create_app.png)\n\n2. Provide a public app name and description for your app.\n   ![App name and description](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.associations/refs/heads/main/docs/resources/app_name_desc.png)\n\n### Step 4: Setup authentication\n\n1. Move to the `Auth` tab.\n   ![Configure authentication](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.associations/refs/heads/main/docs/resources/config_auth.png)\n\n2. In the `Scopes` section, add the following scopes for your app using the `Add new scopes` button.\n   - `media_bridge.read`\n   - `tickets`\n   - `e-commerce`\n   - `crm.objects.goals.read`\n   - `crm.objects.custom.write`\n   - `crm.objects.custom.read`\n   - `crm.objects.listings.write`\n   - `crm.objects.orders.read`\n   - `crm.objects.deals.read`\n   - `crm.objects.subscriptions.read`\n   - `crm.objects.companies.read`\n   - `crm.objects.companies.write`\n   - `crm.objects.users.read`\n   - `crm.objects.users.write`\n   - `crm.objects.invoices.write`\n   - `crm.objects.carts.write`\n   - `crm.objects.appointments.write`\n   - `crm.objects.contacts.read`\n   - `crm.objects.services.write`\n   - `crm.objects.orders.write`\n   - `crm.objects.commercepayments.read`\n   - `crm.objects.deals.write`\n   - `crm.objects.invoices.read`\n   - `crm.objects.appointments.read`\n   - `crm.objects.quotes.write`\n   - `crm.objects.leads.write`\n   - `crm.objects.leads.read`\n   - `crm.objects.contacts.write`\n   - `crm.objects.partner-clients.write`\n   - `crm.objects.line_items.read`\n   - `crm.objects.line_items.write`\n   - `crm.objects.courses.read`\n   - `crm.objects.listings.read`\n   - `crm.objects.courses.write`\n   - `crm.objects.quotes.read`\n   - `crm.objects.partner-clients.read`\n   - `crm.objects.carts.read`\n   - `crm.objects.services.read`\n\n   ![Add scopes](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.associations/refs/heads/main/docs/resources/add_scopes.png)\n\n3. In the `Redirect URL` section, add the redirect URL for your app. This is the URL where the user will be redirected after the authentication process. You can use `localhost:9090` for testing purposes. Then click the `Create App` button.\n\n   ![Redirect URL](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.associations/refs/heads/main/docs/resources/redirect_url.png)\n  \n### Step 5: Get the client ID and client secret\n\nNavigate to the `Auth` tab and you will see the `Client ID` and `Client Secret` for your app. Make sure to save these values.\n![Client ID and Client Secret](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.associations/refs/heads/main/docs/resources/client_id_secret.png)\n\n### Step 6: Setup authentication flow\n\nBefore proceeding with the Quickstart, ensure you have obtained the Access Token or Refresh Token using the following steps:\n\n1. Create an authorization URL using the following format:\n\n   ```\n   https://app.hubspot.com/oauth/authorize?client_id\u003d\u003cYOUR_CLIENT_ID\u003e\u0026scope\u003d\u003cYOUR_SCOPES\u003e\u0026redirect_uri\u003d\u003cYOUR_REDIRECT_URI\u003e\n   ```\n\n   Replace the `\u003cYOUR_CLIENT_ID\u003e`, `\u003cYOUR_REDIRECT_URI\u003e` and `\u003cYOUR_SCOPES\u003e` with your specific value.\n2. Paste it in the browser and select your developer test account to install the app when prompted.\n   ![Account select](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.associations/refs/heads/main/docs/resources/account_select.png)\n\n3. A code will be displayed in the browser. Copy the code.\n\n4. Run the following curl command. Replace the `\u003cYOUR_CLIENT_ID\u003e`, `\u003cYOUR_REDIRECT_URI`\u003e and `\u003cYOUR_CLIENT_SECRET\u003e` with your specific value. Use the code you received in the above step 3 as the `\u003cCODE\u003e`.\n\n   - Linux/macOS\n\n     ```bash\n     curl --request POST \\\n     --url https://api.hubapi.com/oauth/v1/token \\\n     --header \u0027content-type: application/x-www-form-urlencoded\u0027 \\\n     --data \u0027grant_type\u003dauthorization_code\u0026code\u003d\u003cCODE\u003e\u0026redirect_uri\u003d\u003cYOUR_REDIRECT_URI\u003e\u0026client_id\u003d\u003cYOUR_CLIENT_ID\u003e\u0026client_secret\u003d\u003cYOUR_CLIENT_SECRET\u003e\u0027\n     ```\n   - Windows\n\n     ```bash\n     curl --request POST ^\n     --url https://api.hubapi.com/oauth/v1/token ^\n     --header \u0027content-type: application/x-www-form-urlencoded\u0027 ^\n     --data \u0027grant_type\u003dauthorization_code\u0026code\u003d\u003cCODE\u003e\u0026redirect_uri\u003d\u003cYOUR_REDIRECT_URI\u003e\u0026client_id\u003d\u003cYOUR_CLIENT_ID\u003e\u0026client_secret\u003d\u003cYOUR_CLIENT_SECRET\u003e\u0027\n     ```\n\n   This command will return the access token and refresh token which are necessary for API calls.\n\n   ```json\n   {\n     \"token_type\": \"bearer\",\n     \"refresh_token\": \"\u003cRefresh Token\u003e\",\n     \"access_token\": \"\u003cAccess Token\u003e\",\n     \"expires_in\": 1800\n   }\n   ```\n5. Store the refresh token securely for use in your application.\n\n## Quickstart\n\nTo use the `HubSpot CRM Associations` connector in your Ballerina application, update the `.bal` file as follows:\n\n### Step 1: Import the module\n\nImport the `hubspot.crm.associations` module and `oauth2` module.\n\n```ballerina\nimport ballerina/oauth2;\nimport ballerinax/hubspot.crm.associations as hsassociations;\n```\n\n### Step 2: Instantiate a new connector\n\n1. Create a `Config.toml` file and, configure the obtained credentials in the above steps as follows:\n\n   ```toml\n    clientId \u003d \u003cClient Id\u003e\n    clientSecret \u003d \u003cClient Secret\u003e\n    refreshToken \u003d \u003cRefresh Token\u003e\n   ```\n\n2. Instantiate a `hsassociations:ConnectionConfig` with the obtained credentials and initialize the connector with it.\n\n    ```ballerina\n    configurable string clientId \u003d ?;\n    configurable string clientSecret \u003d ?;\n    configurable string refreshToken \u003d ?;\n\n    hsassociations:ConnectionConfig config \u003d {\n        auth: {\n            clientId,\n            clientSecret,\n            refreshToken,\n            credentialBearer: oauth2:POST_BODY_BEARER\n        }\n    };\n\n    final hsassociations:Client hubspot \u003d check new (config);\n    ```\n### Step 3: Invoke the connector operation\n\nNow, utilize the available connector operations. A sample usecase is shown below.\n\n#### Get list all associations of an object by object type and object id\n    \n```ballerina\npublic function main() returns error? {\n    hsassociations:CollectionResponseMultiAssociatedObjectWithLabelForwardPaging readResponse \n    \u003d check hubspot-\u003e/objects/[\"fromObjectType\"]/[\"fromObjectId\"]/associations/[\"toObjectType\"];\n}\n```\n\n## Examples\n\nThe `HubSpot CRM Associations` connector provides practical examples illustrating usage in various scenarios. Explore these [examples](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.associations/tree/main/examples), covering the following use cases:\n\n1. [Create and read associations](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.associations/tree/main/examples/create-read-associations) –  This example demonstrates how to use the HubSpot CRM Associations connector to batch-create default and custom-labeled associations between deals and companies, as well as retrieve existing associations for a given deal.\n2. [Create and delete associations](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.associations/tree/main/examples/create-delete-associations) - This example demonstrates how to use the HubSpot CRM Associations connector to create individual default associations with and without labels between deals and companies. It then shows how to delete a specific association label between them, followed by deleting all associations between the two objects.\n",
+  "typeDefs": [
+    {
+      "name": "StandardError",
+      "description": "Standard error response structure returned by the API on failure",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "subCategory",
+          "description": "Optional sub-category providing additional error classification",
+          "type": {
+            "name": "record {|anydata...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "context",
+          "description": "Contextual metadata map with string array values for the error",
+          "type": {
+            "name": "record {|string[]...;|}"
+          }
+        },
+        {
+          "name": "links",
+          "description": "Map of relevant links associated with the error response",
+          "type": {
+            "name": "record {|string...;|}"
+          }
+        },
+        {
+          "name": "id",
+          "description": "Unique identifier for this error instance",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "category",
+          "description": "High-level category classifying the type of error",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "message",
+          "description": "Human-readable message describing the error",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "errors",
+          "description": "List of detailed error entries associated with this error",
+          "type": {
+            "name": "ErrorDetail[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ErrorDetail"
+              }
+            ]
+          }
+        },
+        {
+          "name": "status",
+          "description": "HTTP status string corresponding to the error response",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ErrorDetail",
+      "description": "Detailed error information including message, code, field context, and remediation guidance",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "subCategory",
+          "description": "A specific category that contains more specific detail about the error",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "code",
+          "description": "The status code associated with the error detail",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "\u0027in",
+          "description": "The name of the field or parameter in which the error was found",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "context",
+          "description": "Context about the error condition",
+          "type": {
+            "name": "record {|string[]...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "message",
+          "description": "A human readable message describing the error along with remediation steps where appropriate",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "LabelsBetweenObjectPair",
+      "description": "Association labels defined between a specific pair of CRM objects",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "fromObjectTypeId",
+          "description": "Object type ID of the source object in the association",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "toObjectId",
+          "description": "Unique ID of the target object in the association",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "toObjectTypeId",
+          "description": "Object type ID of the target object in the association",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "fromObjectId",
+          "description": "Unique ID of the source object in the association",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "labels",
+          "description": "List of association labels applied between the object pair",
+          "type": {
+            "name": "string[]"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ReportCreationResponse",
+      "description": "Response returned after successfully enqueuing an association report",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "userEmail",
+          "description": "Email address of the user who requested the report",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "userId",
+          "description": "Numeric ID of the user who requested the report",
+          "type": {
+            "name": "int:Signed32"
+          }
+        },
+        {
+          "name": "enqueueTime",
+          "description": "Represents a date-time value with timezone offset and date-only flag",
+          "type": {
+            "name": "DateTime",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DateTime"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "DateTime",
+      "description": "Represents a date-time value with timezone offset and date-only flag",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "dateOnly",
+          "description": "Indicates whether the value represents a date without time",
+          "type": {
+            "name": "boolean"
+          }
+        },
+        {
+          "name": "timeZoneShift",
+          "description": "Timezone offset in minutes from UTC",
+          "type": {
+            "name": "int:Signed32"
+          }
+        },
+        {
+          "name": "value",
+          "description": "The numeric date-time value, typically as a Unix timestamp",
+          "type": {
+            "name": "int"
+          }
+        }
+      ]
+    },
+    {
+      "name": "PublicAssociationMultiWithLabel",
+      "description": "Source object with its associated target objects and their labels",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "\u0027from",
+          "description": "Represents a CRM object identifier used in association requests",
+          "type": {
+            "name": "PublicObjectId",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PublicObjectId"
+              }
+            ]
+          }
+        },
+        {
+          "name": "paging",
+          "description": "Pagination metadata containing references to the next and previous result pages",
+          "type": {
+            "name": "Paging",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Paging"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "to",
+          "description": "Array of associated objects with their label definitions",
+          "type": {
+            "name": "MultiAssociatedObjectWithLabel[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "MultiAssociatedObjectWithLabel"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PublicObjectId",
+      "description": "Represents a CRM object identifier used in association requests",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "id",
+          "description": "Unique identifier of the CRM object",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Paging",
+      "description": "Pagination metadata containing references to the next and previous result pages",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "next",
+          "description": "Pagination cursor object used to navigate to the next page of results",
+          "type": {
+            "name": "NextPage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "NextPage"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "prev",
+          "description": "Pagination cursor object used to navigate to a previous page of results",
+          "type": {
+            "name": "PreviousPage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PreviousPage"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "NextPage",
+      "description": "Pagination cursor object used to navigate to the next page of results",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "link",
+          "description": "Direct URL to the next page of results",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "after",
+          "description": "Cursor value representing the start of the next page",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "PreviousPage",
+      "description": "Pagination cursor object used to navigate to a previous page of results",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "before",
+          "description": "Cursor value representing the start of the previous page",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "link",
+          "description": "Direct URL to the previous page of results",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "MultiAssociatedObjectWithLabel",
+      "description": "Represents a target object and its typed, labeled association relationships",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "associationTypes",
+          "description": "Array of association type specifications with labels",
+          "type": {
+            "name": "AssociationSpecWithLabel[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AssociationSpecWithLabel"
+              }
+            ]
+          }
+        },
+        {
+          "name": "toObjectId",
+          "description": "The unique identifier of the associated target object",
+          "type": {
+            "name": "int"
+          }
+        }
+      ]
+    },
+    {
+      "name": "AssociationSpecWithLabel",
+      "description": "Defines an association type by category, numeric type ID, and optional label",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "typeId",
+          "description": "Numeric identifier for the association type",
+          "type": {
+            "name": "int:Signed32"
+          }
+        },
+        {
+          "name": "label",
+          "description": "Optional human-readable label describing the association type",
+          "type": {
+            "name": "string?"
+          },
+          "optional": true
+        },
+        {
+          "name": "category",
+          "description": "Defines the origin of the association type",
+          "type": {
+            "name": "\"HUBSPOT_DEFINED\"|\"USER_DEFINED\"|\"INTEGRATOR_DEFINED\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "BatchInputPublicDefaultAssociationMultiPost",
+      "description": "Batch request payload for creating multiple default associations between objects",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "inputs",
+          "description": "Array of default association records to create in batch",
+          "type": {
+            "name": "PublicDefaultAssociationMultiPost[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PublicDefaultAssociationMultiPost"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PublicDefaultAssociationMultiPost",
+      "description": "Request body for creating a default association between two CRM objects",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "\u0027from",
+          "description": "Represents a CRM object identifier used in association requests",
+          "type": {
+            "name": "PublicObjectId",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PublicObjectId"
+              }
+            ]
+          }
+        },
+        {
+          "name": "to",
+          "description": "Represents a CRM object identifier used in association requests",
+          "type": {
+            "name": "PublicObjectId",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PublicObjectId"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "BatchInputPublicAssociationMultiArchive",
+      "description": "Batch request payload for archiving multiple object associations",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "inputs",
+          "description": "Array of association records to archive in batch",
+          "type": {
+            "name": "PublicAssociationMultiArchive[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PublicAssociationMultiArchive"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PublicAssociationMultiArchive",
+      "description": "Request body for archiving associations between a source object and multiple target objects",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "\u0027from",
+          "description": "Represents a CRM object identifier used in association requests",
+          "type": {
+            "name": "PublicObjectId",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PublicObjectId"
+              }
+            ]
+          }
+        },
+        {
+          "name": "to",
+          "description": "Array of target objects whose associations will be archived",
+          "type": {
+            "name": "PublicObjectId[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PublicObjectId"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "ForwardPaging",
+      "description": "Forward-only pagination container providing a cursor to the next result page",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "next",
+          "description": "Pagination cursor object used to navigate to the next page of results",
+          "type": {
+            "name": "NextPage",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "NextPage"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "PublicAssociationMultiPost",
+      "description": "Request payload for creating multiple typed associations between two CRM objects",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "types",
+          "description": "List of association type specifications to apply between the objects",
+          "type": {
+            "name": "AssociationSpec[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AssociationSpec"
+              }
+            ]
+          }
+        },
+        {
+          "name": "\u0027from",
+          "description": "Represents a CRM object identifier used in association requests",
+          "type": {
+            "name": "PublicObjectId",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PublicObjectId"
+              }
+            ]
+          }
+        },
+        {
+          "name": "to",
+          "description": "Represents a CRM object identifier used in association requests",
+          "type": {
+            "name": "PublicObjectId",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PublicObjectId"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "AssociationSpec",
+      "description": "Defines an association type by its category and numeric type identifier",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "associationCategory",
+          "description": "Category indicating who defined the association type",
+          "type": {
+            "name": "\"HUBSPOT_DEFINED\"|\"USER_DEFINED\"|\"INTEGRATOR_DEFINED\""
+          }
+        },
+        {
+          "name": "associationTypeId",
+          "description": "Numeric identifier for the specific association type",
+          "type": {
+            "name": "int:Signed32"
+          }
+        }
+      ]
+    },
+    {
+      "name": "BatchResponseLabelsBetweenObjectPair",
+      "description": "Batch response containing labeled associations between object pairs with processing status",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "completedAt",
+          "description": "Timestamp when the batch operation completed",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "requestedAt",
+          "description": "Timestamp when the batch operation was requested",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "startedAt",
+          "description": "Timestamp when the batch operation started processing",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "links",
+          "description": "Map of relevant hypermedia links for the batch response",
+          "type": {
+            "name": "record {|string...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "results",
+          "description": "Collection of labeled association pairs returned by the batch operation",
+          "type": {
+            "name": "LabelsBetweenObjectPair[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "LabelsBetweenObjectPair"
+              }
+            ]
+          }
+        },
+        {
+          "name": "status",
+          "description": "Current processing status of the batch operation",
+          "type": {
+            "name": "\"PENDING\"|\"PROCESSING\"|\"CANCELED\"|\"COMPLETE\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "OAuth2RefreshTokenGrantConfig",
+      "description": "OAuth2 Refresh Token Grant Configs",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "refreshUrl",
+          "description": "Refresh URL",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "refreshToken",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "clientId",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "clientSecret",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "scopes",
+          "description": "",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "defaultTokenExpTime",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "clockSkew",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "optionalParams",
+          "description": "",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "credentialBearer",
+          "description": "",
+          "type": {
+            "name": "CredentialBearer",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CredentialBearer",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "clientConfig",
+          "description": "",
+          "type": {
+            "name": "ClientConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientConfiguration",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ConnectionConfig",
+      "description": "Provides a set of configurations for controlling the behaviours when communicating with a remote HTTP endpoint",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "auth",
+          "description": "Provides Auth configurations needed when communicating with a remote HTTP endpoint",
+          "type": {
+            "name": "BearerTokenConfig|OAuth2RefreshTokenGrantConfig|ApiKeysConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "BearerTokenConfig",
+                "libraryName": "ballerina/http"
+              },
+              {
+                "category": "internal",
+                "recordName": "OAuth2RefreshTokenGrantConfig"
+              },
+              {
+                "category": "internal",
+                "recordName": "ApiKeysConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "httpVersion",
+          "description": "The HTTP version understood by the client",
+          "type": {
+            "name": "HttpVersion",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "HttpVersion",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "http1Settings",
+          "description": "Configurations related to HTTP/1.x protocol",
+          "type": {
+            "name": "ClientHttp1Settings",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientHttp1Settings",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "http2Settings",
+          "description": "Configurations related to HTTP/2 protocol",
+          "type": {
+            "name": "ClientHttp2Settings",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientHttp2Settings",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "timeout",
+          "description": "The maximum time to wait (in seconds) for a response before closing the connection",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "forwarded",
+          "description": "The choice of setting `forwarded`/`x-forwarded` header",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "followRedirects",
+          "description": "Configurations associated with Redirection",
+          "type": {
+            "name": "FollowRedirects",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "FollowRedirects",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "poolConfig",
+          "description": "Configurations associated with request pooling",
+          "type": {
+            "name": "PoolConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "PoolConfiguration",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "cache",
+          "description": "HTTP caching related configurations",
+          "type": {
+            "name": "CacheConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CacheConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "compression",
+          "description": "Specifies the way of handling compression (`accept-encoding`) header",
+          "type": {
+            "name": "Compression",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Compression",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "circuitBreaker",
+          "description": "Configurations associated with the behaviour of the Circuit Breaker",
+          "type": {
+            "name": "CircuitBreakerConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CircuitBreakerConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "retryConfig",
+          "description": "Configurations associated with retrying",
+          "type": {
+            "name": "RetryConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "RetryConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "cookieConfig",
+          "description": "Configurations associated with cookies",
+          "type": {
+            "name": "CookieConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CookieConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "responseLimits",
+          "description": "Configurations associated with inbound response size limits",
+          "type": {
+            "name": "ResponseLimitConfigs",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ResponseLimitConfigs",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "SSL/TLS-related options",
+          "type": {
+            "name": "ClientSecureSocket",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientSecureSocket",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "proxy",
+          "description": "Proxy server related options",
+          "type": {
+            "name": "ProxyConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ProxyConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "socketConfig",
+          "description": "Provides settings related to client socket configuration",
+          "type": {
+            "name": "ClientSocketConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientSocketConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "validation",
+          "description": "Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "laxDataBinding",
+          "description": "Enables relaxed data binding on the client side. When enabled, `nil` values are treated as optional, \nand absent fields are handled as `nilable` types. Enabled by default",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ],
+      "annotations": [
+        {
+          "name": "display",
+          "value": "{label: \"Connection Config\"}"
+        }
+      ]
+    },
+    {
+      "name": "ApiKeysConfig",
+      "description": "Provides API key configurations needed when communicating with a remote HTTP endpoint",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "privateAppLegacy",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "privateApp",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "BatchResponsePublicAssociationMultiWithLabelWithErrors",
+      "description": "Batch response for labeled multi-associations, including any per-item errors and processing status",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "completedAt",
+          "description": "Timestamp when the batch operation completed",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "numErrors",
+          "description": "Total number of errors encountered during the batch operation",
+          "type": {
+            "name": "int:Signed32"
+          },
+          "optional": true
+        },
+        {
+          "name": "requestedAt",
+          "description": "Timestamp when the batch operation was requested",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "startedAt",
+          "description": "Timestamp when the batch operation started processing",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "links",
+          "description": "Map of relevant hypermedia links for the batch response",
+          "type": {
+            "name": "record {|string...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "results",
+          "description": "Array of successfully processed association results with labels",
+          "type": {
+            "name": "PublicAssociationMultiWithLabel[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PublicAssociationMultiWithLabel"
+              }
+            ]
+          }
+        },
+        {
+          "name": "errors",
+          "description": "Array of standard errors encountered during batch processing",
+          "type": {
+            "name": "StandardError[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "StandardError"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "status",
+          "description": "Current processing status of the batch operation",
+          "type": {
+            "name": "\"PENDING\"|\"PROCESSING\"|\"CANCELED\"|\"COMPLETE\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "PublicDefaultAssociation",
+      "description": "Represents a default association between two CRM objects, including its association specification",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "associationSpec",
+          "description": "Defines an association type by its category and numeric type identifier",
+          "type": {
+            "name": "AssociationSpec",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AssociationSpec"
+              }
+            ]
+          }
+        },
+        {
+          "name": "\u0027from",
+          "description": "Represents a CRM object identifier used in association requests",
+          "type": {
+            "name": "PublicObjectId",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PublicObjectId"
+              }
+            ]
+          }
+        },
+        {
+          "name": "to",
+          "description": "Represents a CRM object identifier used in association requests",
+          "type": {
+            "name": "PublicObjectId",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PublicObjectId"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "BatchInputPublicAssociationMultiPost",
+      "description": "Batch request body containing multiple association post inputs to be created",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "inputs",
+          "description": "Array of association post objects to create in the batch operation",
+          "type": {
+            "name": "PublicAssociationMultiPost[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PublicAssociationMultiPost"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "BatchInputPublicFetchAssociationsBatchRequest",
+      "description": "Batch request body containing multiple fetch association inputs to retrieve",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "inputs",
+          "description": "Array of association fetch requests to process in batch",
+          "type": {
+            "name": "PublicFetchAssociationsBatchRequest[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PublicFetchAssociationsBatchRequest"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "PublicFetchAssociationsBatchRequest",
+      "description": "Request object for fetching associations in a batch, identified by object ID with optional pagination",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "id",
+          "description": "Unique identifier of the object whose associations to retrieve",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "after",
+          "description": "Pagination cursor token for retrieving the next set of results",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "BatchResponsePublicAssociationMultiWithLabel",
+      "description": "Batch response containing associations with labels, including processing status, timestamps, and result records",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "completedAt",
+          "description": "Timestamp when the batch operation completed",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "requestedAt",
+          "description": "Timestamp when the batch operation was requested",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "startedAt",
+          "description": "Timestamp when the batch operation started processing",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "links",
+          "description": "Map of relevant navigational links related to the batch response",
+          "type": {
+            "name": "record {|string...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "results",
+          "description": "Array of association records with labels returned by the batch operation",
+          "type": {
+            "name": "PublicAssociationMultiWithLabel[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PublicAssociationMultiWithLabel"
+              }
+            ]
+          }
+        },
+        {
+          "name": "status",
+          "description": "Current processing status of the batch operation",
+          "type": {
+            "name": "\"PENDING\"|\"PROCESSING\"|\"CANCELED\"|\"COMPLETE\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "BatchResponsePublicDefaultAssociation",
+      "description": "Batch response containing default associations, including processing status, timestamps, results, and any errors encountered",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "completedAt",
+          "description": "Timestamp when the batch operation completed",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "numErrors",
+          "description": "Total number of errors encountered during batch processing",
+          "type": {
+            "name": "int:Signed32"
+          },
+          "optional": true
+        },
+        {
+          "name": "requestedAt",
+          "description": "Timestamp when the batch operation was requested",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "startedAt",
+          "description": "Timestamp when the batch operation started processing",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "links",
+          "description": "Map of relevant navigational links related to the batch response",
+          "type": {
+            "name": "record {|string...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "results",
+          "description": "Array of default association records returned by the batch operation",
+          "type": {
+            "name": "PublicDefaultAssociation[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PublicDefaultAssociation"
+              }
+            ]
+          }
+        },
+        {
+          "name": "errors",
+          "description": "Array of errors encountered during batch processing",
+          "type": {
+            "name": "StandardError[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "StandardError"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "status",
+          "description": "Current processing status of the batch operation",
+          "type": {
+            "name": "\"PENDING\"|\"PROCESSING\"|\"CANCELED\"|\"COMPLETE\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "BatchResponseLabelsBetweenObjectPairWithErrors",
+      "description": "Batch response containing association labels between object pairs, including any errors encountered during processing",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "completedAt",
+          "description": "Timestamp when the batch operation completed",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "numErrors",
+          "description": "Total number of errors encountered in the batch",
+          "type": {
+            "name": "int:Signed32"
+          },
+          "optional": true
+        },
+        {
+          "name": "requestedAt",
+          "description": "Timestamp when the batch request was received",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "startedAt",
+          "description": "Timestamp when the batch operation began processing",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "links",
+          "description": "Map of relevant hyperlinks associated with the batch response",
+          "type": {
+            "name": "record {|string...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "results",
+          "description": "Array of association labels retrieved for each object pair",
+          "type": {
+            "name": "LabelsBetweenObjectPair[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "LabelsBetweenObjectPair"
+              }
+            ]
+          }
+        },
+        {
+          "name": "errors",
+          "description": "Array of standard errors encountered during batch processing",
+          "type": {
+            "name": "StandardError[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "StandardError"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "status",
+          "description": "Current processing status of the batch operation",
+          "type": {
+            "name": "\"PENDING\"|\"PROCESSING\"|\"CANCELED\"|\"COMPLETE\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "CollectionResponseMultiAssociatedObjectWithLabelForwardPaging",
+      "description": "Paginated collection of associated objects with their association labels, supporting forward pagination",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "paging",
+          "description": "Forward-only pagination container providing a cursor to the next result page",
+          "type": {
+            "name": "ForwardPaging",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ForwardPaging"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "results",
+          "description": "Array of associated objects with their association labels",
+          "type": {
+            "name": "MultiAssociatedObjectWithLabel[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "MultiAssociatedObjectWithLabel"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "GetObjectsObjectTypeObjectIdAssociationsToObjectTypeGetPageQueries",
+      "description": "Represents the Queries record for the operation: get-/objects/{objectType}/{objectId}/associations/{toObjectType}_getPage",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "\u0027limit",
+          "description": "The maximum number of results to display per page",
+          "type": {
+            "name": "int:Signed32"
+          },
+          "optional": true
+        },
+        {
+          "name": "after",
+          "description": "The paging cursor token of the last successfully read resource will be returned as the `paging.next.after` JSON property of a paged response containing more results",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "name": "Client",
+      "description": "",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Gets invoked to initialize the `connector`\n",
+          "parameters": [
+            {
+              "name": "config",
+              "description": "The configurations to be used when initializing the `connector` ",
+              "type": {
+                "name": "ConnectionConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ConnectionConfig"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "serviceUrl",
+              "description": "URL of the target service ",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"https://api.hubapi.com/crm/v4\""
+            }
+          ],
+          "return": {
+            "description": "An error if connector initialization failed ",
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Removes Links Between Objects\n",
+          "accessor": "post",
+          "paths": [
+            "associations",
+            {
+              "name": "fromObjectType",
+              "type": "string"
+            },
+            {
+              "name": "toObjectType",
+              "type": "string"
+            },
+            "batch",
+            "archive"
+          ],
+          "parameters": [
+            {
+              "name": "fromObjectType",
+              "description": "The CRM object type of the source object in the association to archive",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "toObjectType",
+              "description": "The CRM object type of the target object in the association to archive",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "payload",
+              "type": {
+                "name": "BatchInputPublicAssociationMultiArchive",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "BatchInputPublicAssociationMultiArchive"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Creates Custom Associations\n",
+          "accessor": "post",
+          "paths": [
+            "associations",
+            {
+              "name": "fromObjectType",
+              "type": "string"
+            },
+            {
+              "name": "toObjectType",
+              "type": "string"
+            },
+            "batch",
+            "create"
+          ],
+          "parameters": [
+            {
+              "name": "fromObjectType",
+              "description": "The CRM object type of the source object in the association to create",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "toObjectType",
+              "description": "The CRM object type of the target object in the association to create",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "payload",
+              "type": {
+                "name": "BatchInputPublicAssociationMultiPost",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "BatchInputPublicAssociationMultiPost"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "BatchResponseLabelsBetweenObjectPair|BatchResponseLabelsBetweenObjectPairWithErrors|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "BatchResponseLabelsBetweenObjectPair"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "BatchResponseLabelsBetweenObjectPairWithErrors"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Request high-usage associations report\n",
+          "accessor": "post",
+          "paths": [
+            "associations",
+            "usage",
+            "high\\-usage\\-report",
+            {
+              "name": "userId",
+              "type": "int:Signed32"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "userId",
+              "description": "The ID of the user for whom the high-usage association report is requested",
+              "type": {
+                "name": "int:Signed32"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "ReportCreationResponse|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "ReportCreationResponse"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Delete Specific Labels\n",
+          "accessor": "post",
+          "paths": [
+            "associations",
+            {
+              "name": "fromObjectType",
+              "type": "string"
+            },
+            {
+              "name": "toObjectType",
+              "type": "string"
+            },
+            "batch",
+            "labels",
+            "archive"
+          ],
+          "parameters": [
+            {
+              "name": "fromObjectType",
+              "description": "The CRM object type of the source object whose association labels will be archived",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "toObjectType",
+              "description": "The CRM object type of the target object whose association labels will be archived",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "payload",
+              "type": {
+                "name": "BatchInputPublicAssociationMultiPost",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "BatchInputPublicAssociationMultiPost"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Read Associations\n",
+          "accessor": "post",
+          "paths": [
+            "associations",
+            {
+              "name": "fromObjectType",
+              "type": "string"
+            },
+            {
+              "name": "toObjectType",
+              "type": "string"
+            },
+            "batch",
+            "read"
+          ],
+          "parameters": [
+            {
+              "name": "fromObjectType",
+              "description": "The CRM object type of the source objects whose associations will be read",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "toObjectType",
+              "description": "The CRM object type of the target objects whose associations will be read",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "payload",
+              "type": {
+                "name": "BatchInputPublicFetchAssociationsBatchRequest",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "BatchInputPublicFetchAssociationsBatchRequest"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "BatchResponsePublicAssociationMultiWithLabel|BatchResponsePublicAssociationMultiWithLabelWithErrors|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "BatchResponsePublicAssociationMultiWithLabel"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "BatchResponsePublicAssociationMultiWithLabelWithErrors"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Batch create default associations\n",
+          "accessor": "post",
+          "paths": [
+            "associations",
+            {
+              "name": "fromObjectType",
+              "type": "string"
+            },
+            {
+              "name": "toObjectType",
+              "type": "string"
+            },
+            "batch",
+            "associate",
+            "default"
+          ],
+          "parameters": [
+            {
+              "name": "fromObjectType",
+              "description": "The CRM object type of the source object for the default association to create",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "toObjectType",
+              "description": "The CRM object type of the target object for the default association to create",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "payload",
+              "type": {
+                "name": "BatchInputPublicDefaultAssociationMultiPost",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "BatchInputPublicDefaultAssociationMultiPost"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "BatchResponsePublicDefaultAssociation|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "BatchResponsePublicDefaultAssociation"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Create association labels\n",
+          "accessor": "put",
+          "paths": [
+            "objects",
+            {
+              "name": "objectType",
+              "type": "string"
+            },
+            {
+              "name": "objectId",
+              "type": "string"
+            },
+            "associations",
+            {
+              "name": "toObjectType",
+              "type": "string"
+            },
+            {
+              "name": "toObjectId",
+              "type": "string"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "objectType",
+              "description": "The CRM object type of the source object for the association being created",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "objectId",
+              "description": "The unique identifier of the source CRM object for the association being created",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "toObjectType",
+              "description": "The CRM object type of the target object for the association being created",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "toObjectId",
+              "description": "The unique identifier of the target CRM object for the association being created",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "payload",
+              "type": {
+                "name": "AssociationSpec[]",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "AssociationSpec"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "LabelsBetweenObjectPair|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "LabelsBetweenObjectPair"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Delete all record associations\n",
+          "accessor": "delete",
+          "paths": [
+            "objects",
+            {
+              "name": "objectType",
+              "type": "string"
+            },
+            {
+              "name": "objectId",
+              "type": "string"
+            },
+            "associations",
+            {
+              "name": "toObjectType",
+              "type": "string"
+            },
+            {
+              "name": "toObjectId",
+              "type": "string"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "objectType",
+              "description": "The CRM object type of the source object whose association will be deleted",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "objectId",
+              "description": "The unique identifier of the source CRM object whose association will be deleted",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "toObjectType",
+              "description": "The CRM object type of the target object whose association will be deleted",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "toObjectId",
+              "description": "The unique identifier of the target CRM object whose association will be deleted",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "List associations by type\n",
+          "accessor": "get",
+          "paths": [
+            "objects",
+            {
+              "name": "objectType",
+              "type": "string"
+            },
+            {
+              "name": "objectId",
+              "type": "string"
+            },
+            "associations",
+            {
+              "name": "toObjectType",
+              "type": "string"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "objectType",
+              "description": "The type of the source CRM object whose associations are being retrieved",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "objectId",
+              "description": "The unique identifier of the source CRM object whose associations are being listed",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "toObjectType",
+              "description": "The type of the target CRM object to which associations are being retrieved",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "limit",
+              "description": "The maximum number of results to display per page",
+              "type": {
+                "name": "int:Signed32"
+              },
+              "optional": true,
+              "default": "0"
+            },
+            {
+              "name": "after",
+              "description": "The paging cursor token of the last successfully read resource will be returned as the `paging.next.after` JSON property of a paged response containing more results",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "queries",
+              "description": "Queries to be sent with the request ",
+              "type": {
+                "name": "GetObjectsObjectTypeObjectIdAssociationsToObjectTypeGetPageQueries",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "GetObjectsObjectTypeObjectIdAssociationsToObjectTypeGetPageQueries"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "CollectionResponseMultiAssociatedObjectWithLabelForwardPaging|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "CollectionResponseMultiAssociatedObjectWithLabelForwardPaging"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Create default association\n",
+          "accessor": "put",
+          "paths": [
+            "objects",
+            {
+              "name": "fromObjectType",
+              "type": "string"
+            },
+            {
+              "name": "fromObjectId",
+              "type": "string"
+            },
+            "associations",
+            "default",
+            {
+              "name": "toObjectType",
+              "type": "string"
+            },
+            {
+              "name": "toObjectId",
+              "type": "string"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "fromObjectType",
+              "description": "The type of the source CRM object from which the default association originates",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "fromObjectId",
+              "description": "The unique identifier of the source CRM object initiating the default association",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "toObjectType",
+              "description": "The type of the target CRM object to which the default association is being created",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "toObjectId",
+              "description": "The unique identifier of the target CRM object receiving the default association",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "BatchResponsePublicDefaultAssociation|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "BatchResponsePublicDefaultAssociation"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "functions": [],
+  "services": [],
+  "annotations": []
+}

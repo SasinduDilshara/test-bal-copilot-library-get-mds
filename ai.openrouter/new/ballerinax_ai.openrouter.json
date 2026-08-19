@@ -1,0 +1,1176 @@
+{
+  "name": "ballerinax/ai.openrouter",
+  "description": "This module offers APIs for connecting with 200+ Large Language Models (LLMs) through the",
+  "readme": "## Overview\n\nThis module offers APIs for connecting with 200+ Large Language Models (LLMs) through the\n[OpenRouter](https://openrouter.ai) unified API, including models from OpenAI, Anthropic,\nGoogle, Meta, Mistral, and many more providers.\n\n## Prerequisites\n\nBefore using this module in your Ballerina application, you must first obtain an OpenRouter API key.\n\n- Create an [OpenRouter account](https://openrouter.ai/signup).\n- Obtain an API key from [https://openrouter.ai/keys](https://openrouter.ai/keys).\n\n## Quickstart\n\nTo use the `ai.openrouter` module in your Ballerina application, update the `.bal` file as follows:\n\n### Step 1: Import the module\n\nImport the `ai.openrouter` module.\n\n```ballerina\nimport ballerinax/ai.openrouter;\n```\n\n### Step 2: Initialize the Model Provider\n\nHere\u0027s how to initialize the Model Provider:\n\n```ballerina\nimport ballerina/ai;\nimport ballerinax/ai.openrouter;\n\nfinal ai:ModelProvider openRouterModel \u003d check new openrouter:ModelProvider(\n    \"openRouterApiKey\",\n    modelType \u003d \"anthropic/claude-3.5-sonnet\"\n);\n```\n\n### Step 3: Invoke chat completion\n\n```ballerina\nai:ChatMessage[] chatMessages \u003d [{role: \"user\", content: \"hi\"}];\nai:ChatAssistantMessage response \u003d check openRouterModel-\u003echat(chatMessages, tools \u003d []);\n\nchatMessages.push(response);\n```\n\n### Step 4: Generate typed output\n\n```ballerina\ntype Sentiment record {|\n    string label;\n    decimal score;\n|};\n\n@ai:JsonSchema {\n    \"type\": \"object\",\n    \"required\": [\"label\", \"score\"],\n    \"properties\": {\n        \"label\": {\"type\": \"string\", \"enum\": [\"positive\", \"neutral\", \"negative\"]},\n        \"score\": {\"type\": \"number\"}\n    }\n}\ntype SentimentType Sentiment;\n\nSentiment|error result \u003d openRouterModel-\u003egenerate(\n    `Analyze the sentiment of: \"I love this product!\"`\n);\n```\n",
+  "typeDefs": [
+    {
+      "name": "ConnectionConfig",
+      "description": "Configurations for controlling the behaviours when communicating with a remote HTTP endpoint.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "httpVersion",
+          "description": "The HTTP version understood by the client",
+          "type": {
+            "name": "HttpVersion",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "HttpVersion",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"HTTP Version\"}"
+            }
+          ]
+        },
+        {
+          "name": "http1Settings",
+          "description": "Configurations related to HTTP/1.x protocol",
+          "type": {
+            "name": "ClientHttp1Settings",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientHttp1Settings",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"HTTP1 Settings\"}"
+            }
+          ]
+        },
+        {
+          "name": "http2Settings",
+          "description": "Configurations related to HTTP/2 protocol",
+          "type": {
+            "name": "ClientHttp2Settings",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientHttp2Settings",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"HTTP2 Settings\"}"
+            }
+          ]
+        },
+        {
+          "name": "timeout",
+          "description": "The maximum time to wait (in seconds) for a response before closing the connection",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Timeout\"}"
+            }
+          ]
+        },
+        {
+          "name": "forwarded",
+          "description": "The choice of setting `forwarded`/`x-forwarded` header",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Forwarded\"}"
+            }
+          ]
+        },
+        {
+          "name": "poolConfig",
+          "description": "Configurations associated with request pooling",
+          "type": {
+            "name": "PoolConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "PoolConfiguration",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Pool Configuration\"}"
+            }
+          ]
+        },
+        {
+          "name": "cache",
+          "description": "HTTP caching related configurations",
+          "type": {
+            "name": "CacheConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CacheConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Cache Configuration\"}"
+            }
+          ]
+        },
+        {
+          "name": "compression",
+          "description": "Specifies the way of handling compression (`accept-encoding`) header",
+          "type": {
+            "name": "Compression",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Compression",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Compression\"}"
+            }
+          ]
+        },
+        {
+          "name": "circuitBreaker",
+          "description": "Configurations associated with the behaviour of the Circuit Breaker",
+          "type": {
+            "name": "CircuitBreakerConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CircuitBreakerConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Circuit Breaker Configuration\"}"
+            }
+          ]
+        },
+        {
+          "name": "retryConfig",
+          "description": "Configurations associated with retrying",
+          "type": {
+            "name": "RetryConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "RetryConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Retry Configuration\"}"
+            }
+          ]
+        },
+        {
+          "name": "responseLimits",
+          "description": "Configurations associated with inbound response size limits",
+          "type": {
+            "name": "ResponseLimitConfigs",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ResponseLimitConfigs",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Response Limit Configuration\"}"
+            }
+          ]
+        },
+        {
+          "name": "secureSocket",
+          "description": "SSL/TLS-related options",
+          "type": {
+            "name": "ClientSecureSocket",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientSecureSocket",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Secure Socket Configuration\"}"
+            }
+          ]
+        },
+        {
+          "name": "proxy",
+          "description": "Proxy server related options",
+          "type": {
+            "name": "ProxyConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ProxyConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Proxy Configuration\"}"
+            }
+          ]
+        },
+        {
+          "name": "validation",
+          "description": "Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"Payload Validation\"}"
+            }
+          ]
+        }
+      ],
+      "annotations": [
+        {
+          "name": "display",
+          "value": "{label: \"Connection Configuration\"}"
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "name": "EmbeddingProvider",
+      "description": "EmbeddingProvider is a client class that provides an interface for generating\nvector embeddings via the OpenRouter unified API, which supports embedding models\nfrom OpenAI, Google, Mistral, and other providers.",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes the OpenRouter embedding provider with the given configuration.\n",
+          "parameters": [
+            {
+              "name": "apiKey",
+              "description": "The OpenRouter API key (obtain from https://openrouter.ai/keys)",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"API Key\"}"
+                }
+              ]
+            },
+            {
+              "name": "modelType",
+              "description": "The embedding model to use (e.g., `openai/text-embedding-3-small`)",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Model Type\"}"
+                }
+              ]
+            },
+            {
+              "name": "serviceUrl",
+              "description": "The base URL of the OpenRouter API endpoint",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "https://openrouter.ai/api/v1",
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Service URL\"}"
+                }
+              ]
+            },
+            {
+              "name": "siteUrl",
+              "description": "Optional site URL sent as `HTTP-Referer` header for OpenRouter attribution",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()",
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Site URL\"}"
+                }
+              ]
+            },
+            {
+              "name": "siteName",
+              "description": "Optional site name sent as `X-OpenRouter-Title` header for OpenRouter attribution",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()",
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Site Name\"}"
+                }
+              ]
+            },
+            {
+              "name": "httpVersion",
+              "description": "The HTTP version understood by the client",
+              "type": {
+                "name": "HttpVersion",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "HttpVersion",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "http:HTTP_2_0"
+            },
+            {
+              "name": "http1Settings",
+              "description": "Configurations related to HTTP/1.x protocol",
+              "type": {
+                "name": "ClientHttp1Settings",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ClientHttp1Settings",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "http2Settings",
+              "description": "Configurations related to HTTP/2 protocol",
+              "type": {
+                "name": "ClientHttp2Settings",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ClientHttp2Settings",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "timeout",
+              "description": "The maximum time to wait (in seconds) for a response before closing the connection",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "60"
+            },
+            {
+              "name": "forwarded",
+              "description": "The choice of setting `forwarded`/`x-forwarded` header",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"disable\""
+            },
+            {
+              "name": "poolConfig",
+              "description": "Configurations associated with request pooling",
+              "type": {
+                "name": "PoolConfiguration",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "PoolConfiguration",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "cache",
+              "description": "HTTP caching related configurations",
+              "type": {
+                "name": "CacheConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "CacheConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "compression",
+              "description": "Specifies the way of handling compression (`accept-encoding`) header",
+              "type": {
+                "name": "Compression",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "Compression",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "AUTO"
+            },
+            {
+              "name": "circuitBreaker",
+              "description": "Configurations associated with the behaviour of the Circuit Breaker",
+              "type": {
+                "name": "CircuitBreakerConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "CircuitBreakerConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "retryConfig",
+              "description": "Configurations associated with retrying",
+              "type": {
+                "name": "RetryConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "RetryConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "responseLimits",
+              "description": "Configurations associated with inbound response size limits",
+              "type": {
+                "name": "ResponseLimitConfigs",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ResponseLimitConfigs",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "secureSocket",
+              "description": "SSL/TLS-related options",
+              "type": {
+                "name": "ClientSecureSocket",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ClientSecureSocket",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "proxy",
+              "description": "Proxy server related options",
+              "type": {
+                "name": "ProxyConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ProxyConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "validation",
+              "description": "Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "true"
+            },
+            {
+              "name": "connectionConfig",
+              "description": "Additional HTTP connection configuration",
+              "type": {
+                "name": "ConnectionConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ConnectionConfig"
+                  }
+                ]
+              },
+              "optional": true,
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Connection Configuration\"}"
+                }
+              ]
+            }
+          ],
+          "return": {
+            "description": "`()` on successful initialization; otherwise, returns an `ai:Error`",
+            "type": {
+              "name": "ai:Error?"
+            }
+          }
+        },
+        {
+          "name": "embed",
+          "type": "Remote Function",
+          "description": "Converts the given chunk into a vector embedding.\n",
+          "parameters": [
+            {
+              "name": "chunk",
+              "description": "The chunk to convert into an embedding (only `ai:TextChunk` and `ai:TextDocument` are supported)",
+              "type": {
+                "name": "Chunk",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "Chunk",
+                    "libraryName": "ballerina/ai"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "The embedding vector representation on success; `ai:LlmConnectionError` if the HTTP call\nfails; `ai:LlmInvalidResponseError` if the model returns no embeddings;\n`ai:Error` if the chunk type is not supported",
+            "type": {
+              "name": "Vector|SparseVector|HybridVector|Error",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "Vector",
+                  "libraryName": "ballerina/ai"
+                },
+                {
+                  "category": "external",
+                  "recordName": "SparseVector",
+                  "libraryName": "ballerina/ai"
+                },
+                {
+                  "category": "external",
+                  "recordName": "HybridVector",
+                  "libraryName": "ballerina/ai"
+                },
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/ai"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "batchEmbed",
+          "type": "Remote Function",
+          "description": "Converts a batch of chunks into vector embeddings.\n",
+          "parameters": [
+            {
+              "name": "chunks",
+              "description": "The chunks to convert into embeddings (only `ai:TextChunk` and `ai:TextDocument` are supported)",
+              "type": {
+                "name": "Chunk[]",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "Chunk",
+                    "libraryName": "ballerina/ai"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "An array of embedding vectors on success; `ai:LlmConnectionError` if the HTTP call\nfails; `ai:LlmInvalidResponseError` if the model returns no embeddings;\n`ai:Error` if a chunk type is not supported",
+            "type": {
+              "name": "Embedding[]|Error",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "Embedding",
+                  "libraryName": "ballerina/ai"
+                },
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/ai"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "annotations": [
+        {
+          "name": "display",
+          "value": "{label: \"OpenRouter Embedding Provider\"}"
+        }
+      ]
+    },
+    {
+      "name": "ModelProvider",
+      "description": "ModelProvider is a client class that provides an interface for interacting with\nLLMs via the OpenRouter unified API, which supports models from OpenAI, Anthropic,\nGoogle, Meta, Mistral, and many other providers.",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes the OpenRouter model provider with the given configuration.\n",
+          "parameters": [
+            {
+              "name": "apiKey",
+              "description": "The OpenRouter API key (obtain from https://openrouter.ai/keys)",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"API Key\"}"
+                }
+              ]
+            },
+            {
+              "name": "modelType",
+              "description": "The OpenRouter model to use (e.g., `openai/gpt-4o`, `anthropic/claude-3.5-sonnet`)",
+              "type": {
+                "name": "string"
+              },
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Model Type\"}"
+                }
+              ]
+            },
+            {
+              "name": "serviceUrl",
+              "description": "The base URL of the OpenRouter API endpoint",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "https://openrouter.ai/api/v1",
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Service URL\"}"
+                }
+              ]
+            },
+            {
+              "name": "siteUrl",
+              "description": "Optional site URL sent as `HTTP-Referer` header for OpenRouter attribution",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()",
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Site URL\"}"
+                }
+              ]
+            },
+            {
+              "name": "siteName",
+              "description": "Optional site name sent as `X-OpenRouter-Title` header for OpenRouter attribution",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()",
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Site Name\"}"
+                }
+              ]
+            },
+            {
+              "name": "maxTokens",
+              "description": "The upper limit for the number of tokens in the response generated by the model",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "512",
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Maximum Tokens\"}"
+                }
+              ]
+            },
+            {
+              "name": "temperature",
+              "description": "The temperature for controlling randomness in the model\u0027s output",
+              "type": {
+                "name": "decimal|()"
+              },
+              "optional": true,
+              "default": "()",
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Temperature\"}"
+                }
+              ]
+            },
+            {
+              "name": "httpVersion",
+              "description": "The HTTP version understood by the client",
+              "type": {
+                "name": "HttpVersion",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "HttpVersion",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "http:HTTP_2_0"
+            },
+            {
+              "name": "http1Settings",
+              "description": "Configurations related to HTTP/1.x protocol",
+              "type": {
+                "name": "ClientHttp1Settings",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ClientHttp1Settings",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "http2Settings",
+              "description": "Configurations related to HTTP/2 protocol",
+              "type": {
+                "name": "ClientHttp2Settings",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ClientHttp2Settings",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "timeout",
+              "description": "The maximum time to wait (in seconds) for a response before closing the connection",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "60"
+            },
+            {
+              "name": "forwarded",
+              "description": "The choice of setting `forwarded`/`x-forwarded` header",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"disable\""
+            },
+            {
+              "name": "poolConfig",
+              "description": "Configurations associated with request pooling",
+              "type": {
+                "name": "PoolConfiguration",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "PoolConfiguration",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "cache",
+              "description": "HTTP caching related configurations",
+              "type": {
+                "name": "CacheConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "CacheConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "compression",
+              "description": "Specifies the way of handling compression (`accept-encoding`) header",
+              "type": {
+                "name": "Compression",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "Compression",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "AUTO"
+            },
+            {
+              "name": "circuitBreaker",
+              "description": "Configurations associated with the behaviour of the Circuit Breaker",
+              "type": {
+                "name": "CircuitBreakerConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "CircuitBreakerConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "retryConfig",
+              "description": "Configurations associated with retrying",
+              "type": {
+                "name": "RetryConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "RetryConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "responseLimits",
+              "description": "Configurations associated with inbound response size limits",
+              "type": {
+                "name": "ResponseLimitConfigs",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ResponseLimitConfigs",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "secureSocket",
+              "description": "SSL/TLS-related options",
+              "type": {
+                "name": "ClientSecureSocket",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ClientSecureSocket",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "proxy",
+              "description": "Proxy server related options",
+              "type": {
+                "name": "ProxyConfig",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ProxyConfig",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "validation",
+              "description": "Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "true"
+            },
+            {
+              "name": "connectionConfig",
+              "description": "Additional HTTP connection configuration",
+              "type": {
+                "name": "ConnectionConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ConnectionConfig"
+                  }
+                ]
+              },
+              "optional": true,
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Connection Configuration\"}"
+                }
+              ]
+            }
+          ],
+          "return": {
+            "description": "`()` on successful initialization; otherwise, returns an `ai:Error`",
+            "type": {
+              "name": "ai:Error?"
+            }
+          }
+        },
+        {
+          "name": "chat",
+          "type": "Remote Function",
+          "description": "Sends a chat request to the OpenRouter model with the given messages and tools.\n",
+          "parameters": [
+            {
+              "name": "messages",
+              "description": "List of chat messages or a single user message",
+              "type": {
+                "name": "ChatMessage[]|ChatUserMessage",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ChatMessage",
+                    "libraryName": "ballerina/ai"
+                  },
+                  {
+                    "category": "external",
+                    "recordName": "ChatUserMessage",
+                    "libraryName": "ballerina/ai"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "tools",
+              "description": "Tool definitions to be used for the tool call",
+              "type": {
+                "name": "ChatCompletionFunctions[]",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ChatCompletionFunctions",
+                    "libraryName": "ballerina/ai"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "[]"
+            },
+            {
+              "name": "stop",
+              "description": "Stop sequence to stop the completion",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "Function to be called, chat response or an error in-case of failures",
+            "type": {
+              "name": "ChatAssistantMessage|Error",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "ChatAssistantMessage",
+                  "libraryName": "ballerina/ai"
+                },
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/ai"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "generate",
+          "type": "Remote Function",
+          "description": "Sends a chat request to the model and generates a value of the type specified by\nthe `td` type descriptor. For complex record types, annotate the type with\n`@ai:JsonSchema` to enable compile-time schema generation.\n",
+          "parameters": [
+            {
+              "name": "prompt",
+              "description": "The prompt to use in the chat messages",
+              "type": {
+                "name": "Prompt",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "Prompt",
+                    "libraryName": "ballerina/ai"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "td",
+              "description": "Type descriptor specifying the expected return type format",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata",
+              "annotations": [
+                {
+                  "name": "display",
+                  "value": "{label: \"Expected type\"}"
+                }
+              ]
+            }
+          ],
+          "return": {
+            "description": "Generates a value that belongs to the type, or an error if generation fails",
+            "type": {
+              "name": "td|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "td"
+                },
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/ai"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "annotations": [
+        {
+          "name": "display",
+          "value": "{label: \"OpenRouter Model Provider\"}"
+        }
+      ]
+    }
+  ],
+  "functions": [],
+  "services": [],
+  "annotations": []
+}

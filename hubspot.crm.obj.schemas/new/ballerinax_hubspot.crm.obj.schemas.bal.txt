@@ -1,0 +1,568 @@
+// ============================================================
+// Library: ballerinax/hubspot.crm.obj.schemas
+// [HubSpot](https://www.hubspot.com) is an AI-powered customer relationship management (CRM) platform.
+// ============================================================
+import ballerinax/hubspot.crm.obj.schemas;
+
+// --- README ---
+## Overview
+
+[HubSpot](https://www.hubspot.com) is an AI-powered customer relationship management (CRM) platform.
+
+The HubSpot CRM Object Schemas connector provides APIs to connect and interact with the [HubSpot Schemas API](https://developers.hubspot.com/docs/guides/api/crm/objects/schemas) endpoints, specifically based on the [HubSpot REST API](https://developers.hubspot.com/docs/reference/api).
+
+### Key Features
+
+- Create, read, update, and delete custom object schemas in HubSpot CRM
+- Define custom properties and associations for object types
+- Retrieve all existing schemas in a HubSpot account
+- Manage object type definitions and their relationships
+
+## Setup guide
+
+To use the `HubSpot CRM Object Schemas` connector, you must have access to the HubSpot API through a HubSpot developer account and an app under it. If you do not have a HubSpot developer account, you can sign up for one [here](https://developers.hubspot.com/get-started).
+
+### Step 1: Create a HubSpot Developer Account
+
+App Developer Accounts, allow you to create developer test accounts to test apps.
+
+> **Note:** These accounts are only for development and testing purposes. Not to be used in production.
+
+1. Go to "Test Account section" from the left sidebar.
+
+    ![Test accounts](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.schemas/main/docs/setup/resources/test_acc_img1.png)
+
+2. Click "Create developer test account".
+
+   ![Developer Test Accounts](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.schemas/main/docs/setup/resources/test_acc_img2.png)
+
+3. In the next dialogue box, give a name to your test account and click "Create".
+
+   ![Hubspot developer account name](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.schemas/main/docs/setup/resources/test_acc_img3.png)
+
+### Step 2: Create a HubSpot App under your account.
+
+1. In your developer account, navigate to the "Apps" section. Click on "Create App".
+   ![Hubspot App Creation](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.schemas/main/docs/setup/resources/app_img1.png)
+
+2. Provide the necessary details, including the app name and description.
+
+### Step 3: Configure the Authentication Flow.
+
+1. Move to the Auth Tab.
+
+   ![Auth tab](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.schemas/main/docs/setup/resources/auth.png)
+
+2. In the "Scopes" section, add the following scopes for your app using the "Add new scope" button.
+
+   * `schemas`
+   * `oath`
+
+3. Add your Redirect URI in the relevant section. You can use `localhost` addresses for local development purposes. Then Click "Create App".
+
+   ![Redirect URI](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.schemas/main/docs/setup/resources/redirect_url.png)
+
+### Step 4: Get your Client ID and Client Secret
+
+- Navigate to the "Auth" tab. Make sure to save the provided Client ID and Client Secret.
+
+   ![Credentials](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.schemas/main/docs/setup/resources/credentials.png)
+
+### Step 5: Setup Authentication Flow
+
+Before proceeding with the Quickstart, ensure you have obtained the Access Token using the following steps:
+
+1. Create an authorization URL using the following format:
+
+   ```
+   https://app.hubspot.com/oauth/authorize?client_id=<YOUR_CLIENT_ID>&scope=<YOUR_SCOPES>&redirect_uri=<YOUR_REDIRECT_URI>
+   ```
+
+   Replace the `<YOUR_CLIENT_ID>`, `<YOUR_REDIRECT_URI>` and `<YOUR_SCOPES>` with the above obtained values.
+
+2. Paste it in the browser and select your developer test account to install the app when prompted.
+
+3. A code will be displayed in the browser. Copy that code.
+
+4. Run the following curl command. Replace the `<YOUR_CLIENT_ID>`, `<YOUR_REDIRECT_URI`> and `<YOUR_CLIENT_SECRET>` with your specific value. Use the code you received in the above step 3 as the `<CODE>`.
+
+   - Linux/macOS
+
+     ```bash
+     curl --request POST \
+     --url https://api.hubapi.com/oauth/v1/token \
+     --header 'content-type: application/x-www-form-urlencoded' \
+     --data 'grant_type=authorization_code&code=<CODE>&redirect_uri=<YOUR_REDIRECT_URI>&client_id=<YOUR_CLIENT_ID>&client_secret=<YOUR_CLIENT_SECRET>'
+     ```
+
+   - Windows
+
+     ```bash
+     curl --request POST ^
+     --url https://api.hubapi.com/oauth/v1/token ^
+     --header 'content-type: application/x-www-form-urlencoded' ^
+     --data 'grant_type=authorization_code&code=<CODE>&redirect_uri=<YOUR_REDIRECT_URI>&client_id=<YOUR_CLIENT_ID>&client_secret=<YOUR_CLIENT_SECRET>'
+     ```
+
+   This command will return the access token necessary for API calls.
+
+   ```json
+   {
+     "token_type": "bearer",
+     "refresh_token": "<Refresh Token>",
+     "access_token": "<Access Token>",
+     "expires_in": 1800
+   }
+   ```
+
+5. Store the access token and refresh token securely for use in your application.
+
+## Quickstart
+
+To use the `HubSpot CRM Object Schemas` connector in your Ballerina application, update the `.bal` file as follows:
+
+### Step 1: Import the module
+
+Import the `hubspot.crm.obj.schemas` module and `oauth2` module.
+
+```ballerina
+import ballerina/oauth2;
+import ballerinax/hubspot.crm.obj.schemas as hsschemas;
+```
+
+### Step 2: Instantiate a new connector
+
+1. Create a `Config.toml` file inside the Ballerina package and add the following configurations with the values retrieved in the earlier steps as follows:
+
+   ```toml
+    clientId = <Client Id>
+    clientSecret = <Client Secret>
+    refreshToken = <Refresh Token>
+   ```
+
+2. Instantiate a `OAuth2RefreshTokenGrantConfig` with the obtained credentials and initialize the connector with it.
+
+    ```ballerina
+   configurable string clientId = ?;
+   configurable string clientSecret = ?;
+   configurable string refreshToken = ?;
+
+   OAuth2RefreshTokenGrantConfig auth = {
+      clientId,
+      clientSecret,
+      refreshToken,
+      credentialBearer: oauth2:POST_BODY_BEARER
+   };
+
+   final hsschemas:Client hpClient = check new ({auth});
+   ```
+
+Now, utilize the available connector operations. A sample use case is shown below.
+
+#### Get all schemas
+
+```ballerina
+public function main() returns error? {
+    CollectionResponseObjectSchemaNoPaging response = check hpClient->/.get();
+
+    io:println(response);
+}
+
+```
+## Examples
+
+The `HubSpot CRM Object Schemas` connector provides practical examples illustrating usage in various scenarios. Explore these [examples](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.schemas/tree/main/examples), covering the following use cases:
+   1. [Auther and Book assosiation](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.schemas/tree/main/examples/book-author-association)
+   2. [Product spec update](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.schemas/tree/main/examples/product-update)
+
+// --- END README ---
+
+// --- Types ---
+
+# Defines attributes to update on an object type
+
+type ObjectTypeDefinitionPatch record {
+    # The names of secondary properties for this object. These will be displayed as secondary on the HubSpot record page for this object type
+    string[] secondaryDisplayProperties?;
+    # The names of properties that should be **required** when creating an object of this type
+    string[] requiredProperties?;
+    # Names of properties that will be indexed for this object type in by HubSpot's product search
+    string[] searchableProperties?;
+    boolean clearDescription?;
+    # The name of the primary property for this object. This will be displayed as primary on the HubSpot record page for this object type
+    string primaryDisplayProperty?;
+    string description?;
+    boolean restorable?;
+    # Singular and plural labels for the object. Used in CRM display
+    ObjectTypeDefinitionLabels labels?;
+};
+
+# Singular and plural labels for the object. Used in CRM display
+
+type ObjectTypeDefinitionLabels record {
+    # The word for multiple objects. (There’s no way to change this later.)
+    string plural?;
+    # The word for one object. (There’s no way to change this later.)
+    string singular?;
+};
+
+
+type CollectionResponseObjectSchemaNoPaging record {
+    ObjectSchema[] results;
+};
+
+# Defines an object schema, including its properties and associations
+
+type ObjectSchema record {
+    # Associations defined for a given object type
+    AssociationDefinition[] associations;
+    # The names of secondary properties for this object. These will be displayed as secondary on the HubSpot record page for this object type
+    string[] secondaryDisplayProperties?;
+    int:Signed32 createdByUserId?;
+    string objectTypeId?;
+    string description?;
+    int:Signed32 updatedByUserId?;
+    # An assigned unique ID for the object, including portal ID and object name
+    string fullyQualifiedName?;
+    # Singular and plural labels for the object. Used in CRM display
+    ObjectTypeDefinitionLabels labels;
+    boolean archived?;
+    # When the object schema was created
+    string createdAt?;
+    # The names of properties that should be **required** when creating an object of this type
+    string[] requiredProperties;
+    # Names of properties that will be indexed for this object type in by HubSpot's product search
+    string[] searchableProperties?;
+    # The name of the primary property for this object. This will be displayed as primary on the HubSpot record page for this object type
+    string primaryDisplayProperty?;
+    # A unique name for the schema's object type
+    string name;
+    # A unique ID for this schema's object type. Will be defined as {meta-type}-{unique ID}
+    string id;
+    # Properties defined for this object type
+    Property[] properties;
+    # When the object schema was last updated
+    string updatedAt?;
+};
+
+# Defines an association between two object types
+
+type AssociationDefinition record {
+    # When the association was defined
+    string createdAt?;
+    # ID of the primary object type to link from
+    string fromObjectTypeId;
+    # A unique name for this association
+    string name?;
+    # A unique ID for this association
+    string id;
+    # ID of the target object type to link to
+    string toObjectTypeId;
+    # When the association was last updated
+    string updatedAt?;
+};
+
+# Defines a property
+
+type Property record {
+    boolean hidden?;
+    # The order that this property should be displayed in the HubSpot UI relative to other properties for this object type. Properties are displayed in order starting with the lowest positive integer value. A value of -1 will cause the property to be displayed **after** any positive values
+    int:Signed32 displayOrder?;
+    # A description of the property that will be shown as help text in HubSpot
+    string description;
+    # Whether the property will display the currency symbol set in the account settings
+    boolean showCurrencySymbol?;
+    # The property data type
+    string 'type;
+    # This will be true for default object properties built into HubSpot
+    boolean hubspotDefined?;
+    # When the property was created
+    string createdAt?;
+    # Whether or not the property is archived
+    boolean archived?;
+    # A list of valid options for the property. This field is required for enumerated properties, but will be empty for other property types
+    Option[] options;
+    # Whether or not the property's value must be unique. Once set, this can't be changed
+    boolean hasUniqueValue?;
+    # For default properties, true indicates that the property is calculated by a HubSpot process. It has no effect for custom properties
+    boolean calculated?;
+    # For default properties, true indicates that the options are stored externally to the property settings
+    boolean externalOptions?;
+    string updatedAt?;
+    # The internal ID of the user who created the property in HubSpot. This field may not exist if the property was created outside of HubSpot
+    string createdUserId?;
+    PropertyModificationMetadata modificationMetadata?;
+    string[] sensitiveDataCategories?;
+    # A human-readable property label that will be shown in HubSpot
+    string label;
+    # Whether or not the property can be used in a HubSpot form
+    boolean formField?;
+    "non_sensitive"|"sensitive"|"highly_sensitive" dataSensitivity?;
+    # When the property was archived
+    string archivedAt?;
+    # The name of the property group the property belongs to
+    string groupName;
+    # If this property is related to other object(s), they'll be listed here
+    string referencedObjectType?;
+    # The internal property name, which must be used when referencing the property via the API
+    string name;
+    string calculationFormula?;
+    # Controls how the property appears in HubSpot
+    string fieldType;
+    # The internal user ID of the user who updated the property in HubSpot. This field may not exist if the property was updated outside of HubSpot
+    string updatedUserId?;
+};
+
+# The options available when a property is an enumeration
+
+type Option record {
+    # Hidden options will not be displayed in HubSpot
+    boolean hidden;
+    # Options are displayed in order starting with the lowest positive integer value. Values of -1 will cause the option to be displayed after any positive values
+    int:Signed32 displayOrder?;
+    # A description of the option
+    string description?;
+    # A human-readable option label that will be shown in HubSpot
+    string label;
+    # The internal value of the option, which must be used when setting the property value through the API
+    string value;
+};
+
+
+type PropertyModificationMetadata record {
+    boolean readOnlyOptions?;
+    boolean readOnlyValue;
+    boolean readOnlyDefinition;
+    boolean archivable;
+};
+
+# Defines an object type
+
+type ObjectTypeDefinition record {
+    # The names of secondary properties for this object. These will be displayed as secondary on the HubSpot record page for this object type
+    string[] secondaryDisplayProperties?;
+    string objectTypeId?;
+    string description?;
+    string fullyQualifiedName?;
+    # Singular and plural labels for the object. Used in CRM display
+    ObjectTypeDefinitionLabels labels;
+    boolean archived?;
+    # When the object type was created
+    string createdAt?;
+    # The names of properties that should be **required** when creating an object of this type
+    string[] requiredProperties;
+    # Names of properties that will be indexed for this object type in by HubSpot's product search
+    string[] searchableProperties?;
+    # The ID of the account that this object type is specific to
+    int:Signed32 portalId?;
+    # The name of the primary property for this object. This will be displayed as primary on the HubSpot record page for this object type
+    string primaryDisplayProperty?;
+    # A unique name for this object. For internal use only
+    string name;
+    # A unique ID for this object type. Will be defined as {meta-type}-{unique ID}
+    string id;
+    # When the object type was last updated
+    string updatedAt?;
+};
+
+# Represents the Queries record for the operation: delete-/crm-object-schemas/v3/schemas/{objectType}_archive
+
+type DeleteCrmObjectSchemasV3SchemasObjectTypeArchiveQueries record {
+    # Whether to return only results that have been archived
+    boolean archived?;
+};
+
+# Defines a enumeration property option
+
+type OptionInput record {
+    # Hidden options won't be shown in HubSpot
+    boolean hidden;
+    # Options are shown in order starting with the lowest positive integer value. Values of -1 will cause the option to be displayed after any positive values
+    int:Signed32 displayOrder;
+    # A description of the option
+    string description?;
+    # A human-readable option label that will be shown in HubSpot
+    string label;
+    # The internal value of the option, which must be used when setting the property value through the API
+    string value;
+};
+
+# Represents the Queries record for the operation: get-/crm-object-schemas/v3/schemas_getAll
+
+type GetCrmObjectSchemasV3SchemasGetAllQueries record {
+    # Whether to return only results that have been archived
+    boolean archived?;
+};
+
+# Defines a property to create
+
+type ObjectTypePropertyCreate record {
+    boolean hidden?;
+    # Controls how the property options will be sorted in the HubSpot UI
+    "DISPLAY_ORDER"|"ALPHABETICAL" optionSortStrategy?;
+    # The order that this property should be displayed in the HubSpot UI relative to other properties for this object type. Properties are displayed in order starting with the lowest positive integer value. A value of -1 will cause the property to be displayed **after** any positive values
+    int:Signed32 displayOrder?;
+    # A description of the property that will be shown as help text in HubSpot
+    string description?;
+    # Whether the property will display the currency symbol in the HubSpot UI
+    boolean showCurrencySymbol?;
+    # A human-readable property label that will be shown in HubSpot
+    string label;
+    # The data type of the property
+    "string"|"number"|"date"|"datetime"|"enumeration"|"bool" 'type;
+    # Whether the property can be used in a HubSpot form
+    boolean formField?;
+    # The name of the group this property belongs to
+    string groupName?;
+    # Defines the options this property will return, e.g. OWNER would return name of users on the portal
+    string referencedObjectType?;
+    # Controls how text properties are formatted in the HubSpot UI
+    "unformatted_single_line"|"multi_line"|"email"|"phone_number"|"domain_name"|"ip_address"|"physical_address"|"postal_code" textDisplayHint?;
+    # The internal property name, which must be used when referencing the property from the API
+    string name;
+    # A list of available options for the property. This field is only required for enumerated properties
+    OptionInput[] options?;
+    # Allow users to search for information entered to this field (limited to 3 properties)
+    boolean searchableInGlobalSearch?;
+    # Controls how numeric properties are formatted in the HubSpot UI
+    "unformatted"|"formatted"|"currency"|"percentage"|"duration"|"probability" numberDisplayHint?;
+    # Whether or not the property's value must be unique. Once set, this can't be changed
+    boolean hasUniqueValue?;
+    # Controls how the property appears in HubSpot
+    string fieldType;
+};
+
+# Defines an association between two object types
+
+type AssociationDefinitionEgg record {
+    # ID of the primary object type to link from
+    string fromObjectTypeId;
+    # A unique name for this association
+    string name?;
+    # ID of the target object type to link to
+    string toObjectTypeId;
+};
+
+# OAuth2 Refresh Token Grant Configs
+
+type OAuth2RefreshTokenGrantConfig record {
+    # Refresh URL
+    string refreshUrl?;
+    string refreshToken;
+    string clientId;
+    string clientSecret;
+    string|string[] scopes?;
+    decimal defaultTokenExpTime?;
+    decimal clockSkew?;
+    map<string> optionalParams?;
+    oauth2:CredentialBearer credentialBearer?; // Special Agent Note: CredentialBearer FROM ballerina/oauth2 package
+    oauth2:ClientConfiguration clientConfig?; // Special Agent Note: ClientConfiguration FROM ballerina/oauth2 package
+};
+
+# Defines a new object type, its properties, and associations
+
+type ObjectSchemaEgg record {
+    # The names of secondary properties for this object. These will be displayed as secondary on the HubSpot record page for this object type
+    string[] secondaryDisplayProperties?;
+    # The names of properties that should be **required** when creating an object of this type
+    string[] requiredProperties;
+    # Names of properties that will be indexed for this object type in by HubSpot's product search
+    string[] searchableProperties?;
+    # The name of the primary property for this object. This will be displayed as primary on the HubSpot record page for this object type
+    string primaryDisplayProperty?;
+    # A unique name for this object. For internal use only
+    string name;
+    string description?;
+    # Associations defined for this object type
+    string[] associatedObjects;
+    # Properties defined for this object type
+    ObjectTypePropertyCreate[] properties;
+    # Singular and plural labels for the object. Used in CRM display
+    ObjectTypeDefinitionLabels labels;
+};
+
+# Provides API key configurations needed when communicating with a remote HTTP endpoint.
+
+type ApiKeysConfig record {
+    string privateAppLegacy;
+};
+
+# Provides a set of configurations for controlling the behaviours when communicating with a remote HTTP endpoint.
+
+@display {label: "Connection Config"}
+type ConnectionConfig record {
+    # Provides Auth configurations needed when communicating with a remote HTTP endpoint.
+    http:BearerTokenConfig|OAuth2RefreshTokenGrantConfig|ApiKeysConfig auth; // Special Agent Note: BearerTokenConfig FROM ballerina/http package
+    # The HTTP version understood by the client
+    http:HttpVersion httpVersion?; // Special Agent Note: HttpVersion FROM ballerina/http package
+    # Configurations related to HTTP/1.x protocol
+    http:ClientHttp1Settings http1Settings?; // Special Agent Note: ClientHttp1Settings FROM ballerina/http package
+    # Configurations related to HTTP/2 protocol
+    http:ClientHttp2Settings http2Settings?; // Special Agent Note: ClientHttp2Settings FROM ballerina/http package
+    # The maximum time to wait (in seconds) for a response before closing the connection
+    decimal timeout?;
+    # The choice of setting `forwarded`/`x-forwarded` header
+    string forwarded?;
+    # Configurations associated with Redirection
+    http:FollowRedirects followRedirects?; // Special Agent Note: FollowRedirects FROM ballerina/http package
+    # Configurations associated with request pooling
+    http:PoolConfiguration poolConfig?; // Special Agent Note: PoolConfiguration FROM ballerina/http package
+    # HTTP caching related configurations
+    http:CacheConfig cache?; // Special Agent Note: CacheConfig FROM ballerina/http package
+    # Specifies the way of handling compression (`accept-encoding`) header
+    http:Compression compression?; // Special Agent Note: Compression FROM ballerina/http package
+    # Configurations associated with the behaviour of the Circuit Breaker
+    http:CircuitBreakerConfig circuitBreaker?; // Special Agent Note: CircuitBreakerConfig FROM ballerina/http package
+    # Configurations associated with retrying
+    http:RetryConfig retryConfig?; // Special Agent Note: RetryConfig FROM ballerina/http package
+    # Configurations associated with cookies
+    http:CookieConfig cookieConfig?; // Special Agent Note: CookieConfig FROM ballerina/http package
+    # Configurations associated with inbound response size limits
+    http:ResponseLimitConfigs responseLimits?; // Special Agent Note: ResponseLimitConfigs FROM ballerina/http package
+    # SSL/TLS-related options
+    http:ClientSecureSocket secureSocket?; // Special Agent Note: ClientSecureSocket FROM ballerina/http package
+    # Proxy server related options
+    http:ProxyConfig proxy?; // Special Agent Note: ProxyConfig FROM ballerina/http package
+    # Provides settings related to client socket configuration
+    http:ClientSocketConfig socketConfig?; // Special Agent Note: ClientSocketConfig FROM ballerina/http package
+    # Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default
+    boolean validation?;
+    # Enables relaxed data binding on the client side. When enabled, `nil` values are treated as optional, 
+and absent fields are handled as `nilable` types. Enabled by default.
+    boolean laxDataBinding?;
+};
+
+// --- Client ---
+
+# The CRM uses schemas to define how custom objects should store and represent information in the HubSpot CRM. Schemas define details about an object's type, properties, and associations. The schema can be uniquely identified by its **object type ID**.
+client class Client {
+    function init(ConnectionConfig config, string serviceUrl = "https://api.hubapi.com/crm-object-schemas/v3/schemas") returns error?;
+
+    # Get all schemas
+    # 
+    resource function get (map<string|string[]> headers = {}, boolean archived = false, GetCrmObjectSchemasV3SchemasGetAllQueries queries) returns CollectionResponseObjectSchemaNoPaging|error;
+
+    # Create a new schema
+    # 
+    resource function post (ObjectSchemaEgg payload, map<string|string[]> headers = {}) returns ObjectSchema|error;
+
+    # Get an existing schema
+    # 
+    resource function get [string objectType](map<string|string[]> headers = {}) returns ObjectSchema|error;
+
+    # Delete a schema
+    # 
+    resource function delete [string objectType](map<string|string[]> headers = {}, boolean archived = false, DeleteCrmObjectSchemasV3SchemasObjectTypeArchiveQueries queries) returns error?;
+
+    # Update a schema
+    # 
+    resource function patch [string objectType](ObjectTypeDefinitionPatch payload, map<string|string[]> headers = {}) returns ObjectTypeDefinition|error;
+
+    # Create an association
+    # 
+    resource function post [string objectType]/associations(AssociationDefinitionEgg payload, map<string|string[]> headers = {}) returns AssociationDefinition|error;
+
+    # Remove an association
+    # 
+    resource function delete [string objectType]/associations/[string associationIdentifier](map<string|string[]> headers = {}) returns error?;
+}

@@ -1,0 +1,1865 @@
+{
+  "name": "ballerinax/hubspot.crm.obj.schemas",
+  "description": "[HubSpot](https://www.hubspot.com) is an AI-powered customer relationship management (CRM) platform.",
+  "readme": "## Overview\n\n[HubSpot](https://www.hubspot.com) is an AI-powered customer relationship management (CRM) platform.\n\nThe HubSpot CRM Object Schemas connector provides APIs to connect and interact with the [HubSpot Schemas API](https://developers.hubspot.com/docs/guides/api/crm/objects/schemas) endpoints, specifically based on the [HubSpot REST API](https://developers.hubspot.com/docs/reference/api).\n\n### Key Features\n\n- Create, read, update, and delete custom object schemas in HubSpot CRM\n- Define custom properties and associations for object types\n- Retrieve all existing schemas in a HubSpot account\n- Manage object type definitions and their relationships\n\n## Setup guide\n\nTo use the `HubSpot CRM Object Schemas` connector, you must have access to the HubSpot API through a HubSpot developer account and an app under it. If you do not have a HubSpot developer account, you can sign up for one [here](https://developers.hubspot.com/get-started).\n\n### Step 1: Create a HubSpot Developer Account\n\nApp Developer Accounts, allow you to create developer test accounts to test apps.\n\n\u003e **Note:** These accounts are only for development and testing purposes. Not to be used in production.\n\n1. Go to \"Test Account section\" from the left sidebar.\n\n    ![Test accounts](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.schemas/main/docs/setup/resources/test_acc_img1.png)\n\n2. Click \"Create developer test account\".\n\n   ![Developer Test Accounts](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.schemas/main/docs/setup/resources/test_acc_img2.png)\n\n3. In the next dialogue box, give a name to your test account and click \"Create\".\n\n   ![Hubspot developer account name](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.schemas/main/docs/setup/resources/test_acc_img3.png)\n\n### Step 2: Create a HubSpot App under your account.\n\n1. In your developer account, navigate to the \"Apps\" section. Click on \"Create App\".\n   ![Hubspot App Creation](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.schemas/main/docs/setup/resources/app_img1.png)\n\n2. Provide the necessary details, including the app name and description.\n\n### Step 3: Configure the Authentication Flow.\n\n1. Move to the Auth Tab.\n\n   ![Auth tab](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.schemas/main/docs/setup/resources/auth.png)\n\n2. In the \"Scopes\" section, add the following scopes for your app using the \"Add new scope\" button.\n\n   * `schemas`\n   * `oath`\n\n3. Add your Redirect URI in the relevant section. You can use `localhost` addresses for local development purposes. Then Click \"Create App\".\n\n   ![Redirect URI](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.schemas/main/docs/setup/resources/redirect_url.png)\n\n### Step 4: Get your Client ID and Client Secret\n\n- Navigate to the \"Auth\" tab. Make sure to save the provided Client ID and Client Secret.\n\n   ![Credentials](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.schemas/main/docs/setup/resources/credentials.png)\n\n### Step 5: Setup Authentication Flow\n\nBefore proceeding with the Quickstart, ensure you have obtained the Access Token using the following steps:\n\n1. Create an authorization URL using the following format:\n\n   ```\n   https://app.hubspot.com/oauth/authorize?client_id\u003d\u003cYOUR_CLIENT_ID\u003e\u0026scope\u003d\u003cYOUR_SCOPES\u003e\u0026redirect_uri\u003d\u003cYOUR_REDIRECT_URI\u003e\n   ```\n\n   Replace the `\u003cYOUR_CLIENT_ID\u003e`, `\u003cYOUR_REDIRECT_URI\u003e` and `\u003cYOUR_SCOPES\u003e` with the above obtained values.\n\n2. Paste it in the browser and select your developer test account to install the app when prompted.\n\n3. A code will be displayed in the browser. Copy that code.\n\n4. Run the following curl command. Replace the `\u003cYOUR_CLIENT_ID\u003e`, `\u003cYOUR_REDIRECT_URI`\u003e and `\u003cYOUR_CLIENT_SECRET\u003e` with your specific value. Use the code you received in the above step 3 as the `\u003cCODE\u003e`.\n\n   - Linux/macOS\n\n     ```bash\n     curl --request POST \\\n     --url https://api.hubapi.com/oauth/v1/token \\\n     --header \u0027content-type: application/x-www-form-urlencoded\u0027 \\\n     --data \u0027grant_type\u003dauthorization_code\u0026code\u003d\u003cCODE\u003e\u0026redirect_uri\u003d\u003cYOUR_REDIRECT_URI\u003e\u0026client_id\u003d\u003cYOUR_CLIENT_ID\u003e\u0026client_secret\u003d\u003cYOUR_CLIENT_SECRET\u003e\u0027\n     ```\n\n   - Windows\n\n     ```bash\n     curl --request POST ^\n     --url https://api.hubapi.com/oauth/v1/token ^\n     --header \u0027content-type: application/x-www-form-urlencoded\u0027 ^\n     --data \u0027grant_type\u003dauthorization_code\u0026code\u003d\u003cCODE\u003e\u0026redirect_uri\u003d\u003cYOUR_REDIRECT_URI\u003e\u0026client_id\u003d\u003cYOUR_CLIENT_ID\u003e\u0026client_secret\u003d\u003cYOUR_CLIENT_SECRET\u003e\u0027\n     ```\n\n   This command will return the access token necessary for API calls.\n\n   ```json\n   {\n     \"token_type\": \"bearer\",\n     \"refresh_token\": \"\u003cRefresh Token\u003e\",\n     \"access_token\": \"\u003cAccess Token\u003e\",\n     \"expires_in\": 1800\n   }\n   ```\n\n5. Store the access token and refresh token securely for use in your application.\n\n## Quickstart\n\nTo use the `HubSpot CRM Object Schemas` connector in your Ballerina application, update the `.bal` file as follows:\n\n### Step 1: Import the module\n\nImport the `hubspot.crm.obj.schemas` module and `oauth2` module.\n\n```ballerina\nimport ballerina/oauth2;\nimport ballerinax/hubspot.crm.obj.schemas as hsschemas;\n```\n\n### Step 2: Instantiate a new connector\n\n1. Create a `Config.toml` file inside the Ballerina package and add the following configurations with the values retrieved in the earlier steps as follows:\n\n   ```toml\n    clientId \u003d \u003cClient Id\u003e\n    clientSecret \u003d \u003cClient Secret\u003e\n    refreshToken \u003d \u003cRefresh Token\u003e\n   ```\n\n2. Instantiate a `OAuth2RefreshTokenGrantConfig` with the obtained credentials and initialize the connector with it.\n\n    ```ballerina\n   configurable string clientId \u003d ?;\n   configurable string clientSecret \u003d ?;\n   configurable string refreshToken \u003d ?;\n\n   OAuth2RefreshTokenGrantConfig auth \u003d {\n      clientId,\n      clientSecret,\n      refreshToken,\n      credentialBearer: oauth2:POST_BODY_BEARER\n   };\n\n   final hsschemas:Client hpClient \u003d check new ({auth});\n   ```\n\nNow, utilize the available connector operations. A sample use case is shown below.\n\n#### Get all schemas\n\n```ballerina\npublic function main() returns error? {\n    CollectionResponseObjectSchemaNoPaging response \u003d check hpClient-\u003e/.get();\n\n    io:println(response);\n}\n\n```\n## Examples\n\nThe `HubSpot CRM Object Schemas` connector provides practical examples illustrating usage in various scenarios. Explore these [examples](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.schemas/tree/main/examples), covering the following use cases:\n   1. [Auther and Book assosiation](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.schemas/tree/main/examples/book-author-association)\n   2. [Product spec update](https://github.com/ballerina-platform/module-ballerinax-hubspot.crm.obj.schemas/tree/main/examples/product-update)\n",
+  "typeDefs": [
+    {
+      "name": "ObjectTypeDefinitionPatch",
+      "description": "Defines attributes to update on an object type",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "secondaryDisplayProperties",
+          "description": "The names of secondary properties for this object. These will be displayed as secondary on the HubSpot record page for this object type",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "requiredProperties",
+          "description": "The names of properties that should be **required** when creating an object of this type",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "searchableProperties",
+          "description": "Names of properties that will be indexed for this object type in by HubSpot\u0027s product search",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "clearDescription",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "primaryDisplayProperty",
+          "description": "The name of the primary property for this object. This will be displayed as primary on the HubSpot record page for this object type",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "description",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "restorable",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "labels",
+          "description": "Singular and plural labels for the object. Used in CRM display",
+          "type": {
+            "name": "ObjectTypeDefinitionLabels",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ObjectTypeDefinitionLabels"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ObjectTypeDefinitionLabels",
+      "description": "Singular and plural labels for the object. Used in CRM display",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "plural",
+          "description": "The word for multiple objects. (There’s no way to change this later.)",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "singular",
+          "description": "The word for one object. (There’s no way to change this later.)",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "CollectionResponseObjectSchemaNoPaging",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "results",
+          "description": "",
+          "type": {
+            "name": "ObjectSchema[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ObjectSchema"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "ObjectSchema",
+      "description": "Defines an object schema, including its properties and associations",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "associations",
+          "description": "Associations defined for a given object type",
+          "type": {
+            "name": "AssociationDefinition[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AssociationDefinition"
+              }
+            ]
+          }
+        },
+        {
+          "name": "secondaryDisplayProperties",
+          "description": "The names of secondary properties for this object. These will be displayed as secondary on the HubSpot record page for this object type",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "createdByUserId",
+          "description": "",
+          "type": {
+            "name": "int:Signed32"
+          },
+          "optional": true
+        },
+        {
+          "name": "objectTypeId",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "description",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "updatedByUserId",
+          "description": "",
+          "type": {
+            "name": "int:Signed32"
+          },
+          "optional": true
+        },
+        {
+          "name": "fullyQualifiedName",
+          "description": "An assigned unique ID for the object, including portal ID and object name",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "labels",
+          "description": "Singular and plural labels for the object. Used in CRM display",
+          "type": {
+            "name": "ObjectTypeDefinitionLabels",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ObjectTypeDefinitionLabels"
+              }
+            ]
+          }
+        },
+        {
+          "name": "archived",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "createdAt",
+          "description": "When the object schema was created",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "requiredProperties",
+          "description": "The names of properties that should be **required** when creating an object of this type",
+          "type": {
+            "name": "string[]"
+          }
+        },
+        {
+          "name": "searchableProperties",
+          "description": "Names of properties that will be indexed for this object type in by HubSpot\u0027s product search",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "primaryDisplayProperty",
+          "description": "The name of the primary property for this object. This will be displayed as primary on the HubSpot record page for this object type",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "name",
+          "description": "A unique name for the schema\u0027s object type",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "id",
+          "description": "A unique ID for this schema\u0027s object type. Will be defined as {meta-type}-{unique ID}",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "properties",
+          "description": "Properties defined for this object type",
+          "type": {
+            "name": "Property[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Property"
+              }
+            ]
+          }
+        },
+        {
+          "name": "updatedAt",
+          "description": "When the object schema was last updated",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "AssociationDefinition",
+      "description": "Defines an association between two object types",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "createdAt",
+          "description": "When the association was defined",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "fromObjectTypeId",
+          "description": "ID of the primary object type to link from",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "name",
+          "description": "A unique name for this association",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "id",
+          "description": "A unique ID for this association",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "toObjectTypeId",
+          "description": "ID of the target object type to link to",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "updatedAt",
+          "description": "When the association was last updated",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Property",
+      "description": "Defines a property",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "hidden",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "displayOrder",
+          "description": "The order that this property should be displayed in the HubSpot UI relative to other properties for this object type. Properties are displayed in order starting with the lowest positive integer value. A value of -1 will cause the property to be displayed **after** any positive values",
+          "type": {
+            "name": "int:Signed32"
+          },
+          "optional": true
+        },
+        {
+          "name": "description",
+          "description": "A description of the property that will be shown as help text in HubSpot",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "showCurrencySymbol",
+          "description": "Whether the property will display the currency symbol set in the account settings",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "\u0027type",
+          "description": "The property data type",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "hubspotDefined",
+          "description": "This will be true for default object properties built into HubSpot",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "createdAt",
+          "description": "When the property was created",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "archived",
+          "description": "Whether or not the property is archived",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "options",
+          "description": "A list of valid options for the property. This field is required for enumerated properties, but will be empty for other property types",
+          "type": {
+            "name": "Option[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Option"
+              }
+            ]
+          }
+        },
+        {
+          "name": "hasUniqueValue",
+          "description": "Whether or not the property\u0027s value must be unique. Once set, this can\u0027t be changed",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "calculated",
+          "description": "For default properties, true indicates that the property is calculated by a HubSpot process. It has no effect for custom properties",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "externalOptions",
+          "description": "For default properties, true indicates that the options are stored externally to the property settings",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "updatedAt",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "createdUserId",
+          "description": "The internal ID of the user who created the property in HubSpot. This field may not exist if the property was created outside of HubSpot",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "modificationMetadata",
+          "description": "",
+          "type": {
+            "name": "PropertyModificationMetadata",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "PropertyModificationMetadata"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "sensitiveDataCategories",
+          "description": "",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "label",
+          "description": "A human-readable property label that will be shown in HubSpot",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "formField",
+          "description": "Whether or not the property can be used in a HubSpot form",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "dataSensitivity",
+          "description": "",
+          "type": {
+            "name": "\"non_sensitive\"|\"sensitive\"|\"highly_sensitive\""
+          },
+          "optional": true
+        },
+        {
+          "name": "archivedAt",
+          "description": "When the property was archived",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "groupName",
+          "description": "The name of the property group the property belongs to",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "referencedObjectType",
+          "description": "If this property is related to other object(s), they\u0027ll be listed here",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "name",
+          "description": "The internal property name, which must be used when referencing the property via the API",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "calculationFormula",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "fieldType",
+          "description": "Controls how the property appears in HubSpot",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "updatedUserId",
+          "description": "The internal user ID of the user who updated the property in HubSpot. This field may not exist if the property was updated outside of HubSpot",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Option",
+      "description": "The options available when a property is an enumeration",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "hidden",
+          "description": "Hidden options will not be displayed in HubSpot",
+          "type": {
+            "name": "boolean"
+          }
+        },
+        {
+          "name": "displayOrder",
+          "description": "Options are displayed in order starting with the lowest positive integer value. Values of -1 will cause the option to be displayed after any positive values",
+          "type": {
+            "name": "int:Signed32"
+          },
+          "optional": true
+        },
+        {
+          "name": "description",
+          "description": "A description of the option",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "label",
+          "description": "A human-readable option label that will be shown in HubSpot",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "value",
+          "description": "The internal value of the option, which must be used when setting the property value through the API",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "PropertyModificationMetadata",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "readOnlyOptions",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "readOnlyValue",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          }
+        },
+        {
+          "name": "readOnlyDefinition",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          }
+        },
+        {
+          "name": "archivable",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ObjectTypeDefinition",
+      "description": "Defines an object type",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "secondaryDisplayProperties",
+          "description": "The names of secondary properties for this object. These will be displayed as secondary on the HubSpot record page for this object type",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "objectTypeId",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "description",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "fullyQualifiedName",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "labels",
+          "description": "Singular and plural labels for the object. Used in CRM display",
+          "type": {
+            "name": "ObjectTypeDefinitionLabels",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ObjectTypeDefinitionLabels"
+              }
+            ]
+          }
+        },
+        {
+          "name": "archived",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "createdAt",
+          "description": "When the object type was created",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "requiredProperties",
+          "description": "The names of properties that should be **required** when creating an object of this type",
+          "type": {
+            "name": "string[]"
+          }
+        },
+        {
+          "name": "searchableProperties",
+          "description": "Names of properties that will be indexed for this object type in by HubSpot\u0027s product search",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "portalId",
+          "description": "The ID of the account that this object type is specific to",
+          "type": {
+            "name": "int:Signed32"
+          },
+          "optional": true
+        },
+        {
+          "name": "primaryDisplayProperty",
+          "description": "The name of the primary property for this object. This will be displayed as primary on the HubSpot record page for this object type",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "name",
+          "description": "A unique name for this object. For internal use only",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "id",
+          "description": "A unique ID for this object type. Will be defined as {meta-type}-{unique ID}",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "updatedAt",
+          "description": "When the object type was last updated",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "DeleteCrmObjectSchemasV3SchemasObjectTypeArchiveQueries",
+      "description": "Represents the Queries record for the operation: delete-/crm-object-schemas/v3/schemas/{objectType}_archive",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "archived",
+          "description": "Whether to return only results that have been archived",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "OptionInput",
+      "description": "Defines a enumeration property option",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "hidden",
+          "description": "Hidden options won\u0027t be shown in HubSpot",
+          "type": {
+            "name": "boolean"
+          }
+        },
+        {
+          "name": "displayOrder",
+          "description": "Options are shown in order starting with the lowest positive integer value. Values of -1 will cause the option to be displayed after any positive values",
+          "type": {
+            "name": "int:Signed32"
+          }
+        },
+        {
+          "name": "description",
+          "description": "A description of the option",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "label",
+          "description": "A human-readable option label that will be shown in HubSpot",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "value",
+          "description": "The internal value of the option, which must be used when setting the property value through the API",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "GetCrmObjectSchemasV3SchemasGetAllQueries",
+      "description": "Represents the Queries record for the operation: get-/crm-object-schemas/v3/schemas_getAll",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "archived",
+          "description": "Whether to return only results that have been archived",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ObjectTypePropertyCreate",
+      "description": "Defines a property to create",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "hidden",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "optionSortStrategy",
+          "description": "Controls how the property options will be sorted in the HubSpot UI",
+          "type": {
+            "name": "\"DISPLAY_ORDER\"|\"ALPHABETICAL\""
+          },
+          "optional": true
+        },
+        {
+          "name": "displayOrder",
+          "description": "The order that this property should be displayed in the HubSpot UI relative to other properties for this object type. Properties are displayed in order starting with the lowest positive integer value. A value of -1 will cause the property to be displayed **after** any positive values",
+          "type": {
+            "name": "int:Signed32"
+          },
+          "optional": true
+        },
+        {
+          "name": "description",
+          "description": "A description of the property that will be shown as help text in HubSpot",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "showCurrencySymbol",
+          "description": "Whether the property will display the currency symbol in the HubSpot UI",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "label",
+          "description": "A human-readable property label that will be shown in HubSpot",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "\u0027type",
+          "description": "The data type of the property",
+          "type": {
+            "name": "\"string\"|\"number\"|\"date\"|\"datetime\"|\"enumeration\"|\"bool\""
+          }
+        },
+        {
+          "name": "formField",
+          "description": "Whether the property can be used in a HubSpot form",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "groupName",
+          "description": "The name of the group this property belongs to",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "referencedObjectType",
+          "description": "Defines the options this property will return, e.g. OWNER would return name of users on the portal",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "textDisplayHint",
+          "description": "Controls how text properties are formatted in the HubSpot UI",
+          "type": {
+            "name": "\"unformatted_single_line\"|\"multi_line\"|\"email\"|\"phone_number\"|\"domain_name\"|\"ip_address\"|\"physical_address\"|\"postal_code\""
+          },
+          "optional": true
+        },
+        {
+          "name": "name",
+          "description": "The internal property name, which must be used when referencing the property from the API",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "options",
+          "description": "A list of available options for the property. This field is only required for enumerated properties",
+          "type": {
+            "name": "OptionInput[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OptionInput"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "searchableInGlobalSearch",
+          "description": "Allow users to search for information entered to this field (limited to 3 properties)",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "numberDisplayHint",
+          "description": "Controls how numeric properties are formatted in the HubSpot UI",
+          "type": {
+            "name": "\"unformatted\"|\"formatted\"|\"currency\"|\"percentage\"|\"duration\"|\"probability\""
+          },
+          "optional": true
+        },
+        {
+          "name": "hasUniqueValue",
+          "description": "Whether or not the property\u0027s value must be unique. Once set, this can\u0027t be changed",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "fieldType",
+          "description": "Controls how the property appears in HubSpot",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "AssociationDefinitionEgg",
+      "description": "Defines an association between two object types",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "fromObjectTypeId",
+          "description": "ID of the primary object type to link from",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "name",
+          "description": "A unique name for this association",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "toObjectTypeId",
+          "description": "ID of the target object type to link to",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "OAuth2RefreshTokenGrantConfig",
+      "description": "OAuth2 Refresh Token Grant Configs",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "refreshUrl",
+          "description": "Refresh URL",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "refreshToken",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "clientId",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "clientSecret",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "scopes",
+          "description": "",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "defaultTokenExpTime",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "clockSkew",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "optionalParams",
+          "description": "",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "credentialBearer",
+          "description": "",
+          "type": {
+            "name": "CredentialBearer",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CredentialBearer",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "clientConfig",
+          "description": "",
+          "type": {
+            "name": "ClientConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientConfiguration",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ObjectSchemaEgg",
+      "description": "Defines a new object type, its properties, and associations",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "secondaryDisplayProperties",
+          "description": "The names of secondary properties for this object. These will be displayed as secondary on the HubSpot record page for this object type",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "requiredProperties",
+          "description": "The names of properties that should be **required** when creating an object of this type",
+          "type": {
+            "name": "string[]"
+          }
+        },
+        {
+          "name": "searchableProperties",
+          "description": "Names of properties that will be indexed for this object type in by HubSpot\u0027s product search",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "primaryDisplayProperty",
+          "description": "The name of the primary property for this object. This will be displayed as primary on the HubSpot record page for this object type",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "name",
+          "description": "A unique name for this object. For internal use only",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "description",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "associatedObjects",
+          "description": "Associations defined for this object type",
+          "type": {
+            "name": "string[]"
+          }
+        },
+        {
+          "name": "properties",
+          "description": "Properties defined for this object type",
+          "type": {
+            "name": "ObjectTypePropertyCreate[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ObjectTypePropertyCreate"
+              }
+            ]
+          }
+        },
+        {
+          "name": "labels",
+          "description": "Singular and plural labels for the object. Used in CRM display",
+          "type": {
+            "name": "ObjectTypeDefinitionLabels",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ObjectTypeDefinitionLabels"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "ApiKeysConfig",
+      "description": "Provides API key configurations needed when communicating with a remote HTTP endpoint.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "privateAppLegacy",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ConnectionConfig",
+      "description": "Provides a set of configurations for controlling the behaviours when communicating with a remote HTTP endpoint.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "auth",
+          "description": "Provides Auth configurations needed when communicating with a remote HTTP endpoint.",
+          "type": {
+            "name": "BearerTokenConfig|OAuth2RefreshTokenGrantConfig|ApiKeysConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "BearerTokenConfig",
+                "libraryName": "ballerina/http"
+              },
+              {
+                "category": "internal",
+                "recordName": "OAuth2RefreshTokenGrantConfig"
+              },
+              {
+                "category": "internal",
+                "recordName": "ApiKeysConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "httpVersion",
+          "description": "The HTTP version understood by the client",
+          "type": {
+            "name": "HttpVersion",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "HttpVersion",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "http1Settings",
+          "description": "Configurations related to HTTP/1.x protocol",
+          "type": {
+            "name": "ClientHttp1Settings",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientHttp1Settings",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "http2Settings",
+          "description": "Configurations related to HTTP/2 protocol",
+          "type": {
+            "name": "ClientHttp2Settings",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientHttp2Settings",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "timeout",
+          "description": "The maximum time to wait (in seconds) for a response before closing the connection",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "forwarded",
+          "description": "The choice of setting `forwarded`/`x-forwarded` header",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "followRedirects",
+          "description": "Configurations associated with Redirection",
+          "type": {
+            "name": "FollowRedirects",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "FollowRedirects",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "poolConfig",
+          "description": "Configurations associated with request pooling",
+          "type": {
+            "name": "PoolConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "PoolConfiguration",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "cache",
+          "description": "HTTP caching related configurations",
+          "type": {
+            "name": "CacheConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CacheConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "compression",
+          "description": "Specifies the way of handling compression (`accept-encoding`) header",
+          "type": {
+            "name": "Compression",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Compression",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "circuitBreaker",
+          "description": "Configurations associated with the behaviour of the Circuit Breaker",
+          "type": {
+            "name": "CircuitBreakerConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CircuitBreakerConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "retryConfig",
+          "description": "Configurations associated with retrying",
+          "type": {
+            "name": "RetryConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "RetryConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "cookieConfig",
+          "description": "Configurations associated with cookies",
+          "type": {
+            "name": "CookieConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CookieConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "responseLimits",
+          "description": "Configurations associated with inbound response size limits",
+          "type": {
+            "name": "ResponseLimitConfigs",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ResponseLimitConfigs",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "SSL/TLS-related options",
+          "type": {
+            "name": "ClientSecureSocket",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientSecureSocket",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "proxy",
+          "description": "Proxy server related options",
+          "type": {
+            "name": "ProxyConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ProxyConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "socketConfig",
+          "description": "Provides settings related to client socket configuration",
+          "type": {
+            "name": "ClientSocketConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientSocketConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "validation",
+          "description": "Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "laxDataBinding",
+          "description": "Enables relaxed data binding on the client side. When enabled, `nil` values are treated as optional, \nand absent fields are handled as `nilable` types. Enabled by default.",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ],
+      "annotations": [
+        {
+          "name": "display",
+          "value": "{label: \"Connection Config\"}"
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "name": "Client",
+      "description": "The CRM uses schemas to define how custom objects should store and represent information in the HubSpot CRM. Schemas define details about an object\u0027s type, properties, and associations. The schema can be uniquely identified by its **object type ID**.",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Gets invoked to initialize the `connector`.\n",
+          "parameters": [
+            {
+              "name": "config",
+              "description": "The configurations to be used when initializing the `connector` ",
+              "type": {
+                "name": "ConnectionConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ConnectionConfig"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "serviceUrl",
+              "description": "URL of the target service ",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"https://api.hubapi.com/crm-object-schemas/v3/schemas\""
+            }
+          ],
+          "return": {
+            "description": "An error if connector initialization failed ",
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Get all schemas\n",
+          "accessor": "get",
+          "paths": [],
+          "parameters": [
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "archived",
+              "description": "Whether to return only results that have been archived",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "queries",
+              "description": "Queries to be sent with the request ",
+              "type": {
+                "name": "GetCrmObjectSchemasV3SchemasGetAllQueries",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "GetCrmObjectSchemasV3SchemasGetAllQueries"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "CollectionResponseObjectSchemaNoPaging|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "CollectionResponseObjectSchemaNoPaging"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Create a new schema\n",
+          "accessor": "post",
+          "paths": [],
+          "parameters": [
+            {
+              "name": "payload",
+              "description": "Object schema definition, including properties and associations ",
+              "type": {
+                "name": "ObjectSchemaEgg",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ObjectSchemaEgg"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "ObjectSchema|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "ObjectSchema"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Get an existing schema\n",
+          "accessor": "get",
+          "paths": [
+            {
+              "name": "objectType",
+              "type": "string"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "objectType",
+              "description": "Fully qualified name or object type ID of your schema",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "ObjectSchema|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "ObjectSchema"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Delete a schema\n",
+          "accessor": "delete",
+          "paths": [
+            {
+              "name": "objectType",
+              "type": "string"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "objectType",
+              "description": "Fully qualified name or object type ID of your schema",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "archived",
+              "description": "Whether to return only results that have been archived",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "queries",
+              "description": "Queries to be sent with the request ",
+              "type": {
+                "name": "DeleteCrmObjectSchemasV3SchemasObjectTypeArchiveQueries",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "DeleteCrmObjectSchemasV3SchemasObjectTypeArchiveQueries"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Update a schema\n",
+          "accessor": "patch",
+          "paths": [
+            {
+              "name": "objectType",
+              "type": "string"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "objectType",
+              "description": "Fully qualified name or object type ID of your schema",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "payload",
+              "description": "Attributes to update in your schema ",
+              "type": {
+                "name": "ObjectTypeDefinitionPatch",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ObjectTypeDefinitionPatch"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "ObjectTypeDefinition|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "ObjectTypeDefinition"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Create an association\n",
+          "accessor": "post",
+          "paths": [
+            {
+              "name": "objectType",
+              "type": "string"
+            },
+            "associations"
+          ],
+          "parameters": [
+            {
+              "name": "objectType",
+              "description": "Fully qualified name or object type ID of your schema",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "payload",
+              "description": "Attributes that define the association ",
+              "type": {
+                "name": "AssociationDefinitionEgg",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "AssociationDefinitionEgg"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "AssociationDefinition|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "AssociationDefinition"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Remove an association\n",
+          "accessor": "delete",
+          "paths": [
+            {
+              "name": "objectType",
+              "type": "string"
+            },
+            "associations",
+            {
+              "name": "associationIdentifier",
+              "type": "string"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "objectType",
+              "description": "Fully qualified name or object type ID of your schema",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "associationIdentifier",
+              "description": "Unique ID of the association to remove",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "functions": [],
+  "services": [],
+  "annotations": []
+}

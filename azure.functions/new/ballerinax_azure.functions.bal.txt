@@ -1,0 +1,338 @@
+// ============================================================
+// Library: ballerinax/azure.functions
+// This module provides an annotation-based [Azure Functions](https://azure.microsoft.com/en-us/services/functions/) extension implementation for Ballerina. 
+// ============================================================
+import ballerinax/azure.functions;
+
+// --- README ---
+## Package Overview
+
+This module provides an annotation-based [Azure Functions](https://azure.microsoft.com/en-us/services/functions/) extension implementation for Ballerina. 
+
+- For information on the operations, which you can perform with this module, see [API Docs](https://docs.central.ballerina.io/ballerinax/azure-functions/). 
+- For more information on the deployment, see the [Azure Functions Deployment Guide](https://ballerina.io/swan-lake/learn/user-guide/deployment/azure-functions/).
+- For examples on the usage of the operations, see the [Azure Functions Deployment Example](https://ballerina.io/swan-lake/learn/by-example/azure-functions-deployment.html).
+
+### Azure Setup
+
+* An Azure "Function App" needs to be created in a given resource group with the following requirements
+   - Runtime stack - "Java 21"
+   - Hosting operating system - "Windows" (This is the default and Linux is not supported in Azure for custom handlers at the moment)
+
+## Supported Triggers and bindings:
+
+- Http - Trigger and Output Binding
+- Queue - Trigger and Output Binding
+- Blob - Trigger, Input and Output Binding
+- Twilio - Output Binding
+- CosmosDB - Trigger, Input and Output Binding
+- Timer - Trigger
+
+### Report Issues
+
+To report bugs, request new features, start new discussions, view project boards, etc., go to the [Ballerina Azure Functions repository](https://github.com/ballerina-platform/module-ballerinax-azure.functions).
+
+### Useful Links
+- Discuss code changes of the Ballerina project in [ballerina-dev@googlegroups.com](mailto:ballerina-dev@googlegroups.com).
+- Chat live with us via our [Discord server](https://discord.gg/ballerinalang).
+- Post all technical questions on Stack Overflow with the [#ballerina](https://stackoverflow.com/questions/tagged/ballerina) tag.
+
+// --- END README ---
+
+// --- Types ---
+
+
+type FunctionConfiguration record {
+    string name;
+};
+
+type AUTH_LEVEL "anonymous"|"function"|"admin";
+
+# HTTPTrigger annotation configuration.
+# 
+
+type HTTPTriggerConfiguration record {
+    # The authentication level of the function
+    AUTH_LEVEL authLevel?;
+};
+
+# Defines the Header resource signature parameter.
+# 
+
+type HttpHeader record {
+    # Specifies the name of the required header
+    string name?;
+};
+
+# Queue annotation configuration.
+# 
+
+type QueueConfiguration record {
+    # The queue name
+    string queueName;
+    # The name of the app setting which contains the Storage connection string
+    string connection?;
+};
+
+# TimerTrigger annotation configuration.
+# 
+
+type TimerTriggerConfiguration record {
+    # The CRON expression representing the timer schedule.
+    string schedule;
+    # The flag to state if the timer should be started on a runtime restart
+    boolean runOnStartup?;
+};
+
+# Blob annotation configuration.
+# 
+
+type BlobConfiguration record {
+    # The blob container path
+    string path;
+    # The name of the app setting which contains the Storage connection string
+    string connection?;
+};
+
+# CosmosDB trigger annotation configuration.
+# 
+
+type CosmosDBTriggerConfiguration record {
+    # The name of the app setting which contains the connection string for CosmosDB account
+    string connectionStringSetting;
+    # The database name
+    string databaseName;
+    # The collection name
+    string collectionName;
+    # The lease collection is automatically created when this is set to true
+    boolean createLeaseCollectionIfNotExists?;
+    # The request throughput of the lease collection
+    int leasesCollectionThroughput?;
+};
+
+# CosmosDB input annotation configuration.
+# 
+
+type CosmosDBInputConfiguration record {
+    # The name of the app setting which contains the connection string for CosmosDB account
+    string connectionStringSetting;
+    # The database name
+    string databaseName;
+    # The collection name
+    string collectionName;
+    # The id of the document to retrieve
+    string id?;
+    # An Azure Cosmos DB SQL query used to retrieve multiple documents
+    string sqlQuery?;
+    # The partition key value for lookups
+    string|int|float partitionKey?;
+};
+
+# CosmosDB output annotation configuration.
+# 
+
+type CosmosDBOutputConfiguration record {
+    # The name of the app setting which contains the connection string for CosmosDB account
+    string connectionStringSetting;
+    # The database name
+    string databaseName;
+    # The collection name
+    string collectionName;
+};
+
+# Twilio annotation configuration.
+# 
+
+type TwilioSmsConfiguration record {
+    # The app setting which holds the Twilio Account Sid
+    string accountSidSetting?;
+    # The app setting which holds the Twilio authentication token
+    string authTokenSetting?;
+    string 'from;
+    # The phone number the SMS is sent to
+    string to;
+};
+
+# BindingName annotation configuration.
+# 
+
+type BindingNameConfiguration record {
+    # The binding name
+    string name?;
+};
+
+type Error error;
+
+type FunctionNotFoundError error;
+
+type PayloadNotFoundError error;
+
+type InvalidPayloadError error;
+
+type HeaderNotFoundError error;
+
+type UnsupportedTypeError error;
+
+class HttpService {
+}
+
+# Represents details about the Timer trigger event
+# 
+
+type TimerMetadata record {
+    # Schedule the timer is being executed on  
+    TimerSchedule Schedule;
+    # Status of the Schedule
+    anydata ScheduleStatus?;
+    # Weather the timer is past its due time
+    boolean IsPastDue;
+};
+
+# Represents the details about timer schedule
+# 
+
+type TimerSchedule record {
+    # shows weather time is adjusted for DST
+    boolean AdjustForDST;
+};
+
+# Twilion SMS output binding data.
+# 
+
+type TwilioSmsOutputBinding record {
+    # The SMS recipient phone number
+    string to?;
+    # The message body
+    string body?;
+};
+
+class QueueService {
+}
+
+class CosmosService {
+}
+
+class TimerService {
+}
+
+class BlobService {
+}
+
+type RemoteService QueueService|CosmosService|TimerService|BlobService;
+
+class BlobListener {
+    function init() returns error?;
+
+    function attach(BlobService svc, string[]|string|() name = ()) returns error?;
+
+    function detach(BlobService svc) returns error?;
+
+    function 'start() returns error?;
+
+    function gracefulStop() returns error?;
+
+    function immediateStop() returns error?;
+}
+
+class CosmosDBListener {
+    function init() returns error?;
+
+    function attach(CosmosService svc, string[]|string|() name = ()) returns error?;
+
+    function detach(CosmosService svc) returns error?;
+
+    function 'start() returns error?;
+
+    function gracefulStop() returns error?;
+
+    function immediateStop() returns error?;
+}
+
+class HttpListener {
+    function init() returns error?;
+
+    function attach(HttpService svc, string[]|string|() name = ()) returns error?;
+
+    function detach(HttpService svc) returns error?;
+
+    function 'start() returns error?;
+
+    function gracefulStop() returns error?;
+
+    function immediateStop() returns error?;
+}
+
+class QueueListener {
+    function init() returns error?;
+
+    function attach(QueueService svc, string[]|string|() name = ()) returns error?;
+
+    function detach(QueueService svc) returns error?;
+
+    function 'start() returns error?;
+
+    function gracefulStop() returns error?;
+
+    function immediateStop() returns error?;
+}
+
+class TimerListener {
+    function init() returns error?;
+
+    function attach(TimerService svc, string[]|string|() name = ()) returns error?;
+
+    function detach(TimerService svc) returns error?;
+
+    function 'start() returns error?;
+
+    function gracefulStop() returns error?;
+
+    function immediateStop() returns error?;
+}
+
+// --- Annotations ---
+
+public annotation Payload on parameter, return;
+
+public annotation FunctionConfiguration Function on function, return;
+
+public const annotation HTTPTriggerConfiguration HttpTrigger on service, source listener;
+
+# The annotation which is used to define the Header resource signature parameter.
+public annotation HttpHeader Header on parameter;
+
+# @azurefunctions:HttpOutput annotation
+public annotation HttpOutput on return, field;
+
+# @azurefunctions:QueueOutput annotation.
+public annotation QueueConfiguration QueueOutput on return, field;
+
+# @azurefunctions:QueueOutput annotation.
+public const annotation QueueConfiguration QueueTrigger on service, source listener;
+
+# @azurefunctions:TimerTrigger annotation.
+public const annotation TimerTriggerConfiguration TimerTrigger on service, source listener;
+
+# @azurefunctions:BlobTrigger annotation.
+public const annotation BlobConfiguration BlobTrigger on service, source listener;
+
+# @azurefunctions:BlobInput annotation.
+public annotation BlobConfiguration BlobInput on parameter;
+
+# @azurefunctions:BlobOutput annotation.
+public annotation BlobConfiguration BlobOutput on return, field;
+
+# @azurefunctions:CosmosDBTrigger annotation.
+public const annotation CosmosDBTriggerConfiguration CosmosDBTrigger on service, source listener;
+
+# @azurefunctions:CosmosDBInput annotation.
+public annotation CosmosDBInputConfiguration CosmosDBInput on parameter;
+
+# @azurefunctions:CosmosDBOutput annotation.
+public annotation CosmosDBOutputConfiguration CosmosDBOutput on return, field;
+
+# @azurefunctions:TwilioSmsOutput annotation.
+public annotation TwilioSmsConfiguration TwilioSmsOutput on return, field;
+
+# @azurefunctions:BindingName annotation.
+public annotation BindingNameConfiguration BindingName on parameter;

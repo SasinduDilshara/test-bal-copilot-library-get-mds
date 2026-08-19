@@ -1,0 +1,1245 @@
+// ============================================================
+// Library: ballerinax/aws.sns
+// [Amazon SNS](https://aws.amazon.com/sns/) (Simple Notification Service) is a fully managed messaging service for both application-to-application (A2A) and application-to-person (A2P) communication. It enables developers to send notifications from their applications to various endpoints, including email, SMS, and mobile push, as well as to other AWS services like SQS, Lambda, and HTTP/S webhooks.
+// ============================================================
+import ballerinax/aws.sns;
+
+// --- README ---
+## Overview
+
+[Amazon SNS](https://aws.amazon.com/sns/) (Simple Notification Service) is a fully managed messaging service for both application-to-application (A2A) and application-to-person (A2P) communication. It enables developers to send notifications from their applications to various endpoints, including email, SMS, and mobile push, as well as to other AWS services like SQS, Lambda, and HTTP/S webhooks.
+
+The Amazon SNS connector offers APIs to connect and interact with [Amazon SNS REST API](https://docs.aws.amazon.com/sns/latest/api/welcome.html) endpoints.
+
+### Key Features
+
+- Create, list, and delete topics
+- Manage subscriptions and permissions
+- Publish messages to topics or directly to endpoints
+- Support for SMS and mobile push notifications
+- Flexible credential configuration: static keys, AWS credentials file profiles, or the default AWS credential provider chain (EKS Pod Identity, ECS task roles, EC2 instance profiles, environment variables)
+- GraalVM compatible for native image builds
+
+## Setup guide
+
+### Obtain IAM user credentials
+
+To create an IAM user and generate an access key, follow the [obtaining IAM user credentials](https://central.ballerina.io/ballerinax/aws/latest#obtaining-iam-user-credentials) guide.
+
+Attach the SNS permissions your application needs to the user — the AWS managed `AmazonSNSFullAccess` policy grants full access, or scope a custom policy to only the SNS actions you call (for example, `sns:CreateTopic`, `sns:Publish`, and `sns:Subscribe`).
+
+## Quickstart
+
+To use the `aws.sns` connector in your Ballerina project, modify the `.bal` file as follows:
+
+### Step 1: Import the connector
+
+Import the `ballerinax/aws.sns` package into your Ballerina project.
+```ballerina
+import ballerinax/aws;
+import ballerinax/aws.sns;
+```
+
+### Step 2: Instantiate a new connector
+
+The `sns:Client` accepts a `ConnectionConfig` with a `credentials` field that supports standard authentication modes.
+
+#### Option 1: Static credentials
+
+Use explicit AWS credentials. Suitable for local development and environments where credentials are managed directly.
+
+```ballerina
+sns:Client snsClient = check new ({
+   auth: {
+      accessKeyId: "<AWS_ACCESS_KEY_ID>",
+      secretAccessKey: "<AWS_SECRET_ACCESS_KEY>"
+   },
+   region: aws:US_EAST_1
+});
+```
+
+For temporary credentials (e.g., from `aws sts get-session-token`), include the session token:
+
+```ballerina
+sns:Client snsClient = check new ({
+   auth: {
+      accessKeyId: "<AWS_ACCESS_KEY_ID>",
+      secretAccessKey: "<AWS_SECRET_ACCESS_KEY>",
+      sessionToken: "<AWS_SESSION_TOKEN>"
+   },
+   region: aws:US_EAST_1
+});
+```
+
+#### Option 2: AWS credentials file profile
+
+Use a named profile from your `~/.aws/credentials` file. Suitable for developer workstations with multiple AWS accounts.
+
+```ballerina
+sns:Client snsClient = check new ({
+   auth: {
+      profileName: "<PROFILE_NAME>",
+      credentialsFilePath: "~/.aws/credentials"
+   },
+   region: aws:US_EAST_1
+});
+```
+
+#### Option 3: Default credential provider chain
+
+Use `auth:DEFAULT_CREDENTIALS` to let the connector automatically resolve credentials from the environment. This is the recommended approach for AWS-managed environments.
+
+```ballerina
+sns:Client snsClient = check new ({
+   auth: auth:DEFAULT_CREDENTIALS,
+   region: aws:US_EAST_1
+});
+```
+
+The standard default credential provider chain tries each of the following in order and takes the first source that yields credentials:
+
+1. Environment variables (`AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`, and `AWS_WEB_IDENTITY_TOKEN_FILE` if set)
+2. The shared config/credentials file's active profile (`AWS_PROFILE`, or `default` if unset) — which may itself resolve via SSO, an external process, or a chained `AssumeRole` call, depending on that profile's configuration
+3. Container credentials (ECS/EKS)
+4. EC2 instance profile (IMDS)
+
+> **Note:** Beyond the three options above, the `credentials` field also accepts `auth:AssumeRoleConfig` (STS assume-role), `auth:WebIdentityConfig` (web identity / OIDC), `auth:SsoAuthConfig` (IAM Identity Center), and `auth:ProcessAuthConfig` (external credential process). See the [`Ballerina AWS`](https://central.ballerina.io/ballerinax/aws/latest) documentation for details.
+
+### Step 3: Invoke the connector operation
+
+Now, utilize the available connector operations.
+```ballerina
+string topicArn = check snsClient->createTopic("FirstTopic");
+```
+
+### Step 4: Run the Ballerina application
+
+Use the following command to compile and run the Ballerina program.
+
+```bash
+bal run
+```
+
+## Examples
+
+The `sns` connector provides practical examples illustrating usage in various scenarios. Explore these [examples](https://github.com/ballerina-platform/module-ballerinax-aws.sns/tree/master/examples).
+
+1. [Football scores](https://github.com/ballerina-platform/module-ballerinax-aws.sns/tree/master/examples/football-scores)
+   This example shows how to use SNS to implement an application to subscribe to receive football game scores.
+
+2. [Weather alert service](https://github.com/ballerina-platform/module-ballerinax-aws.sns/tree/master/examples/weather-alert)
+   This example shows how to use SNS to send weather alerts for multiple cities. Users can subscribe to different cities to receive alerts for their city only.
+
+// --- END README ---
+
+// --- Types ---
+
+const string SignatureVersion1 = "1";
+
+const string SignatureVersion2 = "2";
+
+const string ARITHMETIC = "arithmetic";
+
+const string EXPONENTIAL = "exponential";
+
+const string GEOMETRIC = "geometric";
+
+const string LINEAR = "linear";
+
+const string TEXT_CSS = "text/css";
+
+const string TEXT_CSV = "text/csv";
+
+const string TEXT_HTML = "text/html";
+
+const string TEXT_PLAIN = "text/plain";
+
+const string TEXT_XML = "text/xml";
+
+const string APPLICATION_ATOM_XML = "application/atom+xml";
+
+const string APPLICATION_JSON = "application/json";
+
+const string APPLICATION_OCTET_STREAM = "application/octet-stream";
+
+const string APPLICATION_SOAP_XML = "application/soap+xml";
+
+const string APPLICATION_X_WWW_FORM_URLENCODED = "application/x-www-form-urlencoded";
+
+const string APPLICATION_XHTML_XML = "application/xhtml+xml";
+
+const string APPLICATION_XML = "application/xml";
+
+const string PASS_THROUGH = "PassThrough";
+
+const string ACTIVE = "Active";
+
+const string DELIVERY_POLICY = "DeliveryPolicy";
+
+const string DISPLAY_NAME = "DisplayName";
+
+const string POLICY = "Policy";
+
+const string SIGNATURE_VERSION = "SignatureVersion";
+
+const string TRACING_CONFIG = "TracingConfig";
+
+const string KMS_MASTER_KEY_ID = "KmsMasterKeyId";
+
+const string CONTENT_BASED_DEDUPLICATION = "ContentBasedDeduplication";
+
+const string HTTP_SUCCESS_FEEDBACK_ROLE_ARN = "HTTPSuccessFeedbackRoleArn";
+
+const string HTTP_SUCCESS_FEEDBACK_SAMPLE_RATE = "HTTPSuccessFeedbackSampleRate";
+
+const string HTTP_FAILURE_FEEDBACK_ROLE_ARN = "HTTPFailureFeedbackRoleArn";
+
+const string FIREHOSE_SUCCESS_FEEDBACK_ROLE_ARN = "FirehoseSuccessFeedbackRoleArn";
+
+const string FIREHOSE_SUCCESS_FEEDBACK_SAMPLE_RATE = "FirehoseSuccessFeedbackSampleRate";
+
+const string FIREHOSE_FAILURE_FEEDBACK_ROLE_ARN = "FirehoseFailureFeedbackRoleArn";
+
+const string LAMBDA_SUCCESS_FEEDBACK_ROLE_ARN = "LambdaSuccessFeedbackRoleArn";
+
+const string LAMBDA_SUCCESS_FEEDBACK_SAMPLE_RATE = "LambdaSuccessFeedbackSampleRate";
+
+const string LAMBDA_FAILURE_FEEDBACK_ROLE_ARN = "LambdaFailureFeedbackRoleArn";
+
+const string APPLICATION_SUCCESS_FEEDBACK_ROLE_ARN = "ApplicationSuccessFeedbackRoleArn";
+
+const string APPLICATION_SUCCESS_FEEDBACK_SAMPLE_RATE = "ApplicationSuccessFeedbackSampleRate";
+
+const string APPLICATION_FAILURE_FEEDBACK_ROLE_ARN = "ApplicationFailureFeedbackRoleArn";
+
+const string SQS_SUCCESS_FEEDBACK_ROLE_ARN = "SQSSuccessFeedbackRoleArn";
+
+const string SQS_SUCCESS_FEEDBACK_SAMPLE_RATE = "SQSSuccessFeedbackSampleRate";
+
+const string SQS_FAILURE_FEEDBACK_ROLE_ARN = "SQSFailureFeedbackRoleArn";
+
+const string TOPIC = "TOPIC";
+
+const string ARN = "ARN";
+
+const string PHONE_NUMBER = "PHONE_NUMBER";
+
+const string MESSAGE_ATTRIBUTES = "MessageAttributes";
+
+const string MESSAGE_BODY = "MessageBody";
+
+const string HTTP = "http";
+
+const string HTTPS = "https";
+
+const string EMAIL = "email";
+
+const string EMAIL_JSON = "email-json";
+
+const string SMS = "sms";
+
+const string SQS = "sqs";
+
+const string APPLICATION = "application";
+
+const string LAMBDA = "lambda";
+
+const string FIREHOSE = "firehose";
+
+const string FILTER_POLICY = "FilterPolicy";
+
+const string FILTER_POLICY_SCOPE = "FilterPolicyScope";
+
+const string RAW_MESSAGE_DELIVERY = "RawMessageDelivery";
+
+const string REDRIVE_POLICY = "RedrivePolicy";
+
+const string SUBSCRIPTION_ROLE_ARN = "SubscriptionRoleArn";
+
+const string AMAZON_DEVICE_MESSAGING = "ADM";
+
+const string APPLE_PUSH_NOTIFICATION_SERVICE = "APNS";
+
+const string APPLE_PUSH_NOTIFICATION_SERVICE_SANDBOX = "APNS_SANDBOX";
+
+const string FIREBASE_CLOUD_MESSAGING = "GCM";
+
+const string BAIDU_CLOUD_PUSH = "BAIDU";
+
+const string MICROSOFT_PUSH_NOTIFICATION_SERVICE = "MPNS";
+
+const string WINDOWS_NOTIFICATION_SERVICE = "WNS";
+
+const string ADD_PERMISSION = "AddPermission";
+
+const string DELETE_TOPIC = "DeleteTopic";
+
+const string GET_DATA_PROTECTION_POLICY = "GetDataProtectionPolicy";
+
+const string GET_TOPIC_ATTRIBUTES = "GetTopicAttributes";
+
+const string LIST_SUBSCRIPTIONS = "ListSubscriptionsByTopic";
+
+const string LIST_TAGS = "ListTagsForResource";
+
+const string PUBLISH = "Publish";
+
+const string PUT_DATA_PROTECTION_POLICY = "PutDataProtectionPolicy";
+
+const string REMOVE_PERMISSION = "RemovePermission";
+
+const string SET_TOPIC_ATTRIBUTES = "SetTopicAttributes";
+
+const string SUBSCRIBE = "Subscribe";
+
+const string EN_US = "en-US";
+
+const string EN_GB = "en-GB";
+
+const string ES_419 = "es-419";
+
+const string ES_ES = "es-ES";
+
+const string DE_DE = "de-DE";
+
+const string FR_CA = "fr-CA";
+
+const string FR_FR = "fr-FR";
+
+const string IT_IT = "it-IT";
+
+const string JA_JP = "ja-JP";
+
+const string PT_BR = "pt-BR";
+
+const string KR_KR = "kr-KR";
+
+const string ZH_CN = "zh-CN";
+
+const string ZH_TW = "zh-TW";
+
+const string PENDING = "Pending";
+
+const string VERIFIED = "Verified";
+
+const string _SMS = "SMS";
+
+const string MMS = "MMS";
+
+const string VOICE = "VOICE";
+
+const string TRANSACTIONAL = "Transactional";
+
+const string PROMOTIONAL = "Promotional";
+
+const string PREMIUM = "Premium";
+
+# Reperesents the generic error type for the `aws.sns` module.
+type Error error;
+
+# Represents an error that occurs when generating an API request.
+type GenerateRequestFailed error;
+
+# Represents an error that occurs when the API action cannot be completed due to user error.
+type OperationError error;
+
+# Represents an error that occurs when the API response is in an unexpected format.
+type ResponseHandleFailedError error;
+
+# Represents an error that occurs when calculating the signature.
+type CalculateSignatureFailedError error;
+
+# Represents an error that occurs when the API action cannot be completed due to an unknown server error.
+type InternalError error;
+
+
+type ListTopicsResponse record {
+    string[] topicArns;
+    string? nextToken;
+};
+
+
+type PublishMessageResponse record {
+    string messageId;
+    string sequenceNumber?;
+};
+
+
+type PublishBatchResponse record {
+    PublishBatchResultEntry[] successful;
+    BatchResultErrorEntry[] failed;
+};
+
+
+type PublishBatchResultEntry record {
+    string id;
+    string messageId;
+    string sequenceNumber?;
+};
+
+
+type BatchResultErrorEntry record {
+    string code;
+    string id;
+    boolean senderFault;
+    string message?;
+};
+
+# Represents an Amazon SNS subscription object returned when calling the `listSubscriptions` operation.
+# 
+
+type Subscription record {
+    # The subscription's ARN
+    string subscriptionArn;
+    # The subscription's owner
+    string owner;
+    # The subscription's protocol
+    SubscriptionProtocol protocol;
+    # The subscription's endpoint (format depends on the protocol)
+    string endpoint;
+    # The ARN of the subscription's topic
+    string topicArn;
+};
+
+# The possible subscription protocols.
+enum SubscriptionProtocol {
+    FIREHOSE,
+    LAMBDA,
+    APPLICATION,
+    SQS,
+    SMS,
+    EMAIL_JSON,
+    EMAIL,
+    HTTPS,
+    HTTP
+}
+
+# Represents the attributes of an Amazon SNS platform appication.
+# 
+
+type PlatformApplicationAttributes record {
+    # The topic ARN to which `EndpointCreated` event notifications should be sent
+    string eventEndpointCreated?;
+    # The topic ARN to which `EndpointDeleted` event notifications should be sent
+    string eventEndpointDeleted?;
+    # The topic ARN to which `EndpointUpdated` event notifications should be sent
+    string eventEndpointUpdated?;
+    # The topic ARN to which `DeliveryFailure` event notifications should be sent upon Direct
+Publish delivery failure (permanent) to one of the application's endpoints
+    string eventDeliveryFailure?;
+    # The IAM role ARN used to give Amazon SNS write access to use CloudWatch Logs on your behalf
+    string successFeedbackRoleArn?;
+    # The IAM role ARN used to give Amazon SNS write access to use CloudWatch Logs on your behalf
+    string failureFeedbackRoleArn?;
+    # The percentage of success to sample (0-100)
+    int successFeedbackSampleRate?;
+};
+
+# Represents the attributes of an Amazon SNS platform application that can be retrieved.
+# 
+
+type RetrievablePlatformApplicationAttributes record {
+    # Whether the platform application is enabled for direct publishing from Amazon SNS
+    boolean enabled;
+    # The expiry date of the SSL certificate used to configure certificate-based 
+authentication
+    string appleCertificateExpiryDate?;
+    # The Apple developer account ID used to configure token-based authentication
+    string applePlatformTeamId?;
+    # The bundle identifier used to configure token-based authentication
+    string applePlatformBundleId?;
+    string eventEndpointCreated?;
+    string eventEndpointDeleted?;
+    string eventEndpointUpdated?;
+    string eventDeliveryFailure?;
+    string successFeedbackRoleArn?;
+    string failureFeedbackRoleArn?;
+    int successFeedbackSampleRate?;
+};
+
+# Represents an Amazon SNS platform appication.
+# 
+
+type PlatformApplication record {
+    # The ARN of the platform application object
+Publish delivery failure (permanent) to one of the application's endpoints
+    string platformApplicationArn;
+    boolean enabled;
+    string appleCertificateExpiryDate?;
+    string applePlatformTeamId?;
+    string applePlatformBundleId?;
+    string eventEndpointCreated?;
+    string eventEndpointDeleted?;
+    string eventEndpointUpdated?;
+    string eventDeliveryFailure?;
+    string successFeedbackRoleArn?;
+    string failureFeedbackRoleArn?;
+    int successFeedbackSampleRate?;
+};
+
+# Represents the attributes of an Amazon SNS platform application endpoint.
+# 
+
+type EndpointAttributes record {
+    # Arbitrary user data to associate with the endpoint
+    string customUserData?;
+    # flag that enables/disables delivery to the endpoint
+    boolean enabled?;
+    # Unique identifier created by the notification service for an app on a device. The specific name for 
+the token will vary, depending on which notification service is being used
+    string token?;
+};
+
+# Represents an Amazon SNS platform appication endpoint.
+# 
+
+type Endpoint record {
+    # The endpoint's ARN
+    string endpointArn;
+    string customUserData?;
+    boolean enabled?;
+    string token?;
+};
+
+# Represent an SMS sandbox phone number.
+# 
+
+type SMSSandboxPhoneNumber record {
+    # The destination phone number
+    string phoneNumber;
+    # The destination phone number's verification status
+    Status status;
+};
+
+# The types of phone number verification status.
+enum Status {
+    VERIFIED,
+    PENDING
+}
+
+# Represents an origination phone number.
+# 
+
+type OriginationPhoneNumber record {
+    # The date and time when the origination phone number was created
+    time:Civil createdAt; // Special Agent Note: Civil FROM ballerina/time package
+    # The two-character code, in ISO 3166-1 alpha-2 format, for the country or region where the
+origination phone number was originally registered
+    string iso2CountryCode;
+    # The capabilities of the origination phone number
+    NumberCapabilities[] numberCapabilities;
+    # The phone number
+    string phoneNumber;
+    # The route type
+    RouteType routeType;
+    # The status of the origination phone number
+    string status;
+};
+
+# The types of capabilities supported by an origination phone number.
+enum NumberCapabilities {
+    VOICE,
+    MMS,
+    _SMS
+}
+
+# The types of routes supported by an origination phone number.
+enum RouteType {
+    PREMIUM,
+    PROMOTIONAL,
+    TRANSACTIONAL
+}
+
+# The hashing algorithm used while creating the signature of the notifications, subscription confirmations, or
+# unsubscribe confirmation messages sent by Amazon SNS.
+# 
+enum SignatureVersion {
+    SignatureVersion2,
+    SignatureVersion1
+}
+
+# The function that Amazon SNS uses to calculate the time to wait between retries.
+enum BackoffFunction {
+    LINEAR,
+    GEOMETRIC,
+    EXPONENTIAL,
+    ARITHMETIC
+}
+
+# The content type of the notification being sent to HTTP/HTTPS endpoints.
+enum HeaderContentType {
+    APPLICATION_XML,
+    APPLICATION_XHTML_XML,
+    APPLICATION_X_WWW_FORM_URLENCODED,
+    APPLICATION_SOAP_XML,
+    APPLICATION_OCTET_STREAM,
+    APPLICATION_JSON,
+    APPLICATION_ATOM_XML,
+    TEXT_XML,
+    TEXT_PLAIN,
+    TEXT_HTML,
+    TEXT_CSV,
+    TEXT_CSS
+}
+
+# The possible values for the TracingConfig attribute of a topic.
+enum TracingConfig {
+    ACTIVE,
+    PASS_THROUGH
+}
+
+# The possible values for topic attributes.
+enum TopicAttributeName {
+    SQS_FAILURE_FEEDBACK_ROLE_ARN,
+    SQS_SUCCESS_FEEDBACK_SAMPLE_RATE,
+    SQS_SUCCESS_FEEDBACK_ROLE_ARN,
+    APPLICATION_FAILURE_FEEDBACK_ROLE_ARN,
+    APPLICATION_SUCCESS_FEEDBACK_SAMPLE_RATE,
+    APPLICATION_SUCCESS_FEEDBACK_ROLE_ARN,
+    LAMBDA_FAILURE_FEEDBACK_ROLE_ARN,
+    LAMBDA_SUCCESS_FEEDBACK_SAMPLE_RATE,
+    LAMBDA_SUCCESS_FEEDBACK_ROLE_ARN,
+    FIREHOSE_FAILURE_FEEDBACK_ROLE_ARN,
+    FIREHOSE_SUCCESS_FEEDBACK_SAMPLE_RATE,
+    FIREHOSE_SUCCESS_FEEDBACK_ROLE_ARN,
+    HTTP_FAILURE_FEEDBACK_ROLE_ARN,
+    HTTP_SUCCESS_FEEDBACK_SAMPLE_RATE,
+    HTTP_SUCCESS_FEEDBACK_ROLE_ARN,
+    CONTENT_BASED_DEDUPLICATION,
+    KMS_MASTER_KEY_ID,
+    TRACING_CONFIG,
+    SIGNATURE_VERSION,
+    POLICY,
+    DISPLAY_NAME,
+    DELIVERY_POLICY
+}
+
+# The types of targets to which a message can be published.
+enum TargetType {
+    PHONE_NUMBER,
+    ARN,
+    TOPIC
+}
+
+# The scopes to which a subscription filter policy can be applied to.
+enum FilterPolicyScope {
+    MESSAGE_BODY,
+    MESSAGE_ATTRIBUTES
+}
+
+# The possible values for the `AttributeName` parameter of the `setSubscriptionAttributes` operation.
+enum SubscriptionAttributeName {
+    SUBSCRIPTION_ROLE_ARN,
+    REDRIVE_POLICY,
+    RAW_MESSAGE_DELIVERY,
+    FILTER_POLICY_SCOPE,
+    FILTER_POLICY,
+    DELIVERY_POLICY
+}
+
+# The types of application platforms supported.
+enum Platform {
+    WINDOWS_NOTIFICATION_SERVICE,
+    MICROSOFT_PUSH_NOTIFICATION_SERVICE,
+    BAIDU_CLOUD_PUSH,
+    FIREBASE_CLOUD_MESSAGING,
+    APPLE_PUSH_NOTIFICATION_SERVICE_SANDBOX,
+    APPLE_PUSH_NOTIFICATION_SERVICE,
+    AMAZON_DEVICE_MESSAGING
+}
+
+# The types of actions that can be performed on a topic.
+# https://docs.aws.amazon.com/sns/latest/dg/sns-access-policy-language-api-permissions-reference.html
+enum Action {
+    SUBSCRIBE,
+    SET_TOPIC_ATTRIBUTES,
+    REMOVE_PERMISSION,
+    PUT_DATA_PROTECTION_POLICY,
+    PUBLISH,
+    LIST_TAGS,
+    LIST_SUBSCRIPTIONS,
+    GET_TOPIC_ATTRIBUTES,
+    GET_DATA_PROTECTION_POLICY,
+    DELETE_TOPIC,
+    ADD_PERMISSION
+}
+
+# The languages supported by Amazon SNS for sending SMS OTP messages.
+enum LanguageCode {
+    ZH_TW,
+    ZH_CN,
+    KR_KR,
+    PT_BR,
+    JA_JP,
+    IT_IT,
+    FR_FR,
+    FR_CA,
+    DE_DE,
+    ES_ES,
+    ES_419,
+    EN_GB,
+    EN_US
+}
+
+# The types of SMS messages that may be sent.
+enum SMSMessageType {
+    TRANSACTIONAL,
+    PROMOTIONAL
+}
+
+# Represents the attributes of an Amazon SNS topic.
+# 
+
+type InitializableTopicAttributes record {
+    # The policy that defines how Amazon SNS retries failed deliveries to HTTP/S endpoints
+    json deliveryPolicy?;
+    # The display name to use for a topic with SMS subscriptions
+    string displayName?;
+    # Set to true to create a FIFO topic
+    boolean fifoTopic?;
+    # The policy that defines who can access your topic
+    json policy?;
+    # The signature version corresponds to the hashing algorithm used while creating the signature 
+of the notifications, subscription confirmations, or unsubscribe confirmation messages sent by
+Amazon SNS
+    SignatureVersion signatureVersion?;
+    # Tracing mode of an Amazon SNS topic
+    TracingConfig tracingConfig?;
+    # The ID of an AWS-managed customer master key (CMK) for Amazon SNS or a custom CMK
+    string kmsMasterKeyId?;
+    # Enables content-based deduplication for FIFO topics. Applies only to FIFO topics
+    boolean contentBasedDeduplication?;
+    # The configurations for message delivery logging for the HTTP delivery protocol
+    MessageDeliveryLoggingConfig httpMessageDeliveryLogging?;
+    # The configurations for message delivery logging for the Amazon Kinesis Data
+Firehose delivery stream delivery protocol
+    MessageDeliveryLoggingConfig firehoseMessageDeliveryLogging?;
+    # The configurations for message delivery logging for the Lambda delivery protocol
+    MessageDeliveryLoggingConfig lambdaMessageDeliveryLogging?;
+    # The configurations for message delivery logging for the application delivery
+    MessageDeliveryLoggingConfig applicationMessageDeliveryLogging?;
+    # The configurations for message delivery logging for the Amazon SQS delivery protocol
+    MessageDeliveryLoggingConfig sqsMessageDeliveryLogging?;
+};
+
+# Represents the configurations to be used for message delivery logging for a particular protocol.
+# 
+
+type MessageDeliveryLoggingConfig record {
+    # Indicates successful message delivery status for an Amazon SNS topic that is subscribed to 
+an endpoint
+    string successFeedbackRoleArn?;
+    # Indicates failed message delivery status for an Amazon SNS topic that is subscribed to an
+endpoint
+    string failureFeedbackRoleArn?;
+    # Indicates percentage of successful messages to sample for an Amazon SNS topic that is 
+subscribed to an endpoint
+
+    int successFeedbackSampleRate?;
+};
+
+# Represents an Amazon SNS topic.
+# 
+
+type GettableTopicAttributes record {
+    # The topic's ARN
+    string topicArn;
+    # The policy that defines how Amazon SNS retries failed deliveries to HTTP/S endpoints,
+taking system defaults into account.
+    json effectiveDeliveryPolicy;
+    # The AWS account ID of the topic's owner
+    string owner;
+    # The policy that defines who can access your topic
+    json policy;
+    # The number of confirmed subscriptions for the topic
+    int subscriptionsConfirmed;
+    # The number of deleted subscriptions for the topic
+    int subscriptionsDeleted;
+    # The number of subscriptions pending confirmation for the topic
+    int subscriptionsPending;
+    json deliveryPolicy?;
+    string displayName?;
+    boolean fifoTopic?;
+    SignatureVersion signatureVersion?;
+    TracingConfig tracingConfig?;
+    string kmsMasterKeyId?;
+    boolean contentBasedDeduplication?;
+    MessageDeliveryLoggingConfig httpMessageDeliveryLogging?;
+    MessageDeliveryLoggingConfig firehoseMessageDeliveryLogging?;
+    MessageDeliveryLoggingConfig lambdaMessageDeliveryLogging?;
+    MessageDeliveryLoggingConfig applicationMessageDeliveryLogging?;
+    MessageDeliveryLoggingConfig sqsMessageDeliveryLogging?;
+};
+
+# Contains the messages to be published for each transport protocol.
+# 
+
+type MessageRecord record {
+    # The default message that's used for all transport protocols if no individual message is specified
+    string default;
+    # Optional parameter to be used as the "Subject" line when the message is delivered to email endpoints
+    string subject?;
+    # The message to be sent to email endpoints
+    string email?;
+    # The message to be sent to email endpoints formatted as a JSON object
+    string emailJson?;
+    # The message to be sent to Amazon SQS endpoints
+    string sqs?;
+    # The message to be sent to AWS Lambda (Lambda) endpoints
+    string lambda?;
+    # The message to be sent to HTTP endpoints
+    string http?;
+    # The message to be sent to HTTPS endpoints
+    string https?;
+    # The message to be sent to SMS endpoints
+    string sms?;
+    # The message to be sent to Amazon Kinesis Data Firehose endpoints
+    string firehose?;
+    # The payload to be sent to APNS endpoints
+    string apns?;
+    # The payload to be sent to APNS sandbox endpoints
+    string apnsSandbox?;
+    # The payload to be sent to APNS VoIP endpoints
+    string apnsVoip?;
+    # The payload to be sent to APNS VoIP sandbox endpoints
+    string apnsVoipSandbox?;
+    # The payload to be sent to MacOS endpoints
+    string macos?;
+    # The payload to be sent to MacOS sandbox endpoints
+    string macosSandbox?;
+    # The payload to be sent to GCM endpoints
+    string gcm?;
+    # The payload to be sent to ADM endpoints
+    string adm?;
+    # The payload to be sent to Baidu endpoints
+    string baidu?;
+    # The payload to be sent to MPNS endpoints
+    string mpns?;
+    # The payload to be sent to WNS endpoints
+    string wns?;
+    # Rest field
+    string ;
+};
+
+# Represents a message that is published to an Amazon SNS topic. If you are publishing to a topic and you want to send
+# the same message to all transport protocols, include the text of the message as a `string` value. If you want to send
+# different messages for each transport protocol use a `MessageRecord` value. 
+type Message string|MessageRecord;
+
+# Represents an element of the String.Array type of a message attribute value.
+type StringArrayElement string|int|float|decimal|boolean|();
+
+# Represents an attribute value of a message.
+type MessageAttributeValue string|StringArrayElement[]|int|float|decimal|byte[];
+
+# Represents the details of a single message in a publish batch request.
+# 
+
+type PublishBatchRequestEntry record {
+    # A unique identifier for the message in the batch
+    string id?;
+    # The message to send
+    Message message;
+    # The attributes of the message
+    map<MessageAttributeValue> attributes?;
+    # Every message must have a unique `deduplicationId`, which is a token used for deduplication 
+of sent messages. If a message with a particular `deduplicationId` is sent successfully, any 
+message sent with the same `deduplicationId` during the 5-minute deduplication interval is 
+treated as a duplicate. If the topic has `contentBasedDeduplication` set, the system 
+generates a `deduplicationId` based on the contents of the message. Your `deduplicationId`
+overrides the generated one. Applies to FIFO topics only
+    string deduplicationId?;
+    # Specifies the message group to which a message belongs to. Messages that belong to the same message 
+group are processed in a FIFO manner (however, messages in different message groups might be processed
+out of order). Every message must include a `groupId`. Applies to FIFO topics only
+    string groupId?;
+};
+
+# Represents the attributes that can be set when creating a subscription.
+# 
+
+type SubscriptionAttributes record {
+    # The policy that defines how Amazon SNS retries failed deliveries to HTTP/S endpoints
+    json deliveryPolicy?;
+    # The filter policy that is assigned to the subscription which lets the subscriber receive only a 
+subset of the messages published to the topic
+    json filterPolicy?;
+    # Defines whether the filter policy is applied to the message attributes or the message body
+    FilterPolicyScope filterPolicyScope?;
+    # When set to true, enables raw message delivery to Amazon SQS or HTTP/S endpoints
+    boolean rawMessageDelivery?;
+    # When specified, sends undeliverable messages to the specified Amazon SQS dead-letter queue
+    json redrivePolicy?;
+    # The ARN of the IAM role that has permission to write to the Kinesis Data Firehose delivery 
+stream and has Amazon SNS listed as a trusted entity. Applies only to Amazon Kinesis Data 
+Firehose delivery stream subscriptions.
+    string subscriptionRoleArn?;
+};
+
+# Represents an Amazon SNS subscription object returned when calling the `getSubscription` operation.
+# 
+
+type GettableSubscriptionAttributes record {
+    # The subscription's ARN
+    string subscriptionArn;
+    # The subscription's endpoint (format depends on the protocol)
+    string endpoint;
+    # The subscription's protocol
+    SubscriptionProtocol protocol;
+    # The ARN of the subscription's topic
+    string topicArn;
+    # The subscription's principal
+    string subscriptionPrincipal;
+    # Whether the subscription confirmation request was authenticated
+    boolean confirmationWasAuthenticated;
+    # The policy that defines how Amazon SNS retries failed deliveries to HTTP/S endpoints
+    json deliveryPolicy?;
+    # The policy that defines how Amazon SNS retries failed deliveries to HTTP/S endpoints, 
+taking system defaults into account
+    json effectiveDeliveryPolicy?;
+    # The filter policy that is assigned to the subscription which lets the subscriber receive only a
+subset of the messages published to the topic
+    json filterPolicy?;
+    # Defines whether the filter policy is applied to the message attributes or the message body
+    FilterPolicyScope filterPolicyScope?;
+    # The AWS account ID of the owner of the subscription
+    string owner;
+    # Whether the subscription has been confirmed
+    boolean pendingConfirmation;
+    # Whether raw message delivery is enabled for the subscription
+    boolean rawMessageDelivery;
+    # The redrive policy attached to the subscription
+    json redrivePolicy?;
+    # The ARN of the IAM role that has permission to write to the Kinesis Data Firehose delivery and
+has Amazon SNS listed as a trusted entity. Applies only to Amazon Kinesis Data Firehose
+delivery stream subscriptions.
+    string subscriptionRoleArn?;
+};
+
+# Represents the authentication attributes of an Amazon SNS platform appication that can be set.
+# 
+
+type PlatformApplicationAuthentication record {
+    # The credential received from the notification service
+    string platformCredential;
+    # The principal received from the notification service
+    string platformPrincipal?;
+    # The identifier that's assigned to your Apple developer account team
+    string applePlatformTeamId?;
+    # The bundle identifier that's used for APNs tokens
+    string applePlatformBundleId?;
+};
+
+# Represents the attributes of an Amazon SNS platform appication that can be set using the 
+# `setPlatformApplicationAttributes` action.
+# 
+
+type SettablePlatformApplicationAttributes record {
+    # The credential received from the notification service
+    string platformCredential?;
+    # The principal received from the notification service
+    string platformPrincipal?;
+    # The identifier that's assigned to your Apple developer account team
+    string applePlatformTeamId?;
+    # The bundle identifier that's used for APNs tokens
+    string applePlatformBundleId?;
+    string eventEndpointCreated?;
+    string eventEndpointDeleted?;
+    string eventEndpointUpdated?;
+    string eventDeliveryFailure?;
+    string successFeedbackRoleArn?;
+    string failureFeedbackRoleArn?;
+    int successFeedbackSampleRate?;
+};
+
+# Represents the attributes for sending SMS messages with Amazon SNS.
+# 
+
+type SMSAttributes record {
+    # The maximum amount in USD that you are willing to spend each month to send SMS messages. When
+Amazon SNS determines that sending an SMS message would incur a cost that exceeds this limit,
+it stops sending SMS messages within minutes
+    int monthlySpendLimit?;
+    # The ARN of the IAM role that allows Amazon SNS to write logs about SMS deliveries in
+CloudWatch logs
+    string deliveryStatusIAMRole?;
+    # The percentage of successful SMS deliveries for which Amazon SNS will write
+logs in CloudWatch Logs
+    int deliveryStatusSuccessSamplingRate?;
+    # A string that is displayed as the sender on the receiving device
+    string defaultSenderID?;
+    # The type of SMS message that you will send by default
+    SMSMessageType defaultSMSType?;
+    # The name of the Amazon S3 bucket to receive daily SMS usage reports from Amazon SNS
+    string usageReportS3Bucket?;
+};
+
+# Represents the tags associated with an Amazon SNS topic.
+# 
+
+type Tags record {
+    # The ARN of the topic to which the tags are added
+    never topicArn?;
+    # Rest field
+    string ;
+};
+
+# Provides a set of configurations for controlling the behaviours when communicating with a remote HTTP endpoint
+
+@display {label: "Connection Config"}
+type ConnectionConfig record {
+    # Authentication configuration: any standard credential source supported by
+AWS — static credentials, an AWS profile, STS assume-role,
+web identity (OIDC), IAM Identity Center (SSO), an external credential
+process, or the default credential provider chain
+    auth:AuthConfig auth; // Special Agent Note: AuthConfig FROM ballerinax/aws.auth package
+    # AWS region: an `aws:Region` enum member or a plain region
+string (e.g., `"us-east-1"`) for regions not yet in the enum
+    aws:Region|string region?;
+    # Optional endpoint options: FIPS/dualstack variants, or a custom
+endpoint override (e.g. LocalStack, VPC interface endpoints)
+    aws:EndpointConfig endpoint?; // Special Agent Note: EndpointConfig FROM ballerinax/aws package
+    # The HTTP version understood by the client
+    http:HttpVersion httpVersion?; // Special Agent Note: HttpVersion FROM ballerina/http package
+    # Configurations related to HTTP/1.x protocol
+    http:ClientHttp1Settings http1Settings?; // Special Agent Note: ClientHttp1Settings FROM ballerina/http package
+    # Configurations related to HTTP/2 protocol
+    http:ClientHttp2Settings http2Settings?; // Special Agent Note: ClientHttp2Settings FROM ballerina/http package
+    # The maximum time to wait (in seconds) for a response before closing the connection
+    decimal timeout?;
+    # The choice of setting `forwarded`/`x-forwarded` header
+    string forwarded?;
+    # Configurations associated with Redirection
+    http:FollowRedirects followRedirects?; // Special Agent Note: FollowRedirects FROM ballerina/http package
+    # Configurations associated with request pooling
+    http:PoolConfiguration poolConfig?; // Special Agent Note: PoolConfiguration FROM ballerina/http package
+    # HTTP caching related configurations
+    http:CacheConfig cache?; // Special Agent Note: CacheConfig FROM ballerina/http package
+    # Specifies the way of handling compression (`accept-encoding`) header
+    http:Compression compression?; // Special Agent Note: Compression FROM ballerina/http package
+    # Configurations associated with the behaviour of the Circuit Breaker
+    http:CircuitBreakerConfig circuitBreaker?; // Special Agent Note: CircuitBreakerConfig FROM ballerina/http package
+    # Configurations associated with retrying
+    http:RetryConfig retryConfig?; // Special Agent Note: RetryConfig FROM ballerina/http package
+    # Configurations associated with cookies
+    http:CookieConfig cookieConfig?; // Special Agent Note: CookieConfig FROM ballerina/http package
+    # Configurations associated with inbound response size limits
+    http:ResponseLimitConfigs responseLimits?; // Special Agent Note: ResponseLimitConfigs FROM ballerina/http package
+    # SSL/TLS-related options
+    http:ClientSecureSocket secureSocket?; // Special Agent Note: ClientSecureSocket FROM ballerina/http package
+    # Proxy server related options
+    http:ProxyConfig proxy?; // Special Agent Note: ProxyConfig FROM ballerina/http package
+    # Provides settings related to client socket configuration
+    http:ClientSocketConfig socketConfig?; // Special Agent Note: ClientSocketConfig FROM ballerina/http package
+    # Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default
+    boolean validation?;
+    # Enables relaxed data binding on the client side. When enabled, `nil` values are treated as optional, 
+and absent fields are handled as `nilable` types. Enabled by default
+    boolean laxDataBinding?;
+};
+
+// --- Client ---
+
+# Ballerina Amazon SNS API connector provides the capability to access Amazon's Simple Notification Service.
+# This connector allows you to create and manage SNS topics and subscriptions.
+# 
+@display {label: "Amazon SNS Client", iconPath: "icon.png"}
+client class Client {
+    function init(ConnectionConfig config) returns error?;
+
+    # Creates a topic to which notifications can be published. This action is idempotent, so if the requester already 
+    # owns a topic with the specified name, that topic's ARN is returned without creating a new topic.
+    # 
+    remote function createTopic(string name, InitializableTopicAttributes|() attributes = (), json|() dataProtectionPolicy = (), map<string>|() tags = ()) returns string|Error;
+
+    # Deletes a topic and all its subscriptions. Deleting a topic might prevent some messages previously sent to the
+    # topic from being delivered to subscribers. This action is idempotent, so deleting a topic that does not exist
+    # does not result in an error.
+    # 
+    remote function deleteTopic(string topicArn) returns Error|();
+
+    # Returns the topics ARNs that are owned by the AWS account.
+    # 
+    remote function listTopics() returns stream<string, Error?>;
+
+    # Retrieves an existing topic along with its attributes.
+    # 
+    remote function getTopicAttributes(string topicArn) returns GettableTopicAttributes|Error;
+
+    # Modifies the a single attribute of an Amazon SNS topic.
+    # 
+    remote function setTopicAttributes(string topicArn, TopicAttributeName attributeName, json|string|int|boolean value) returns Error|();
+
+    # Publishes a message to an SNS topic, a phone number, or a mobile platform endpoint.
+    # 
+    remote function publish(string target, Message message, TargetType targetType = "PHONE_NUMBER", map<sns:MessageAttributeValue>|() attributes = (), string|() deduplicationId = (), string|() groupId = ()) returns PublishMessageResponse|Error;
+
+    # Publishes up to ten messages to the specified topic.
+    # 
+    remote function publishBatch(string topicArn, PublishBatchRequestEntry[] entries) returns PublishBatchResponse|Error;
+
+    # Creates a subscription to a topic. If the endpoint type is HTTP/S or email, or if the endpoint and the topic are
+    # not in the same AWS account, the endpoint owner must confirm the subscription.
+    # 
+    remote function subscribe(string topicArn, string endpoint, SubscriptionProtocol protocol, SubscriptionAttributes|() attributes = (), boolean returnSubscriptionArn = false) returns string|Error;
+
+    # Verifies an endpoint owner's intent to receive messages by validating the token sent to the endpoint by an 
+    # earlier subscribe action.
+    # 
+    remote function confirmSubscription(string topicArn, string token, boolean|() authenticateOnUnsubscribe = ()) returns string|Error;
+
+    # Retrieves the requester's subscriptions.
+    # 
+    remote function listSubscriptions(string|() topicArn = ()) returns stream<Subscription, Error?>;
+
+    # Retrieves the attributes of the requested subscription.
+    # 
+    remote function getSubscriptionAttributes(string subscriptionArn) returns GettableSubscriptionAttributes|Error;
+
+    # Modifies a single of a subscription.
+    # 
+    remote function setSubscriptionAttributes(string subscriptionArn, SubscriptionAttributeName attributeName, json|"MessageBody"|"MessageAttributes"|boolean|string value) returns Error|();
+
+    # Deletes a subscription. If the subscription requires authentication for deletion, only the owner of the 
+    # subscription or the owner of the topic may unsubscribe. If the unsubscribe call does not require authentication 
+    # and the requester is not the subscription owner, a final cancellation message is delivered to the endpoint, so 
+    # that the endpoint owner can easily resubscribe to the topic if the unsubscribe request was unintended.
+    # 
+    remote function unsubscribe(string subscriptionArn) returns Error|();
+
+    # Creates a platform application object for one of the supported push notification services. You must specify 
+    # `auth.platformPrincipal` and `auth.platformCredential` parameters.
+    # - for `ADM` the `platformPrincipal` is the `client id` and `platformCredential` is the `client secret`
+    # - for `APNS` and `APNS_SANDBOX` using certificate credentials, the `platformPrincipal` is the `SSL certificate` 
+    # and `platformCredential` is the `private key`
+    # - for `APNS` and `APNS_SANDBOX` using token credentials, the `platformPrincipal` is the `signing key ID` and the 
+    # `platformCredential` is the `signing key` 
+    # - for `FCM` there is no `platformPrincipal` and `platformCredential` is the `API key`
+    # - for `BAIDU` the `platformPrincipal` is the `API key` and `platformCredential` is the `secret key`
+    # - for `MPNS` the `platformPrincipal` is the `TLS certificate` and `platformCredential` is the `private key`
+    # - for `WNS` the `platformPrincipal` is the `Package Security Identifier` and `platformCredential` is the 
+    # `secret key`
+    # 
+    remote function createPlatformApplication(string name, Platform platform, PlatformApplicationAuthentication auth, PlatformApplicationAttributes|() attributes = ()) returns string|Error;
+
+    # Retrives the platform application objects for the supported push notification services.
+    # 
+    remote function listPlatformApplications() returns stream<PlatformApplication, Error?>;
+
+    # Retrieves a platform application object for one of the supported push notification services.
+    # 
+    remote function getPlatformApplicationAttributes(string platformApplicationArn) returns RetrievablePlatformApplicationAttributes|Error;
+
+    # Modifies the attributes of a platform application object for one of the supported push notification services.
+    # 
+    remote function setPlatformApplicationAttributes(string platformApplicationArn, SettablePlatformApplicationAttributes attributes) returns Error|();
+
+    # Deletes a platform application object for one of the supported push notification services.
+    # 
+    remote function deletePlatformApplication(string platformApplicationArn) returns Error|();
+
+    # Creates an endpoint for a device and mobile app on one of the supported push notification services. This action is
+    # idempotent, so  if the requester already owns an endpoint with the same device token and attributes, that 
+    # endpoint's ARN is returned without creating a new endpoint.
+    # 
+    remote function createEndpoint(string platformApplicationArn, string token, EndpointAttributes|() attributes = (), string|() customUserData = ()) returns string|Error;
+
+    # Retrieves the endpoints associated with a specific platform application.
+    # 
+    remote function listEndpoints(string platformApplicationArn) returns stream<Endpoint, Error?>;
+
+    # Retrieves a platform application endpoint.
+    # 
+    remote function getEndpointAttributes(string endpointArn) returns EndpointAttributes|Error;
+
+    # Modifies the attributes of a platform application endpoint.
+    # 
+    remote function setEndpointAttributes(string endpointArn, EndpointAttributes attributes) returns Error|();
+
+    # Deletes a platform application endpoint. This action is idempotent. When you delete an endpoint that is also 
+    # subscribed to a topic, then you must also unsubscribe the endpoint from the topic.
+    # 
+    remote function deleteEndpoint(string endpointArn) returns Error|();
+
+    # Adds a destination phone number to an AWS account in the SMS sandbox and sends a one-time password (OTP) to that 
+    # phone number.
+    # 
+    remote function createSMSSandboxPhoneNumber(string phoneNumber, "zh-TW"|"zh-CN"|"kr-KR"|"pt-BR"|"ja-JP"|"it-IT"|"fr-FR"|"fr-CA"|"de-DE"|"es-ES"|"es-419"|"en-GB"|"en-US"|() languageCode = ()) returns Error|();
+
+    # Verifies a destination phone number with a one-time password (OTP) for the calling AWS account.
+    # 
+    remote function verifySMSSandboxPhoneNumber(string phoneNumber, string otp) returns Error|();
+
+    # Retrieves the current verified and pending destination phone numbers in the SMS sandbox.
+    # 
+    remote function listSMSSandboxPhoneNumbers() returns stream<SMSSandboxPhoneNumber, Error?>;
+
+    # Deletes a verified or pending phone number from the SMS sandbox.
+    # 
+    remote function deleteSMSSandboxPhoneNumber(string phoneNumber) returns Error|();
+
+    # Retrieves the SMS sandbox status for the calling AWS account in the target AWS Region.
+    # 
+    remote function getSMSSandboxAccountStatus() returns boolean|Error;
+
+    # Retrieves the calling AWS account's dedicated origination numbers and their metadata. 
+    # 
+    remote function listOriginationNumbers() returns stream<OriginationPhoneNumber, Error?>;
+
+    # Retrieves a list of phone numbers that are opted out, meaning you cannot send SMS messages to them.
+    # 
+    remote function listPhoneNumbersOptedOut() returns stream<string, Error?>;
+
+    # Checks whether a phone number is opted out, meaning you cannot send SMS messages to it.
+    # 
+    remote function checkIfPhoneNumberIsOptedOut(string phoneNumber) returns boolean|Error;
+
+    # Requests to opt in a phone number that is opted out, which enables you to resume sending SMS messages to the 
+    # number. You can opt in a phone number only once every 30 days.
+    # 
+    remote function optInPhoneNumber(string phoneNumber) returns Error|();
+
+    # Adds tags to the specified Amazon SNS topic. A new tag with a key identical to that of an existing tag overwrites 
+    # the existing tag.
+    # 
+    remote function tagResource(string topicArn, Tags tags) returns Error|();
+
+    # Lists the tags for the specified Amazon SNS topic.
+    # 
+    remote function listTags(string topicArn) returns Tags|Error;
+
+    # Removes tags from the specified Amazon SNS topic.
+    # 
+    remote function untagResource(string topicArn, string[] tagKeys) returns Error|();
+
+    # Adds a statement to a topic's access control policy, granting access for the specified AWS accounts to the \
+    # specified actions.
+    # 
+    remote function addPermission(string topicArn, Action[] actions, string[] awsAccountIds, string label) returns Error|();
+
+    # Removes a statement from a topic's access control policy.
+    # 
+    remote function removePermission(string topicArn, string label) returns Error|();
+
+    # Adds or updates the data protection policy of the specified Amazon SNS topic.
+    # 
+    remote function putDataProtectionPolicy(string topicArn, json dataProtectionPolicy) returns Error|();
+
+    # Retrieves the data protection policy for the specified Amazon SNS topic.
+    # 
+    remote function getDataProtectionPolicy(string topicArn) returns json|Error;
+
+    # Sets the default settings for sending SMS messages and receiving daily SMS usage reports.
+    # 
+    remote function setSMSAttributes(SMSAttributes attributes) returns Error|();
+
+    # Retrieves the default settings for sending SMS messages and receiving daily SMS usage reports.
+    # 
+    remote function getSMSAttributes() returns SMSAttributes|Error;
+
+    # Releases the resources held by the underlying credential provider (background
+    # refresh threads and any HTTP connections opened for STS/SSO). Call when the
+    # client is no longer needed.
+    # 
+    function close() returns Error|();
+}

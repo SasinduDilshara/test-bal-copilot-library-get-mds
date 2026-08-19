@@ -1,0 +1,604 @@
+// ============================================================
+// Library: ballerina/edi
+// ============================================================
+import ballerina/edi;
+
+// --- README ---
+## Overview
+
+Electronic Data Interchange (EDI) is a standard for exchanging business documents — purchase orders, invoices, shipping notices — between trading partners in a structured, machine-readable format. The two most widely used standards are **X12** (North America) and **EDIFACT** (international).
+
+The Ballerina `edi` module provides schema-driven, envelope-aware conversion between EDI text and JSON or typed Ballerina records, in both directions. The companion [`edi-tools` CLI](https://github.com/ballerina-platform/edi-tools) generates Ballerina records and ready-to-use parser code from a schema, so most users never have to call the low-level functions in this module directly.
+
+### Key features
+
+- **Schema-free envelope header inspection** — the fastest path for routing and partner identification (X12 ISA/GS, EDIFACT UNB/UNH), with no schema required.
+- **Full envelope hierarchy parsing** into typed `EdiInterchange` / `EdiFunctionalGroup` / `EdiTransaction` records, with a fail-safe per-transaction body — process what you can and quarantine what you can't.
+- **Transaction body parsing** into JSON or typed Ballerina records (X12, EDIFACT, or any custom format).
+- **Serialization** of JSON / records back to EDI text for outbound flows.
+- **Schema-driven** parsing from a JSON schema — either [generated from an X12 / EDIFACT spec](https://github.com/ballerina-platform/edi-tools) or [defined manually](https://github.com/ballerina-platform/module-ballerina-edi/blob/main/docs/specs/SchemaSpecification.md) for partner-specific formats.
+
+## Setup
+
+The `edi` module is pulled in automatically when you import it. To generate typed parsers from EDI schemas, install the companion CLI tool:
+
+```bash
+bal tool pull edi
+```
+
+## Quickstart
+
+The fastest path is to generate a typed parser from an EDIFACT or X12 spec using `edi-tools` and call the generated functions from your code.
+
+### Step 1: Generate a parser from a spec
+
+Run the following from your Ballerina package to generate the records and parser functions into its default module:
+
+```bash
+# 1. Convert the EDIFACT D03A ORDERS spec into a Ballerina EDI schema.
+#    -o is a directory; the schema is written to resources/ORDERS.json (named after the message type).
+bal edi convertEdifactSchema -v d03a -t ORDERS -o resources
+
+# 2. Generate Ballerina records and parser functions into the default module
+bal edi codegen -i resources/ORDERS.json -o orders.bal
+```
+
+For X12 use `bal edi convertX12Schema` — see the [edi-tools documentation](https://github.com/ballerina-platform/edi-tools). For larger projects, the generated EDI code can live in its own package within a Ballerina workspace alongside your integration.
+
+### Step 2: Use the generated code
+
+The generated code defines typed records and parser functions in the same default module, named after the schema (an `ORDERS` schema produces `ORDERSInterchange`):
+
+```ballerina
+import ballerina/io;
+
+public function main() returns error? {
+    string ediText = check io:fileReadString("resources/order.edi");
+    ORDERSInterchange interchange = check interchangeFromEdiString(ediText);
+    foreach var txn in interchange.transactions {
+        if txn.body is error {
+            io:println("Quarantined: ", txn.body.message());
+            continue;
+        }
+        io:println(txn.body);
+    }
+}
+```
+
+## Working with standard EDI formats
+
+### EDIFACT — prebuilt packages
+
+For common UN/EDIFACT D03A message types you do not need to generate anything: import a ready-made
+package from the `ballerinax` organization and call its `fromEdiString` / `toEdiString` functions
+directly. Each package groups related message types by business domain.
+
+| Package | Domain |
+|---------|--------|
+| [`ballerinax/edifact.d03a.finance`](https://central.ballerina.io/ballerinax/edifact.d03a.finance) | Credit/debit advices, payment orders, invoices, ledger and tax messages. |
+| [`ballerinax/edifact.d03a.logistics`](https://central.ballerina.io/ballerinax/edifact.d03a.logistics) | Cargo summaries, transport instructions, booking confirmations, dangerous goods. |
+| [`ballerinax/edifact.d03a.manufacturing`](https://central.ballerina.io/ballerinax/edifact.d03a.manufacturing) | Metered consumption, quality data, safety hazards, waste disposal. |
+| [`ballerinax/edifact.d03a.retail`](https://central.ballerina.io/ballerinax/edifact.d03a.retail) | Product and price data, rebate orders, retail settlements, product inquiries. |
+| [`ballerinax/edifact.d03a.services`](https://central.ballerina.io/ballerinax/edifact.d03a.services) | Insurance, healthcare, job applications, berth management, claims. |
+| [`ballerinax/edifact.d03a.shipping`](https://central.ballerina.io/ballerinax/edifact.d03a.shipping) | Container operations, customs declarations, vessel departures, cargo reports. |
+| [`ballerinax/edifact.d03a.supplychain`](https://central.ballerina.io/ballerinax/edifact.d03a.supplychain) | Purchase orders, order responses, delivery forecasts, inventory, despatch advices. |
+
+Each message type is available as a submodule (e.g. `finance.mINVOIC`, `supplychain.mORDERS`)
+exposing `fromEdiString` / `toEdiString`; each package's default module also provides
+`getEDINames()` to list its supported message types:
+
+```ballerina
+import ballerina/io;
+import ballerinax/edifact.d03a.finance.mINVOIC;
+
+public function main() returns error? {
+    string ediText = check io:fileReadString("resources/invoice.edi");
+    mINVOIC:EDI_INVOIC_Invoice_message invoice = check mINVOIC:fromEdiString(ediText);
+    io:println(invoice);
+}
+```
+
+### X12 — generate from your own spec
+
+X12 message specifications are proprietary (licensed from ASC X12), so no prebuilt X12 packages are
+published. Instead, convert the X12 schema you are licensed to use into a Ballerina EDI schema and
+generate a typed parser from it, exactly like the EDIFACT quickstart above:
+
+```bash
+bal edi convertX12Schema -i schema.xsd -o resources/850-schema.json
+bal edi codegen -i resources/850-schema.json -o po.bal
+```
+
+## Exposed APIs
+
+Most users call the generated functions rather than this module directly, but the module's public
+functions are available for advanced use. The table below is a cursory overview; see the
+[Module Specification](https://github.com/ballerina-platform/module-ballerina-edi/blob/main/docs/specs/ModuleSpecification.md)
+for full signatures, parameters, error types, and envelope semantics.
+
+| Function | Purpose |
+|----------|---------|
+| `fromEdiString` / `toEdiString` | Parse a transaction body to JSON / serialize JSON back to EDI text. |
+| `x12HeadersFromEdiString` / `x12HeadersFromEdiFile` | Schema-free peek at X12 ISA/GS headers — routing and partner identification. |
+| `edifactHeadersFromEdiString` / `edifactHeadersFromEdiFile` | Schema-free peek at EDIFACT UNB/UNH headers. |
+| `headersFromEdiString` / `headersFromEdiFile` | Schema-driven header-only parse. |
+| `interchangeFromEdiString` | Parse the full envelope hierarchy into typed records, with fail-safe per-transaction bodies. |
+| `interchangeToEdiString` | Serialize a full interchange back to EDI text (recomputes envelope counts). |
+| `getSchema` | Load and validate a JSON EDI schema into an `EdiSchema`. |
+
+## Customizing the generated schema
+
+`edi-tools` emits the schema as a JSON file before generating code. Trading partners routinely use
+variations of a standard format, so you can edit this schema to match a partner-specific layout —
+adjust delimiters, segment occurrences (`minOccurances` / `maxOccurances`), field data types, or
+list segments to skip in `ignoreSegments` — then re-run `bal edi codegen` to regenerate the typed
+parser. A minimal schema looks like:
+
+```json
+{
+    "name": "SimpleOrder",
+    "delimiters": {"segment": "~", "field": "*", "component": ":", "repetition": "^"},
+    "segments": [
+        {"code": "HDR", "tag": "header", "minOccurances": 1,
+         "fields": [{"tag": "code"}, {"tag": "orderId"}, {"tag": "organization"}, {"tag": "date"}]},
+        {"code": "ITM", "tag": "items", "maxOccurances": -1,
+         "fields": [{"tag": "code"}, {"tag": "item"}, {"tag": "quantity", "dataType": "int"}]}
+    ]
+}
+```
+
+The [Schema Specification](https://github.com/ballerina-platform/module-ballerina-edi/blob/main/docs/specs/SchemaSpecification.md)
+documents the full grammar — delimiters, segments and segment groups, fields / components /
+sub-components, the `envelope` declaration, and the additional configuration options.
+
+## Examples
+
+The [`examples`](https://github.com/ballerina-platform/module-ballerina-edi/tree/main/examples) directory contains runnable end-to-end samples:
+
+- [Custom EDI schema](https://github.com/ballerina-platform/module-ballerina-edi/tree/main/examples/custom-edi-schema) — define a custom EDI schema and generate a typed parser from it (the codegen workflow foundation).
+- [Vendor router](https://github.com/ballerina-platform/module-ballerina-edi/tree/main/examples/edi-vendor-router) — schema-free header inspection to route inbound messages by trading partner.
+- [Parser to Kafka](https://github.com/ballerina-platform/module-ballerina-edi/tree/main/examples/edi-parser-to-kafka) — parse an interchange with fail-safe per-transaction bodies, forward good transactions to Kafka, and quarantine the rest.
+- [Order generator](https://github.com/ballerina-platform/module-ballerina-edi/tree/main/examples/edi-order-generator) — build and serialize a full interchange with `interchangeToEdiString`, including a parse/serialize round-trip.
+
+## Documentation
+
+- [Module Specification](https://github.com/ballerina-platform/module-ballerina-edi/blob/main/docs/specs/ModuleSpecification.md) — the full API reference and envelope processing semantics.
+- [Schema Specification](https://github.com/ballerina-platform/module-ballerina-edi/blob/main/docs/specs/SchemaSpecification.md) — the JSON grammar for EDI schemas.
+- [edi-tools](https://github.com/ballerina-platform/edi-tools) — converting X12 / EDIFACT specs into schemas (`convertX12Schema` / `convertEdifactSchema`), generating typed parsers (`codegen`), and packaging schema families as libraries (`libgen`).
+
+
+// --- END README ---
+
+// --- Types ---
+
+const string STRING = "string";
+
+const string INT = "int";
+
+const string FLOAT = "float";
+
+const string COMPOSITE = "composite";
+
+# Record for representing EDI schema.
+# 
+
+type EdiSchema record {
+    # Name of the schema. This will be used as the main record name by the code generation tool.  
+
+    string name;
+    # Tag for the root element. Can be same as the name.  
+
+    string tag?;
+    # Delimiters used to separate EDI segments, fields, components, etc.  
+
+    record {|string segment; string 'field; string component; string subcomponent; string repetition; string decimalSeparator?;|} delimiters;
+    # List of segment schemas to be ignored when matching a EDI text. 
+For example, if it is necessary to process X12 transaction sets only, without ISA as GS segments,
+and if the schema contains ISA and GS segments as well, ISA and GS can be provided as ignoreSegments.
+
+    string[] ignoreSegments?;
+    # Indicates how to process EDI fields, components and subcomponents containing empty values.
+true: Includes fields, components and subcomponents with empty values in the generated JSON.
+String values will be represented as empty strings. 
+Multi-value fields (i.e. repeats) will be represented as empty arrays.
+All other types will be represented as null.
+false: Omits fields, components and subcomponents with empty values.
+
+    boolean preserveEmptyFields?;
+    # Indicates whether or not to include the segment code as a field in output JSON values.
+
+    boolean includeSegmentCode?;
+    # Hierarchical envelope schema (interchange / group / transaction) enabling
+the envelope-aware APIs; when nil (older schemas), behaviour is unchanged
+    EdiEnvelopeSchema|() envelope?;
+    # Array of segment and segment group schemas
+    EdiUnitSchema[] segments?;
+    # Map of segment definitions indexed by the segment code
+    map<EdiSegSchema> segmentDefinitions?;
+};
+
+# Structured envelope schema with separate levels for interchange, group (optional),
+# and transaction. EDIFACT schemas without UNG/UNE leave `group` unset.
+# 
+
+type EdiEnvelopeSchema record {
+    # Interchange-level envelope (e.g. ISA/IEA, UNB/UNZ)
+    EdiEnvelopeLevel interchange;
+    # Optional group-level envelope (e.g. GS/GE for X12)
+    EdiEnvelopeLevel group?;
+    # Transaction-level envelope (e.g. ST/SE, UNH/UNT)
+    EdiEnvelopeLevel 'transaction;
+};
+
+# One level of an envelope hierarchy. Contains a list of header segments and a
+# list of trailer segments scoped to that level (e.g. ISA/IEA at the interchange
+# level, GS/GE at the group level, ST/SE at the transaction level for X12).
+# 
+
+type EdiEnvelopeLevel record {
+    # Header segments scoped to this level
+    EdiUnitSchema[] header;
+    # Trailer segments scoped to this level
+    EdiUnitSchema[] trailer;
+};
+
+
+type EdiSegSchema record {
+    string code;
+    string tag;
+    boolean truncatable?;
+    int minOccurances?;
+    int maxOccurances?;
+    EdiFieldSchema[] fields?;
+};
+
+
+type EdiFieldSchema record {
+    string tag;
+    boolean repeat?;
+    boolean required?;
+    boolean truncatable?;
+    EdiDataType dataType?;
+    int startIndex?;
+    Range|int length?;
+    EdiComponentSchema[] components?;
+};
+
+enum EdiDataType {
+    COMPOSITE,
+    FLOAT,
+    INT,
+    STRING
+}
+
+
+type Range record {
+    int min?;
+    int max?;
+};
+
+
+type EdiComponentSchema record {
+    string tag;
+    boolean required?;
+    boolean truncatable?;
+    EdiDataType dataType?;
+    EdiSubcomponentSchema[] subcomponents?;
+};
+
+
+type EdiSubcomponentSchema record {
+    string tag;
+    boolean required?;
+    EdiDataType dataType?;
+};
+
+
+type EdiSegGroupSchema record {
+    string tag;
+    int minOccurances?;
+    int maxOccurances?;
+    EdiUnitSchema[] segments?;
+};
+
+
+type EdiUnitRef record {
+    string ref;
+    string tag?;
+    int minOccurances?;
+    int maxOccurances?;
+};
+
+type EdiUnitSchema EdiSegSchema|EdiSegGroupSchema|EdiUnitRef;
+
+# Represents EDI module related errors
+type Error error;
+
+# Represents an input EDI text that does not conform to the expected envelope structure
+# (e.g. a missing or malformed envelope segment, or multiple interchanges in one call).
+type InvalidEnvelopeError error;
+
+# Represents a schema that cannot support the requested operation
+# (e.g. no `envelope` declaration, or a fixed-length "FL" schema used with envelope-aware APIs).
+type SchemaCompatibilityError error;
+
+# Represents a refusal to serialize an `EdiInterchange`
+# (e.g. a transaction `body` holds an `error` from a fail-safe parse).
+type SerializationError error;
+
+# Interchange Control Header (X12 ISA segment).
+# 
+
+type X12ISA record {
+    # ISA01 — Authorization Information Qualifier
+    string authInfoQualifier;
+    # ISA02 — Authorization Information
+    string authInfo;
+    # ISA03 — Security Information Qualifier
+    string securityQualifier;
+    # ISA04 — Security Information
+    string securityInfo;
+    # ISA05 — Interchange ID Qualifier (sender)
+    string senderQualifier;
+    # ISA06 — Interchange Sender ID
+    string senderId;
+    # ISA07 — Interchange ID Qualifier (receiver)
+    string receiverQualifier;
+    # ISA08 — Interchange Receiver ID
+    string receiverId;
+    # ISA09 — Interchange Date (YYMMDD)
+    string date;
+    # ISA10 — Interchange Time (HHMM)
+    string time;
+    # ISA12 — Interchange Control Version Number
+    string version;
+    # ISA13 — Interchange Control Number
+    string controlNumber;
+    # ISA15 — Usage Indicator (P=production, T=test)
+    string usageIndicator;
+};
+
+# Functional Group Header (X12 GS segment).
+# 
+
+type X12GS record {
+    # GS01 — Functional Identifier Code
+    string functionalIdentifier;
+    # GS02 — Application Sender's Code
+    string senderId;
+    # GS03 — Application Receiver's Code
+    string receiverId;
+    # GS04 — Date (CCYYMMDD)
+    string date;
+    # GS05 — Time (HHMM)
+    string time;
+    # GS06 — Group Control Number
+    string controlNumber;
+    # GS08 — Version / Release / Industry Identifier Code
+    string version;
+};
+
+# X12 envelope headers returned by `x12HeadersFromEdiString` / `x12HeadersFromEdiFile`.
+# 
+
+type X12Headers record {
+    # Parsed ISA segment (always present)
+    X12ISA isa;
+    # Parsed GS segment when one follows the ISA, otherwise nil
+    X12GS gs?;
+};
+
+# Syntax identifier composite (UNB S001 — UNB.0001 / UNB.0002).
+# 
+
+type EdifactSyntaxIdentifier record {
+    # Syntax identifier (UNB.0001), e.g. "UNOA"
+    string syntaxId;
+    # Syntax version number (UNB.0002), e.g. "3"
+    string syntaxVersion;
+};
+
+# Interchange party composite, used for both the sender (UNB S002) and the
+# recipient (UNB S003).
+# 
+
+type EdifactInterchangeParty record {
+    # Interchange party identifier
+    string id;
+    # Interchange party identifier code qualifier
+    string qualifier;
+};
+
+# Date/time of preparation composite (UNB S004 — UNB.0017 / UNB.0019).
+# 
+
+type EdifactDateTime record {
+    # Date of preparation (UNB.0017), e.g. "210527"
+    string date;
+    # Time of preparation (UNB.0019), e.g. "1200"
+    string time;
+};
+
+# Interchange Header (EDIFACT UNB segment).
+# 
+
+type EdifactUNB record {
+    # UNB S001 — Syntax identifier composite
+    EdifactSyntaxIdentifier syntaxIdentifier;
+    # UNB S002 — Interchange sender composite
+    EdifactInterchangeParty sender;
+    # UNB S003 — Interchange recipient composite
+    EdifactInterchangeParty recipient;
+    # UNB S004 — Preparation date/time composite
+    EdifactDateTime dateAndTime;
+    # UNB 0020 — Interchange control reference (mandatory)
+    string controlRef;
+};
+
+# Message identifier composite (UNH S009 — UNH.0065 / 0052 / 0054 / 0051).
+# 
+
+type EdifactMessageIdentifier record {
+    # Message type identifier (UNH.0065), e.g. "ORDERS"
+    string messageType;
+    # Message version number (UNH.0052), e.g. "D"
+    string version;
+    # Message release number (UNH.0054), e.g. "03A"
+    string release;
+    # Controlling agency (UNH.0051), typically "UN"
+    string controlAgency;
+};
+
+# Message Header (EDIFACT UNH segment).
+# 
+
+type EdifactUNH record {
+    # UNH 0062 — Message reference number
+    string messageRef;
+    # UNH S009 — Message identifier composite
+    EdifactMessageIdentifier messageIdentifier;
+};
+
+# EDIFACT envelope headers returned by `edifactHeadersFromEdiString` / `edifactHeadersFromEdiFile`.
+# 
+
+type EdifactHeaders record {
+    # Parsed UNB segment (always present)
+    EdifactUNB unb;
+    # Parsed UNH segment when one follows the UNB, otherwise nil
+    EdifactUNH unh?;
+};
+
+# A parsed EDI interchange containing the full envelope hierarchy.
+# Transactions are carried in `groups` when the schema defines a group level (e.g. X12
+# GS/GE), or directly in `transactions` when it does not (e.g. EDIFACT without UNG/UNE).
+# 
+
+type EdiInterchange record {
+    # Parsed interchange header (e.g. ISA / UNB) as JSON
+    json interchangeHeader;
+    # Parsed functional groups when `envelope.group` is defined
+    EdiFunctionalGroup[] groups?;
+    # Parsed transactions when `envelope.group` is absent
+    EdiTransaction[] transactions?;
+    # Parsed interchange trailer (e.g. IEA / UNZ) as JSON
+    json interchangeTrailer;
+};
+
+# A functional group within an interchange (e.g., GS ... GE for X12).
+# 
+
+type EdiFunctionalGroup record {
+    # Parsed group header (GS) as JSON
+    json groupHeader;
+    # Transactions enclosed by this group
+    EdiTransaction[] transactions;
+    # Parsed group trailer (GE) as JSON
+    json groupTrailer;
+};
+
+# A single transaction (or message) within the envelope.
+# `body` is the parsed transaction content as JSON, or an `error` when the body
+# could not be parsed (fail-safe: a malformed body does not abort the rest of
+# the interchange).
+# 
+
+type EdiTransaction record {
+    # Parsed transaction header (e.g. ST / UNH) as JSON
+    json transactionHeader;
+    # Parsed transaction body as JSON, or the parse error if the body was malformed
+    json|error body;
+    # Parsed transaction trailer (e.g. SE / UNT) as JSON
+    json transactionTrailer;
+};
+
+// --- Functions ---
+
+# Reads the given EDI text according to the provided schema.
+# When the schema declares an `envelope`, envelope segments are skipped and only the
+# single transaction body is parsed; use `interchangeFromEdiString` for multi-transaction input.
+# 
+# + ediText - EDI text to be read
+# + schema - Schema of the EDI text
+# + return - JSON value containing the EDI data, or an `Error` when reading fails
+function fromEdiString(string ediText, EdiSchema schema) returns json|Error;
+
+# Writes the given JSON varibale into a EDI text according to the provided schema.
+# 
+# + msg - JSON value to be written into EDI
+# + schema - Schema of the EDI text
+# + return - EDI text containing the data provided in the JSON variable. Error if the reading fails.
+function toEdiString(json msg, EdiSchema schema) returns string|Error;
+
+# Creates an EDI schema from a string or a JSON.
+# 
+# + schema - Schema of the EDI type 
+# + return - Error is returned if the given schema is not valid
+function getSchema(string|json schema) returns EdiSchema|error;
+
+# Parses X12 interchange headers (ISA and optionally GS) from EDI text without a schema.
+# 
+# + ediText - Raw X12 EDI text
+# + return - Parsed `X12Headers`, or an `InvalidEnvelopeError` when the ISA segment is missing or not a conformant fixed-width ISA
+function x12HeadersFromEdiString(string ediText) returns X12Headers|Error;
+
+# Reads X12 interchange headers (ISA and optionally GS) from a file without a schema.
+# Only the first 512 characters of the file are read.
+# 
+# + filePath - Path to the EDI file
+# + return - Parsed `X12Headers`, or an `Error` when the file cannot be read or parsed
+function x12HeadersFromEdiFile(string filePath) returns X12Headers|Error;
+
+# Parses EDIFACT interchange headers (UNB and optionally UNH) from EDI text without a schema.
+# Honours a leading UNA service string advice, including custom delimiters and the release character.
+# 
+# + ediText - Raw EDIFACT EDI text
+# + return - Parsed `EdifactHeaders`, or an `InvalidEnvelopeError` when the UNB segment cannot be parsed
+function edifactHeadersFromEdiString(string ediText) returns EdifactHeaders|Error;
+
+# Reads EDIFACT interchange headers (UNB and optionally UNH) from a file without a schema.
+# Only the first 512 characters of the file are read.
+# 
+# + filePath - Path to the EDI file
+# + return - Parsed `EdifactHeaders`, or an `Error` when the file cannot be read or parsed
+function edifactHeadersFromEdiFile(string filePath) returns EdifactHeaders|Error;
+
+# Parses only the envelope header segments declared in the schema; the rest of the
+# document is not processed. Fails fast with an `InvalidEnvelopeError` when the input
+# does not match the envelope headers.
+# 
+# + ediText - Raw EDI text
+# + schema - EDI schema with an `envelope` declaration
+# + return - Parsed header sections (interchange / group / transaction) as JSON, or an `Error`
+function headersFromEdiString(string ediText, EdiSchema schema) returns json|Error;
+
+# Reads only the envelope header segments from an EDI file.
+# Only the first 4096 characters of the file are read; headers exceeding that window
+# produce an `InvalidEnvelopeError`.
+# 
+# + filePath - Path to the EDI file
+# + schema - EDI schema with an `envelope` declaration
+# + return - Parsed header sections as JSON, or an `Error`
+function headersFromEdiFile(string filePath, EdiSchema schema) returns json|Error;
+
+# Parses the full envelope hierarchy of a single interchange into an `EdiInterchange`.
+# The envelope is fail-fast while transaction bodies are fail-safe: a malformed body is
+# captured as the `error` in `EdiTransaction.body` and the rest of the interchange
+# continues to parse.
+# 
+# + ediText - Raw EDI text containing a single interchange
+# + schema - EDI schema with an `envelope` declaration
+# + return - Parsed `EdiInterchange`, or an `Error`
+function interchangeFromEdiString(string ediText, EdiSchema schema) returns EdiInterchange|Error;
+
+# Serializes an `EdiInterchange` into EDI text; the inverse of `interchangeFromEdiString`.
+# The X12 ISA header is re-padded to its standard fixed widths, and trailer counts and
+# control references are recomputed from the content being written. A transaction whose
+# `body` is an `error` is refused with a `SerializationError`.
+# 
+# + msg - Interchange to serialize
+# + schema - EDI schema with an `envelope` declaration
+# + return - EDI text, or an `Error`
+function interchangeToEdiString(EdiInterchange msg, EdiSchema schema) returns string|Error;
+
+function getDataType(string typeString) returns EdiDataType;

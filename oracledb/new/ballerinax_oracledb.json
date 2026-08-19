@@ -1,0 +1,2608 @@
+{
+  "name": "ballerinax/oracledb",
+  "description": "This module provides the functionality required to access and manipulate data stored in an Oracle database. It enables seamless integration with OracleDB, supporting various data types and advanced database features.",
+  "readme": "## Overview\n\nThis module provides the functionality required to access and manipulate data stored in an Oracle database. It enables seamless integration with OracleDB, supporting various data types and advanced database features.\n\n### Key Features\n\n- Reliable and high-performance database connectivity\n- Support for common SQL operations (Query, Execute, Batch)\n- Efficient connection pooling and resource management\n- Support for OracleDB-specific data types (INTERVAL, VARRAY)\n- Secure communication with SSL and authentication\n- GraalVM compatible for native image builds\n\n### Prerequisite\nAdd the OracleDB drivers as a dependency to the Ballerina project.\n\n\u003e**Note**: `ballerinax/oracledb` supports OracleDB driver versions above 12.2.0.1.\n\nYou can achieve this by importing the `ballerinax/oracledb.driver` module,\n ```ballerina\n import ballerinax/oracledb.driver as _;\n ```\n\n`ballerinax/oracledb.driver` package bundles the latest OracleDB driver JARs.\n\n\u003e**Tip**: GraalVM native build is supported when `ballerinax/oracledb` is used along with the `ballerinax/oracledb.driver`\n\nIf you want to add a OracleDB drivers of specific versions, you can add them as a dependencies in Ballerina.toml.\nFollow one of the following ways to add the JARs in the file:\n\n* Download the JAR and update the path.\n    ```\n    [[platform.java17.dependency]]\n    path \u003d \"PATH\"\n    ```\n\n* Add JAR with the Maven dependency params.\n    ```\n    [[platform.java17.dependency]]\n    groupId \u003d \"com.oracle.database.jdbc\"\n    artifactId \u003d \"ojdbc11\"\n    version \u003d \"12.2.0.1\"\n  \n    [platform.java17.dependency]]\n    groupId \u003d \"com.oracle.database.xml\"\n    artifactId \u003d \"xdb\"\n    version \u003d \"21.1.0.0\"\n  \n    [platform.java17.dependency]]\n    groupId \u003d \"com.oracle.database.xml\"\n    artifactId \u003d \"xmlparserv2\"\n    version \u003d \"12.2.0.1\"\n    ```\n\n### Client\nTo access a database, you must first create an\n[`oracledb:Client`](https://docs.central.ballerina.io/ballerinax/oracledb/latest#Client) object.\nThe samples for creating an OracleDB client can be found below.\n\n\u003e **Tip**: The client should be used throughout the application lifetime.\n\n#### Create a client\nThis sample shows the different ways of creating an `oracledb:Client`.\n\nThe client can be created with an empty constructor, and thereby, the client will be initialized with the default properties.\n\n```ballerina\noracledb:Client|sql:Error dbClient \u003d new ();\n```\n\nThe `oracledb:Client` receives the host, username, and password. Since the properties are passed in the same order as they are defined\nin the `oracledb:Client`, you can pass them without named parameters.\n\n```ballerina\noracledb:Client|sql:Error dbClient \u003d new (\"localhost\", \"adminUser\", \"adminPassword\", \n                              \"ORCLCDB.localdomain\", 1521);\n```\n\nIn the example below, the `oracledb:Client` uses named parameters to pass the attributes since it is skipping some parameters in the constructor.\nFurther, the [`oracledb:Options`](https://docs.central.ballerina.io/ballerinax/oracledb/latest#Options)\nproperty is passed to configure the SSL, connection timeout, and a few other additional properties in the OracleDB client.\n\n```ballerina\nstring clientStorePath \u003d check file:getAbsolutePath(\"./client-keystore.p12\");\nstring trustStorePath \u003d check file:getAbsolutePath(\"./client-truststore.p12\");\n\noracledb:Options options \u003d {\n    ssl: {\n        key: {\n            path: clientStorePath,\n            password: \"password\"\n        },\n        cert: {\n            path: trustStorePath,\n            password: \"password\"\n        }\n    },\n    loginTimeout: 1,\n    autoCommit: true,\n    connectTimeout: 30,\n    socketTimeout: 30\n};\n\noracledb:Client|sql:Error dbClient \u003d new (user \u003d \"adminUser\", password \u003d \"adminPassword\",\n                              options \u003d options);\n```\n\nSimilarly, in the example below, the `oracledb:Client` uses the named parameters and it provides an unshared connection pool of the type of\n[`sql:ConnectionPool`](https://docs.central.ballerina.io/ballerina/sql/latest#ConnectionPool)\nto be used within the client.\nFor more details about connection pooling, see the [`sql` Package](https://docs.central.ballerina.io/ballerina/sql/latest).\n\n```ballerina\noracledb:Client|sql:Error dbClient \u003d new (user \u003d \"adminUser\", password \u003d \"adminPassword\",\n                              connectionPool \u003d {maxOpenConnections: 5});\n```\n\n#### Handle connection pools\n\nAll database packages share the same connection pooling concept and there are three possible scenarios for\nconnection pool handling. For its properties and possible values, see [`sql:ConnectionPool`](https://docs.central.ballerina.io/ballerina/sql/latest#ConnectionPool).\n\n\u003e**Note**: Connection pooling is used to optimize opening and closing connections to the database. However, the pool comes with an overhead. It is best to configure the connection pool properties as per the application need to get the best performance.\n\n1. Global, shareable, default connection pool\n\n   If you do not provide the `connectionPool` field when creating the database client, a globally-shareable pool will be\n   created for your database unless a connection pool matching with the properties you provided already exists.\n\n    ```ballerina\n    oracledb:Client|sql:Error dbClient \u003d new (user \u003d \"adminUser\", password \u003d \"adminPassword\");\n    ```\n\n2. Client-owned, unsharable connection pool\n\n   If you define the `connectionPool` field inline when creating the database client with the `sql:ConnectionPool` type,\n   an unsharable connection pool will be created.\n\n    ```ballerina\n    oracledb:Client|sql:Error dbClient \u003d new (user \u003d \"adminUser\", password \u003d \"adminPassword\",\n                                           connectionPool \u003d { maxOpenConnections: 5 });\n    ```\n\n3. Local, shareable connection pool\n\n   If you create a record of the `sql:ConnectionPool` type and reuse that in the configuration of multiple clients,\n   for each set of clients that connects to the same database instance with the same set of properties, a shared\n   connection pool will be created.\n\n    ```ballerina\n    sql:ConnectionPool connPool \u003d {maxOpenConnections: 5};\n    \n    oracledb:Client|sql:Error dbClient1 \u003d\n                               new (user \u003d \"adminUser\", password \u003d \"adminPassword\",\n                               connectionPool \u003d connPool);\n    oracledb:Client|sql:Error dbClient2 \u003d \n                               new (user \u003d \"adminUser\", password \u003d \"adminPassword\",\n                               connectionPool \u003d connPool);\n    oracledb:Client|sql:Error dbClient3 \u003d \n                               new (user \u003d \"adminUser\", password \u003d \"adminPassword\",\n                               connectionPool \u003d connPool);\n    ```\n\nFor more details about each property, see the [`oracledb:Client`](https://docs.central.ballerina.io/ballerinax/oracledb/latest#Client) constructor.\n\nThe [oracledb:Client](https://docs.central.ballerina.io/ballerinax/oracledb/latest#Client) references\n[sql:Client](https://docs.central.ballerina.io/ballerina/sql/latest#Client) and all the operations\ndefined by the `sql:Client` will be supported by the `oracledb:Client` as well.\n\n#### Close the client\n\nOnce all the database operations are performed, you can close the database client you have created by invoking the `close()`\noperation. This will close the corresponding connection pool if it is not shared by any other database clients.\n\n\u003e **Note**: The client must be closed only at the end of the application lifetime (or closed for graceful stops in a service).\n\n```ballerina\nerror? e \u003d dbClient.close();\n```\nOr\n```ballerina\ncheck dbClient.close();\n```\n\n### Database operations\n\nOnce the client is created, database operations can be executed through that client. This package defines the interface\nand common properties that are shared among multiple database clients. It also supports querying, inserting, deleting,\nupdating, and batch updating data.\n\n#### Parameterized query\n\nThe `sql:ParameterizedQuery` is used to construct the SQL query to be executed by the client.\nYou can create a query with constant or dynamic input data as follows.\n\n*Query with constant values*\n\n```ballerina\nsql:ParameterizedQuery query \u003d `SELECT * FROM students \n                                WHERE id \u003c 10 AND age \u003e 12`;\n```\n\n*Query with dynamic values*\n\n```ballerina\nint[] ids \u003d [10, 50];\nint age \u003d 12;\nsql:ParameterizedQuery query \u003d `SELECT * FROM students \n                                WHERE id \u003c ${ids[0]} AND age \u003e ${age}`;\n```\n\nMoreover, the SQL package has `sql:queryConcat()` and `sql:arrayFlattenQuery()` util functions which make it easier\nto create a dynamic/constant complex query.\n\nThe `sql:queryConcat()` is used to create a single parameterized query by concatenating a set of parameterized queries.\nThe sample below shows how to concatenate queries.\n\n```ballerina\nint id \u003d 10;\nint age \u003d 12;\nsql:ParameterizedQuery query \u003d `SELECT * FROM students`;\nsql:ParameterizedQuery query1 \u003d ` WHERE id \u003c ${id} AND age \u003e ${age}`;\nsql:ParameterizedQuery sqlQuery \u003d sql:queryConcat(query, query1);\n```\n\nThe query with the `IN` operator can be created using the `sql:ParameterizedQuery` as shown below. Here you need to flatten the array and pass each element separated by a comma.\n\n```ballerina\nint[] ids \u003d [1, 2, 3];\nsql:ParameterizedQuery query \u003d `SELECT count(*) as total FROM DataTable \n                                WHERE row_id IN (${ids[0]}, ${ids[1]}, ${ids[2]})`;\n```\n\nThe `sql:arrayFlattenQuery()` util function is used to make the array flatten easier. It makes the inclusion of varying array elements into the query easier by flattening the array to return a parameterized query. You can construct the complex dynamic query with the `IN` operator by using both functions as shown below.\n\n```ballerina\nint[] ids \u003d [1, 2];\nsql:ParameterizedQuery sqlQuery \u003d \n                         sql:queryConcat(`SELECT * FROM DataTable WHERE id IN (`, \n                                          sql:arrayFlattenQuery(ids), `)`);\n```\n\n#### Create tables\n\nThis sample creates a table with three columns. The first column is a primary key of type `int`\nwhile the second column is of type `int` and the other is of type `varchar`.\nThe `CREATE` statement is executed via the `execute` remote method of the client.\n\n```ballerina\n// Create the ‘Students’ table with the ‘id’, ‘name‘, and ‘age’ fields.\nsql:ExecutionResult result \u003d \n                check dbClient-\u003eexecute(`CREATE TABLE student (\n                                           id NUMBER GENERATED ALWAYS AS IDENTITY,,\n                                           age NUMBER, \n                                           name VARCHAR(255), \n                                           PRIMARY KEY (id)\n                                         )`);\n// A value of the `sql:ExecutionResult` type is returned for the `result`. \n```\n\n#### Insert data\n\nThese samples show the data insertion by executing an `INSERT` statement using the `execute` remote method\nof the client.\n\nIn this sample, the query parameter values are passed directly into the query statement of the `execute`\nremote method.\n\n```ballerina\nsql:ExecutionResult result \u003d check dbClient-\u003eexecute(`INSERT INTO student(age, name)\n                                                        VALUES (23, \u0027john\u0027)`);\n```\n\nIn this sample, the parameter values, which are assigned to local variables are used to parameterize the SQL query in\nthe `execute` remote method. This type of a parameterized SQL query can be used with any primitive Ballerina type\nsuch as `string`, `int`, `float`, or `boolean` and in that case, the corresponding SQL type of the parameter is derived\nfrom the type of the Ballerina variable that is passed in.\n\n```ballerina\nstring name \u003d \"Anne\";\nint age \u003d 8;\n\nsql:ParameterizedQuery query \u003d `INSERT INTO student(age, name)\n                                  VALUES (${age}, ${name})`;\nsql:ExecutionResult result \u003d check dbClient-\u003eexecute(query);\n```\n\nIn this sample, the parameter values are passed as an `sql:TypedValue` to the `execute` remote method. Use the\ncorresponding subtype of the `sql:TypedValue` such as `sql:VarcharValue`, `sql:CharValue`, `sql:IntegerValue`, etc., when you need to\nprovide more details such as the exact SQL type of the parameter.\n\n```ballerina\nsql:VarcharValue name \u003d new (\"James\");\nsql:IntegerValue age \u003d new (10);\n\nsql:ParameterizedQuery query \u003d `INSERT INTO student(age, name)\n                                  VALUES (${age}, ${name})`;\nsql:ExecutionResult result \u003d check dbClient-\u003eexecute(query);\n```\n\n#### Insert data with auto-generated keys\n\nThis sample demonstrates inserting data while returning the auto-generated keys. It achieves this by using the\n`execute` remote method to execute the `INSERT` statement.\n\n```ballerina\nint age \u003d 31;\nstring name \u003d \"Kate\";\n\nsql:ParameterizedQuery query \u003d `INSERT INTO student(age, name)\n                                  VALUES (${age}, ${name})`;\nsql:ExecutionResult result \u003d check dbClient-\u003eexecute(query);\n\n// Number of rows affected by the execution of the query.\nint? count \u003d result.affectedRowCount;\n\n// The integer or string generated by the database in response to a query execution.\nstring|int? generatedKey \u003d result.lastInsertId;\n```\n\n#### Query data\n\nThese samples show how to demonstrate the different usages of the `query` operation to query the\ndatabase table and obtain the results as a stream.\n\n\u003e**Note**: When processing the stream, make sure to consume all fetched data or close the stream.\n\nThis sample demonstrates querying data from a table in a database.\nFirst, a type is created to represent the returned result set. This record can be defined as an open or a closed record\naccording to the requirement. If an open record is defined, the returned stream type will include both defined fields\nin the record and additional database columns fetched by the SQL query which are not defined in the record.\nNote the mapping of the database column to the returned record\u0027s property is case-insensitive if it is defined in the\nrecord(i.e., the `ID` column in the result can be mapped to the `id` property in the record). Additional column names\nadded to the returned record as in the SQL query. If the record is defined as a closed record, only defined fields in the\nrecord are returned or gives an error when additional columns present in the SQL query. Next, the `SELECT` query is executed\nvia the `query` remote method of the client. Once the query is executed, each data record can be retrieved by iterating through\nthe result set. The `stream` returned by the `SELECT` operation holds a pointer to the actual data in the database, and it\nloads data from the table only when it is accessed. This stream can be iterated only once.\n\n```ballerina\n// Define an open record type to represent the results.\ntype Student record {\n    int id;\n    int age;\n    string name;\n};\n\n// Select the data from the database table. The query parameters are passed \n// directly. Similar to the `execute` samples, parameters can be passed as\n// sub types of `sql:TypedValue` as well.\nint id \u003d 10;\nint age \u003d 12;\nsql:ParameterizedQuery query \u003d `SELECT * FROM students\n                                WHERE id \u003c ${id} AND age \u003e ${age}`;\nstream\u003cStudent, sql:Error?\u003e resultStream \u003d dbClient-\u003equery(query);\n\n// Iterating the returned table.\ncheck from Student student in resultStream\n   do {\n      // Can perform operations using the `student` record of type `Student`.\n   };\n```\n\nDefining the return type is optional and you can query the database without providing the result type. Hence,\nthe above sample can be modified as follows with an open record type as the return type. The property name in the open record\ntype will be the same as how the column is defined in the database.\n\n```ballerina\n// Select the data from the database table. The query parameters are passed \n// directly. Similar to the `execute` samples, parameters can be passed as \n// sub types of `sql:TypedValue` as well.\nint id \u003d 10;\nint age \u003d 12;\nsql:ParameterizedQuery query \u003d `SELECT * FROM students\n                                WHERE id \u003c ${id} AND age \u003e ${age}`;\nstream\u003crecord{}, sql:Error?\u003e resultStream \u003d dbClient-\u003equery(query);\n\n// Iterating the returned table.\ncheck from record{} student in resultStream\n   do {\n      // Can perform operations using the `student` record.\n      io:println(\"Student name: \", student.value[\"name\"]);\n   };\n```\n\nThere are situations in which you may not want to iterate through the database and in that case, you may decide\nto use the `queryRow()` operation. If the provided return type is a record, this method returns only the first row\nretrieved by the query as a record.\n\n```ballerina\nint id \u003d 10;\nsql:ParameterizedQuery query \u003d `SELECT * FROM students WHERE id \u003d ${id}`;\nStudent retrievedStudent \u003d check dbClient-\u003equeryRow(query);\n```\n\nThe `queryRow()` operation can also be used to retrieve a single value from the database (e.g., when querying using\n`COUNT()` and other SQL aggregation functions). If the provided return type is not a record (i.e., a primitive data type)\n, this operation will return the value of the first column of the first row retrieved by the query.\n\n```ballerina\nint age \u003d 12;\nsql:ParameterizedQuery query \u003d `SELECT COUNT(*) FROM students WHERE age \u003c ${age}`;\nint youngStudents \u003d check dbClient-\u003equeryRow(query);\n```\n\n#### Update data\n\nThis sample demonstrates modifying data by executing an `UPDATE` statement via the `execute` remote method of\nthe client.\n\n```ballerina\nint age \u003d 23;\nsql:ParameterizedQuery query \u003d `UPDATE students SET name \u003d \u0027John\u0027 WHERE age \u003d ${age}`;\nsql:ExecutionResult result \u003d check dbClient-\u003eexecute(query);\n```\n\n#### Delete data\n\nThis sample demonstrates deleting data by executing a `DELETE` statement via the `execute` remote method of\nthe client.\n\n```ballerina\nstring name \u003d \"John\";\nsql:ParameterizedQuery query \u003d `DELETE from students WHERE name \u003d ${name}`;\nsql:ExecutionResult result \u003d check dbClient-\u003eexecute(query);\n```\n\n#### Batch update data\n\nThis sample demonstrates how to insert multiple records with a single `INSERT` statement that is executed via the\n`batchExecute` remote method of the client. This is done by creating a `table` with multiple records and\nparameterized SQL query as same as the above `execute` operations.\n\n```ballerina\n// Create the table with the records that need to be inserted.\nvar data \u003d [\n  { name: \"John\", age: 25 },\n  { name: \"Peter\", age: 24 },\n  { name: \"jane\", age: 22 }\n];\n\n// Do the batch update by passing the batches.\nsql:ParameterizedQuery[] batch \u003d from var row in data\n                                 select `INSERT INTO students (\u0027name\u0027, \u0027age\u0027)\n                                           VALUES (${row.name}, ${row.age})`;\nsql:ExecutionResult[] result \u003d check dbClient-\u003ebatchExecute(batch);\n```\n\n#### Execute SQL stored procedures\n\nThis sample demonstrates how to execute a stored procedure with a single `INSERT` statement that is executed via the\n`call` remote method of the client.\n\n```ballerina\nint uid \u003d 10;\nsql:IntegerOutParameter insertId \u003d new;\n\nsql:ProcedureCallResult result \u003d \n                         check dbClient-\u003ecall(`call InsertPerson(${uid}, ${insertId})`);\nstream\u003crecord{}, sql:Error?\u003e? resultStr \u003d result.queryResult;\nif resultStr is stream\u003crecord{}, sql:Error?\u003e {\n   check from record{} result in resultStr\n      do {\n         // Can perform operations using the `result` record.\n      };\n}\ncheck result.close();\n```\n\n\u003e**Note**: Once the results are processed, the `close` method on the `sql:ProcedureCallResult` must be called.\n\n### OracleDB specific custom data types\n\n#### Interval types\n\nOracleDB has two `INTERVAL` data types: `INTERVAL YEAR TO MONTH` and `INTERVAL DAY TO SECOND` to store the various `INTERVAL` periods.\n\nThe equivalent types in Ballerina are as follows.\n\n```ballerina\npublic type Sign +1|-1;\n\npublic type IntervalYearToMonth record {|\n    Sign sign \u003d +1;\n    int:Unsigned32 years?;\n    int:Unsigned32 months?;\n|};\n\npublic type IntervalDayToSecond record {|\n    Sign sign \u003d +1;\n    int:Unsigned32 days?;\n    int:Unsigned32 hours?;\n    int:Unsigned32 minutes?;\n    decimal seconds?;\n|};\n```\n\nHere, `oracledb:Sign` is used to mark the sign of the interval period and period values are always ZERO or positive integers.\n\n```ballerina\n//INTERVAL \u0027120-11\u0027 YEAR(3) TO MONTH\noracledb:IntervalYearToMonth intervalYM \u003d {years: 120, months: 11};\n//INTERVAL \u0027120\u0027 YEAR(3)\noracledb:IntervalYearToMonth intervalYM2 \u003d {years: 120};\n//INTERVAL \u0027-11\u0027 MONTH(3)\noracledb:IntervalYearToMonth intervalYM3 \u003d {months: 11, sign: -1};\n//INTERVAL \u0027-120-11\u0027 YEAR(3) TO MONTH\noracledb:IntervalYearToMonth intervalYM4 \u003d {years: 120, months: 11, sign: -1};\n\n//INTERVAL \u002711 10:09:08.555\u0027 DAY TO SECOND(3)\noracledb:IntervalDayToSecond intervalDS \u003d {days: 11, hours: 10, minutes: 9, seconds: 8.555};\n//INTERVAL \u0027-11 10:09:08.555\u0027 DAY TO SECOND(3)\noracledb:IntervalDayToSecond intervalDS2 \u003d {days: 11, hours: 10, minutes: 9, seconds: 8.555, sign: -1};\n//INTERVAL \u0027-10:09:08.555\u0027 HOUR TO SECOND(3)\noracledb:IntervalDayToSecond intervalDS3 \u003d {hours: 10, minutes: 9, seconds: 8.555, sign: -1};\n//INTERVAL \u002711 00:09:08.55578\u0027 DAY TO SECOND(5)\noracledb:IntervalDayToSecond intervalDS4 \u003d {days: 11, minutes: 9, seconds: 8.55578};\n```\n\n#### `VARRAY` types\n\nOracleDB has support for `VARRAY` data type and `VARRAY` consists a type name and elements attributes.\n\nThe `VARRAY` equivalent type in Ballerina is as follows.\n\n```ballerina\ntype ArrayValueType string?[]|int?[]|boolean?[]|float?[]|decimal?[]|byte[]?[];\n\npublic type Varray record {|\n    string name;\n    ArrayValueType? elements;\n|};\n```\n\nHere, `oracledb:Varray` has two fields to set the type name and elements of the varray. In OracleDB, a `VARRAY` type can be created as follows.\n\n```roomsql\nCREATE OR REPLACE TYPE CharArrayType AS VARRAY(6) OF VARCHAR(100);\n\nCREATE TABLE TestVarrayTable(\n       PK               NUMBER GENERATED ALWAYS AS IDENTITY,\n       COL_CHARARR      CharArrayType,\n       PRIMARY KEY(PK)\n);\n```\nIn Ballerina, `oracledb:Varray` can be used to pass values for `VARRAY` data type as follows.\n\n```ballerina\nstring?[] charArray \u003d [null, \"Hello\", \"World\"];\nVarray charVarray \u003d { name:\"CharArrayType\", elements: charArray };\n```\n\n\u003e**Note**: The default thread pool size used in Ballerina is: `the number of processors available * 2`. You can configure the thread pool size by using the `BALLERINA_MAX_POOL_SIZE` environment variable.\n\n## Report issues\n\nTo report bugs, request new features, start new discussions, view project boards, etc., go to the [Ballerina standard library parent repository](https://github.com/ballerina-platform/ballerina-library)\n\n## Useful links\n- Chat live with us via our [Discord server](https://discord.gg/ballerinalang).\n- Post all technical questions on Stack Overflow with the [#ballerina](https://stackoverflow.com/questions/tagged/ballerina) tag.\n",
+  "typeDefs": [
+    {
+      "name": "LOGMINER",
+      "description": "",
+      "type": "Constant",
+      "value": "logminer",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "LOGMINER_UNBUFFERED",
+      "description": "",
+      "type": "Constant",
+      "value": "logminer_unbuffered",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "ONLINE_CATALOG",
+      "description": "",
+      "type": "Constant",
+      "value": "online_catalog",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "REDO_LOG_CATALOG",
+      "description": "",
+      "type": "Constant",
+      "value": "redo_log_catalog",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "HYBRID",
+      "description": "",
+      "type": "Constant",
+      "value": "hybrid",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "NONE",
+      "description": "",
+      "type": "Constant",
+      "value": "none",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "IN",
+      "description": "",
+      "type": "Constant",
+      "value": "in",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "REGEX",
+      "description": "",
+      "type": "Constant",
+      "value": "regex",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "NUMERIC",
+      "description": "",
+      "type": "Constant",
+      "value": "numeric",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "STRING",
+      "description": "",
+      "type": "Constant",
+      "value": "string",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "JKS",
+      "description": "",
+      "type": "Constant",
+      "value": "JKS",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "PKCS12",
+      "description": "",
+      "type": "Constant",
+      "value": "PKCS12",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "SecureSocket",
+      "description": "SSL configurations to be used when connecting to the Oracle database server.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "key",
+          "description": "Keystore configuration of the client certificates",
+          "type": {
+            "name": "KeyStore",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "KeyStore",
+                "libraryName": "ballerina/crypto"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "cert",
+          "description": "Truststore configuration of the trust certificates",
+          "type": {
+            "name": "TrustStore",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "TrustStore",
+                "libraryName": "ballerina/crypto"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Options",
+      "description": "Provides an additional set of configurations related to the Oracle database connection.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "ssl",
+          "description": "SSL configurations to be used",
+          "type": {
+            "name": "SecureSocket",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SecureSocket"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "loginTimeout",
+          "description": "Timeout (in seconds) to be used when connecting to the Oracle server and authentication (0 means no timeout)",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "autoCommit",
+          "description": "If true, commits automatically when the statement is complete",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "connectTimeout",
+          "description": "Timeout (in seconds) to be used when connecting to the Oracle server",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "socketTimeout",
+          "description": "Socket timeout (in seconds) to be used during the read/write operations with the Oracle database server\n(0 means no socket timeout)",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "useXADatasource",
+          "description": "If true, uses XADatasource for transactions",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "AdapterMode",
+      "description": "Oracle CDC adapter modes for capturing changes from the Oracle database transaction logs. LogMiner is the only adapter supported by this module.\n",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "LOGMINER_UNBUFFERED",
+          "description": ""
+        },
+        {
+          "name": "LOGMINER",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "LogMiningStrategy",
+      "description": "LogMiner mining strategy used when reading redo / archive logs and extracting change events.\n",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "HYBRID",
+          "description": ""
+        },
+        {
+          "name": "REDO_LOG_CATALOG",
+          "description": ""
+        },
+        {
+          "name": "ONLINE_CATALOG",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "LogMiningQueryFilterMode",
+      "description": "How table-include filters are applied to the LogMiner query.\n",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "REGEX",
+          "description": ""
+        },
+        {
+          "name": "IN",
+          "description": ""
+        },
+        {
+          "name": "NONE",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "IntervalHandlingMode",
+      "description": "How Oracle INTERVAL data types are represented in change events.\n",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "STRING",
+          "description": ""
+        },
+        {
+          "name": "NUMERIC",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "StoreType",
+      "description": "",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "PKCS12",
+          "description": ""
+        },
+        {
+          "name": "JKS",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "DriverKeyStore",
+      "description": "Client keystore for mTLS authentication against Oracle (driver pass-through).\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "path",
+          "description": "Filesystem path to the keystore file",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "password",
+          "description": "Keystore password",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "storeType",
+          "description": "Keystore format (JKS, PKCS12); defaults to JKS",
+          "type": {
+            "name": "StoreType",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "StoreType"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "DriverTrustStore",
+      "description": "Server-certificate truststore for TLS verification (driver pass-through).\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "path",
+          "description": "Filesystem path to the truststore file",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "password",
+          "description": "Truststore password",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "storeType",
+          "description": "Truststore format (JKS, PKCS12); defaults to JKS",
+          "type": {
+            "name": "StoreType",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "StoreType"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "DriverSslConfiguration",
+      "description": "JDBC driver SSL/TLS keystore and truststore configuration for mTLS connections to Oracle.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "keyStore",
+          "description": "Client keystore (`driver.javax.net.ssl.keyStore*`)",
+          "type": {
+            "name": "DriverKeyStore",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DriverKeyStore"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "trustStore",
+          "description": "Server certificate truststore (`driver.javax.net.ssl.trustStore*`)",
+          "type": {
+            "name": "DriverTrustStore",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DriverTrustStore"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "DriverConfiguration",
+      "description": "Oracle JDBC driver pass-through configuration.\nAll values are emitted with the `driver.` prefix as Debezium pass-through properties.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "mtls",
+          "description": "mTLS client authentication for Oracle — supply either a Java keystore/truststore\n(`DriverSslConfiguration`, mapped to `driver.javax.net.ssl.*`) or an Oracle Wallet\nlocation string (mapped to `driver.oracle.net.wallet_location`). These are two\nalternative methods per Debezium\u0027s docs, not combinable.",
+          "type": {
+            "name": "DriverSslConfiguration|string",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DriverSslConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "timezoneAsRegion",
+          "description": "Whether the JDBC driver should resolve timezone as a region\n(`driver.oracle.jdbc.timezoneAsRegion`). Set to `false` to work around\nORA-01882 \"timezone region not found\".",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "LogMinerMemoryBufferConfiguration",
+      "description": "In-memory LogMiner transaction buffer tunables.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "trackRsId",
+          "description": "Track the row-id (RS_ID) of each event in the transaction buffer. \nTurning this off trims memory and the data pulled per LogMiner query, at the cost of losing that identifier",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "transactionEventsThreshold",
+          "description": "Max events per transaction before abandoning the transaction. \nThe default is not having a transaction event threshold",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "LogMinerBatchConfiguration",
+      "description": "SCN-based LogMiner mining batch sizing. \nSCN is a monotonically increasing integer that Oracle stamps onto every committed change in the database.\nDebezium uses the SCN as its streaming offset/position.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "minSize",
+          "description": "Minimum SCN window size",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxSize",
+          "description": "Maximum SCN window size",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "incrementSize",
+          "description": "Amount to grow/shrink the window when adapting",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "defaultSize",
+          "description": "Initial / fallback SCN window size",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "LogMinerSleepConfiguration",
+      "description": "Sleep timing between LogMiner mining iterations (all values in seconds).\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "minTime",
+          "description": "Minimum sleep duration",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxTime",
+          "description": "Maximum sleep duration",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "defaultTime",
+          "description": "Initial / fallback sleep duration",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "incrementTime",
+          "description": "Amount to grow/shrink sleep when adapting",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "LogMinerArchiveLogConfiguration",
+      "description": "Archive-log mining configuration for LogMiner.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "logHours",
+          "description": "Number of hours of archive logs to scan for the start SCN.\nIf not set, the connector mines all archive logs",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "destinationName",
+          "description": "Configured Oracle archive destination(s) to use when mining archive logs.\nWhen not set, the first valid, local configured destination is automatically selected",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "logOnlyMode",
+          "description": "Mine only archive logs, and ignore the redo-logs.\nThis allows reliable log mining at the cost of potentially increased latency",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "logOnlyScnPollInterval",
+          "description": "Poll interval in seconds when waiting for a new SCN.\nApplicable only if `logOnlyMode` is `true`",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "LogMinerConfiguration",
+      "description": "LogMiner adapter tunables. Applies to both `LOGMINER` and `LOGMINER_UNBUFFERED` adapter modes.\nWhen `adapterMode \u003d\u003d LOGMINER_UNBUFFERED`, all `buffer.*` fields are accepted but ignored by the\ndatabase-side buffer.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "strategy",
+          "description": "Mining strategy (`online_catalog` / `redo_log_catalog` / `hybrid`)",
+          "type": {
+            "name": "LogMiningStrategy",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "LogMiningStrategy"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "queryFilterMode",
+          "description": "How table-include filters are applied to the mining query",
+          "type": {
+            "name": "LogMiningQueryFilterMode",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "LogMiningQueryFilterMode"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "readOnlyHostname",
+          "description": "Hostname of a read-only standby to direct LogMiner queries at",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "flushTableName",
+          "description": "Name of the internal flush table; useful for RAC deployments",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "buffer",
+          "description": "In-memory transaction buffer tunables",
+          "type": {
+            "name": "LogMinerMemoryBufferConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "LogMinerMemoryBufferConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "sessionMaxDuration",
+          "description": "Max time before closing and reopening the LogMiner session, in seconds; no limit if not set",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "restartConnection",
+          "description": "Restart the JDBC connection when a mining session is rotated",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "batch",
+          "description": "SCN-based batch sizing",
+          "type": {
+            "name": "LogMinerBatchConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "LogMinerBatchConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "sleep",
+          "description": "Sleep timing between mining iterations",
+          "type": {
+            "name": "LogMinerSleepConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "LogMinerSleepConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "archive",
+          "description": "Archive-log mining configuration",
+          "type": {
+            "name": "LogMinerArchiveLogConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "LogMinerArchiveLogConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "transactionRetentionTime",
+          "description": "Time to retain transactions in the buffer before forced commit/rollback in seconds.\nIf not set, transactions are retained until a commit or rollback is detected",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxWindowTime",
+          "description": "Max mining window duration in seconds before forced advance of the offset. \nIf not set, the offset sits at the lower bound of the oldest open transaction start SCN \nuntil it is committed or rolled back.",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "includedUsernames",
+          "description": "Usernames whose changes to capture (mutually exclusive with `excludedUsernames`)",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "excludedUsernames",
+          "description": "Usernames whose changes to skip (mutually exclusive with `includedUsernames`)",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "includedClientIds",
+          "description": "JDBC client IDs whose changes to capture (mutually exclusive with `excludedClientIds`)",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "excludedClientIds",
+          "description": "JDBC client IDs whose changes to skip (mutually exclusive with `includedClientIds`)",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "scnGapDetectionMinSize",
+          "description": "Minimum SCN delta to consider for gap detection",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "scnGapDetectionMaxInterval",
+          "description": "Max time window in seconds for the SCN gap detection heuristic",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ConfigurationBasedSnapshot",
+      "description": "Fine-grained switches used when `snapshotMode \u003d\u003d CONFIGURATION_BASED`.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "includeData",
+          "description": "Include row data in the snapshot",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "includeSchema",
+          "description": "Include schema (DDL) in the snapshot",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "startStream",
+          "description": "Start streaming after the snapshot completes",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "snapshotOnSchemaError",
+          "description": "Re-snapshot on schema error",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "snapshotOnDataError",
+          "description": "Re-snapshot on data error",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "OracleExtendedSnapshotConfiguration",
+      "description": "Oracle-specific extended snapshot configuration.\nExtends the relational base with configuration-based snapshot sub-flags.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "configurationBased",
+          "description": "Sub-flags active only when `snapshotMode \u003d\u003d CONFIGURATION_BASED`",
+          "type": {
+            "name": "ConfigurationBasedSnapshot",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ConfigurationBasedSnapshot"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "lockingMode",
+          "description": "",
+          "type": {
+            "name": "SnapshotLockingMode",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "SnapshotLockingMode",
+                "libraryName": "ballerinax/cdc"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "selectStatementOverrides",
+          "description": "",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "queryMode",
+          "description": "",
+          "type": {
+            "name": "SnapshotQueryMode",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "SnapshotQueryMode",
+                "libraryName": "ballerinax/cdc"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "delay",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "fetchSize",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxThreads",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "includeCollectionList",
+          "description": "",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "incrementalConfig",
+          "description": "",
+          "type": {
+            "name": "IncrementalSnapshotConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "IncrementalSnapshotConfiguration",
+                "libraryName": "ballerinax/cdc"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "OracleDataTypeConfiguration",
+      "description": "Oracle-specific data type handling.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "intervalHandlingMode",
+          "description": "How Oracle `INTERVAL` types are represented (numeric vs ISO-8601 string)",
+          "type": {
+            "name": "IntervalHandlingMode",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "IntervalHandlingMode"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "binaryHandlingMode",
+          "description": "",
+          "type": {
+            "name": "BinaryHandlingMode",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "BinaryHandlingMode",
+                "libraryName": "ballerinax/cdc"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "timePrecisionMode",
+          "description": "",
+          "type": {
+            "name": "TimePrecisionMode",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "TimePrecisionMode",
+                "libraryName": "ballerinax/cdc"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "OracleDatabaseConnection",
+      "description": "Represents the configuration for the Oracle CDC database connection.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "connectorClass",
+          "description": "Fully-qualified Debezium connector class name (hardcoded)",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "hostname",
+          "description": "Oracle server hostname; ignored when `url` is set",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "port",
+          "description": "Oracle listener port; ignored when `url` is set",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "databaseName",
+          "description": "Root container (CDB) or non-CDB database name. Required regardless of `url`",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "url",
+          "description": "Raw JDBC URL for TNS / RAC / TCPS connections. Overrides `hostname` and `port` only",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "pdbName",
+          "description": "Pluggable database name (multi-tenant installations only)",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "adapterMode",
+          "description": "LogMiner mode: connector-side (`LOGMINER`) or database-side (`LOGMINER_UNBUFFERED`)",
+          "type": {
+            "name": "AdapterMode",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "AdapterMode"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "racNodes",
+          "description": "RAC node list (`host:port` or `host:port/SID`); required for RAC even when `url` is set",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "includedSchemas",
+          "description": "Regex patterns for schemas to capture (mutually exclusive with `excludedSchemas`)",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "excludedSchemas",
+          "description": "Regex patterns for schemas to exclude (mutually exclusive with `includedSchemas`)",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "includedTables",
+          "description": "Regex patterns for tables to capture (mutually exclusive with `excludedTables`)",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "excludedTables",
+          "description": "Regex patterns for tables to exclude (mutually exclusive with `includedTables`)",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "includedColumns",
+          "description": "Regex patterns for columns to capture (mutually exclusive with `excludedColumns`)",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "excludedColumns",
+          "description": "Regex patterns for columns to exclude (mutually exclusive with `includedColumns`)",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "logMinerConfig",
+          "description": "LogMiner adapter tunables (apply to both `LOGMINER` and `LOGMINER_UNBUFFERED`)",
+          "type": {
+            "name": "LogMinerConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "LogMinerConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "driverConfig",
+          "description": "Oracle JDBC driver pass-through (mTLS, Oracle Wallet, timezone-as-region)",
+          "type": {
+            "name": "DriverConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DriverConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "username",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "password",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "connectTimeout",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "tasksMax",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "secure",
+          "description": "",
+          "type": {
+            "name": "SecureDatabaseConnection",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "SecureDatabaseConnection",
+                "libraryName": "ballerinax/cdc"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "OracleOptions",
+      "description": "Oracle-specific CDC options for snapshot, LOB capture, streaming, and data type handling.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "extendedSnapshot",
+          "description": "Snapshot config with Oracle-specific configuration-based sub-flags",
+          "type": {
+            "name": "OracleExtendedSnapshotConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OracleExtendedSnapshotConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "dataTypeConfig",
+          "description": "Data type handling including Oracle `INTERVAL` handling",
+          "type": {
+            "name": "OracleDataTypeConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OracleDataTypeConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "heartbeatConfig",
+          "description": "Heartbeat configuration for keeping the connection alive",
+          "type": {
+            "name": "RelationalHeartbeatConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "RelationalHeartbeatConfiguration",
+                "libraryName": "ballerinax/cdc"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "streamingDelay",
+          "description": "Delay between snapshot completion and streaming start, in seconds",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "queryFetchSize",
+          "description": "JDBC fetch size for streaming queries",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "lobEnabled",
+          "description": "Enable CLOB / NCLOB / BLOB / XML capture (incompatible with `HYBRID` mining strategy)",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "unavailableValuePlaceholder",
+          "description": "Placeholder string emitted for unchanged LOB columns",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "snapshotDatabaseErrorsMaxRetries",
+          "description": "Per-table retry count for snapshot-time DB errors (e.g., ORA-01466)",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "snapshotMode",
+          "description": "",
+          "type": {
+            "name": "SnapshotMode",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "SnapshotMode",
+                "libraryName": "ballerinax/cdc"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "eventProcessingFailureHandlingMode",
+          "description": "",
+          "type": {
+            "name": "EventProcessingFailureHandlingMode",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "EventProcessingFailureHandlingMode",
+                "libraryName": "ballerinax/cdc"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "skippedOperations",
+          "description": "",
+          "type": {
+            "name": "Operation[]",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Operation",
+                "libraryName": "ballerinax/cdc"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "skipMessagesWithoutChange",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "decimalHandlingMode",
+          "description": "",
+          "type": {
+            "name": "DecimalHandlingMode",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "DecimalHandlingMode",
+                "libraryName": "ballerinax/cdc"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "maxQueueSize",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "maxBatchSize",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "queryTimeout",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "signalConfig",
+          "description": "",
+          "type": {
+            "name": "SignalConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "SignalConfiguration",
+                "libraryName": "ballerinax/cdc"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "transactionMetadataConfig",
+          "description": "",
+          "type": {
+            "name": "TransactionMetadataConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "TransactionMetadataConfiguration",
+                "libraryName": "ballerinax/cdc"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "columnTransformConfig",
+          "description": "",
+          "type": {
+            "name": "ColumnTransformConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ColumnTransformConfiguration",
+                "libraryName": "ballerinax/cdc"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "topicConfig",
+          "description": "",
+          "type": {
+            "name": "TopicConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "TopicConfiguration",
+                "libraryName": "ballerinax/cdc"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "connectionRetryConfig",
+          "description": "",
+          "type": {
+            "name": "ConnectionRetryConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ConnectionRetryConfiguration",
+                "libraryName": "ballerinax/cdc"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "performanceConfig",
+          "description": "",
+          "type": {
+            "name": "PerformanceConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "PerformanceConfiguration",
+                "libraryName": "ballerinax/cdc"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "OracleListenerConfiguration",
+      "description": "Oracle CDC listener configuration including database connection, storage, and CDC options.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "database",
+          "description": "Oracle database connection, LogMiner, driver, and capture settings",
+          "type": {
+            "name": "OracleDatabaseConnection",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OracleDatabaseConnection"
+              }
+            ]
+          }
+        },
+        {
+          "name": "options",
+          "description": "Oracle-specific CDC options including snapshot, LOB, streaming, and data type handling",
+          "type": {
+            "name": "OracleOptions",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OracleOptions"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "engineName",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "internalSchemaStorage",
+          "description": "",
+          "type": {
+            "name": "InternalSchemaStorage",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "InternalSchemaStorage",
+                "libraryName": "ballerinax/cdc"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "offsetStorage",
+          "description": "",
+          "type": {
+            "name": "OffsetStorage",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "OffsetStorage",
+                "libraryName": "ballerinax/cdc"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "livenessInterval",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Sign",
+      "description": "Represents the Oracle (+/-) sign.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "1",
+          "type": {
+            "name": "1"
+          }
+        },
+        {
+          "name": "-1",
+          "type": {
+            "name": "-1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "IntervalYearToMonth",
+      "description": "Represents a period of time in years and months.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "sign",
+          "description": "Sign of the interval value",
+          "type": {
+            "name": "Sign",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Sign"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "years",
+          "description": "Number of years",
+          "type": {
+            "name": "int:Unsigned32"
+          },
+          "optional": true
+        },
+        {
+          "name": "months",
+          "description": "Number of months",
+          "type": {
+            "name": "int:Unsigned32"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "IntervalDayToSecond",
+      "description": "Represents a period of time in days, hours, minutes, and seconds.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "sign",
+          "description": "Sign of the interval value",
+          "type": {
+            "name": "Sign",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Sign"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "days",
+          "description": "Number of days",
+          "type": {
+            "name": "int:Unsigned32"
+          },
+          "optional": true
+        },
+        {
+          "name": "hours",
+          "description": "Number of hours",
+          "type": {
+            "name": "int:Unsigned32"
+          },
+          "optional": true
+        },
+        {
+          "name": "minutes",
+          "description": "Number of minutes",
+          "type": {
+            "name": "int:Unsigned32"
+          },
+          "optional": true
+        },
+        {
+          "name": "seconds",
+          "description": "Number of seconds",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ObjectType",
+      "description": "Represents the Oracle UDT type, which is an abstraction of the real-world entities such as purchase orders that application programs deal with.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "typename",
+          "description": "Name of the object type",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "attributes",
+          "description": "Attributes of the object",
+          "type": {
+            "name": "anydata[]?"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Varray",
+      "description": "Represents an ordered set of data elements with a variable size but with a maximum size defined. All elements of a given array are# of the same data type with null value support.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "name",
+          "description": "Name of the varray",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "elements",
+          "description": "Elements of the Varray",
+          "type": {
+            "name": "ArrayValueType?"
+          }
+        }
+      ]
+    },
+    {
+      "name": "NestedTableType",
+      "description": "Represents an ordered set of data elements with a variable size.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "name",
+          "description": "Name of the varray",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "elements",
+          "description": "Elements of the Varray",
+          "type": {
+            "name": "ArrayValueType?"
+          }
+        }
+      ]
+    },
+    {
+      "name": "CdcListener",
+      "description": "Initializes the Oracle listener with the given configuration.\n",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes the Oracle listener with the given configuration.\n",
+          "parameters": [
+            {
+              "name": "engineName",
+              "description": "Debezium engine instance name",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "internalSchemaStorage",
+              "description": "Schema history storage configuration",
+              "type": {
+                "name": "InternalSchemaStorage",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "InternalSchemaStorage",
+                    "libraryName": "ballerinax/cdc"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "offsetStorage",
+              "description": "Offset storage configuration",
+              "type": {
+                "name": "OffsetStorage",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "OffsetStorage",
+                    "libraryName": "ballerinax/cdc"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "livenessInterval",
+              "description": "Interval in seconds for checking CDC listener liveness",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "0.0d"
+            },
+            {
+              "name": "database",
+              "description": "Database connection configuration (provided by DB-specific listener configs)",
+              "type": {
+                "name": "OracleDatabaseConnection",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "OracleDatabaseConnection"
+                  }
+                ]
+              },
+              "default": "{databaseName: \"\", username: \"\", password: \"\"}"
+            },
+            {
+              "name": "options",
+              "description": "Connector options",
+              "type": {
+                "name": "OracleOptions",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "OracleOptions"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "config",
+              "description": "The configuration for the Oracle CDC connector",
+              "type": {
+                "name": "OracleListenerConfiguration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "OracleListenerConfiguration"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "A `cdc:Error` if the configuration is invalid, or `()` if initialization succeeds",
+            "type": {
+              "name": "cdc:Error?"
+            }
+          }
+        },
+        {
+          "name": "attach",
+          "type": "Normal Function",
+          "description": "Attaches a CDC service to the Oracle listener.\n",
+          "parameters": [
+            {
+              "name": "s",
+              "description": "The CDC service to attach",
+              "type": {
+                "name": "Service",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "Service",
+                    "libraryName": "ballerinax/cdc"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "name",
+              "description": "Attachment points",
+              "type": {
+                "name": "string[]|string|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "A `cdc:Error` if the service cannot be attached, or `()` if successful",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerinax/cdc"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "\u0027start",
+          "type": "Normal Function",
+          "description": "Starts the Oracle listener.\n",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerinax/cdc"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "detach",
+          "type": "Normal Function",
+          "description": "Detaches a CDC service from the Oracle listener.\n",
+          "parameters": [
+            {
+              "name": "s",
+              "description": "The CDC service to detach",
+              "type": {
+                "name": "Service",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "Service",
+                    "libraryName": "ballerinax/cdc"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "A `cdc:Error` if the service cannot be detached, or `()` if successful",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerinax/cdc"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "gracefulStop",
+          "type": "Normal Function",
+          "description": "Stops the Oracle listener gracefully.\n",
+          "parameters": [],
+          "return": {
+            "description": "A `cdc:Error` if the listener cannot be stopped, or `()` if successful",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerinax/cdc"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "immediateStop",
+          "type": "Normal Function",
+          "description": "Stops the Oracle listener immediately.\n",
+          "parameters": [],
+          "return": {
+            "description": "A `cdc:Error` if the listener cannot be stopped, or `()` if successful",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerinax/cdc"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ObjectTypeValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "ObjectType|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ObjectType"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "VarrayValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "Varray|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Varray"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "NestedTableValue",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "name": "NestedTableType|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "NestedTableType"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ObjectOutParameter",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "typeName",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        },
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses the returned Oracle OBJECT SQL value to a Ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/sql"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "XmlOutParameter",
+      "description": "Represents the `XML range` `OutParameter` in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses the returned `Xml` SQL value to a Ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/sql"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "IntervalYearToMonthOutParameter",
+      "description": "Represents the `IntervalYearToMonth` `OutParameter` in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses the returned `IntervalYearToMonthOutParameter` SQL value to a Ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/sql"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "IntervalDayToSecondOutParameter",
+      "description": "Represents the `IntervalDayToSecond` `OutParameter` in `sql:ParameterizedCallQuery`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "get",
+          "type": "Normal Function",
+          "description": "Parses the returned `IntervalDayToSecondOutParameter` SQL value to a Ballerina value.\n",
+          "parameters": [
+            {
+              "name": "typeDesc",
+              "description": "The `typedesc` of the type to which the result needs to be returned",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "The result in the `typeDesc` type, or an `sql:Error`",
+            "type": {
+              "name": "typeDesc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "typeDesc"
+                },
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/sql"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "CustomResultIterator",
+      "description": "The iterator for the stream returned from the `query` function to be used to override the default behaviour of `sql:ResultIterator`.",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "nextResult",
+          "type": "Normal Function",
+          "description": "",
+          "parameters": [
+            {
+              "name": "iterator",
+              "type": {
+                "name": "ResultIterator",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ResultIterator",
+                    "libraryName": "ballerina/sql"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "record {|anydata...;|}|Error|()",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/sql"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "getNextQueryResult",
+          "type": "Normal Function",
+          "description": "",
+          "parameters": [
+            {
+              "name": "callResult",
+              "type": {
+                "name": "ProcedureCallResult",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ProcedureCallResult",
+                    "libraryName": "ballerina/sql"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "boolean|Error",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/sql"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "name": "Client",
+      "description": "Represents a OracleDB client.",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes the OracleDB Client. The client must be kept open throughout the application lifetime.\n",
+          "parameters": [
+            {
+              "name": "host",
+              "description": "Hostname of the Oracle database server",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"localhost\""
+            },
+            {
+              "name": "user",
+              "description": "Name of a user of the Oracle database server",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "\"sys\""
+            },
+            {
+              "name": "password",
+              "description": "The password of the Oracle database server for the provided username",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "database",
+              "description": "System identifier or the service name of the database",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "port",
+              "description": "Port number of the Oracle database server",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "1521"
+            },
+            {
+              "name": "options",
+              "description": "Oracle database connection properties",
+              "type": {
+                "name": "Options|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Options"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "connectionPool",
+              "description": "The `sql:ConnectionPool` object to be used within the client. If there is no\n`connectionPool` provided, the global connection pool will be used",
+              "type": {
+                "name": "ConnectionPool|()",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ConnectionPool",
+                    "libraryName": "ballerina/sql"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "An `sql:Error` if the client creation fails",
+            "type": {
+              "name": "sql:Error?"
+            }
+          }
+        },
+        {
+          "name": "query",
+          "type": "Remote Function",
+          "description": "Executes the query, which may return multiple results.\nWhen processing the stream, make sure to consume all fetched data or close the stream.\n",
+          "parameters": [
+            {
+              "name": "sqlQuery",
+              "description": "The SQL query such as `` `SELECT * from Album WHERE name\u003d${albumName}` ``",
+              "type": {
+                "name": "ParameterizedQuery",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ParameterizedQuery",
+                    "libraryName": "ballerina/sql"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "rowType",
+              "description": "The `typedesc` of the record to which the result needs to be returned",
+              "type": {
+                "name": "record {|anydata...;|}"
+              },
+              "optional": true,
+              "default": "record {|anydata...;|}"
+            }
+          ],
+          "return": {
+            "description": "Stream of records in the `rowType` type",
+            "type": {
+              "name": "stream\u003crowType, sql:Error?\u003e"
+            }
+          }
+        },
+        {
+          "name": "queryRow",
+          "type": "Remote Function",
+          "description": "Executes the query, which is expected to return at most one row of the result.\nIf the query does not return any results, an `sql:NoRowsError` is returned.\n",
+          "parameters": [
+            {
+              "name": "sqlQuery",
+              "description": "The SQL query such as `` `SELECT * from Album WHERE name\u003d${albumName}` ``",
+              "type": {
+                "name": "ParameterizedQuery",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ParameterizedQuery",
+                    "libraryName": "ballerina/sql"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "returnType",
+              "description": "The `typedesc` of the record to which the result needs to be returned.\nIt can be a basic type if the query result contains only one column",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "Result in the `returnType` type or an `sql:Error`",
+            "type": {
+              "name": "returnType|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "returnType"
+                },
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/sql"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "execute",
+          "type": "Remote Function",
+          "description": "Executes the SQL query. Only the metadata of the execution is returned (not the results from the query).\n",
+          "parameters": [
+            {
+              "name": "sqlQuery",
+              "description": "The SQL query such as `` `DELETE FROM Album WHERE artist\u003d${artistName}` ``",
+              "type": {
+                "name": "ParameterizedQuery",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ParameterizedQuery",
+                    "libraryName": "ballerina/sql"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "Metadata of the query execution as an `sql:ExecutionResult` or an `sql:Error`",
+            "type": {
+              "name": "ExecutionResult|Error",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "ExecutionResult",
+                  "libraryName": "ballerina/sql"
+                },
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/sql"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "batchExecute",
+          "type": "Remote Function",
+          "description": "Executes the SQL query with multiple sets of parameters in a batch. Only the metadata of the execution is returned (not results from the query).\nIf one of the commands in the batch fails, the `sql:BatchExecuteError` will be returned immediately.\n",
+          "parameters": [
+            {
+              "name": "sqlQueries",
+              "description": "The SQL query with multiple sets of parameters",
+              "type": {
+                "name": "ParameterizedQuery[]",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ParameterizedQuery",
+                    "libraryName": "ballerina/sql"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "Metadata of the query execution as an `sql:ExecutionResult[]` or an `sql:Error`",
+            "type": {
+              "name": "ExecutionResult[]|Error",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "ExecutionResult",
+                  "libraryName": "ballerina/sql"
+                },
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/sql"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "call",
+          "type": "Remote Function",
+          "description": "Executes an SQL query, which calls a stored procedure or function. This may or may not\nreturn results. Once the results are processed, the `close` method on `sql:ProcedureCallResult` must be called.\n\nThis method supports two JDBC call syntaxes:\n- **Procedure call**: `` `{call procedureName(${param1}, ${param2})}` ``\n- **Function call**: `` `{${returnParam} \u003d call functionName(${param1})}` ``\n\nFor function calls, use an `OutParameter` (e.g., `sql:VarcharOutParameter`) as the return parameter to capture\nthe function\u0027s return value. This is especially important for Oracle PL/SQL functions, which cannot be invoked\nusing `CALL func()` syntax (ORA-06576). Use the function call syntax instead:\n```ballerina\nsql:VarcharOutParameter retVal \u003d new;\nsql:ProcedureCallResult ret \u003d check dbClient-\u003ecall(`{${retVal} \u003d call myFunc(${param})}`);\nstring result \u003d check retVal.get(string);\ncheck ret.close();\n```\n\nFor functions that return Oracle OBJECT types, use `ObjectOutParameter` to capture the return value\nand map it to a Ballerina record:\n```ballerina\noracledb:ObjectOutParameter retVal \u003d new(\"MY_OBJECT_TYPE\");\nsql:ProcedureCallResult ret \u003d check dbClient-\u003ecall(`{${retVal} \u003d call myFunc(${param})}`);\nMyRecord? result \u003d check retVal.get(MyRecord);\ncheck ret.close();\n```\n",
+          "parameters": [
+            {
+              "name": "sqlQuery",
+              "description": "The SQL query such as `` `{call sp_GetAlbums()}` `` or `` `{${retVal} \u003d call myFunc(${param})}` ``",
+              "type": {
+                "name": "ParameterizedCallQuery",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "ParameterizedCallQuery",
+                    "libraryName": "ballerina/sql"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "rowTypes",
+              "description": "`typedesc` array of the records to which the results need to be returned",
+              "type": {
+                "name": "typedesc\u003crecord {|anydata...;|}\u003e[]"
+              },
+              "optional": true,
+              "default": "[]"
+            }
+          ],
+          "return": {
+            "description": "Summary of the execution and results are returned in an `sql:ProcedureCallResult`, or an `sql:Error`",
+            "type": {
+              "name": "ProcedureCallResult|Error",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "ProcedureCallResult",
+                  "libraryName": "ballerina/sql"
+                },
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/sql"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "close",
+          "type": "Normal Function",
+          "description": "Closes the JDBC client and shuts down the connection pool. The client must be closed only at the end of the\napplication lifetime (or closed for graceful stops in a service).\n",
+          "parameters": [],
+          "return": {
+            "description": "`()` or an `sql:Error`",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "Error",
+                  "libraryName": "ballerina/sql"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "functions": [],
+  "services": [],
+  "annotations": []
+}

@@ -1,0 +1,1913 @@
+{
+  "name": "ballerinax/wso2.apim.catalog",
+  "description": "The WSO2 APIM Catalog Publisher connector provides service management tools for publishing service data to [WSO2 API Manager](https://wso2.com/api-manager/) service catalogs.",
+  "readme": "## Overview\n\nThe WSO2 APIM Catalog Publisher connector provides service management tools for publishing service data to [WSO2 API Manager](https://wso2.com/api-manager/) service catalogs.\n\n### Key Features\n\n- Publish service metadata to WSO2 API Manager service catalogs automatically\n- OAuth 2.0 authentication with WSO2 APIM\n- Seamless integration with Ballerina HTTP services\n- Remote management support via build options\n\n## Quickstart\n\n1. Add `import ballerinax/wso2.apim.catalog as _;` to the default module.\n2. Add `remoteManagement\u003dtrue` to `[build-options]` section of the Ballerina.toml file.\n3. Create Config.toml file if it does not exist, and add the following configurations.\n    ```toml\n    [ballerinax.wso2.apim.catalog]\n    serviceUrl\u003d\"\u003cUrl of the service catalog endpoint\u003e\"\n    tokenUrl\u003d\"\u003cUrl of the token endpoint\u003e\"\n    username\u003d\"\u003cusername\u003e\"\n    password\u003d\"\u003cpassword\u003e\"\n    clientId\u003d\"\u003cclientId\u003e\"\n    clientSecret\u003d\"\u003cClient secret\u003e\"\n    ```\n    Modify the configurations to match your WSO2 APIM manager.\n4. Run the project with the following command.\n    ```shell\n    $ bal run\n    ```\n\n## Examples\n\n```ballerina\n   import ballerina/http;\n   import ballerinax/wso2.apim.catalog as _;\n   \n   service /sales0 on new http:Listener(9000) {\n       // implementation\n   }\n```\n\n## Useful links\n\n* Chat live with us via our [Discord server](https://discord.gg/ballerinalang).\n* Post all technical questions on Stack Overflow with the [#ballerina](https://stackoverflow.com/questions/tagged/ballerina) tag.\n",
+  "typeDefs": [
+    {
+      "name": "OAS2",
+      "description": "",
+      "type": "Constant",
+      "value": "OAS2",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "OAS3",
+      "description": "",
+      "type": "Constant",
+      "value": "OAS3",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "WSDL1",
+      "description": "",
+      "type": "Constant",
+      "value": "WSDL1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "WSDL2",
+      "description": "",
+      "type": "Constant",
+      "value": "WSDL2",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "GRAPHQL_SDL",
+      "description": "",
+      "type": "Constant",
+      "value": "GRAPHQL_SDL",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "ASYNC_API",
+      "description": "",
+      "type": "Constant",
+      "value": "ASYNC_API",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "BASIC",
+      "description": "",
+      "type": "Constant",
+      "value": "BASIC",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "DIGEST",
+      "description": "",
+      "type": "Constant",
+      "value": "DIGEST",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "OAUTH2",
+      "description": "",
+      "type": "Constant",
+      "value": "OAUTH2",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "X509",
+      "description": "",
+      "type": "Constant",
+      "value": "X509",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "API_KEY",
+      "description": "",
+      "type": "Constant",
+      "value": "API_KEY",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "NONE",
+      "description": "",
+      "type": "Constant",
+      "value": "NONE",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "ConnectionConfig",
+      "description": "Provides a set of configurations for controlling the behaviours when communicating with a remote HTTP endpoint.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "auth",
+          "description": "Configurations related to client authentication",
+          "type": {
+            "name": "OAuth2PasswordGrantConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "OAuth2PasswordGrantConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "httpVersion",
+          "description": "The HTTP version understood by the client",
+          "type": {
+            "name": "HttpVersion",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "HttpVersion",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "http1Settings",
+          "description": "Configurations related to HTTP/1.x protocol",
+          "type": {
+            "name": "ClientHttp1Settings",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ClientHttp1Settings"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "http2Settings",
+          "description": "Configurations related to HTTP/2 protocol",
+          "type": {
+            "name": "ClientHttp2Settings",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientHttp2Settings",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "timeout",
+          "description": "The maximum time to wait (in seconds) for a response before closing the connection",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "forwarded",
+          "description": "The choice of setting `forwarded`/`x-forwarded` header",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "poolConfig",
+          "description": "Configurations associated with request pooling",
+          "type": {
+            "name": "PoolConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "PoolConfiguration",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "cache",
+          "description": "HTTP caching related configurations",
+          "type": {
+            "name": "CacheConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CacheConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "compression",
+          "description": "Specifies the way of handling compression (`accept-encoding`) header",
+          "type": {
+            "name": "Compression",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Compression",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "circuitBreaker",
+          "description": "Configurations associated with the behaviour of the Circuit Breaker",
+          "type": {
+            "name": "CircuitBreakerConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CircuitBreakerConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "retryConfig",
+          "description": "Configurations associated with retrying",
+          "type": {
+            "name": "RetryConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "RetryConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "responseLimits",
+          "description": "Configurations associated with inbound response size limits",
+          "type": {
+            "name": "ResponseLimitConfigs",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ResponseLimitConfigs",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "SSL/TLS-related options",
+          "type": {
+            "name": "ClientSecureSocket",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientSecureSocket",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "proxy",
+          "description": "Proxy server related options",
+          "type": {
+            "name": "ProxyConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ProxyConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "validation",
+          "description": "Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ],
+      "annotations": [
+        {
+          "name": "display",
+          "value": "{label: \"Connection Config\"}"
+        }
+      ]
+    },
+    {
+      "name": "OAuth2PasswordGrantConfig",
+      "description": "OAuth2 Password Grant Configs",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "tokenUrl",
+          "description": "Token URL",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "username",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "password",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "clientId",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "clientSecret",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "scopes",
+          "description": "",
+          "type": {
+            "name": "string|string[]"
+          },
+          "optional": true
+        },
+        {
+          "name": "refreshConfig",
+          "description": "",
+          "type": {
+            "name": "RefreshConfig|\"INFER_REFRESH_CONFIG\"",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "RefreshConfig",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "defaultTokenExpTime",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "clockSkew",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "optionalParams",
+          "description": "",
+          "type": {
+            "name": "map\u003cstring\u003e"
+          },
+          "optional": true
+        },
+        {
+          "name": "credentialBearer",
+          "description": "",
+          "type": {
+            "name": "CredentialBearer",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CredentialBearer",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "clientConfig",
+          "description": "",
+          "type": {
+            "name": "ClientConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientConfiguration",
+                "libraryName": "ballerina/oauth2"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ClientHttp1Settings",
+      "description": "Provides settings related to HTTP/1.x protocol.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "keepAlive",
+          "description": "Specifies whether to reuse a connection for multiple requests",
+          "type": {
+            "name": "KeepAlive",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "KeepAlive",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "chunking",
+          "description": "The chunking behaviour of the request",
+          "type": {
+            "name": "Chunking",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Chunking",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "proxy",
+          "description": "Proxy server related options",
+          "type": {
+            "name": "ProxyConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ProxyConfig"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ProxyConfig",
+      "description": "Proxy server configurations to be used with the HTTP client endpoint.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "host",
+          "description": "Host name of the proxy server",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "port",
+          "description": "Proxy server port",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "userName",
+          "description": "Proxy server username",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "password",
+          "description": "Proxy server password",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"\", kind: \"password\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ServiceInfoList",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "count",
+          "description": "MD5 hashes of services returned.",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "list",
+          "description": "",
+          "type": {
+            "name": "ServiceInfo[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ServiceInfo"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ServiceInfo",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "id",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "name",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{pattern: re `^[^\\*]+$`}"
+            }
+          ]
+        },
+        {
+          "name": "\u0027key",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "version",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "md5",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ServiceList",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "list",
+          "description": "",
+          "type": {
+            "name": "Service[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Service"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "pagination",
+          "description": "",
+          "type": {
+            "name": "Pagination",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Pagination"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Service",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "id",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "name",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 255, minLength: 1, pattern: re `^[^\\*]+$`}"
+            }
+          ]
+        },
+        {
+          "name": "description",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 1024}"
+            }
+          ]
+        },
+        {
+          "name": "version",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 30, minLength: 1}"
+            }
+          ]
+        },
+        {
+          "name": "serviceKey",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 512}"
+            }
+          ]
+        },
+        {
+          "name": "serviceUrl",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "definitionType",
+          "description": "The type of the provided API definition",
+          "type": {
+            "name": "\"OAS2\"|\"OAS3\"|\"WSDL1\"|\"WSDL2\"|\"GRAPHQL_SDL\"|\"ASYNC_API\""
+          }
+        },
+        {
+          "name": "securityType",
+          "description": "The security type of the endpoint",
+          "type": {
+            "name": "\"BASIC\"|\"DIGEST\"|\"OAUTH2\"|\"X509\"|\"API_KEY\"|\"NONE\""
+          },
+          "optional": true
+        },
+        {
+          "name": "mutualSSLEnabled",
+          "description": "Whether Mutual SSL is enabled for the endpoint",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "usage",
+          "description": "Number of usages of the service in APIs",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "createdTime",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "lastUpdatedTime",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "md5",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "definitionUrl",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Pagination",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "offset",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "\u0027limit",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "total",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "next",
+          "description": "Link to the next subset of resources qualified.\nEmpty if no more resources are to be returned.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "previous",
+          "description": "Link to the previous subset of resources qualified.\nEmpty if current subset is the first subset returned.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ErrorListItem",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "code",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "message",
+          "description": "Description about individual errors occurred",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "description",
+          "description": "A detail description about the error message.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "APIInfo",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "id",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "name",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "context",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "version",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "provider",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Error",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "code",
+          "description": "",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "message",
+          "description": "Error message.",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "description",
+          "description": "A detail description about the error message.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "moreInfo",
+          "description": "Preferably an url with more details about the error.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "\u0027error",
+          "description": "If there are more than one error list them out.\nFor example, list out validation errors by each field.",
+          "type": {
+            "name": "ErrorListItem[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ErrorListItem"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Services_import_body",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "file",
+          "description": "Zip archive consisting of exported Application Configuration.",
+          "type": {
+            "name": "record {|byte[] fileContent; string fileName; anydata...;|}"
+          }
+        },
+        {
+          "name": "verifier",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Verifier",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "\u0027key",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{pattern: re `^[^\\*]+$`}"
+            }
+          ]
+        },
+        {
+          "name": "md5",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ServiceSchema",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "serviceMetadata",
+          "description": "",
+          "type": {
+            "name": "Service",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Service"
+              }
+            ]
+          }
+        },
+        {
+          "name": "definitionFile",
+          "description": "",
+          "type": {
+            "name": "record {|byte[] fileContent; string fileName; anydata...;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "inlineContent",
+          "description": "Inline content of the document",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "APIList",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "count",
+          "description": "Number of APIs returned.",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "list",
+          "description": "",
+          "type": {
+            "name": "APIInfo[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "APIInfo"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ServiceListExpanded",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "count",
+          "description": "MD5 hashes of services returned.",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "list",
+          "description": "",
+          "type": {
+            "name": "Service[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Service"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "pagination",
+          "description": "",
+          "type": {
+            "name": "Pagination",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Pagination"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Settings",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "scopes",
+          "description": "",
+          "type": {
+            "name": "string[]"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ServiceCatalogMetaData",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "openApiDefinition",
+          "description": "",
+          "type": {
+            "name": "byte[]"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ServiceArtifact",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "name",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "description",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "version",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "serviceKey",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "serviceUrl",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "definitionType",
+          "description": "",
+          "type": {
+            "name": "DefinitionType",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DefinitionType"
+              }
+            ]
+          }
+        },
+        {
+          "name": "securityType",
+          "description": "",
+          "type": {
+            "name": "SecurityType",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SecurityType"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "mutualSSLEnabled",
+          "description": "",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "usage",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "createdTime",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "lastUpdatedTime",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "md5",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "definitionUrl",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "definitionFileContent",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "DefinitionType",
+      "description": "",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "ASYNC_API",
+          "description": ""
+        },
+        {
+          "name": "GRAPHQL_SDL",
+          "description": ""
+        },
+        {
+          "name": "WSDL2",
+          "description": ""
+        },
+        {
+          "name": "WSDL1",
+          "description": ""
+        },
+        {
+          "name": "OAS3",
+          "description": ""
+        },
+        {
+          "name": "OAS2",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "SecurityType",
+      "description": "",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "NONE",
+          "description": ""
+        },
+        {
+          "name": "API_KEY",
+          "description": ""
+        },
+        {
+          "name": "X509",
+          "description": ""
+        },
+        {
+          "name": "OAUTH2",
+          "description": ""
+        },
+        {
+          "name": "DIGEST",
+          "description": ""
+        },
+        {
+          "name": "BASIC",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "Listener",
+      "description": "",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "",
+          "parameters": [
+            {
+              "name": "port",
+              "type": {
+                "name": "int"
+              }
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "()"
+            }
+          }
+        },
+        {
+          "name": "\u0027start",
+          "type": "Normal Function",
+          "description": "",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "name": "gracefulStop",
+          "type": "Normal Function",
+          "description": "",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "name": "immediateStop",
+          "type": "Normal Function",
+          "description": "",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "name": "detach",
+          "type": "Normal Function",
+          "description": "",
+          "parameters": [
+            {
+              "name": "s",
+              "type": {
+                "name": "service object {}"
+              }
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "name": "attach",
+          "type": "Normal Function",
+          "description": "",
+          "parameters": [
+            {
+              "name": "s",
+              "type": {
+                "name": "service object {}"
+              }
+            },
+            {
+              "name": "name",
+              "type": {
+                "name": "string[]|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "name": "Client",
+      "description": "This specifies a **RESTful API** for Service Catalog.\n\n# Authentication\nOur REST APIs are protected using OAuth2 and access control is achieved through scopes. Before you start invoking\nthe the API you need to obtain an access token with the required scopes. This guide will walk you through the steps\nthat you will need to follow to obtain an access token.\nFirst you need to obtain the consumer key/secret key pair by calling the dynamic client registration (DCR) endpoint. You can add your preferred grant types\nin the payload. A Sample payload is shown below.\n```\n  {\n  \"callbackUrl\":\"www.google.lk\",\n  \"clientName\":\"rest_api_service_catalog\",\n  \"owner\":\"admin\",\n  \"grantType\":\"client_credentials password refresh_token\",\n  \"saasApp\":true\n  }\n```\nCreate a file (payload.json) with the above sample payload, and use the cURL shown bellow to invoke the DCR endpoint. Authorization header of this should contain the\nbase64 encoded admin username and password.\n**Format of the request**\n```\n  curl -X POST -H \"Authorization: Basic Base64(admin_username:admin_password)\" -H \"Content-Type: application/json\"\n  \\ -d @payload.json https://\u003chost\u003e:\u003cservlet_port\u003e/client-registration/v0.17/register\n```\n**Sample request**\n```\n  curl -X POST -H \"Authorization: Basic YWRtaW46YWRtaW4\u003d\" -H \"Content-Type: application/json\"\n  \\ -d @payload.json https://localhost:9443/client-registration/v0.17/register\n```\nFollowing is a sample response after invoking the above curl.\n```\n{\n\"clientId\": \"fOCi4vNJ59PpHucC2CAYfYuADdMa\",\n\"clientName\": \"rest_api_service_catalog\",\n\"callBackURL\": \"www.google.lk\",\n\"clientSecret\": \"a4FwHlq0iCIKVs2MPIIDnepZnYMa\",\n\"isSaasApplication\": true,\n\"appOwner\": \"admin\",\n\"jsonString\": \"{\\\"grant_types\\\":\\\"client_credentials password refresh_token\\\",\\\"redirect_uris\\\":\\\"www.google.lk\\\",\\\"client_name\\\":\\\"rest_api123\\\"}\",\n\"jsonAppAttribute\": \"{}\",\n\"tokenType\": null\n}\n```\nNext you must use the above client id and secret to obtain the access token.\nWe will be using the password grant type for this, you can use any grant type you desire.\nYou also need to add the proper **scope** when getting the access token. All possible scopes for Service Catalog REST API can be viewed in **OAuth2 Security** section\nof this document and scope for each resource is given in **authorization** section of resource documentation.\nFollowing is the format of the request if you are using the password grant type.\n```\ncurl -k -d \"grant_type\u003dpassword\u0026username\u003d\u003cadmin_username\u003e\u0026password\u003d\u003cadmin_passowrd\u003e\u0026scope\u003d\u003cscopes seperated by space\u003e\"\n\\ -H \"Authorization: Basic base64(cliet_id:client_secret)\"\n\\ https://\u003chost\u003e:\u003cservlet_port\u003e/oauth2/token\n```\n**Sample request**\n```\ncurl https://localhost:9443/oauth2/token -k \\\n-H \"Authorization: Basic Zk9DaTR2Tko1OVBwSHVjQzJDQVlmWXVBRGRNYTphNEZ3SGxxMGlDSUtWczJNUElJRG5lcFpuWU1h\" \\\n-d \"grant_type\u003dpassword\u0026username\u003dadmin\u0026password\u003dadmin\u0026scope\u003dservice_catalog:service_view service_catalog:service_write\"\n```\nShown below is a sample response to the above request.\n```\n{\n\"access_token\": \"e79bda48-3406-3178-acce-f6e4dbdcbb12\",\n\"refresh_token\": \"a757795d-e69f-38b8-bd85-9aded677a97c\",\n\"scope\": \"service_catalog:service_view service_catalog:service_write\",\n\"token_type\": \"Bearer\",\n\"expires_in\": 3600\n}\n```\nNow you have a valid access token, which you can use to invoke an API.\nNavigate through the API descriptions to find the required API, obtain an access token as described above and invoke the API with the authentication header.\nIf you use a different authentication mechanism, this process may change.",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Gets invoked to initialize the `connector`.\n",
+          "parameters": [
+            {
+              "name": "config",
+              "description": "The configurations to be used when initializing the `connector` ",
+              "type": {
+                "name": "ConnectionConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ConnectionConfig"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "serviceUrl",
+              "description": "URL of the target service ",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"https://apis.wso2.com/api/service-catalog/v1\""
+            }
+          ],
+          "return": {
+            "description": "An error if connector initialization failed ",
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Retrieve/search services\n",
+          "accessor": "get",
+          "paths": [
+            "services"
+          ],
+          "parameters": [
+            {
+              "name": "name",
+              "description": "Filter services by the name of the service",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "version",
+              "description": "Filter services by version of the service",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "definitionType",
+              "description": "Filter services by definitionType",
+              "type": {
+                "name": "\"ASYNC_API\"|()|\"OAS\"|\"WSDL1\"|\"WSDL2\"|\"GRAPHQL_SDL\""
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "\u0027key",
+              "description": "Comma seperated keys of the services to check",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "shrink",
+              "description": "If this set to true, a minimal set of fields will be provided for each service including the md5",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "sortBy",
+              "type": {
+                "name": "\"definitionType\"|()|\"name\""
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "sortOrder",
+              "type": {
+                "name": "\"desc\"|()|\"asc\""
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "\u0027limit",
+              "description": "Maximum limit of items to return.",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "0"
+            },
+            {
+              "name": "offset",
+              "description": "Starting point within the complete list of items qualified.",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "0"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "ServiceList|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "ServiceList"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Add a new service to Service Catalog\n",
+          "accessor": "post",
+          "paths": [
+            "services"
+          ],
+          "parameters": [
+            {
+              "name": "payload",
+              "type": {
+                "name": "ServiceSchema",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ServiceSchema"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "Service|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Service"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Get details of a service\n",
+          "accessor": "get",
+          "paths": [
+            "services",
+            {
+              "name": "serviceId",
+              "type": "string"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "serviceId",
+              "description": "uuid of the service",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "Service|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Service"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Update a service\n",
+          "accessor": "put",
+          "paths": [
+            "services",
+            {
+              "name": "serviceId",
+              "type": "string"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "serviceId",
+              "description": "uuid of the service",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "payload",
+              "type": {
+                "name": "ServiceSchema",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ServiceSchema"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "Service|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Service"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Delete a service\n",
+          "accessor": "delete",
+          "paths": [
+            "services",
+            {
+              "name": "serviceId",
+              "type": "string"
+            }
+          ],
+          "parameters": [
+            {
+              "name": "serviceId",
+              "description": "uuid of the service",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "Response|error",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "Response",
+                  "libraryName": "ballerina/http"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Retrieve a service definition\n",
+          "accessor": "get",
+          "paths": [
+            "services",
+            {
+              "name": "serviceId",
+              "type": "string"
+            },
+            "definition"
+          ],
+          "parameters": [
+            {
+              "name": "serviceId",
+              "description": "uuid of the service",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "string|error"
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Retrieve the API Info that use the given service\n",
+          "accessor": "get",
+          "paths": [
+            "services",
+            {
+              "name": "serviceId",
+              "type": "string"
+            },
+            "usage"
+          ],
+          "parameters": [
+            {
+              "name": "serviceId",
+              "description": "uuid of the service",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "APIList|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "APIList"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Import a service\n",
+          "accessor": "post",
+          "paths": [
+            "services",
+            "\u0027import"
+          ],
+          "parameters": [
+            {
+              "name": "payload",
+              "type": {
+                "name": "Services_import_body",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Services_import_body"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "overwrite",
+              "description": "Whether to overwrite if there is any existing service with the same name and version.",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "ServiceInfoList|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "ServiceInfoList"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Export a service\n",
+          "accessor": "get",
+          "paths": [
+            "services",
+            "export"
+          ],
+          "parameters": [
+            {
+              "name": "name",
+              "description": "Name of the service to export",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "version",
+              "description": "Version of the service to export",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "byte[]|error"
+            }
+          }
+        },
+        {
+          "type": "Resource Function",
+          "description": "Retrieve service catalog API settings\n",
+          "accessor": "get",
+          "paths": [
+            "settings"
+          ],
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "Settings|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Settings"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "functions": [],
+  "services": [],
+  "annotations": [
+    {
+      "name": "ServiceCatalogConfig",
+      "attachmentPoint": "SERVICE",
+      "typeConstraint": {
+        "name": "ServiceCatalogMetaData",
+        "links": [
+          {
+            "category": "internal",
+            "recordName": "ServiceCatalogMetaData"
+          }
+        ]
+      }
+    }
+  ]
+}

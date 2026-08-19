@@ -1,0 +1,613 @@
+{
+  "name": "ballerina/uuid",
+  "description": "This module provides APIs to generate and inspect UUIDs (Universally Unique Identifiers).",
+  "readme": "## Overview\n\nThis module provides APIs to generate and inspect UUIDs (Universally Unique Identifiers).\n\nThe UUIDs are generated based on the [RFC 4122](https://www.rfc-editor.org/rfc/rfc4122.html) standard. This module supports generating 4 versions of UUIDs.\n\n### Version 1\n\nGenerated using the MAC address of the computer and the time of generation.\n\n### Version 3\n\nCryptographic hashing and application-provided text strings are used to generate a UUID. MD5 hashing is used.\n\n### Version 4\n\nUses a pseudo-random number generator to generate the UUID. Every bit of the string is randomly generated.\n\n### Version 5\n\nSimilar to Version 3 but uses SHA-1 instead of MD5.\n\nOther operations include validating a given UUID string and getting the version of a UUID string.\n\nFor information on the operations, which you can perform with the `uuid` module, see the below **Functions**.\n",
+  "typeDefs": [
+    {
+      "name": "V1",
+      "description": "",
+      "type": "Constant",
+      "value": "V1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "V3",
+      "description": "",
+      "type": "Constant",
+      "value": "V3",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "V4",
+      "description": "",
+      "type": "Constant",
+      "value": "V4",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "V5",
+      "description": "",
+      "type": "Constant",
+      "value": "V5",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "NAME_SPACE_DNS",
+      "description": "",
+      "type": "Constant",
+      "value": "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "NAME_SPACE_URL",
+      "description": "",
+      "type": "Constant",
+      "value": "6ba7b811-9dad-11d1-80b4-00c04fd430c8",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "NAME_SPACE_OID",
+      "description": "",
+      "type": "Constant",
+      "value": "6ba7b812-9dad-11d1-80b4-00c04fd430c8",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "NAME_SPACE_X500",
+      "description": "",
+      "type": "Constant",
+      "value": "6ba7b814-9dad-11d1-80b4-00c04fd430c8",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "NAME_SPACE_NIL",
+      "description": "",
+      "type": "Constant",
+      "value": "00000000-0000-0000-0000-000000000000",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "Uuid",
+      "description": "Represents a UUID.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "timeLow",
+          "description": "The low field of the timestamp",
+          "type": {
+            "name": "int:Unsigned32"
+          }
+        },
+        {
+          "name": "timeMid",
+          "description": "The middle field of the timestamp",
+          "type": {
+            "name": "int:Unsigned16"
+          }
+        },
+        {
+          "name": "timeHiAndVersion",
+          "description": "The high field of the timestamp multiplexed with the version number",
+          "type": {
+            "name": "int:Unsigned16"
+          }
+        },
+        {
+          "name": "clockSeqHiAndReserved",
+          "description": "The high field of the clock sequence multiplexed with the variant",
+          "type": {
+            "name": "int:Unsigned8"
+          }
+        },
+        {
+          "name": "clockSeqLo",
+          "description": "The low field of the clock sequence",
+          "type": {
+            "name": "int:Unsigned8"
+          }
+        },
+        {
+          "name": "node",
+          "description": "The spatially unique node identifier",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "",
+          "description": "Rest field",
+          "type": {
+            "name": "anydata \u0026 readonly"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Version",
+      "description": "Represents the UUID versions.\n",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "V5",
+          "description": ""
+        },
+        {
+          "name": "V4",
+          "description": ""
+        },
+        {
+          "name": "V3",
+          "description": ""
+        },
+        {
+          "name": "V1",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "NamespaceUUID",
+      "description": "Represents UUIDs strings of well known namespace IDs.\n",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "NAME_SPACE_NIL",
+          "description": ""
+        },
+        {
+          "name": "NAME_SPACE_X500",
+          "description": ""
+        },
+        {
+          "name": "NAME_SPACE_OID",
+          "description": ""
+        },
+        {
+          "name": "NAME_SPACE_URL",
+          "description": ""
+        },
+        {
+          "name": "NAME_SPACE_DNS",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "Error",
+      "description": "Represents UUID module related errors.",
+      "type": "Error",
+      "baseType": "error"
+    }
+  ],
+  "clients": [],
+  "functions": [
+    {
+      "name": "createType1AsString",
+      "type": "Normal Function",
+      "description": "Returns a UUID of type 1 as a string.\n```ballerina\nstring uuid1 \u003d uuid:createType1AsString();\n```\n",
+      "parameters": [],
+      "return": {
+        "description": "UUID of type 1 as a string",
+        "type": {
+          "name": "string"
+        }
+      }
+    },
+    {
+      "name": "createType1AsRecord",
+      "type": "Normal Function",
+      "description": "Returns a UUID of type 1 as a UUID record.\n```ballerina\nuuid:Uuid uuid1 \u003d check uuid:createType1AsRecord();\n```\n",
+      "parameters": [],
+      "return": {
+        "description": "UUID of type 1 as a UUID record, or else a `uuid:Error`",
+        "type": {
+          "name": "Uuid|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Uuid"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "createType3AsString",
+      "type": "Normal Function",
+      "description": "Returns a UUID of type 3 as a string.\n```ballerina\nstring uuid3 \u003d check uuid:createType3AsString(uuid:NAME_SPACE_DNS, “ballerina.io”);\n```\n",
+      "parameters": [
+        {
+          "name": "namespace",
+          "description": "String representation for a pre-defined namespace UUID",
+          "type": {
+            "name": "NamespaceUUID",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "NamespaceUUID"
+              }
+            ]
+          }
+        },
+        {
+          "name": "name",
+          "description": "A name within the namespace\n",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "UUID of type 3 as a string, or else a `uuid:Error`",
+        "type": {
+          "name": "string|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "createType3AsRecord",
+      "type": "Normal Function",
+      "description": "Returns a UUID of type 3 as a UUID record.\n```ballerina\nuuid:Uuid uuid3 \u003d check uuid:createType3AsRecord(uuid:NAME_SPACE_DNS, “ballerina.io”);\n```\n",
+      "parameters": [
+        {
+          "name": "namespace",
+          "description": "String representation for a pre-defined namespace UUID",
+          "type": {
+            "name": "NamespaceUUID",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "NamespaceUUID"
+              }
+            ]
+          }
+        },
+        {
+          "name": "name",
+          "description": "A name within the namespace\n",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "UUID of type 3 as a UUID record, or else a `uuid:Error`",
+        "type": {
+          "name": "Uuid|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Uuid"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "createType4AsString",
+      "type": "Normal Function",
+      "description": "Returns a UUID of type 4 as a string.\n```ballerina\nstring uuid4 \u003d uuid:createType4AsString();\n```\n",
+      "parameters": [],
+      "return": {
+        "description": "UUID of type 4 as a string",
+        "type": {
+          "name": "string"
+        }
+      }
+    },
+    {
+      "name": "createType4AsRecord",
+      "type": "Normal Function",
+      "description": "Returns a UUID of type 4 as a UUID record.\n```ballerina\nuuid:Uuid uuid4 \u003d check uuid:createType4AsRecord();\n```\n",
+      "parameters": [],
+      "return": {
+        "description": "UUID of type 4 as a UUID record, or else a `uuid:Error`",
+        "type": {
+          "name": "Uuid|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Uuid"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "createType5AsString",
+      "type": "Normal Function",
+      "description": "Returns a UUID of type 5 as a string.\n```ballerina\nstring uuid5 \u003d check uuid:createType5AsString(uuid:NAME_SPACE_DNS, “ballerina.io”);\n```\n",
+      "parameters": [
+        {
+          "name": "namespace",
+          "description": "String representation for a pre-defined namespace UUID",
+          "type": {
+            "name": "NamespaceUUID",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "NamespaceUUID"
+              }
+            ]
+          }
+        },
+        {
+          "name": "name",
+          "description": "A name within the namespace\n",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "UUID of type 5 as a string, or else a `uuid:Error`",
+        "type": {
+          "name": "string|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "createType5AsRecord",
+      "type": "Normal Function",
+      "description": "Returns a UUID of type 5 as a UUID record.\n```ballerina\nuuid:Uuid uuid5 \u003d check uuid:createType5AsRecord(uuid:NAME_SPACE_DNS, “ballerina.io”);\n```\n",
+      "parameters": [
+        {
+          "name": "namespace",
+          "description": "String representation for a pre-defined namespace UUID",
+          "type": {
+            "name": "NamespaceUUID",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "NamespaceUUID"
+              }
+            ]
+          }
+        },
+        {
+          "name": "name",
+          "description": "A name within the namespace\n",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "UUID of type 5 as a UUID record, or else a `uuid:Error`",
+        "type": {
+          "name": "Uuid|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Uuid"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "createRandomUuid",
+      "type": "Normal Function",
+      "description": "Returns a UUID of type 4 as a string.\nThis function provides a convenient alias for \u0027createType4AsString()\u0027.\n```ballerina\nstring newUUID \u003d uuid:createRandomUuid();\n```\n",
+      "parameters": [],
+      "return": {
+        "description": "UUID of type 4 as a string",
+        "type": {
+          "name": "string"
+        }
+      }
+    },
+    {
+      "name": "nilAsString",
+      "type": "Normal Function",
+      "description": "Returns a nil UUID as a string.\n```ballerina\nstring nilUUID \u003d uuid:nilAsString();\n```\n",
+      "parameters": [],
+      "return": {
+        "description": "nil UUID",
+        "type": {
+          "name": "string"
+        }
+      }
+    },
+    {
+      "name": "nilAsRecord",
+      "type": "Normal Function",
+      "description": "Returns a nil UUID as a UUID record.\n```ballerina\nuuid:Uuid nilUUID \u003d uuid:nilAsRecord();\n```\n",
+      "parameters": [],
+      "return": {
+        "description": "nil UUID",
+        "type": {
+          "name": "Uuid",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Uuid"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "validate",
+      "type": "Normal Function",
+      "description": "Test a string to see if it is a valid UUID.\n```ballerina\nboolean valid \u003d uuid:validate(\"4397465e-35f9-11eb-adc1-0242ac120002\");\n```\n",
+      "parameters": [
+        {
+          "name": "uuid",
+          "description": "UUID string to be validated\n",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "true if a valied UUID, false if not",
+        "type": {
+          "name": "boolean"
+        }
+      }
+    },
+    {
+      "name": "getVersion",
+      "type": "Normal Function",
+      "description": "Detect RFC version of a UUID. Returns an error if the UUID is invalid.\n```ballerina\nuuid:Version v \u003d check uuid:getVersion(\"4397465e-35f9-11eb-adc1-0242ac120002\");\n```\n",
+      "parameters": [
+        {
+          "name": "uuid",
+          "description": "UUID string to be checked\n",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "UUID version, or else a `uuid:Error`",
+        "type": {
+          "name": "\"V5\"|\"V4\"|\"V3\"|\"V1\"|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "toBytes",
+      "type": "Normal Function",
+      "description": "Converts to an array of bytes. Returns an error if the UUID is invalid.\n```ballerina\nbyte[] b \u003d check uuid:toBytes(“6ec0bd7f-11c0-43da-975e-2aesass0b”);\n```\n",
+      "parameters": [
+        {
+          "name": "uuid",
+          "description": "UUID to be converted\n",
+          "type": {
+            "name": "string|Uuid",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Uuid"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "UUID as bytes, or else a `uuid:Error`",
+        "type": {
+          "name": "byte[]|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "toString",
+      "type": "Normal Function",
+      "description": "Converts to a UUID string. Returns an error if the UUID is invalid.\n```ballerina\nstring s \u003d check uuid:toString([5, 12, 16, 35]);\n```\n",
+      "parameters": [
+        {
+          "name": "uuid",
+          "description": "UUID to be converted\n",
+          "type": {
+            "name": "byte[]|Uuid",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Uuid"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "UUID as string, or else a `uuid:Error`",
+        "type": {
+          "name": "string|error"
+        }
+      }
+    },
+    {
+      "name": "toRecord",
+      "type": "Normal Function",
+      "description": "Converts to a UUID record. Returns an error if the UUID is invalid.\n```ballerina\nuuid:Uuid r1 \u003d check uuid:toRecord(\"4397465e-35f9-11eb-adc1-0242ac120002\");\nuuid:Uuid r2 \u003d check uuid:toRecord([10, 20, 30]);\n```\n",
+      "parameters": [
+        {
+          "name": "uuid",
+          "description": "UUID to be converted\n",
+          "type": {
+            "name": "string|byte[]"
+          }
+        }
+      ],
+      "return": {
+        "description": "UUID as record, or else a `uuid:Error`",
+        "type": {
+          "name": "Uuid|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Uuid"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "services": [],
+  "annotations": []
+}

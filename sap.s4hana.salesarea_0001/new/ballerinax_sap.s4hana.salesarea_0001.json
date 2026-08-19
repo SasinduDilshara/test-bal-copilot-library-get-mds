@@ -1,0 +1,804 @@
+{
+  "name": "ballerinax/sap.s4hana.salesarea_0001",
+  "description": "[S/4HANA](https://www.sap.com/india/products/erp/s4hana.html) is a robust enterprise resource planning (ERP) solution,",
+  "readme": "## Overview\n\n[S/4HANA](https://www.sap.com/india/products/erp/s4hana.html) is a robust enterprise resource planning (ERP) solution,\ndesigned for large-scale enterprises by SAP SE.\n\nThe SAP S/4HANA Sales connector provides APIs that enable seamless integration with the [Sales Area - Read (A2X) v1.0.0](https://api.sap.com/api/SALESAREA_0001/overview). The service allows users to read sales areas.\n\n### Key Features\n\n- Read sales area master data from SAP S/4HANA\n- Seamless integration with the Sales Area - Read (A2X) API v1.0.0\n- Support for basic and OAuth 2.0 authentication\n- Operations for querying sales area data\n\n## Setup guide\n\n1. Sign in to your S/4HANA dashboard.\n\n2. Under the `Communication Management` section, click on the `Display Communications Scenario` title.\n\n   ![Display Scenarios](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-sap/main/docs/setup/3-1-display-scenarios.png)\n\n3. In the search bar, type `Sales Master Data Integration` and select the corresponding scenario from the results.\n\n   ![Search Sales Order](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-sap/main/docs/setup/3-2-search-sales-order.png)\n\n4. In the top right corner of the screen, click on `Create Communication Arrangement`.\n\n   ![Click Create Arrangement](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-sap/main/docs/setup/3-3-click-create-arrangement.png)\n\n5. Enter a unique name for the arrangement.\n\n   ![Give Arrangement Name](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-sap/main/docs/setup/3-4-give-arrangement-name.png)\n\n6. Choose an existing `Communication System` from the dropdown menu and save your arrangement.\n\n   ![Select Existing Communication Arrangement](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-sap/main/docs/setup/3-5-select-communication-system.png)\n\n7. The hostname (`\u003cunique id\u003e-api.s4hana.cloud.sap`) will be displayed in the top right corner of the screen.\n\n   ![View Hostname](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-sap/main/docs/setup/3-6-view-hostname.png)\n\n## Quickstart\n\nTo use the `sap.s4hana.salesarea_0001` connector in your Ballerina application, modify the `.bal` file as follows:\n\n### Step 1: Import the module\n\nImport the `sap.s4hana.salesarea_0001` module.\n\n```ballerina\nimport ballerinax/sap.s4hana.salesarea_0001 as salesarea;\n```\n\n### Step 2: Instantiate a new connector\n\nUse the hostname and credentials to initiate a client\n\n```ballerina\nconfigurable string hostname \u003d ?;\nconfigurable string username \u003d ?;\nconfigurable string password \u003d ?;\n\nsalesarea:Client salesareaClient \u003d check new (\n    {\n      auth: {\n        username,\n        password\n      }\n    },\n    hostname\n);\n```\n\n### Step 3: Invoke the connector operation\n\nNow, utilize the available connector operations.\n\n```ballerina\nsalesarea:CollectionOfSalesArea listAreas \u003d check salesareaClient-\u003elistSalesAreas();\n```\n\n### Step 4: Run the Ballerina application\n\n```bash\nbal run\n```\n\n## Examples\n\nThe S/4 HANA Sales and Distribution Ballerina connectors provide practical examples illustrating usage in various\nscenarios. Explore\nthese [examples](https://github.com/ballerina-platform/module-ballerinax-sap.s4hana.sales/tree/main/examples), covering\nuse cases like accessing S/4HANA Sales Order (A2X) API.\n\n1. [Salesforce to S/4HANA Integration](https://github.com/ballerina-platform/module-ballerinax-sap.s4hana.sales/tree/main/examples/salesforce-to-sap) -\n   Demonstrates leveraging the `sap.s4hana.api_sales_order_srv:Client` in Ballerina for S/4HANA API interactions. It\n   specifically showcases how to respond to a Salesforce Opportunity Close Event by automatically generating a Sales\n   Order in the S/4HANA SD module.\n\n2. [Shopify to S/4HANA Integration](https://github.com/ballerina-platform/module-ballerinax-sap.s4hana.sales/tree/main/examples/shopify-to-sap) -\n   Details the integration process between [Shopify](https://admin.shopify.com/), a leading e-commerce platform,\n   and [SAP S/4HANA](https://www.sap.com/products/erp/s4hana.html), a comprehensive ERP system. The objective is to\n   automate SAP sales order creation for new orders placed on Shopify, enhancing efficiency and accuracy in order\n   management.\n",
+  "typeDefs": [
+    {
+      "name": "GetSalesAreaQueries",
+      "description": "Represents the Queries record for the operation: getSalesArea",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "\\$select",
+          "description": "Select properties to be returned, see [Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)",
+          "type": {
+            "name": "SalesAreaSelectOptions",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SalesAreaSelectOptions"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "SalesAreaSelectOptions",
+      "description": "",
+      "type": "Other",
+      "baseType": "(\"SalesOrganization\"|\"DistributionChannel\"|\"Division\")[]"
+    },
+    {
+      "name": "ClientHttp1Settings",
+      "description": "Provides settings related to HTTP/1.x protocol.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "keepAlive",
+          "description": "Specifies whether to reuse a connection for multiple requests",
+          "type": {
+            "name": "KeepAlive",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "KeepAlive",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "chunking",
+          "description": "The chunking behaviour of the request",
+          "type": {
+            "name": "Chunking",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Chunking",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "proxy",
+          "description": "Proxy server related options",
+          "type": {
+            "name": "ProxyConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ProxyConfig"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ProxyConfig",
+      "description": "Proxy server configurations to be used with the HTTP client endpoint.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "host",
+          "description": "Host name of the proxy server",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "port",
+          "description": "Proxy server port",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "userName",
+          "description": "Proxy server username",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "password",
+          "description": "Proxy server password",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "display",
+              "value": "{label: \"\", kind: \"password\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ListSalesAreasQueries",
+      "description": "Represents the Queries record for the operation: listSalesAreas",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "\\$skip",
+          "description": "Skip the first n items, see [Paging - Skip](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionskip)",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "\\$top",
+          "description": "Show only the first n items, see [Paging - Top](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptiontop)",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "\\$filter",
+          "description": "Filter items by property values, see [Filtering](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionfilter)",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "\\$orderby",
+          "description": "Order items by property values, see [Sorting](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionorderby)",
+          "type": {
+            "name": "SalesAreaOrderByOptions",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SalesAreaOrderByOptions"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "\\$count",
+          "description": "Include count of items, see [Count](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptioncount)",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "\\$select",
+          "description": "Select properties to be returned, see [Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)",
+          "type": {
+            "name": "SalesAreaSelectOptions",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SalesAreaSelectOptions"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "SalesAreaOrderByOptions",
+      "description": "",
+      "type": "Other",
+      "baseType": "(\"SalesOrganization\"|\"SalesOrganization desc\"|\"DistributionChannel\"|\"DistributionChannel desc\"|\"Division\"|\"Division desc\")[]"
+    },
+    {
+      "name": "count",
+      "description": "The number of entities in the collection. Available when using the [$count](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptioncount) query option.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "decimal",
+          "type": {
+            "name": "decimal"
+          }
+        },
+        {
+          "name": "string",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SalesArea",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "SalesOrganization",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 4}"
+            }
+          ]
+        },
+        {
+          "name": "DistributionChannel",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 2}"
+            }
+          ]
+        },
+        {
+          "name": "Division",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true,
+          "annotations": [
+            {
+              "name": "String",
+              "module": "ballerina/constraint",
+              "value": "{maxLength: 2}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "CollectionOfSalesArea",
+      "description": "",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "\\@odata\\.count",
+          "description": "",
+          "type": {
+            "name": "count",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "count"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "value",
+          "description": "",
+          "type": {
+            "name": "SalesArea[]",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SalesArea"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ConnectionConfig",
+      "description": "Provides a set of configurations for controlling the behaviours when communicating with a remote HTTP endpoint.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "auth",
+          "description": "Configurations related to client authentication",
+          "type": {
+            "name": "CredentialsConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CredentialsConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          }
+        },
+        {
+          "name": "httpVersion",
+          "description": "The HTTP version understood by the client",
+          "type": {
+            "name": "HttpVersion",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "HttpVersion",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "http1Settings",
+          "description": "Configurations related to HTTP/1.x protocol",
+          "type": {
+            "name": "ClientHttp1Settings",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ClientHttp1Settings"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "http2Settings",
+          "description": "Configurations related to HTTP/2 protocol",
+          "type": {
+            "name": "ClientHttp2Settings",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientHttp2Settings",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "timeout",
+          "description": "The maximum time to wait (in seconds) for a response before closing the connection",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "forwarded",
+          "description": "The choice of setting `forwarded`/`x-forwarded` header",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "poolConfig",
+          "description": "Configurations associated with request pooling",
+          "type": {
+            "name": "PoolConfiguration",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "PoolConfiguration",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "cache",
+          "description": "HTTP caching related configurations",
+          "type": {
+            "name": "CacheConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CacheConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "compression",
+          "description": "Specifies the way of handling compression (`accept-encoding`) header",
+          "type": {
+            "name": "Compression",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "Compression",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "circuitBreaker",
+          "description": "Configurations associated with the behaviour of the Circuit Breaker",
+          "type": {
+            "name": "CircuitBreakerConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "CircuitBreakerConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "retryConfig",
+          "description": "Configurations associated with retrying",
+          "type": {
+            "name": "RetryConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "RetryConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "responseLimits",
+          "description": "Configurations associated with inbound response size limits",
+          "type": {
+            "name": "ResponseLimitConfigs",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ResponseLimitConfigs",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "SSL/TLS-related options",
+          "type": {
+            "name": "ClientSecureSocket",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ClientSecureSocket",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "proxy",
+          "description": "Proxy server related options",
+          "type": {
+            "name": "ProxyConfig",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "ProxyConfig",
+                "libraryName": "ballerina/http"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "validation",
+          "description": "Enables the inbound payload validation functionality which provided by the constraint package. Enabled by default",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ],
+      "annotations": [
+        {
+          "name": "display",
+          "value": "{label: \"Connection Config\"}"
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "name": "Client",
+      "description": "Consumers can retrieve sales area information including the sales organization, distribution channel, and division.",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Gets invoked to initialize the `connector`.\n",
+          "parameters": [
+            {
+              "name": "config",
+              "description": "The configurations to be used when initializing the `connector` ",
+              "type": {
+                "name": "ConnectionConfig",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ConnectionConfig"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "hostname",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "port",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "443"
+            }
+          ],
+          "return": {
+            "description": "An error if connector initialization failed ",
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "name": "getSalesArea",
+          "type": "Remote Function",
+          "description": "Get entity from SalesArea by key\n",
+          "parameters": [
+            {
+              "name": "SalesOrganization",
+              "description": "Sales Organization",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "DistributionChannel",
+              "description": "Distribution Channel",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "Division",
+              "description": "Division",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "\\$select",
+              "description": "Select properties to be returned, see [Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)",
+              "type": {
+                "name": "SalesAreaSelectOptions",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "SalesAreaSelectOptions"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "[]"
+            },
+            {
+              "name": "queries",
+              "description": "Queries to be sent with the request ",
+              "type": {
+                "name": "GetSalesAreaQueries",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "GetSalesAreaQueries"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "Retrieved entity ",
+            "type": {
+              "name": "SalesArea|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "SalesArea"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "listSalesAreas",
+          "type": "Remote Function",
+          "description": "Get entities from SalesArea\n",
+          "parameters": [
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "\\$skip",
+              "description": "Skip the first n items, see [Paging - Skip](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionskip)",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "0"
+            },
+            {
+              "name": "\\$top",
+              "description": "Show only the first n items, see [Paging - Top](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptiontop)",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "0"
+            },
+            {
+              "name": "\\$filter",
+              "description": "Filter items by property values, see [Filtering](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionfilter)",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "\\$orderby",
+              "description": "Order items by property values, see [Sorting](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionorderby)",
+              "type": {
+                "name": "SalesAreaOrderByOptions",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "SalesAreaOrderByOptions"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "[]"
+            },
+            {
+              "name": "\\$count",
+              "description": "Include count of items, see [Count](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptioncount)",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "\\$select",
+              "description": "Select properties to be returned, see [Select](http://docs.oasis-open.org/odata/odata/v4.01/odata-v4.01-part1-protocol.html#sec_SystemQueryOptionselect)",
+              "type": {
+                "name": "SalesAreaSelectOptions",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "SalesAreaSelectOptions"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "[]"
+            },
+            {
+              "name": "queries",
+              "description": "Queries to be sent with the request ",
+              "type": {
+                "name": "ListSalesAreasQueries",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ListSalesAreasQueries"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "Retrieved entities ",
+            "type": {
+              "name": "CollectionOfSalesArea|error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "CollectionOfSalesArea"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "performBatchOperation",
+          "type": "Remote Function",
+          "description": "Send a group of requests\n",
+          "parameters": [
+            {
+              "name": "request",
+              "description": "Batch request ",
+              "type": {
+                "name": "Request",
+                "links": [
+                  {
+                    "category": "external",
+                    "recordName": "Request",
+                    "libraryName": "ballerina/http"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "headers",
+              "description": "Headers to be sent with the request ",
+              "type": {
+                "name": "map\u003cstring|string[]\u003e"
+              },
+              "optional": true,
+              "default": "{}"
+            }
+          ],
+          "return": {
+            "description": "Batch response ",
+            "type": {
+              "name": "Response|error",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "Response",
+                  "libraryName": "ballerina/http"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "functions": [],
+  "services": [],
+  "annotations": []
+}

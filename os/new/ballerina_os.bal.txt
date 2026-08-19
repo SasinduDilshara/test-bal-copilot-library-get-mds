@@ -1,0 +1,129 @@
+// ============================================================
+// Library: ballerina/os
+// This module provides APIs to retrieve information about the environment variables and the current users of the Operating System.
+// ============================================================
+import ballerina/os;
+
+// --- README ---
+## Overview
+
+This module provides APIs to retrieve information about the environment variables and the current users of the Operating System.
+
+The APIs are platform-independent, i.e., uniform across all operating systems.
+
+For information on the operations, which you can perform with the `os` module, see the below **Functions**.
+
+// --- END README ---
+
+// --- Types ---
+
+
+type Command record {
+    string value;
+    string[] arguments?;
+};
+
+
+type EnvProperties record {
+    never command?;
+};
+
+# Represents OS module related errors.
+type Error error;
+
+# Process Execution error that returns when the os:Exec function fails.
+type ProcessExecError error;
+
+# This object contains information on a process being created from Ballerina.
+# This is returned from the `exec` function in the `os` module.
+class Process {
+
+    # Waits for the process to finish its work and exit. 
+    # This will return 0 if successful, or a different value during failure depending on the operating system.
+    # ```ballerina
+    # int|os:Error exitCode = process.waitForExit();
+    # ```
+    # 
+    function waitForExit() returns int|Error;
+
+    # Returns the standard output as default. Option provided to return standard error by providing file descriptor.
+    # If the process was not finished and exited explicitly by running process.waitForExit(), then process.output() will finish the work and exit and return the output. 
+    # ```ballerina
+    # byte[]|os:Error err = process.output(io:stderr);
+    # ```
+    # 
+    function output(io:FileOutputStream fileOutputStream = 1) returns byte[]|Error; // Special Agent Note: FileOutputStream FROM ballerina/io package
+
+    # Terminates the process.
+    # ```ballerina
+    # process.exit();
+    # ```
+    # 
+    function exit() returns ();
+}
+
+// --- Functions ---
+
+# Returns the environment variable value associated with the provided name.
+# ```ballerina
+# string port = os:getEnv("HTTP_PORT");
+# ```
+# 
+# + name - Name of the environment variable
+# + return - Environment variable value if it exists or else, an empty string
+function getEnv(string name) returns string;
+
+# Returns the current user's name.
+# ```ballerina
+# string username = os:getUsername();
+# ```
+# 
+# + return - Current user's name if it can be determined or else, an empty string
+function getUsername() returns string;
+
+# Returns the current user's home directory path.
+# ```ballerina
+# string userHome = os:getUserHome();
+# ```
+# 
+# + return - Current user's home directory if it can be determined or else, an empty string
+function getUserHome() returns string;
+
+# Sets the value of the environment variable named by the key. 
+# Note that the parameter key cannot be an empty string or "==" sign.
+# ```ballerina
+# os:Error? err = os:setEnv("BALCONFIGFILE", "/path/to/Config.toml");
+# ```
+# 
+# + key - Key of the environment variable
+# + value - Value of the environment variable
+# + return - An `os:Error` if setting the environment variable fails, () otherwise
+function setEnv(string key, string value) returns Error|();
+
+# Removes a single environment variable from the system if it exists.
+# Note that the parameter key cannot be an empty string.
+# ```ballerina
+# os:Error? err = os:unsetEnv("BALCONFIGFILE");
+# ```
+# 
+# + key - Key of the environment variable
+# + return - An `os:Error` if unsetting the environment variable fails, () otherwise
+function unsetEnv(string key) returns Error|();
+
+# Returns a map of environment variables.
+# ```ballerina
+# map<string> envs = os:listEnv();
+# ```
+# 
+# + return - Map of environment variables
+function listEnv() returns map<string>;
+
+# Executes an operating system command as a subprocess of the current process.
+# ```ballerina
+# os:Process|os:Error result = os:exec({value: "bal", arguments: ["run", filepath]}, BAL_CONFIG_FILE = "/abc/Config.toml");
+# ```
+# 
+# + command - The command to be executed
+# + envProperties - The environment properties
+# + return - Process object in success, or an Error if a failure occurs
+function exec(Command command, EnvProperties envProperties) returns Process|Error;

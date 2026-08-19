@@ -1,0 +1,1493 @@
+{
+  "name": "ballerina/time",
+  "description": "This module provides a set of APIs that have the capabilities to generate and manipulate UTC and localized time.",
+  "readme": "## Overview\n\nThis module provides a set of APIs that have the capabilities to generate and manipulate UTC and localized time.\n\nIn cloud computing, the most essential type of time is UTC. Coordinated Universal Time (UTC) is the primary time standard on which the world agreed. \nUTC is independent of daylight saving time and provides a unique time value for the entire world. \nThe definition of UTC started from the epoc `1970-01-01T00:00:00Z`. Initially, humans divided a day into 86400 seconds.\nHowever, the Earth rotation does not adhere to this time duration as the Earth is slowing down and the day is getting longer.\nAs a result, a solar day in 2012 is longer than 86400 SI seconds.\nTo correct this incompatibility, additional seconds have been added to the UTC scale, which is known as leap-seconds.\n\nThe focus of this module is to give the most precise UTC with nanoseconds precision and also handle some complex use cases such as leap seconds and daylight time-saving.\n\n### UTC time\nThe `time:Utc` is the tuple representation of the UTC. The UTC represents the number of seconds from a\nspecified epoch. Here, the epoch is the UNIX epoch of 1970-01-01T00:00:00Z.\n\nUse the following API to get the current epoch time:\n```ballerina\ntime:Utc utc \u003d time:utcNow();\n```\n\n### Monotonic time\nThe monotonic time represents the number of seconds from an unspecified epoch.\n\nUse the following API to get the monotonic time from an unspecified topic:\n```ballerina\ndecimal seconds \u003d time:monotonicNow();\n```\n\n### Civil time\nThe localized time represents using the `time:Civil` record. It includes the following details:\n- date\n- time\n- timezone information\n- daylight time-saving information\n\n### Time zone\nThe time zone can be obtained using a given zone ID or load the system time zone.\n```ballerina\n// Obtain the time zone corresponding to a given time zone ID.\ntime:Zone? zone \u003d time:getZone(\"Asia/Colombo\");\n\n// Obtain the system time zone.\ntime:Zone zone \u003d check time:loadSystemZone();\n```\n\n### APIs\nParallel to the aforementioned time representations, this module includes a set of APIs to facilitate time conversions\nand manipulations using a set of high-level APIs. Those conversion APIs can be listed as follows.\n\n#### The string representations of UTC\n```ballerina\n// Converts from RFC 3339 timestamp to UTC.\ntime:Utc utc \u003d check time:utcFromString(\"2007-12-03T10:15:30.00Z\");\n\n// Converts a given `time:Utc` time to a RFC 3339 timestamp.\nstring utcString \u003d time:utcToString(utc);\n```\n\n#### The string representations of civil\n```ballerina\n// Converts from RFC 3339 timestamp to a civil record.\ntime:Civil civil2 \u003d check time:civilFromString(\"2007-12-03T10:15:30.00Z\");\n\n// Converts a given `time:Civil` time to a RFC 3339 timestamp.\nstring civilString \u003d check time:civilToString(civil);\n```\n\n#### UTC value manipulation\n```ballerina\n// Returns the UTC time that occurs seconds after the given UTC.\ntime:Utc utc \u003d time:utcAddSeconds(time:utcNow(), 20.900);\n\n// Returns the difference in seconds between two given UTC time values.\ntime:Utc utc1 \u003d time:utcNow();\ntime:Utc utc2 \u003d check time:utcFromString(\"2021-04-12T23:20:50.520Z\");\ntime:Seconds seconds \u003d time:utcDiffSeconds(utc1, utc2);\n```\n\n#### UTC vs civil\n```ballerina\n// Converts a given UTC to a Civil.\ntime:Civil civil \u003d time:utcToCivil(utc);\n\n// Converts a given Civil to a UTC.\ntime:Utc utc \u003d time:utcFromCivil(civil);\n```\n\n",
+  "typeDefs": [
+    {
+      "name": "SUNDAY",
+      "description": "Sunday as integer 0.",
+      "type": "Constant",
+      "value": "0",
+      "varType": {
+        "name": "int"
+      }
+    },
+    {
+      "name": "MONDAY",
+      "description": "Monday as integer 1.",
+      "type": "Constant",
+      "value": "1",
+      "varType": {
+        "name": "int"
+      }
+    },
+    {
+      "name": "TUESDAY",
+      "description": "Tuesday as integer 2.",
+      "type": "Constant",
+      "value": "2",
+      "varType": {
+        "name": "int"
+      }
+    },
+    {
+      "name": "WEDNESDAY",
+      "description": "Wednesday as integer 3.",
+      "type": "Constant",
+      "value": "3",
+      "varType": {
+        "name": "int"
+      }
+    },
+    {
+      "name": "THURSDAY",
+      "description": "Thursday as integer 4.",
+      "type": "Constant",
+      "value": "4",
+      "varType": {
+        "name": "int"
+      }
+    },
+    {
+      "name": "FRIDAY",
+      "description": "Friday as integer 5.",
+      "type": "Constant",
+      "value": "5",
+      "varType": {
+        "name": "int"
+      }
+    },
+    {
+      "name": "SATURDAY",
+      "description": "Saturday as integer 6.",
+      "type": "Constant",
+      "value": "6",
+      "varType": {
+        "name": "int"
+      }
+    },
+    {
+      "name": "PREFER_TIME_ABBREV",
+      "description": "",
+      "type": "Constant",
+      "value": "PREFER_TIME_ABBREV",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "PREFER_ZONE_OFFSET",
+      "description": "",
+      "type": "Constant",
+      "value": "PREFER_ZONE_OFFSET",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "ZONE_OFFSET_WITH_TIME_ABBREV_COMMENT",
+      "description": "",
+      "type": "Constant",
+      "value": "ZONE_OFFSET_WITH_TIME_ABBREV_COMMENT",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "Error",
+      "description": "Represents a generic module-level error.",
+      "type": "Error",
+      "baseType": "error"
+    },
+    {
+      "name": "FormatError",
+      "description": "An error to be returned when arguments are invalid.",
+      "type": "Error",
+      "baseType": "error"
+    },
+    {
+      "name": "Seconds",
+      "description": "Holds the seconds as a decimal value.  ",
+      "type": "Other",
+      "baseType": "decimal"
+    },
+    {
+      "name": "Utc",
+      "description": "Point on UTC time-scale.\nThis is represented by a tuple of length 2.\nThe tuple is an ordered type and so the values can be\ncompared using the Ballerina \u003c, \u003c\u003d, \u003e, \u003e\u003d operators.\nThe first member of the tuple is int representing an integral number of\nseconds from the epoch.\nEpoch is the traditional UNIX epoch of `1970-01-01T00:00:00Z`.\nThe second member of the tuple is a decimal giving the fraction of\na second.\nFor times before the epoch, n is negative and f is\nnon-negative. In other words, the UTC time represented\nis on or after the second specified by n.\nLeap seconds are handled as follows. The first member\nof the tuple ignores leap seconds: it assumes that every day\nhas 86400 seconds. The second member of the tuple is \u003e\u003d 0.\nand is \u003c 1 except during positive leaps seconds in which it\nis \u003e\u003d 1 and \u003c 2. So given a tuple [n,f] after the epoch,\nn / 86400 gives the day number, and (n % 86400) + f gives the\ntime in seconds since midnight UTC (for which the limit is\n86401 on day with a positive leap second).",
+      "type": "Other",
+      "baseType": "readonly \u0026 [int, decimal]"
+    },
+    {
+      "name": "DayOfWeek",
+      "description": "Day of the week according to the US convention, starting on Sunday.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "0",
+          "type": {
+            "name": "0"
+          }
+        },
+        {
+          "name": "1",
+          "type": {
+            "name": "1"
+          }
+        },
+        {
+          "name": "2",
+          "type": {
+            "name": "2"
+          }
+        },
+        {
+          "name": "3",
+          "type": {
+            "name": "3"
+          }
+        },
+        {
+          "name": "4",
+          "type": {
+            "name": "4"
+          }
+        },
+        {
+          "name": "5",
+          "type": {
+            "name": "5"
+          }
+        },
+        {
+          "name": "6",
+          "type": {
+            "name": "6"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Date",
+      "description": "A date in the proleptic Gregorian calendar.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "utcOffset",
+          "description": "Optional zone offset",
+          "type": {
+            "name": "ZoneOffset",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ZoneOffset"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "year",
+          "description": "",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "month",
+          "description": "",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "day",
+          "description": "",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "hour",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "minute",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "second",
+          "description": "",
+          "type": {
+            "name": "Seconds",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Seconds"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ZoneOffset",
+      "description": "Time zone offset.\n\nConstraints:\n- If any of the fields (`hours`, `minutes`, `seconds`) are \u003e 0, then all must be \u003e\u003d 0.\n- If any of the fields are \u003c 0, then all must be \u003c\u003d 0.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "hours",
+          "description": "",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "minutes",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "seconds",
+          "description": "",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "TimeOfDay",
+      "description": "Time within a day.\nNot always as a duration from midnight.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "utcOffset",
+          "description": "Optional zone offset",
+          "type": {
+            "name": "ZoneOffset",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ZoneOffset"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "year",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "month",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "day",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "hour",
+          "description": "",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "minute",
+          "description": "",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "second",
+          "description": "",
+          "type": {
+            "name": "Seconds",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Seconds"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ZERO_OR_ONE",
+      "description": "Type that can be either zero or one.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "0",
+          "type": {
+            "name": "0"
+          }
+        },
+        {
+          "name": "1",
+          "type": {
+            "name": "1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Civil",
+      "description": "Time within a region relative to a time scale stipulated by civilian authorities.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "utcOffset",
+          "description": "An optional zone offset",
+          "type": {
+            "name": "ZoneOffset",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ZoneOffset"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "timeAbbrev",
+          "description": "If present, abbreviation for the local time (e.g., EDT, EST) in effect at the time represented by this record;\nthis is quite the same as the name of a time zone one time zone can have two abbreviations: one for\nstandard time and one for daylight savings time",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "which",
+          "description": "when the clocks are put back at the end of DST,\none hour\u0027s worth of times occur twice\ni.e. the local time is ambiguous\nthis says which of those two times is meant\nsame as fold field in Python\nsee https://www.python.org/dev/peps/pep-0495/\nis_dst has similar role in struct tm,\nbut with confusing semantics",
+          "type": {
+            "name": "ZERO_OR_ONE",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ZERO_OR_ONE"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "dayOfWeek",
+          "description": "Day of the week (e.g., SUNDAY, MONDAY, TUESDAY, ... SATURDAY)",
+          "type": {
+            "name": "DayOfWeek",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "DayOfWeek"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "year",
+          "description": "",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "month",
+          "description": "",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "day",
+          "description": "",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "hour",
+          "description": "",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "minute",
+          "description": "",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "second",
+          "description": "",
+          "type": {
+            "name": "Seconds",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Seconds"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "UtcZoneHandling",
+      "description": "Default zone value in different formats.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "\"0\"",
+          "type": {
+            "name": "\"0\""
+          }
+        },
+        {
+          "name": "\"GMT\"",
+          "type": {
+            "name": "\"GMT\""
+          }
+        },
+        {
+          "name": "\"UT\"",
+          "type": {
+            "name": "\"UT\""
+          }
+        },
+        {
+          "name": "\"Z\"",
+          "type": {
+            "name": "\"Z\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "Duration",
+      "description": "Time duration used to adjust a civil date-time value by a specified amount.\nThe duration can be added to or subtracted from the civil time.\nFields in the record can be negative, in which case the duration is subtracted.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "years",
+          "description": "The duration in years.",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "months",
+          "description": "The duration in months.",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "weeks",
+          "description": "The duration in weeks.",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "days",
+          "description": "The duration in days.",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "hours",
+          "description": "The duration in hours.",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "minutes",
+          "description": "The duration in minutes.",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "seconds",
+          "description": "The duration in seconds.",
+          "type": {
+            "name": "Seconds",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Seconds"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "HeaderZoneHandling",
+      "description": "Indicates how to handle both `zoneOffset` and `timeAbbrev`.\n",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "ZONE_OFFSET_WITH_TIME_ABBREV_COMMENT",
+          "description": ""
+        },
+        {
+          "name": "PREFER_ZONE_OFFSET",
+          "description": ""
+        },
+        {
+          "name": "PREFER_TIME_ABBREV",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "Zone",
+      "description": "Abstract object representation to handle time zones.  ",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "fixedOffset",
+          "type": "Normal Function",
+          "description": "Returns the fixed zone offset if the time zone is always at a fixed offset from UTC; otherwise, returns nil.\n",
+          "parameters": [],
+          "return": {
+            "description": "The fixed zone offset or nil",
+            "type": {
+              "name": "ZoneOffset|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "ZoneOffset"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "utcFromCivil",
+          "type": "Normal Function",
+          "description": "Converts a given civil record to a UTC timestamp based on the time zone value.\n",
+          "parameters": [
+            {
+              "name": "civil",
+              "description": "The civil record to be converted",
+              "type": {
+                "name": "Civil",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Civil"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "The corresponding UTC value or an error if `timeAbbrev` is missing",
+            "type": {
+              "name": "Utc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Utc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "utcToCivil",
+          "type": "Normal Function",
+          "description": "Converts a given UTC timestamp to a civil record based on the time zone value.\n",
+          "parameters": [
+            {
+              "name": "utc",
+              "description": "The UTC time as a tuple `[int, decimal]`, where the first element is the seconds from the epoch\nand the second element is the fractional part of the last second.",
+              "type": {
+                "name": "Utc",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Utc"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "The corresponding civil record",
+            "type": {
+              "name": "Civil",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Civil"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "civilAddDuration",
+          "type": "Normal Function",
+          "description": "Adds the given time duration to the specified civil date-time based on the time zone.\nThe operation assumes that all days have exactly 86,400 seconds.\n",
+          "parameters": [
+            {
+              "name": "civil",
+              "description": "The civil time to which the duration should be added",
+              "type": {
+                "name": "Civil",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Civil"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "duration",
+              "description": "The date-time duration to be added",
+              "type": {
+                "name": "Duration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Duration"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "The civil time after adding the duration",
+            "type": {
+              "name": "Civil|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Civil"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "TimeZone",
+      "description": "Initializes a `TimeZone` object using a zone ID or the system default time zone.\n",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes a `TimeZone` object using a zone ID or the system default time zone.\n",
+          "parameters": [
+            {
+              "name": "zoneId",
+              "description": "Zone ID as a string or nil to initialize a TimeZone object with the system default time zone",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "An `time:Error` if the zone ID is invalid, otherwise nil",
+            "type": {
+              "name": "Error?"
+            }
+          }
+        },
+        {
+          "name": "fixedOffset",
+          "type": "Normal Function",
+          "description": "Returns the fixed zone offset if the time zone is always at a fixed offset from UTC; otherwise, returns nil.\n",
+          "parameters": [],
+          "return": {
+            "description": "The fixed zone offset or nil",
+            "type": {
+              "name": "ZoneOffset|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "ZoneOffset"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "utcFromCivil",
+          "type": "Normal Function",
+          "description": "Converts a given civil record to a UTC timestamp based on the time zone value.\n",
+          "parameters": [
+            {
+              "name": "civil",
+              "description": "The civil record to be converted",
+              "type": {
+                "name": "Civil",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Civil"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "The corresponding UTC value or an error if `timeAbbrev` is missing",
+            "type": {
+              "name": "Utc|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Utc"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "utcToCivil",
+          "type": "Normal Function",
+          "description": "Converts a given UTC timestamp to a civil record based on the time zone value.\n",
+          "parameters": [
+            {
+              "name": "utc",
+              "description": "The UTC timestamp value to be converted",
+              "type": {
+                "name": "Utc",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Utc"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "The corresponding civil record",
+            "type": {
+              "name": "Civil",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Civil"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "civilAddDuration",
+          "type": "Normal Function",
+          "description": "Adds the given time duration to the specified civil date-time based on the time zone.\nThe operation assumes that all days have exactly 86,400 seconds.\n```ballerina\ntime:TimeZone timeZone \u003d check new(\"Asia/Colombo\");\ntime:Civil civil \u003d check time:civilFromString(\"2025-04-25T10:15:30.00Z\");\ntime:Civil|time:Error updatedCivil \u003d timeZone.civilAddDuration(civil, {years: 1, days: 3, hours: 4});\n```",
+          "parameters": [
+            {
+              "name": "civil",
+              "description": "The civil time to which the duration should be added",
+              "type": {
+                "name": "Civil",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Civil"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "duration",
+              "description": "The date-time duration to be added",
+              "type": {
+                "name": "Duration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Duration"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "The civil time after adding the duration",
+            "type": {
+              "name": "Civil|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Civil"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "clients": [],
+  "functions": [
+    {
+      "name": "utcNow",
+      "type": "Normal Function",
+      "description": "Returns the `time:Utc` representing the current time (current instant of the system clock in seconds from the epoch of `1970-01-01T00:00:00`).\n```ballerina\ntime:Utc utc \u003d time:utcNow();\n```",
+      "parameters": [
+        {
+          "name": "precision",
+          "description": "Specifies the number of zeros after the decimal point (e.g., 3 would give the millisecond precision\nand nil means native precision (nanosecond precision 9) of the clock)",
+          "type": {
+            "name": "int|()"
+          },
+          "optional": true,
+          "default": "()"
+        }
+      ],
+      "return": {
+        "description": "The `time:Utc` value corresponding to the current UTC time",
+        "type": {
+          "name": "Utc",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Utc"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "monotonicNow",
+      "type": "Normal Function",
+      "description": "Returns the number of seconds from an unspecified epoch.\nThis API guarantees consistent value increase in subsequent calls with nanoseconds precision.\n```ballerina\ndecimal seconds \u003d time:monotonicNow();\n```",
+      "parameters": [],
+      "return": {
+        "description": "The number of seconds from an unspecified epoch",
+        "type": {
+          "name": "decimal"
+        }
+      }
+    },
+    {
+      "name": "utcFromString",
+      "type": "Normal Function",
+      "description": "Converts an RFC 3339 timestamp (e.g., `2007-12-03T10:15:30.00Z`) to UTC.\n```ballerina\ntime:Utc|time:Error utc \u003d time:utcFromString(\"2007-12-03T10:15:30.00Z\");\n```",
+      "parameters": [
+        {
+          "name": "timestamp",
+          "description": "The RFC 3339 timestamp as a string (e.g., `2007-12-03T10:15:30.00Z`)",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "The corresponding `time:Utc` value or a `time:Error` when the specified timestamp\nis not adhere to the RFC 3339 format (e.g., `2007-12-03T10:15:30.00Z`)",
+        "type": {
+          "name": "Utc|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Utc"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "utcToString",
+      "type": "Normal Function",
+      "description": "Converts a given UTC time to an RFC 3339 timestamp (e.g., `2007-12-03T10:15:30.00Z`).\n```ballerina\nstring utcString \u003d time:utcToString(time:utcNow());\n```",
+      "parameters": [
+        {
+          "name": "utc",
+          "description": "The UTC time as a tuple `[int, decimal]`, where the first element is the seconds from the epoch\nand the second element is the fractional part of the last second.",
+          "type": {
+            "name": "Utc",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Utc"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "The corresponding RFC 3339 timestamp string",
+        "type": {
+          "name": "string"
+        }
+      }
+    },
+    {
+      "name": "utcAddSeconds",
+      "type": "Normal Function",
+      "description": "Returns UTC time that occurs seconds after the given UTC time.\nThis assumes that all days have 86400 seconds except when UTC represents a time during a positive leap second,\nin which case the corresponding day will be assumed to have 86401 seconds.\n```ballerina\ntime:Utc utc \u003d time:utcAddSeconds(time:utcNow(), 20.900);\n```",
+      "parameters": [
+        {
+          "name": "utc",
+          "description": "The UTC time as a tuple `[int, decimal]`, where the first element is the seconds from the epoch\nand the second element is the fractional part of the last second.",
+          "type": {
+            "name": "Utc",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Utc"
+              }
+            ]
+          }
+        },
+        {
+          "name": "seconds",
+          "description": "Number of seconds to be added. Can include fractional seconds (e.g., 20.900).",
+          "type": {
+            "name": "Seconds",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Seconds"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "The resulting UTC time as a tuple `[int, decimal]` after adding the specified seconds.",
+        "type": {
+          "name": "Utc",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Utc"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "utcDiffSeconds",
+      "type": "Normal Function",
+      "description": "Returns difference in seconds between two UTC times.\nThis will be positive if `utc1` occurs after `utc2`\n```ballerina\ntime:Utc utc1 \u003d time:utcNow();\ntime:Utc utc2 \u003d check time:utcFromString(\"2021-04-12T23:20:50.520Z\");\ntime:Seconds seconds \u003d time:utcDiffSeconds(utc1, utc2);\n```",
+      "parameters": [
+        {
+          "name": "utc1",
+          "description": "1st UTC time as a tuple `[int, decimal]`, where the first element is the seconds from the epoch\nand the second element is the fractional part of the last second.",
+          "type": {
+            "name": "Utc",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Utc"
+              }
+            ]
+          }
+        },
+        {
+          "name": "utc2",
+          "description": "2nd UTC time as a tuple `[int, decimal]`, where the first element is the seconds from the epoch\nand the second element is the fractional part of the last second.",
+          "type": {
+            "name": "Utc",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Utc"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "The difference between two UTC times in seconds",
+        "type": {
+          "name": "Seconds",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Seconds"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "dateValidate",
+      "type": "Normal Function",
+      "description": "Validates whether the given date is within the range of Gregorian calendar rules.\n```ballerina\ntime:Date date \u003d {year: 1994, month: 11, day: 7};\ntime:Error? isValid \u003d time:dateValidate(date);\n```",
+      "parameters": [
+        {
+          "name": "date",
+          "description": "The date to be validated",
+          "type": {
+            "name": "Date",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Date"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "`()` if the `date` is valid or else `time:Error`",
+        "type": {
+          "name": "Error|()",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "dayOfWeek",
+      "type": "Normal Function",
+      "description": "Gets the day of week for a specified date.\n```ballerina\ntime:Date date \u003d {year: 1994, month: 11, day: 7};\ntime:DayOfWeek day \u003d time:dayOfWeek(date);\n```",
+      "parameters": [
+        {
+          "name": "date",
+          "description": "The date for which the day of the week is to be calculated",
+          "type": {
+            "name": "Date",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Date"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "The `time:DayOfWeek` if the date is valid or else panic",
+        "type": {
+          "name": "DayOfWeek",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "DayOfWeek"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "utcToCivil",
+      "type": "Normal Function",
+      "description": "Converts a given UTC timestamp to a civil value.\n```ballerina\ntime:Utc utc \u003d time:utcNow();\ntime:Civil civil \u003d time:utcToCivil(utc);\n```",
+      "parameters": [
+        {
+          "name": "utc",
+          "description": "The UTC time as a tuple `[int, decimal]`, where the first element is the seconds from the epoch\nand the second element is the fractional part of the last second.",
+          "type": {
+            "name": "Utc",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Utc"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "The corresponding `time:Civil` value",
+        "type": {
+          "name": "Civil",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Civil"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "utcFromCivil",
+      "type": "Normal Function",
+      "description": "Converts a given civil value to a UTC timestamp.\n```ballerina\ntime:Civil civil \u003d time:utcToCivil(time:utcNow());\ntime:Utc utc \u003d time:utcFromCivil(civil);\n```",
+      "parameters": [
+        {
+          "name": "civilTime",
+          "description": "The civil value to be converted",
+          "type": {
+            "name": "Civil",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Civil"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "The corresponding `time:Utc` value or an error if `utcOffset` is missing",
+        "type": {
+          "name": "Utc|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Utc"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "civilFromString",
+      "type": "Normal Function",
+      "description": "Converts a given RFC 3339 timestamp(e.g., `2007-12-03T10:15:30.00Z`) to a civil value.\n```ballerina\ntime:Civil|time:Error civil1 \u003d time:civilFromString(\"2021-04-12T23:20:50.520+05:30[Asia/Colombo]\");\ntime:Civil|time:Error civil2 \u003d time:civilFromString(\"2007-12-03T10:15:30.00Z\");\n```",
+      "parameters": [
+        {
+          "name": "dateTimeString",
+          "description": "The RFC 3339 timestamp as a string (e.g., `2007-12-03T10:15:30.00Z`).",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "The corresponding `time:Civil` value or a `time:Error` if the given `dateTimeString` is invalid",
+        "type": {
+          "name": "Civil|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Civil"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "civilToString",
+      "type": "Normal Function",
+      "description": "Converts a given civil value to an RFC 3339 timestamp (e.g., `2021-03-05T00:33:28.839564+05:30`).\n```ballerina\ntime:Civil civil \u003d check time:civilFromString(\"2007-12-03T10:15:30.00Z\");\nstring|time:Error civilString \u003d time:civilToString(civil);\n```",
+      "parameters": [
+        {
+          "name": "civil",
+          "description": "The civil value to be converted",
+          "type": {
+            "name": "Civil",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Civil"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "The corresponding string value or an error if the specified civil value contains invalid parameters (e.g., `month` \u003e 12)",
+        "type": {
+          "name": "string|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "utcToEmailString",
+      "type": "Normal Function",
+      "description": "Converts a given UTC to an email-formatted string (e.g `Mon, 3 Dec 2007 10:15:30 GMT`).\n```ballerina\ntime:Utc utc \u003d time:utcNow();\nstring emailFormattedString \u003d time:utcToEmailString(utc);\n```",
+      "parameters": [
+        {
+          "name": "utc",
+          "description": "The UTC time as a tuple `[int, decimal]`, where the first element is the seconds from the epoch\nand the second element is the fractional part of the last second.",
+          "type": {
+            "name": "Utc",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Utc"
+              }
+            ]
+          }
+        },
+        {
+          "name": "zh",
+          "description": "Specifies the type of the zone value to be added. Possible values include:\n- `\"0\"`: Default zone handling\n- `\"GMT\"`: Represents Greenwich Mean Time\n- `\"UT\"`: Represents Universal Time\n- `\"Z\"`: Represents the Zulu time zone (UTC+0)",
+          "type": {
+            "name": "UtcZoneHandling",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "UtcZoneHandling"
+              }
+            ]
+          },
+          "optional": true,
+          "default": "\"0\""
+        }
+      ],
+      "return": {
+        "description": "The corresponding email-formatted string value",
+        "type": {
+          "name": "string"
+        }
+      }
+    },
+    {
+      "name": "civilFromEmailString",
+      "type": "Normal Function",
+      "description": "Converts a given RFC 5322 formatted string (e.g., `Wed, 10 Mar 2021 19:51:55 -0800 (PST)`) to a civil record.\n```ballerina\ntime:Civil|time:Error emailDateTime \u003d time:civilFromEmailString(\"Wed, 10 Mar 2021 19:51:55 -0820\");\n```",
+      "parameters": [
+        {
+          "name": "dateTimeString",
+          "description": "The RFC 5322 formatted string to be converted (e.g., `Wed, 10 Mar 2021 19:51:55 -0800 (PST)`)",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "The corresponding `time:Civil` value or a `time:Error` if the given string is incorrectly formatted.",
+        "type": {
+          "name": "Civil|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Civil"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "civilToEmailString",
+      "type": "Normal Function",
+      "description": "Converts a given civil record to RFC 5322 format (e.g `Wed, 10 Mar 2021 19:51:55 -0800 (PST)`).\n```ballerina\ntime:Civil civil \u003d check time:civilFromString(\"2021-04-12T23:20:50.520+05:30[Asia/Colombo]\");\nstring|time:Error emailDateTime \u003d time:civilToEmailString(civil, time:PREFER_ZONE_OFFSET);\n```",
+      "parameters": [
+        {
+          "name": "civil",
+          "description": "The `time:Civil` record to be converted",
+          "type": {
+            "name": "Civil",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Civil"
+              }
+            ]
+          }
+        },
+        {
+          "name": "zoneHandling",
+          "description": "Specifies how to handle the zone. Possible values include:\n- `PREFER_ZONE_OFFSET`: Use the zone offset for the output.\n- `PREFER_TIME_ABBREV`: Use the time abbreviation for the output.\n- `ZONE_OFFSET_WITH_TIME_ABBREV_COMMENT`: Use the zone offset and include the time abbreviation as a comment.",
+          "type": {
+            "name": "HeaderZoneHandling",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "HeaderZoneHandling"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "The RFC 5322 formatted string (e.g., `Wed, 10 Mar 2021 19:51:55 -0800 (PST)`) or an error if the civil record contains invalid parameters.",
+        "type": {
+          "name": "string|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "civilAddDuration",
+      "type": "Normal Function",
+      "description": "Adds the given time duration to the specified civil record. This is a time zone-agnostic operation and assumes that\nall days have exactly 86,400 seconds.\n```ballerina\ntime:Civil civil \u003d check time:civilFromString(\"2025-04-25T10:15:30.00Z\");\ntime:Civil|time:Error updatedCivil \u003d time:civilAddDuration(civil, {years: 1, days: 3, hours: 4, seconds: 6});\n```",
+      "parameters": [
+        {
+          "name": "civil",
+          "description": "The civil record to which the duration should be added",
+          "type": {
+            "name": "Civil",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Civil"
+              }
+            ]
+          }
+        },
+        {
+          "name": "duration",
+          "description": "The time duration to be added. This can include fields such as `years`, `months`, `days`, `hours`, `minutes`, and `seconds`",
+          "type": {
+            "name": "Duration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Duration"
+              }
+            ]
+          }
+        }
+      ],
+      "return": {
+        "description": "The updated civil record after adding the duration, or an error if the operation results in an invalid civil record",
+        "type": {
+          "name": "Civil|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Civil"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "loadSystemZone",
+      "type": "Normal Function",
+      "description": "Loads the default time zone of the system.\n```ballerina\ntime:Zone|time:Error zone \u003d time:loadSystemZone();\n```",
+      "parameters": [],
+      "return": {
+        "description": "The system\u0027s default zone value or error when the zone ID of the system is in invalid format.",
+        "type": {
+          "name": "Zone|Error",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Zone"
+            },
+            {
+              "category": "internal",
+              "recordName": "Error"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "getZone",
+      "type": "Normal Function",
+      "description": "Returns the time zone object for a given zone ID.\n```ballerina\ntime:Zone? zone \u003d time:getZone(\"Asia/Colombo\");\n```",
+      "parameters": [
+        {
+          "name": "id",
+          "description": "Time zone ID in the format of (\"Continent/City\")",
+          "type": {
+            "name": "string"
+          }
+        }
+      ],
+      "return": {
+        "description": "Corresponding time zone object or `nil` if the zone ID is invalid or not found.",
+        "type": {
+          "name": "Zone|()",
+          "links": [
+            {
+              "category": "internal",
+              "recordName": "Zone"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "services": [],
+  "annotations": []
+}

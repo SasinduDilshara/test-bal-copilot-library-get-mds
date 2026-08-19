@@ -1,0 +1,490 @@
+// ============================================================
+// Library: ballerina/mime
+// This module provides a set of APIs to work with messages, which follow the Multipurpose Internet Mail Extensions (MIME) specification as specified in the [RFC 2045 standard](https://www.ietf.org/rfc/rfc2045.txt).
+// ============================================================
+import ballerina/mime;
+
+// --- README ---
+## Overview
+
+This module provides a set of APIs to work with messages, which follow the Multipurpose Internet Mail Extensions (MIME) specification as specified in the [RFC 2045 standard](https://www.ietf.org/rfc/rfc2045.txt).
+
+```
+Entity refers to the header fields and the content of a message or a part of the body in a multipart entity. 
+```
+
+### Supported multipart types
+
+The module supports `multipart/form-data`, `multipart/mixed`, `multipart/alternative`, `multipart/related`, and 
+`multipart/parallel` as multipart content types.
+
+### Modify and retrieve the data in an entity
+
+This module provides functions to set and get an entity body from different kinds of message types such as XML, text, 
+JSON, byte[], and body parts. Headers can be modified through functions such as `addHeader()`, `setHeader()`, 
+`removeHeader()`, etc. 
+
+### Handle large files
+
+The entity object method `setFileAsEntityBody()` can be used to set large files as the entity body and 
+is able to read it as a stream using the `getByteStream()` function.
+
+// --- END README ---
+
+// --- Types ---
+
+# Represents the `application/octet-stream` media type.
+const string APPLICATION_OCTET_STREAM = "application/octet-stream";
+
+# Represents the `application/json` media type.
+const string APPLICATION_JSON = "application/json";
+
+# Represents the `application/xml` media type.
+const string APPLICATION_XML = "application/xml";
+
+# Represents the `application/svg+xml` media type.
+const string APPLICATION_SVG_XML = "application/svg+xml";
+
+# Represents the `application/xhtml+xml` media type.
+const string APPLICATION_XHTML_XML = "application/xhtml+xml";
+
+# Represents the `application/soap+xml` media type.
+const string APPLICATION_SOAP_XML = "application/soap+xml";
+
+# Represents the `application/x-www-form-urlencoded` media type.
+const string APPLICATION_FORM_URLENCODED = "application/x-www-form-urlencoded";
+
+# Represents the `application/pdf` media type.
+const string APPLICATION_PDF = "application/pdf";
+
+# Represents the `image/jpeg` media type.
+const string IMAGE_JPEG = "image/jpeg";
+
+# Represents the `image/gif` media type.
+const string IMAGE_GIF = "image/gif";
+
+# Represents the `image/png` media type.
+const string IMAGE_PNG = "image/png";
+
+# Represents the `multipart/form-data` media type.
+const string MULTIPART_FORM_DATA = "multipart/form-data";
+
+# Represents the `multipart/mixed` media type.
+const string MULTIPART_MIXED = "multipart/mixed";
+
+# Represents the `multipart/alternative` media type.
+const string MULTIPART_ALTERNATIVE = "multipart/alternative";
+
+# Represents the `multipart/related` media type.
+const string MULTIPART_RELATED = "multipart/related";
+
+# Represents the `multipart/parallel` media type.
+const string MULTIPART_PARALLEL = "multipart/parallel";
+
+# Represents the `text/plain` media type.
+const string TEXT_PLAIN = "text/plain";
+
+# Represents the `text/html` media type.
+const string TEXT_HTML = "text/html";
+
+# Represents the `text/xml` media type.
+const string TEXT_XML = "text/xml";
+
+# Represents the `text/event-stream` media type.
+const string TEXT_EVENT_STREAM = "text/event-stream";
+
+# Key name for `boundary` parameter in MediaType. This is needed for composite type media types.
+const string BOUNDARY = "boundary";
+
+# Key name for `start` parameter in MediaType. This determines which part in the multipart message contains the
+# payload.
+const string START = "start";
+
+# Key name for `type` parameter in MediaType. This indicates the MIME media type of the `root` body part.
+const string TYPE = "type";
+
+# Key name for `charset` parameter in MediaType. This indicates the character set of the body text.
+const string CHARSET = "charset";
+
+# Default charset to be used with MIME encoding and decoding.
+const string DEFAULT_CHARSET = "UTF-8";
+
+# Represents `content-id` header name.
+const string CONTENT_ID = "content-id";
+
+# Represents `content-length` header name.
+const string CONTENT_LENGTH = "content-length";
+
+# Represents `content-type` header name.
+const string CONTENT_TYPE = "content-type";
+
+# Represents `content-disposition` header name.
+const string CONTENT_DISPOSITION = "content-disposition";
+
+# Defines the common error type for the module.
+type Error error;
+
+# Represents an `EncodeError` with the message and the cause.
+type EncodeError error;
+
+# Represents a `DecodeError` with the message and the cause.
+type DecodeError error;
+
+# Represents a `GenericMimeError` with the message and the cause.
+type GenericMimeError error;
+
+# Represents a `SetHeaderError` with the message and the cause.
+type SetHeaderError error;
+
+# Represents a `InvalidHeaderValueError` error with the message and the cause.
+type InvalidHeaderValueError error;
+
+# Represents a `InvalidHeaderParamError` error with the message and the cause.
+type InvalidHeaderParamError error;
+
+# Represents a `InvalidContentLengthError` error with the message and the cause.
+type InvalidContentLengthError error;
+
+# Represents a `HeaderNotFoundError` error with the message and the cause.
+type HeaderNotFoundError error;
+
+# Represents a `InvalidHeaderOperationError` error with the message and the cause.
+type InvalidHeaderOperationError error;
+
+# Represents a `SerializationError` error with the message and the cause.
+type SerializationError error;
+
+# Represents a `ParserError` with the message and the cause.
+type ParserError error;
+
+# Represents an `InvalidContentTypeError` with the message and the cause.
+type InvalidContentTypeError error;
+
+# Represents a `HeaderUnavailableError` with the message and the cause.
+type HeaderUnavailableError error;
+
+# Represents an `IdleTimeoutTriggeredError` with the message and the cause.
+type IdleTimeoutTriggeredError error;
+
+# Represents a `NoContentError` with the message and the cause.
+type NoContentError error;
+
+# Represents the headers and body of a message. This can be used to represent both the entity of a top level message
+# and an entity(body part) inside of a multipart entity.
+# 
+class Entity {
+
+    # Sets the content-type to the entity.
+    # ```ballerina
+    # mime:InvalidContentTypeError? contentType = mimeEntity.setContentType("application/json");
+    # ```
+    # 
+    function setContentType(string mediaType) returns InvalidContentTypeError|();
+
+    # Gets the content type of the entity.
+    # ```ballerina
+    # string contentType = mimeEntity.getContentType();
+    # ```
+    # 
+    function getContentType() returns string;
+
+    # Sets the content ID of the entity.
+    # ```ballerina
+    # mimeEntity.setContentId("test-id");
+    # ```
+    # 
+    function setContentId(string contentId) returns ();
+
+    # Gets the content ID of the entity.
+    # ```ballerina
+    # string contentId = mimeEntity.getContentId();
+    # ```
+    # 
+    function getContentId() returns string;
+
+    # Sets the content length of the entity.
+    # ```ballerina
+    # mimeEntity.setContentLength(45555);
+    # ```
+    # 
+    function setContentLength(int contentLength) returns ();
+
+    # Gets the content length of the entity.
+    # ```ballerina
+    # int|error contentLength = mimeEntity.getContentLength();
+    # ```
+    # 
+    function getContentLength() returns int|error;
+
+    # Sets the content disposition of the entity.
+    # ```ballerina
+    # mimeEntity.setContentDisposition(contentDisposition);
+    # ```
+    # 
+    function setContentDisposition(ContentDisposition contentDisposition) returns ();
+
+    # Gets the content disposition of the entity.
+    # ```ballerina
+    # mime:ContentDisposition contentDisposition = mimeEntity.getContentDisposition();
+    # ```
+    # 
+    function getContentDisposition() returns ContentDisposition;
+
+    # Sets the body of the entity with the given content. Note that any string value is set as `text/plain`. To send a
+    # JSON-compatible string, set the content-type header to `application/json` or use the `setJsonPayload` method instead.
+    # ```ballerina
+    # mimeEntity.setBody("body string");
+    # ```
+    # 
+    function setBody(string|xml|json|byte[]|mime:Entity[]|stream<byte[], io:Error?> entityBody) returns ();
+
+    # Sets the entity body with a given file. This method overrides any existing `content-type` headers
+    # with the default content-type, which is `application/octet-stream`. This default value
+    # can be overridden by passing the content type as an optional parameter.
+    # ```ballerina
+    # mimeEntity.setFileAsEntityBody("<file path>");
+    # ```
+    # 
+    function setFileAsEntityBody(string filePath, string contentType = "") returns ();
+
+    # Sets the entity body with the given `json` content. This method overrides any existing `content-type` headers
+    # with the default content-type, which is `application/json`. This default value can be overridden
+    # by passing the content type as an optional parameter.
+    # ```ballerina
+    # mimeEntity.setJson({ "Hello": "World" });
+    # ```
+    # 
+    function setJson(json jsonContent, string contentType = "") returns ();
+
+    # Extracts the JSON body from the entity.
+    # ```ballerina
+    # json|mime:ParserError result = entity.getJson();
+    # ```
+    # 
+    function getJson() returns json|ParserError;
+
+    # Sets the entity body with the given XML content. This method overrides any existing content-type headers
+    # with the default content-type, which is `application/xml`. This default value can be overridden
+    # by passing the content-type as an optional parameter.
+    # ```ballerina
+    # mimeEntity.setXml(xml `<hello> world </hello>`);
+    # ```
+    # 
+    function setXml(xml xmlContent, string contentType = "") returns ();
+
+    # Extracts the `xml` body from the entity.
+    # ```ballerina
+    # xml|mime:ParserError result = entity.getXml();
+    # ```
+    # 
+    function getXml() returns xml|ParserError;
+
+    # Sets the entity body with the given text content. This method overrides any existing content-type headers
+    # with the default content-type, which is `text/plain`. This default value can be overridden
+    # by passing the content type as an optional parameter.
+    # ```ballerina
+    # mimeEntity.setText("Hello World");
+    # ```
+    # 
+    function setText(string textContent, string contentType = "") returns ();
+
+    # Extracts the text body from the entity. If the entity body is not text compatible, an error is returned.
+    # ```ballerina
+    # string|mime:ParserError result = entity.getText();
+    # ```
+    # 
+    function getText() returns string|ParserError;
+
+    # Sets the entity body with the given byte[] content. This method overrides any existing `content-type` headers
+    # with the default content-type, which is `application/octet-stream`. This default value
+    # can be overridden by passing the content type as an optional parameter.
+    # ```ballerina
+    # entity.setByteArray(content.toBytes());
+    # ```
+    # 
+    function setByteArray(byte[] blobContent, string contentType = "") returns ();
+
+    # Gets the entity body as a `byte[]` from a given entity. If the entity size is considerably large, consider
+    # using the `Entity.getByteStream()` method instead.
+    # ```ballerina
+    # byte[]|mime:ParserError result = entity.getByteArray();
+    # ```
+    # 
+    function getByteArray() returns byte[]|ParserError;
+
+    # Sets the entity body with the given byte stream content. This method overrides any existing content-type headers
+    # with the default content-type, which is `application/octet-stream`. This default value
+    # can be overridden by passing the content-type as an optional parameter.
+    # ```ballerina
+    # entity.setByteStream(byteStream);
+    # ```
+    # 
+    function setByteStream(stream<byte[], io:Error?> byteStream, string contentType = "") returns ();
+
+    # Gets the entity body as a stream of `byte[]` from a given entity.
+    # ```ballerina
+    # stream<byte[], io:Error?>|mime:ParserError str = entity.getByteStream();
+    # ```
+    # 
+    function getByteStream(int arraySize = 0) returns stream<byte[], io:Error?>|ParserError;
+
+    # Gets the body parts from a given entity.
+    # ```ballerina
+    # mime:Entity[]|mime:ParserError result = multipartEntity.getBodyParts();
+    # ```
+    # 
+    function getBodyParts() returns Entity[]|ParserError;
+
+    # Gets the body parts as a byte stream from a given entity.
+    # ```ballerina
+    # stream<byte[], io:Error?>|mime:ParserError str = multipartEntity.getBodyPartsAsStream();
+    # ```
+    # 
+    function getBodyPartsAsStream(int arraySize = 0) returns stream<byte[], io:Error?>|ParserError;
+
+    # Sets the body parts to the entity. This method overrides any existing `content-type` headers
+    # with the default `multipart/form-data` content-type. The default `multipart/form-data` value can be overridden
+    # by passing the content type as an optional parameter.
+    # ```ballerina
+    # multipartEntity.setBodyParts(bodyParts, contentType);
+    # ```
+    # 
+    function setBodyParts(Entity[] bodyParts, string contentType = "") returns ();
+
+    # Gets the header value associated with the given header name.
+    # ```ballerina
+    # string|mime:HeaderNotFoundError headerName = mimeEntity.getHeader(mime:CONTENT_LENGTH);
+    # ```
+    # 
+    function getHeader(string headerName) returns string|HeaderNotFoundError;
+
+    # Gets all the header values associated with the given header name.
+    # ```ballerina
+    # string[]|mime:HeaderNotFoundError headerNames = mimeEntity.getHeaders(mime:CONTENT_TYPE);
+    # ```
+    # 
+    function getHeaders(string headerName) returns string[]|HeaderNotFoundError;
+
+    # Gets all the header names.
+    # ```ballerina
+    # string[] headerNames = mimeEntity.getHeaderNames();
+    # ```
+    # 
+    function getHeaderNames() returns string[];
+
+    # Adds the given header value against the given header. Panic if an illegal header is passed.
+    # ```ballerina
+    # mimeEntity.addHeader("custom-header", "header-value");
+    # ```
+    # 
+    function addHeader(string headerName, string headerValue) returns ();
+
+    # Sets the given header value against the existing header. If a header already exists, its value is replaced
+    # with the given header value. Panic if an illegal header is passed.
+    # ```ballerina
+    # mimeEntity.setHeader("custom-header", "header-value");
+    # ```
+    # 
+    function setHeader(string headerName, string headerValue) returns ();
+
+    # Removes the given header from the entity.
+    # ```ballerina
+    # mimeEntity.removeHeader("custom-header");
+    # ```
+    # 
+    function removeHeader(string headerName) returns ();
+
+    # Removes all headers associated with the entity.
+    # ```ballerina
+    # mimeEntity.removeAllHeaders();
+    # ```
+    function removeAllHeaders() returns ();
+
+    # Checks whether the requested header key exists in the header map.
+    # ```ballerina
+    # boolean res = mimeEntity.hasHeader("custom-header");
+    # ```
+    # 
+    function hasHeader(string headerName) returns boolean;
+}
+
+# Describes the nature of the data in the body of a MIME entity.
+# 
+class MediaType {
+
+    # Gets the “primaryType/subtype+suffix” combination in a `string` format.
+    # ```ballerina
+    # string baseType = mediaType.getBaseType();
+    # ```
+    # 
+    function getBaseType() returns string;
+
+    # Converts the media type to a `string`, which is suitable to be used as the value of a corresponding HTTP header.
+    # ```ballerina
+    # string mediaTypeString = mediaType.toString();
+    # ```
+    # 
+    function toString() returns string;
+}
+
+# Represents values in `Content-Disposition` header.
+# 
+class ContentDisposition {
+
+    # Converts the `ContentDisposition` type to a string suitable to use as the value of a corresponding MIME header.
+    # ```ballerina
+    # string contDisposition = contentDisposition.toString();
+    # ```
+    # 
+    function toString() returns string;
+}
+
+// --- Functions ---
+
+# Encodes a given input with MIME specific Base64 encoding scheme.
+# 
+# + contentToBeEncoded - Content that needs to be encoded can be of type `string`, `byte[]` or `io:ReadableByteChannel`
+# + charset - Charset to be used. This is used only with the string input
+# + return - An encoded `string` if the given input is of type string, an encoded `byte[]` if the given input is of
+type byte[], an encoded `io:ReadableByteChannel` if the given input is of type `io:ReadableByteChannel`,
+or else a `mime:EncodeError` record in case of errors
+function base64Encode(string|byte[]|io:ReadableByteChannel contentToBeEncoded, string charset = "utf-8") returns string|byte[]|io:ReadableByteChannel|EncodeError; // Special Agent Note: ReadableByteChannel FROM ballerina/io package
+
+# Decodes a given input with MIME specific Base64 encoding scheme.
+# 
+# + contentToBeDecoded - Content that needs to be decoded can be of type `string`, `byte[]` or `io:ReadableByteChannel`
+# + charset - Charset to be used. This is used only with the string input
+# + return - A decoded `string` if the given input is of type string, a decoded `byte[]` if the given input is of
+type byte[], a decoded `io:ReadableByteChannel` if the given input is of type io:ReadableByteChannel
+or else a `mime:DecodeError` in case of errors
+function base64Decode(string|byte[]|io:ReadableByteChannel contentToBeDecoded, string charset = "utf-8") returns string|byte[]|io:ReadableByteChannel|DecodeError; // Special Agent Note: ReadableByteChannel FROM ballerina/io package
+
+# Encodes a given byte[] using the Base64 encoding scheme.
+# 
+# + valueToBeEncoded - Content, which needs to be encoded
+# + return - An encoded byte[] or else a `mime:EncodeError` record in case of errors
+function base64EncodeBlob(byte[] valueToBeEncoded) returns byte[]|EncodeError;
+
+# Decodes a given byte[] using the Base64 encoding scheme.
+# 
+# + valueToBeDecoded - Content, which needs to be decoded
+# + return - A decoded `byte[]` or else a `mime:DecodeError` record in case of errors
+function base64DecodeBlob(byte[] valueToBeDecoded) returns byte[]|DecodeError;
+
+# Gets the `MediaType` object populated with it when the `Content-Type` is in string.
+# ```ballerina
+# mime:MediaType|mime:InvalidContentTypeError returnVal = getMediaType("custom-header");
+# ```
+# 
+# + contentType - Content-Type in string
+# + return - `MediaType` object or else a `mime:InvalidContentTypeError` in case of an invalid content-type
+function getMediaType(string contentType) returns MediaType|InvalidContentTypeError;
+
+# Given the Content-Disposition as a string, gets the `ContentDisposition` object with it.
+# ```ballerina
+# mime:ContentDisposition cDisposition = getContentDispositionObject("form-data; name=filepart; filename=file-01.txt");
+# ```
+# 
+# + contentDisposition - Content disposition string
+# + return - A `ContentDisposition` object
+function getContentDispositionObject(string contentDisposition) returns ContentDisposition;

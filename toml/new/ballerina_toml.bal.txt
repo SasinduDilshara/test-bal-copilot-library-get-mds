@@ -1,0 +1,94 @@
+// ============================================================
+// Library: ballerina/toml
+// This module provides APIs to convert a TOML configuration file to `map<json>`, and vice-versa.
+// ============================================================
+import ballerina/toml;
+
+// --- README ---
+## Overview
+
+This module provides APIs to convert a TOML configuration file to `map<json>`, and vice-versa.
+
+Since the parser is following LL(1) grammar, it follows a non-recursive predictive parsing algorithm which operates in a linear time complexity.
+
+For information on the operations, which you can perform with the `toml` module, see the below **Functions**.
+
+// --- END README ---
+
+// --- Types ---
+
+# Represents an error caused during the parsing.
+type ParsingError parser:GrammarError|parser:ConversionError|lexer:LexicalError;
+
+# Represents an error caused when writing a TOML file.
+type WritingError writer:WritingError;
+
+# Represents an error caused when failed to access the file.
+type FileError io:Error|file:Error;
+
+# Represents the generic error type for the TOML package.
+type Error parser:GrammarError|parser:ConversionError|lexer:LexicalError|WritingError|io:Error|file:Error;
+
+# Represents an error caused by the lexical analyzer.
+type LexicalError lexer:LexicalError;
+
+# Represents an error caused for an invalid grammar production.
+type GrammarError parser:GrammarError;
+
+# Represents an error caused by the Ballerina lang when converting a data type.
+type ConversionError parser:ConversionError;
+
+# Configurations for writing a TOML document.
+# 
+
+type WriteConfig record {
+    # Number of spaces for an indentation
+    int indentationPolicy?;
+    # If set, dotted keys are used instead of standard tables where applicable.
+    boolean allowDottedKeys?;
+};
+
+# Configurations for reading a TOML document.
+# 
+
+type ReadConfig record {
+    # If set, then offset date time is converted to Ballerina time:Utc
+    boolean parseOffsetDateTime?;
+};
+
+// --- Functions ---
+
+# Parses a Ballerina string of TOML content into a Ballerina map object.
+# 
+# + tomlString - TOML content
+# + parseOffsetDateTime - If set, then offset date time is converted to Ballerina time:Utc
+# + config - Configuration for reading a TOML file
+# + return - TOML map object on success. Else, returns an error
+function readString(string tomlString, boolean parseOffsetDateTime = true, ReadConfig config) returns map<json>|parser:GrammarError|parser:ConversionError|lexer:LexicalError|WritingError|io:file:Error|io:file:Error; // Special Agent Note: GrammarError, ConversionError FROM ballerina/toml.parser package, LexicalError FROM ballerina/toml.lexer package, Error FROM ballerina/io package, Error FROM ballerina/file package
+
+# Parses a TOML file into a Ballerina map object.
+# 
+# + filePath - Path to the toml file
+# + parseOffsetDateTime - If set, then offset date time is converted to Ballerina time:Utc
+# + config - Configuration for reading a TOML file
+# + return - TOML map object on success. Else, returns an error
+function readFile(string filePath, boolean parseOffsetDateTime = true, ReadConfig config) returns map<json>|parser:GrammarError|parser:ConversionError|lexer:LexicalError|WritingError|io:file:Error|io:file:Error; // Special Agent Note: GrammarError, ConversionError FROM ballerina/toml.parser package, LexicalError FROM ballerina/toml.lexer package, Error FROM ballerina/io package, Error FROM ballerina/file package
+
+# Converts the TOML structure to an array of strings.
+# 
+# + tomlStructure - Structure to be written to the file
+# + indentationPolicy - Number of spaces for an indentation
+# + allowDottedKeys - If set, dotted keys are used instead of standard tables where applicable.
+# + config - Configurations for writing a TOML file
+# + return - TOML content on success. Else, an error on failure
+function writeString(map<json> tomlStructure, int indentationPolicy = 2, boolean allowDottedKeys = true, WriteConfig config) returns string[]|parser:GrammarError|parser:ConversionError|lexer:LexicalError|WritingError|io:file:Error|io:file:Error; // Special Agent Note: GrammarError, ConversionError FROM ballerina/toml.parser package, LexicalError FROM ballerina/toml.lexer package, Error FROM ballerina/io package, Error FROM ballerina/file package
+
+# Writes the TOML structure to a file.
+# 
+# + filePath - Path to the file  
+# + tomlStructure - Structure to be written to the file
+# + indentationPolicy - Number of spaces for an indentation
+# + allowDottedKeys - If set, dotted keys are used instead of standard tables where applicable.
+# + config - Configurations for writing a TOML file
+# + return - An error on failure
+function writeFile(string filePath, map<json> tomlStructure, int indentationPolicy = 2, boolean allowDottedKeys = true, WriteConfig config) returns parser:GrammarError|parser:ConversionError|lexer:LexicalError|WritingError|io:file:Error|io:file:Error|(); // Special Agent Note: GrammarError, ConversionError FROM ballerina/toml.parser package, LexicalError FROM ballerina/toml.lexer package, Error FROM ballerina/io package, Error FROM ballerina/file package

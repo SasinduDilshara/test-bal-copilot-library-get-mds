@@ -1,0 +1,2498 @@
+{
+  "name": "ballerinax/rabbitmq",
+  "description": "RabbitMQ is a widely used open-source message broker that implements the Advanced Message Queuing Protocol (AMQP). It provides a reliable and scalable platform for asynchronous messaging, enabling decoupled communication between different components of a distributed system. The RabbitMQ connector provides a comprehensive API to interact with RabbitMQ, allowing you to manage exchanges, queues, and bindings, and to produce and consume messages efficiently.",
+  "readme": "## Overview\n\nRabbitMQ is a widely used open-source message broker that implements the Advanced Message Queuing Protocol (AMQP). It provides a reliable and scalable platform for asynchronous messaging, enabling decoupled communication between different components of a distributed system. The RabbitMQ connector provides a comprehensive API to interact with RabbitMQ, allowing you to manage exchanges, queues, and bindings, and to produce and consume messages efficiently.\n\n### Key Features\n\n- Comprehensive support for AMQP 0-9-1\n- Manage exchanges, queues, and bindings programmatically\n- Reliable message delivery with acknowledgments and persistent storage\n- Flexible routing with different exchange types (Direct, Fanout, Topic, Headers)\n- Support for message properties and headers\n- GraalVM compatible for native image builds\n\n### Basic usage\n\n#### Set up the connection\n\nFirst, you need to set up the connection with the RabbitMQ server. The following ways can be used to connect to a\nRabbitMQ server.\n\n1. Connect to a RabbitMQ node with the default host and port:\n```ballerina\n    rabbitmq:Client rabbitmqClient \u003d check new(rabbitmq:DEFAULT_HOST, rabbitmq:DEFAULT_PORT);\n```\n\n2. Connect to a RabbitMQ node with a custom host and port:\n```ballerina\n    rabbitmq:Client rabbitmqClient \u003d check new(\"localhost\", 5672);\n```\n\n3. Connect to a RabbitMQ node with host, port, and additional configurations:\n```ballerina\n    rabbitmq:ConnectionConfiguration config \u003d {\n        username: \"ballerina\",\n        password: \"password\"\n    };\n    rabbitmq:Client rabbitmqClient \u003d check new(\"localhost\", 5672, configs);\n```\n\nThe `rabbitmq:Client` can now be used to send and receive messages as described in the subsequent sections.\n\n#### Exchanges and queues\n\nClient applications work with exchanges and queues, which are the high-level building blocks of the AMQP protocol. These must be declared before they can be used. The following code declares an exchange and a server-named queue and then binds them together.\n\n```ballerina\n    check rabbitmqClient-\u003eexchangeDeclare(\"MyExchange\", rabbitmq:DIRECT_EXCHANGE);\n    check rabbitmqClient-\u003equeueDeclare(\"MyQueue\");\n    check rabbitmqClient-\u003equeueBind(\"MyQueue\", \"MyExchange\", \"routing-key\");\n```\n\nThis sample code will declare,\n- a durable, non-auto-delete exchange of the type `rabbitmq:DIRECT_EXCHANGE`\n- a durable, non-exclusive, non-auto-delete queue with the given name\n\nNext, the `queueBind` function is called to bind the queue to the exchange with the given routing key.\n\n```ballerina\n    check rabbitmqClient-\u003eexchangeDeclare(\"MyExchange\", rabbitmq:DIRECT_EXCHANGE);\n    check rabbitmqClient-\u003equeueDeclare(\"MyQueue\", { durable: false,\n                                                   exclusive: true,\n                                                   autoDelete: true });\n    check rabbitmqClient-\u003equeueBind(\"MyQueue\", \"MyExchange\", \"routing-key\");\n```\n\nThis sample code will declare,\n- a durable, non-auto-delete exchange of the type `rabbitmq:DIRECT_EXCHANGE`\n- a transient, exclusive, auto-delete queue with a well-known name\n\n#### Delete entities and purge queues\n\n- Delete a queue:\n```ballerina\n    check rabbitmqClient-\u003equeueDelete(\"MyQueue\");\n```\n- Delete a queue only if it is empty:\n```ballerina\n    check rabbitmqClient-\u003equeueDelete(\"MyQueue\", false, true);\n```\n- Delete a queue only if it is unused (does not have any consumers):\n```ballerina\n    check rabbitmqClient-\u003equeueDelete(\"MyQueue\", true, false);\n```\n- Delete an exchange:\n```ballerina\n    check rabbitmqClient-\u003eexchangeDelete(\"MyExchange\");\n```\n- Purge a queue (delete all of its messages):\n```ballerina\n    check rabbitmqClient-\u003equeuePurge(\"MyQueue\");\n```\n\n#### Publish messages\n\nTo publish a message to an exchange, use the `publishMessage()` function as follows:\n\n```ballerina\n    string message \u003d \"Hello from Ballerina\";\n    check rabbitmqClient-\u003epublishMessage({ content: message.toBytes(), routingKey: queueName });\n``` \nSetting other properties of the message such as routing headers can be done by using the `BasicProperties` record with the appropriate values.\n\n```ballerina\n    rabbitmq:BasicProperties props \u003d {\n       replyTo: \"reply-queue\"  \n    };\n    string message \u003d \"Hello from Ballerina\";\n    check rabbitmqClient-\u003epublishMessage({ content: message.toBytes(), routingKey: queueName, properties: props });\n```\n\n#### Consume messages using consumer services\n\nThe most efficient way to receive messages is to set up a subscription using a Ballerina RabbitMQ `rabbitmq:Listener` and any number of consumer services. The messages will then be delivered automatically as they arrive rather than having to be explicitly requested. Multiple consumer services can be bound to one Ballerina RabbitMQ `rabbitmq:Listener`. The queue to which the service is listening is configured in the `rabbitmq:ServiceConfig` annotation of the service or else as the name of the service.\n\n1. Listen to incoming messages with the `onMessage` remote method:\n\n```ballerina\n    listener rabbitmq:Listener channelListener\u003d new(rabbitmq:DEFAULT_HOST, rabbitmq:DEFAULT_PORT);\n    \n    @rabbitmq:ServiceConfig {\n        queueName: \"MyQueue\"\n    }\n    service rabbitmq:Service on channelListener {\n        remote function onMessage(rabbitmq:AnydataMessage message) {\n        }\n    }\n```\n\n2. Listen to incoming messages and reply directly with the `onRequest` remote method:\n\n```ballerina\n    listener rabbitmq:Listener channelListener\u003d new(rabbitmq:DEFAULT_HOST, rabbitmq:DEFAULT_PORT);\n    \n    @rabbitmq:ServiceConfig {\n        queueName: \"MyQueue\"\n    }\n    service rabbitmq:Service on channelListener {\n        remote function onRequest(rabbitmq:AnydataMessage message) returns string {\n            return \"Hello Back!\";\n        }\n    }\n```\n\nThe `rabbitmq:AnydataMessage` record received can be used to retrieve its contents.\n\n### Advanced usage\n\n#### Client acknowledgements\n\nThe message consuming is supported by mainly two types of acknowledgement modes, which are auto acknowledgements and client acknowledgements.\nClient acknowledgements can further be divided into two different types as positive and negative acknowledgements.\nThe default acknowledgement mode is auto-ack (messages are acknowledged immediately after consuming). The following examples show the usage of positive and negative acknowledgements.\n\u003e WARNING: To ensure the reliability of receiving messages, use the client-ack mode.\n\n1. Positive client acknowledgement:\n```ballerina\n    listener rabbitmq:Listener channelListener\u003d new(rabbitmq:DEFAULT_HOST, rabbitmq:DEFAULT_PORT);\n    \n    @rabbitmq:ServiceConfig {\n        queueName: \"MyQueue\",\n        autoAck: false\n    }\n    service rabbitmq:Service on channelListener {\n        remote function onMessage(rabbitmq:BytesMessage message, rabbitmq:Caller caller) {\n            rabbitmq:Error? result \u003d caller-\u003ebasicAck();\n        }\n    }\n```\n\n2. Negative client acknowledgement:\n```ballerina\n    listener rabbitmq:Listener channelListener\u003d new(rabbitmq:DEFAULT_HOST, rabbitmq:DEFAULT_PORT);\n    \n    @rabbitmq:ServiceConfig {\n        queueName: \"MyQueue\",\n        autoAck: false\n    }\n    service rabbitmq:Service on channelListener {\n        remote function onMessage(rabbitmq:BytesMessage message) {\n            rabbitmq:Error? result \u003d caller-\u003ebasicNack(true, requeue \u003d false);\n        }\n    }\n```\n\nThe negatively-acknowledged (rejected) messages can be re-queued by setting the `requeue` to `true`.\n",
+  "typeDefs": [
+    {
+      "name": "DEFAULT_HOST",
+      "description": "Constant for the default host.",
+      "type": "Constant",
+      "value": "localhost",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "DEFAULT_PORT",
+      "description": "Constant for the default port.",
+      "type": "Constant",
+      "value": "5672",
+      "varType": {
+        "name": "int"
+      }
+    },
+    {
+      "name": "DIRECT_EXCHANGE",
+      "description": "Constant for the RabbitMQ Direct Exchange type.",
+      "type": "Constant",
+      "value": "direct",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "FANOUT_EXCHANGE",
+      "description": "Constant for the RabbitMQ Fan-out Exchange type.",
+      "type": "Constant",
+      "value": "fanout",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "TOPIC_EXCHANGE",
+      "description": "Constant for the RabbitMQ Topic Exchange type.",
+      "type": "Constant",
+      "value": "topic",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "SSL",
+      "description": "",
+      "type": "Constant",
+      "value": "SSL",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "TLS",
+      "description": "",
+      "type": "Constant",
+      "value": "TLS",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "DTLS",
+      "description": "",
+      "type": "Constant",
+      "value": "DTLS",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "RabbitMQServiceConfig",
+      "description": "Configurations required to create a subscription.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "queueName",
+          "description": "The name of the queue to be subscribed",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "config",
+          "description": "The configurations required to declare a queue",
+          "type": {
+            "name": "QueueConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "QueueConfig"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "consumerTag",
+          "description": "The tag used to identify the consumer. If not specified or empty,\nan internally generated UUID will be assigned.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "autoAck",
+          "description": "If false, should manually acknowledge",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "QueueConfig",
+      "description": "Additional configurations used to declare a queue.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "durable",
+          "description": "Set to true if declaring a durable queue",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "exclusive",
+          "description": "Set to true if declaring an exclusive queue",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "autoDelete",
+          "description": "Set to true if declaring an auto-delete queue",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "arguments",
+          "description": "Other properties (construction arguments) of the queue",
+          "type": {
+            "name": "map\u003canydata\u003e"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "AnydataMessage",
+      "description": "Represents the anydata message, which a RabbitMQ server sends to its subscribed services.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "content",
+          "description": "The content of the message",
+          "type": {
+            "name": "anydata"
+          }
+        },
+        {
+          "name": "routingKey",
+          "description": "The routing key to which the message is sent",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "exchange",
+          "description": "The exchange to which the message is sent. The default exchange is a direct exchange with no name (empty string) pre-declared by the broker.",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "deliveryTag",
+          "description": "The delivery tag of the message",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "properties",
+          "description": "Basic properties of the message - routing headers etc.",
+          "type": {
+            "name": "BasicProperties",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "BasicProperties"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "BasicProperties",
+      "description": "Basic properties of the message - routing headers etc.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "replyTo",
+          "description": "The queue name to which the reply should be sent",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "contentType",
+          "description": "The content type of the message",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "contentEncoding",
+          "description": "The content encoding of the message",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "correlationId",
+          "description": "The client-specific ID that can be used to mark or identify messages between clients",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "headers",
+          "description": "A map of additional arbitrary headers to be included in the message",
+          "type": {
+            "name": "map\u003canydata\u003e"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "BytesMessage",
+      "description": "Represents the subtype of `rabbitmq:AnydataMessage` record where the message content is a byte array.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "content",
+          "description": "Message content in bytes",
+          "type": {
+            "name": "byte[]"
+          }
+        },
+        {
+          "name": "routingKey",
+          "description": "",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "exchange",
+          "description": "",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "deliveryTag",
+          "description": "",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "properties",
+          "description": "",
+          "type": {
+            "name": "BasicProperties",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "BasicProperties"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "StoreClientConfiguration",
+      "description": "Represents the RabbitMQ store client configuration.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "host",
+          "description": "The RabbitMQ server host. Defaults to \"localhost\"",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "port",
+          "description": "The RabbitMQ server port. Defaults to 5672",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "connectionData",
+          "description": "The RabbitMQ connection configuration",
+          "type": {
+            "name": "ConnectionConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "ConnectionConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "publishConfig",
+          "description": "The RabbitMQ publish configuration",
+          "type": {
+            "name": "StoreClientPublishConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "StoreClientPublishConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "declareQueue",
+          "description": "The RabbitMQ queue declaration configuration",
+          "type": {
+            "name": "StoreClientDeclareQueueConfiguration",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "StoreClientDeclareQueueConfiguration"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ConnectionConfiguration",
+      "description": "Configurations related to initializing the RabbitMQ client and listener.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "username",
+          "description": "The username used for establishing the connection",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "password",
+          "description": "The password used for establishing the connection",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "virtualHost",
+          "description": "The virtual host to use when connecting to the broker",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "connectionTimeout",
+          "description": "Connection TCP establishment timeout in seconds and zero for infinite",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "handshakeTimeout",
+          "description": "The AMQP 0-9-1 protocol handshake timeout in seconds",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "shutdownTimeout",
+          "description": "Shutdown timeout in seconds, zero for infinite, and the default value is 10. If the consumers exceed\nthis timeout, then any remaining queued deliveries (and other Consumer callbacks) will be lost",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "heartbeat",
+          "description": "The initially-requested heartbeat timeout in seconds and zero for none",
+          "type": {
+            "name": "decimal"
+          },
+          "optional": true
+        },
+        {
+          "name": "validation",
+          "description": "Configuration related to constraint validation check",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "secureSocket",
+          "description": "Configurations for facilitating secure connections",
+          "type": {
+            "name": "SecureSocket",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "SecureSocket"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "auth",
+          "description": "Configurations related to authentication",
+          "type": {
+            "name": "Credentials",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Credentials"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "failoverAddresses",
+          "description": "Additional RabbitMQ broker addresses for cluster and failover support. The primary `host` and\n`port` provided in `init()` are always tried first. If the primary connection fails, the addresses listed here are\ntried in order.",
+          "type": {
+            "name": "Address[]|()",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "Address"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "SecureSocket",
+      "description": "Configurations for facilitating secure connections.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "cert",
+          "description": "Configurations associated with `crypto:TrustStore` or single certificate file that the client trusts",
+          "type": {
+            "name": "TrustStore|string",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "TrustStore",
+                "libraryName": "ballerina/crypto"
+              }
+            ]
+          }
+        },
+        {
+          "name": "key",
+          "description": "Configurations associated with `crypto:KeyStore` or combination of certificate and private key of the client",
+          "type": {
+            "name": "KeyStore|CertKey",
+            "links": [
+              {
+                "category": "external",
+                "recordName": "KeyStore",
+                "libraryName": "ballerina/crypto"
+              },
+              {
+                "category": "internal",
+                "recordName": "CertKey"
+              }
+            ]
+          },
+          "optional": true
+        },
+        {
+          "name": "protocol",
+          "description": "SSL/TLS protocol related options",
+          "type": {
+            "name": "record {|Protocol name;|}"
+          },
+          "optional": true
+        },
+        {
+          "name": "verifyHostName",
+          "description": "Enable/disable host name verification",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "CertKey",
+      "description": "Represents combination of certificate, private key and private key password if encrypted.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "certFile",
+          "description": "A file containing the certificate",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "keyFile",
+          "description": "A file containing the private key in PKCS8 format",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "keyPassword",
+          "description": "Password of the private key if it is encrypted",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Protocol",
+      "description": "Represents protocol options.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "DTLS",
+          "description": ""
+        },
+        {
+          "name": "TLS",
+          "description": ""
+        },
+        {
+          "name": "SSL",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "Credentials",
+      "description": "Configurations related to authentication.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "username",
+          "description": "Username to use for authentication",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "password",
+          "description": "Password/secret/token to use for authentication",
+          "type": {
+            "name": "string"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Address",
+      "description": "Represents a RabbitMQ broker address, used for cluster and failover configurations.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "host",
+          "description": "The hostname of the RabbitMQ broker",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "port",
+          "description": "The port of the RabbitMQ broker",
+          "type": {
+            "name": "int"
+          }
+        }
+      ]
+    },
+    {
+      "name": "StoreClientPublishConfiguration",
+      "description": "Represents a RabbitMQ store client configuration for publishing messages.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "exchange",
+          "description": "The RabbitMQ exchange to publish messages to. Defaults to an empty string",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "deliveryTag",
+          "description": "The RabbitMQ delivery tag for the message. Optional",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "properties",
+          "description": "The RabbitMQ message properties. Optional",
+          "type": {
+            "name": "BasicProperties",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "BasicProperties"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "StoreClientDeclareQueueConfiguration",
+      "description": "Represents the RabbitMQ message queue declaration configuration.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "enabled",
+          "description": "Enable or disable the queue declaration. Defaults to true",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "queueConfig",
+          "description": "Additional queue configuration to match the RabbitMQ queue declaration",
+          "type": {
+            "name": "QueueConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "QueueConfig"
+              }
+            ]
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "ExchangeType",
+      "description": "Types of exchanges supported by the Ballerina RabbitMQ Connector.",
+      "type": "Union",
+      "members": [
+        {
+          "name": "\"direct\"",
+          "type": {
+            "name": "\"direct\""
+          }
+        },
+        {
+          "name": "\"fanout\"",
+          "type": {
+            "name": "\"fanout\""
+          }
+        },
+        {
+          "name": "\"topic\"",
+          "type": {
+            "name": "\"topic\""
+          }
+        },
+        {
+          "name": "\"headers\"",
+          "type": {
+            "name": "\"headers\""
+          }
+        }
+      ]
+    },
+    {
+      "name": "ExchangeConfig",
+      "description": "Additional configurations used to declare an exchange.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "durable",
+          "description": "Set to `true` if a durable exchange is declared",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "autoDelete",
+          "description": "Set to `true` if an auto-delete exchange is declared",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "arguments",
+          "description": "Other properties (construction arguments) for the queue",
+          "type": {
+            "name": "map\u003canydata\u003e"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "QosSettings",
+      "description": "QoS settings to limit the number of unacknowledged\nmessages on a channel.\n",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "prefetchCount",
+          "description": "The maximum number of messages that the server will deliver.\nGive the value as 0 if unlimited",
+          "type": {
+            "name": "int"
+          }
+        },
+        {
+          "name": "prefetchSize",
+          "description": "The maximum amount of content (measured in octets)\nthat the server will deliver and 0 if unlimited",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "global",
+          "description": "`true` if the settings should be shared among all the consumers",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "RabbitmqPayload",
+      "description": "Defines the Payload remote function parameter.",
+      "type": "Record",
+      "fields": []
+    },
+    {
+      "name": "Error",
+      "description": "Represents the RabbitMQ module related errors.",
+      "type": "Error",
+      "baseType": "error"
+    },
+    {
+      "name": "PayloadBindingError",
+      "description": "Represents an error, which occurred due to payload binding.",
+      "type": "Error",
+      "baseType": "error"
+    },
+    {
+      "name": "PayloadValidationError",
+      "description": "Represents an error, which occurred due to payload constraint validation.",
+      "type": "Error",
+      "baseType": "error"
+    },
+    {
+      "name": "Service",
+      "description": "The RabbitMQ service type.",
+      "type": "Class"
+    },
+    {
+      "name": "Listener",
+      "description": "Initializes a Listener object with the given connection configuration. Sets the global QoS settings,\nwhich will be applied to the entire `rabbitmq:Listener`.\n```ballerina\nrabbitmq:Listener rabbitmqListener \u003d check new(rabbitmq:DEFAULT_HOST, rabbitmq:DEFAULT_PORT);\n```\n",
+      "type": "Class",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes a Listener object with the given connection configuration. Sets the global QoS settings,\nwhich will be applied to the entire `rabbitmq:Listener`.\n```ballerina\nrabbitmq:Listener rabbitmqListener \u003d check new(rabbitmq:DEFAULT_HOST, rabbitmq:DEFAULT_PORT);\n```\n",
+          "parameters": [
+            {
+              "name": "host",
+              "description": "The host used for establishing the connection",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "port",
+              "description": "The port used for establishing the connection",
+              "type": {
+                "name": "int"
+              }
+            },
+            {
+              "name": "qosSettings",
+              "description": "The consumer prefetch settings",
+              "type": {
+                "name": "QosSettings|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "QosSettings"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "username",
+              "description": "The username used for establishing the connection",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "password",
+              "description": "The password used for establishing the connection",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "virtualHost",
+              "description": "The virtual host to use when connecting to the broker",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "connectionTimeout",
+              "description": "Connection TCP establishment timeout in seconds and zero for infinite",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "0.0d"
+            },
+            {
+              "name": "handshakeTimeout",
+              "description": "The AMQP 0-9-1 protocol handshake timeout in seconds",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "0.0d"
+            },
+            {
+              "name": "shutdownTimeout",
+              "description": "Shutdown timeout in seconds, zero for infinite, and the default value is 10. If the consumers exceed\nthis timeout, then any remaining queued deliveries (and other Consumer callbacks) will be lost",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "0.0d"
+            },
+            {
+              "name": "heartbeat",
+              "description": "The initially-requested heartbeat timeout in seconds and zero for none",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "0.0d"
+            },
+            {
+              "name": "validation",
+              "description": "Configuration related to constraint validation check",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "true"
+            },
+            {
+              "name": "secureSocket",
+              "description": "Configurations for facilitating secure connections",
+              "type": {
+                "name": "SecureSocket",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "SecureSocket"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{cert: {path: \"\", password: \"\"}}"
+            },
+            {
+              "name": "auth",
+              "description": "Configurations related to authentication",
+              "type": {
+                "name": "Credentials",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Credentials"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{username: \"\", password: \"\"}"
+            },
+            {
+              "name": "failoverAddresses",
+              "description": "Additional RabbitMQ broker addresses for cluster and failover support. The primary `host` and\n`port` provided in `init()` are always tried first. If the primary connection fails, the addresses listed here are\ntried in order.",
+              "type": {
+                "name": "Address[]|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Address"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "connectionData",
+              "description": "The connection configuration",
+              "type": {
+                "name": "ConnectionConfiguration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ConnectionConfiguration"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "Error?"
+            }
+          }
+        },
+        {
+          "name": "attach",
+          "type": "Normal Function",
+          "description": "Attaches the service to the `rabbitmq:Listener` endpoint.\n```ballerina\ncheck rabbitmqListener.attach(service, \"serviceName\");\n```\n",
+          "parameters": [
+            {
+              "name": "s",
+              "description": "The type descriptor of the service",
+              "type": {
+                "name": "Service",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Service"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "name",
+              "description": "The name of the service",
+              "type": {
+                "name": "string[]|string|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "`()` or else a `rabbitmq:Error` upon failure to register the service",
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "name": "\u0027start",
+          "type": "Normal Function",
+          "description": "Starts consuming the messages on all the attached services.\n```ballerina\ncheck rabbitmqListener.\u0027start();\n```\n",
+          "parameters": [],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "name": "detach",
+          "type": "Normal Function",
+          "description": "Stops consuming messages and detaches the service from the `rabbitmq:Listener` endpoint.\n```ballerina\ncheck rabbitmqListener.detach(service);\n```\n",
+          "parameters": [
+            {
+              "name": "s",
+              "description": "The type descriptor of the service",
+              "type": {
+                "name": "Service",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Service"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "`()` or else  a `rabbitmq:Error` upon failure to detach the service",
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "name": "gracefulStop",
+          "type": "Normal Function",
+          "description": "Stops consuming messages through all consumer services by terminating the connection and all its channels.\n```ballerina\ncheck rabbitmqListener.gracefulStop();\n```\n",
+          "parameters": [],
+          "return": {
+            "description": "`()` or else  a `rabbitmq:Error` upon failure to close the `ChannelListener`",
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "name": "immediateStop",
+          "type": "Normal Function",
+          "description": "Stops consuming messages through all the consumer services and terminates the connection\nwith the server.\n```ballerina\ncheck rabbitmqListener.immediateStop();\n```\n",
+          "parameters": [],
+          "return": {
+            "description": "`()` or else  a `rabbitmq:Error` upon failure to close ChannelListener.",
+            "type": {
+              "name": "error?"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "name": "Caller",
+      "description": "Provides the functionality to manipulate the messages received by the consumer services.",
+      "functions": [
+        {
+          "name": "basicAck",
+          "type": "Remote Function",
+          "description": "Acknowledges one or several received messages.\n```ballerina\ncheck caller-\u003ebasicAck(true);\n```\n",
+          "parameters": [
+            {
+              "name": "multiple",
+              "description": "Set to `true` to acknowledge all messages up to and including the called on message and\n`false` to acknowledge just the called on message",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            }
+          ],
+          "return": {
+            "description": "A `rabbitmq:Error` if an I/O error occurred",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "basicNack",
+          "type": "Remote Function",
+          "description": "Rejects one or several received messages.\n```ballerina\ncheck caller-\u003ebasicNack(true, requeue \u003d false);\n```\n",
+          "parameters": [
+            {
+              "name": "multiple",
+              "description": "Set to `true` to reject all messages up to and including the called on message and\n`false` to reject just the called on message",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "requeue",
+              "description": "`true` if the rejected message(s) should be re-queued rather than discarded/dead-lettered",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            }
+          ],
+          "return": {
+            "description": "A `rabbitmq:Error` if an I/O error is encountered or else `()`",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Client",
+      "description": "The Ballerina interface to provide AMQP Channel related functionality.",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes a `rabbitmq:Client` object.\n```ballerina\nrabbitmq:Client rabbitmqClient \u003d check new(rabbitmq:DEFAULT_HOST, rabbitmq:DEFAULT_PORT);\n```\n",
+          "parameters": [
+            {
+              "name": "host",
+              "description": "The host used for establishing the connection",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "port",
+              "description": "The port used for establishing the connection",
+              "type": {
+                "name": "int"
+              }
+            },
+            {
+              "name": "username",
+              "description": "The username used for establishing the connection",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "password",
+              "description": "The password used for establishing the connection",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "virtualHost",
+              "description": "The virtual host to use when connecting to the broker",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "\"\""
+            },
+            {
+              "name": "connectionTimeout",
+              "description": "Connection TCP establishment timeout in seconds and zero for infinite",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "0.0d"
+            },
+            {
+              "name": "handshakeTimeout",
+              "description": "The AMQP 0-9-1 protocol handshake timeout in seconds",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "0.0d"
+            },
+            {
+              "name": "shutdownTimeout",
+              "description": "Shutdown timeout in seconds, zero for infinite, and the default value is 10. If the consumers exceed\nthis timeout, then any remaining queued deliveries (and other Consumer callbacks) will be lost",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "0.0d"
+            },
+            {
+              "name": "heartbeat",
+              "description": "The initially-requested heartbeat timeout in seconds and zero for none",
+              "type": {
+                "name": "decimal"
+              },
+              "optional": true,
+              "default": "0.0d"
+            },
+            {
+              "name": "validation",
+              "description": "Configuration related to constraint validation check",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "true"
+            },
+            {
+              "name": "secureSocket",
+              "description": "Configurations for facilitating secure connections",
+              "type": {
+                "name": "SecureSocket",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "SecureSocket"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{cert: {path: \"\", password: \"\"}}"
+            },
+            {
+              "name": "auth",
+              "description": "Configurations related to authentication",
+              "type": {
+                "name": "Credentials",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Credentials"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{username: \"\", password: \"\"}"
+            },
+            {
+              "name": "failoverAddresses",
+              "description": "Additional RabbitMQ broker addresses for cluster and failover support. The primary `host` and\n`port` provided in `init()` are always tried first. If the primary connection fails, the addresses listed here are\ntried in order.",
+              "type": {
+                "name": "Address[]|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Address"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "connectionData",
+              "description": "The connection configurations",
+              "type": {
+                "name": "ConnectionConfiguration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ConnectionConfiguration"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "Error?"
+            }
+          }
+        },
+        {
+          "name": "queueDeclare",
+          "type": "Remote Function",
+          "description": "Declares a non-exclusive, non-auto-delete, and durable queue with the given configurations.\n```ballerina\ncheck rabbitmqClient-\u003equeueDeclare(\"MyQueue\");\n```\n",
+          "parameters": [
+            {
+              "name": "name",
+              "description": "The name of the queue",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "config",
+              "description": "The configurations required to declare a queue",
+              "type": {
+                "name": "QueueConfig|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "QueueConfig"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "`()` if the queue was successfully generated or else a `rabbitmq:Error`\nif an I/O error occurred",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "queueAutoGenerate",
+          "type": "Remote Function",
+          "description": "Declares a queue with a server-generated name.\n```ballerina\nstring queueName \u003d check rabbitmqClient-\u003equeueAutoGenerate();\n```\n",
+          "parameters": [],
+          "return": {
+            "description": "The name of the queue or else a `rabbitmq:Error`\nif an I/O error occurred",
+            "type": {
+              "name": "string|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "exchangeDeclare",
+          "type": "Remote Function",
+          "description": "Declares a non-auto-delete, durable exchange with no extra arguments.\nIf the arguments are specified, then the exchange is declared accordingly.\n```ballerina\ncheck rabbitmqClient-\u003eexchangeDeclare(\"MyExchange\", rabbitmq:DIRECT_EXCHANGE);\n```\n",
+          "parameters": [
+            {
+              "name": "name",
+              "description": "The name of the exchange",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "exchangeType",
+              "description": "The type of the exchange",
+              "type": {
+                "name": "ExchangeType",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ExchangeType"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "\"direct\""
+            },
+            {
+              "name": "config",
+              "description": "The configurations required to declare an exchange",
+              "type": {
+                "name": "ExchangeConfig|()",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ExchangeConfig"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "A `rabbitmq:Error` if an I/O error occurred or else `()`",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "queueBind",
+          "type": "Remote Function",
+          "description": "Binds a queue to an exchange with the given binding key.\n```ballerina\ncheck rabbitmqClient-\u003equeueBind(\"MyQueue\", \"MyExchange\", \"routing-key\");\n```\n",
+          "parameters": [
+            {
+              "name": "queueName",
+              "description": "The name of the queue",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "exchangeName",
+              "description": "The name of the exchange",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "bindingKey",
+              "description": "The binding key used to bind the queue to the exchange",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "A `rabbitmq:Error` if an I/O error occurred or else `()`",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "publishMessage",
+          "type": "Remote Function",
+          "description": "Publishes a message. Publishing to a non-existent exchange will result in a channel-level\nprotocol error, which closes the channel.\n```ballerina\ncheck rabbitmqClient-\u003epublishMessage(messageInBytes, \"MyQueue\");\n```\n",
+          "parameters": [
+            {
+              "name": "message",
+              "description": "The message to be published",
+              "type": {
+                "name": "AnydataMessage",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "AnydataMessage"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "description": "A `rabbitmq:Error` if an I/O error occurred or else `()`",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "consumeMessage",
+          "type": "Remote Function",
+          "description": "Retrieves a message synchronously from the given queue providing direct access to the messages in the queue.\n```ballerina\nrabbitmq:AnydataMessage message \u003d check rabbitmqClient-\u003econsumeMessage(\"MyQueue\");\n```\n",
+          "parameters": [
+            {
+              "name": "queueName",
+              "description": "The name of the queue",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "autoAck",
+              "description": "If false, should manually acknowledge",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "T",
+              "description": "Optional type description of the required data type",
+              "type": {
+                "name": "AnydataMessage",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "AnydataMessage"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "rabbitmq:AnydataMessage"
+            }
+          ],
+          "return": {
+            "description": "A `rabbitmq:AnydataMessage` object containing the retrieved message data or else a`rabbitmq:Error` if an\nI/O error occurred",
+            "type": {
+              "name": "T|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "T"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "consumePayload",
+          "type": "Remote Function",
+          "description": "Retrieves the payload synchronously from the given queue.\n```ballerina\nstring message \u003d check rabbitmqClient-\u003econsumePayload(\"MyQueue\");\n```\n",
+          "parameters": [
+            {
+              "name": "queueName",
+              "description": "The name of the queue",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "autoAck",
+              "description": "If false, should manually acknowledge",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "T",
+              "description": "Optional type description of the required data type",
+              "type": {
+                "name": "anydata"
+              },
+              "optional": true,
+              "default": "anydata"
+            }
+          ],
+          "return": {
+            "description": "Message payload in the required format if executed successfully or else a `rabbitmq:Error`",
+            "type": {
+              "name": "T|Error",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "T"
+                },
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "basicAck",
+          "type": "Remote Function",
+          "description": "Acknowledges one or several received messages.\n```ballerina\ncheck rabbitmqClient-\u003ebasicAck(\u003cmessage|deliveryTag\u003e);\n```\n",
+          "parameters": [
+            {
+              "name": "ackTarget",
+              "description": "The message to be acknowledged or the delivery tag of the message",
+              "type": {
+                "name": "AnydataMessage|int",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "AnydataMessage"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "multiple",
+              "description": "Set to `true` to acknowledge all messages up to and including the called on message and\n`false` to acknowledge just the called on message",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            }
+          ],
+          "return": {
+            "description": "A `rabbitmq:Error` if an I/O error occurred or else `()`",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "basicNack",
+          "type": "Remote Function",
+          "description": "Rejects one or several received messages.\n```ballerina\ncheck rabbitmqClient-\u003ebasicNack(\u003cmessage|deliveryTag\u003e);\n```\n",
+          "parameters": [
+            {
+              "name": "ackTarget",
+              "description": "The message to be rejected or the delivery tag of the message",
+              "type": {
+                "name": "AnydataMessage|int",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "AnydataMessage"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "multiple",
+              "description": "Set to `true` to reject all messages up to and including the called on message and\n`false` to reject just the called on message",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "requeue",
+              "description": "`true` if the rejected message(s) should be re-queued rather than discarded/dead-lettered",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            }
+          ],
+          "return": {
+            "description": "A `rabbitmq:Error` if an I/O error occurred or else `()`",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "queueDelete",
+          "type": "Remote Function",
+          "description": "Deletes the queue with the given name although it is in use or has messages in it.\nIf the `ifUnused` or `ifEmpty` parameters are given, the queue is checked before deleting.\n```ballerina\ncheck rabbitmqClient-\u003equeueDelete(\"MyQueue\");\n```\n",
+          "parameters": [
+            {
+              "name": "queueName",
+              "description": "The name of the queue to be deleted",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "ifUnused",
+              "description": "True if the queue should be deleted only if it\u0027s not in use",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            },
+            {
+              "name": "ifEmpty",
+              "description": "True if the queue should be deleted only if it\u0027s empty",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            }
+          ],
+          "return": {
+            "description": "A `rabbitmq:Error` if an I/O error occurred or else `()`",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "exchangeDelete",
+          "type": "Remote Function",
+          "description": "Deletes the exchange with the given name.\n```ballerina\ncheck rabbitmqClient-\u003eexchangeDelete(\"MyExchange\");\n```\n",
+          "parameters": [
+            {
+              "name": "exchangeName",
+              "description": "The name of the exchange",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "A `rabbitmq:Error` if an I/O error occurred or else `()`",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "queuePurge",
+          "type": "Remote Function",
+          "description": "Purges the content of the given queue.\n```ballerina\ncheck rabbitmqClient-\u003equeuePurge(\"MyQueue\");\n```\n",
+          "parameters": [
+            {
+              "name": "queueName",
+              "description": "The name of the queue",
+              "type": {
+                "name": "string"
+              }
+            }
+          ],
+          "return": {
+            "description": "A `rabbitmq:Error` if an I/O error occurred or else `()`",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "close",
+          "type": "Remote Function",
+          "description": "Closes the `rabbitmq:Client`.\n```ballerina\ncheck rabbitmqClient-\u003eclose();\n```\n",
+          "parameters": [
+            {
+              "name": "closeCode",
+              "description": "The close code (for information, go to the [Reply Codes]\n(#https://www.rabbitmq.com/resources/specs/amqp0-9-1.pdf))",
+              "type": {
+                "name": "int|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "closeMessage",
+              "description": "A message indicating the reason for closing the channel",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "description": "A `rabbitmq:Error` if an I/O error occurred or else `()`",
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "\u0027abort",
+          "type": "Remote Function",
+          "description": "Aborts the RabbitMQ `rabbitmq:Client`. Forces the `rabbitmq:Client` to close and waits for all the close operations\nto complete. Any encountered exceptions in the close operations are discarded silently.\n```ballerina\ncheck rabbitmqClient-\u003e\u0027abort(320, \"Client Aborted\");\n```\n",
+          "parameters": [
+            {
+              "name": "closeCode",
+              "description": "The close code (for information, go to the [Reply Codes]\n(#https://www.rabbitmq.com/resources/specs/amqp0-9-1.pdf))",
+              "type": {
+                "name": "int|()"
+              },
+              "optional": true,
+              "default": "()"
+            },
+            {
+              "name": "closeMessage",
+              "description": "A message indicating the reason for closing the channel",
+              "type": {
+                "name": "string|()"
+              },
+              "optional": true,
+              "default": "()"
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "Error|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "Error"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "MessageStore",
+      "description": "Represents a RabbitMQ message store implementation.",
+      "functions": [
+        {
+          "name": "init",
+          "type": "Constructor",
+          "description": "Initializes a new instance of the RabbitMqStore class.\n",
+          "parameters": [
+            {
+              "name": "queueName",
+              "description": "The name of the RabbitMQ queue to use for storing messages",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "host",
+              "description": "The RabbitMQ server host. Defaults to \"localhost\"",
+              "type": {
+                "name": "string"
+              },
+              "optional": true,
+              "default": "localhost"
+            },
+            {
+              "name": "port",
+              "description": "The RabbitMQ server port. Defaults to 5672",
+              "type": {
+                "name": "int"
+              },
+              "optional": true,
+              "default": "5672"
+            },
+            {
+              "name": "connectionData",
+              "description": "The RabbitMQ connection configuration",
+              "type": {
+                "name": "ConnectionConfiguration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "ConnectionConfiguration"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "publishConfig",
+              "description": "The RabbitMQ publish configuration",
+              "type": {
+                "name": "StoreClientPublishConfiguration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "StoreClientPublishConfiguration"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "declareQueue",
+              "description": "The RabbitMQ queue declaration configuration",
+              "type": {
+                "name": "StoreClientDeclareQueueConfiguration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "StoreClientDeclareQueueConfiguration"
+                  }
+                ]
+              },
+              "optional": true,
+              "default": "{}"
+            },
+            {
+              "name": "clientConfig",
+              "description": "The RabbitMQ client configuration",
+              "type": {
+                "name": "StoreClientConfiguration",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "StoreClientConfiguration"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "description": "",
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "name": "store",
+          "type": "Remote Function",
+          "description": "Stores a message in the RabbitMQ message store.\n",
+          "parameters": [
+            {
+              "name": "payload",
+              "description": "The message payload to be stored",
+              "type": {
+                "name": "anydata"
+              }
+            }
+          ],
+          "return": {
+            "description": "An error if the message could not be stored, or `()`",
+            "type": {
+              "name": "error?"
+            }
+          }
+        },
+        {
+          "name": "retrieve",
+          "type": "Remote Function",
+          "description": "Retrieves the top message from the RabbitMQ message store without removing it. Retrieving\nconcurrently without acknowledgment will return the next message in the queue if the previous one\nis not acknowledged.\n",
+          "parameters": [],
+          "return": {
+            "description": "The retrieved message, or `()` if the store is empty, or an error if an error occurs",
+            "type": {
+              "name": "Message|error|()",
+              "links": [
+                {
+                  "category": "external",
+                  "recordName": "Message",
+                  "libraryName": "ballerina/messaging"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "acknowledge",
+          "type": "Remote Function",
+          "description": "Acknowledges the processing of a message. When acknowledged with success, the message is\nremoved from the store.\n",
+          "parameters": [
+            {
+              "name": "id",
+              "description": "The unique identifier of the message to acknowledge",
+              "type": {
+                "name": "string"
+              }
+            },
+            {
+              "name": "success",
+              "description": "Indicates whether the message was processed successfully",
+              "type": {
+                "name": "boolean"
+              },
+              "optional": true,
+              "default": "false"
+            }
+          ],
+          "return": {
+            "description": "An error if the acknowledgment could not be processed, or `()`",
+            "type": {
+              "name": "error?"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "functions": [],
+  "services": [
+    {
+      "type": "fixed",
+      "name": "Service",
+      "listener": {
+        "name": "rabbitmq:Listener",
+        "parameters": [
+          {
+            "name": "host",
+            "description": "The host used for establishing the connection",
+            "type": {
+              "name": "string"
+            },
+            "default": "\"\""
+          },
+          {
+            "name": "port",
+            "description": "The port used for establishing the connection",
+            "type": {
+              "name": "int"
+            },
+            "default": "0"
+          },
+          {
+            "name": "qosSettings",
+            "description": "The consumer prefetch settings",
+            "type": {
+              "name": "QosSettings|()",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "QosSettings"
+                }
+              ]
+            },
+            "optional": true,
+            "default": "()"
+          },
+          {
+            "name": "connectionData",
+            "description": "The connection configuration",
+            "type": {
+              "name": "ConnectionConfiguration",
+              "links": [
+                {
+                  "category": "internal",
+                  "recordName": "ConnectionConfiguration"
+                }
+              ]
+            },
+            "optional": true,
+            "default": "{}"
+          }
+        ]
+      },
+      "annotations": [
+        {
+          "name": "ServiceConfig",
+          "presence": "optional",
+          "attachPoint": "service",
+          "typeConstraint": {
+            "name": "RabbitMQServiceConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "RabbitMQServiceConfig"
+              }
+            ]
+          }
+        }
+      ],
+      "identifier": {
+        "presence": "optional",
+        "form": [
+          "stringLiteral"
+        ]
+      },
+      "constraints": [
+        {
+          "id": "$queueNameSource",
+          "rule": "structure.exactlyOne",
+          "subjects": [
+            {
+              "kind": "annotationField",
+              "annotation": "ServiceConfig",
+              "annotationId": "$serviceConfig",
+              "path": [
+                "queueName"
+              ],
+              "role": "fromAnnotation"
+            },
+            {
+              "kind": "identifier",
+              "role": "fromIdentifier"
+            }
+          ],
+          "message": "A RabbitMQ consumer needs its queue name from exactly one source: @rabbitmq:ServiceConfig { queueName } or the service identifier.",
+          "prefer": "fromAnnotation"
+        },
+        {
+          "id": "$messageHandlerChoice",
+          "rule": "structure.exactlyOne",
+          "subjects": [
+            {
+              "kind": "handler",
+              "name": "onMessage"
+            },
+            {
+              "kind": "handler",
+              "name": "onRequest"
+            }
+          ],
+          "message": "A RabbitMQ service must implement exactly one of onMessage or onRequest."
+        }
+      ],
+      "methods": [
+        {
+          "name": "onMessage",
+          "type": "remote",
+          "description": "Invoked once per message delivered from the subscribed queue. Use this for consume-only workloads; use onRequest instead when the publisher expects a reply.",
+          "parameters": [
+            {
+              "name": "message",
+              "description": "The delivered message. Declare a narrower type to project the payload, see the messagePayload data-binding rule.",
+              "type": {
+                "name": "AnydataMessage",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "AnydataMessage"
+                  }
+                ]
+              },
+              "alternatives": [
+                {
+                  "name": "BytesMessage",
+                  "links": [
+                    {
+                      "category": "internal",
+                      "recordName": "BytesMessage"
+                    }
+                  ]
+                }
+              ],
+              "annotationRefs": [
+                {
+                  "name": "Payload",
+                  "presence": "optional",
+                  "attachPoint": "parameter",
+                  "typeConstraint": {
+                    "name": "RabbitmqPayload",
+                    "links": [
+                      {
+                        "category": "internal",
+                        "recordName": "RabbitmqPayload"
+                      }
+                    ]
+                  }
+                }
+              ],
+              "binding": {
+                "typedescs": [
+                  {
+                    "constraint": {
+                      "name": "anydata"
+                    },
+                    "excludes": [
+                      {
+                        "name": "AnydataMessage",
+                        "links": [
+                          {
+                            "category": "internal",
+                            "recordName": "AnydataMessage"
+                          }
+                        ]
+                      }
+                    ],
+                    "shapes": [
+                      {
+                        "form": "bare"
+                      }
+                    ]
+                  },
+                  {
+                    "constraint": {
+                      "name": "anydata"
+                    },
+                    "shapes": [
+                      {
+                        "form": "included",
+                        "envelope": {
+                          "name": "AnydataMessage",
+                          "links": [
+                            {
+                              "category": "internal",
+                              "recordName": "AnydataMessage"
+                            }
+                          ]
+                        },
+                        "bindableFields": [
+                          "content"
+                        ],
+                        "fixedFields": [
+                          "routingKey",
+                          "exchange",
+                          "deliveryTag",
+                          "properties"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "name": "caller",
+              "description": "Handle for explicitly acknowledging or rejecting the message. Needed only under client acknowledgement.",
+              "type": {
+                "name": "Caller",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Caller"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          },
+          "optional": true
+        },
+        {
+          "name": "onRequest",
+          "type": "remote",
+          "description": "Invoked once per message delivered from the subscribed queue, for RPC-style consumers. Whatever the handler returns is published back to the message\u0027s reply-to queue, which is why it returns anydata rather than ().",
+          "parameters": [
+            {
+              "name": "message",
+              "description": "The delivered request message. Declare a narrower type to project the payload, see the messagePayload data-binding rule.",
+              "type": {
+                "name": "AnydataMessage",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "AnydataMessage"
+                  }
+                ]
+              },
+              "alternatives": [
+                {
+                  "name": "BytesMessage",
+                  "links": [
+                    {
+                      "category": "internal",
+                      "recordName": "BytesMessage"
+                    }
+                  ]
+                }
+              ],
+              "annotationRefs": [
+                {
+                  "name": "Payload",
+                  "presence": "optional",
+                  "attachPoint": "parameter",
+                  "typeConstraint": {
+                    "name": "RabbitmqPayload",
+                    "links": [
+                      {
+                        "category": "internal",
+                        "recordName": "RabbitmqPayload"
+                      }
+                    ]
+                  }
+                }
+              ],
+              "binding": {
+                "typedescs": [
+                  {
+                    "constraint": {
+                      "name": "anydata"
+                    },
+                    "excludes": [
+                      {
+                        "name": "AnydataMessage",
+                        "links": [
+                          {
+                            "category": "internal",
+                            "recordName": "AnydataMessage"
+                          }
+                        ]
+                      }
+                    ],
+                    "shapes": [
+                      {
+                        "form": "bare"
+                      }
+                    ]
+                  },
+                  {
+                    "constraint": {
+                      "name": "anydata"
+                    },
+                    "shapes": [
+                      {
+                        "form": "included",
+                        "envelope": {
+                          "name": "AnydataMessage",
+                          "links": [
+                            {
+                              "category": "internal",
+                              "recordName": "AnydataMessage"
+                            }
+                          ]
+                        },
+                        "bindableFields": [
+                          "content"
+                        ],
+                        "fixedFields": [
+                          "routingKey",
+                          "exchange",
+                          "deliveryTag",
+                          "properties"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "name": "caller",
+              "description": "Handle for explicitly acknowledging or rejecting the message. Needed only under client acknowledgement.",
+              "type": {
+                "name": "Caller",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Caller"
+                  }
+                ]
+              },
+              "optional": true
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "anydata|error"
+            }
+          },
+          "optional": true
+        },
+        {
+          "name": "onError",
+          "type": "remote",
+          "description": "Invoked when a delivered message cannot be dispatched, most commonly when its payload fails to bind to the declared parameter type.",
+          "parameters": [
+            {
+              "name": "message",
+              "description": "The message that could not be dispatched, in its unprojected form.",
+              "type": {
+                "name": "AnydataMessage",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "AnydataMessage"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "err",
+              "description": "The failure that prevented dispatch.",
+              "type": {
+                "name": "Error",
+                "links": [
+                  {
+                    "category": "internal",
+                    "recordName": "Error"
+                  }
+                ]
+              }
+            }
+          ],
+          "return": {
+            "type": {
+              "name": "error?"
+            }
+          },
+          "optional": true
+        }
+      ]
+    }
+  ],
+  "annotations": [
+    {
+      "name": "ServiceConfig",
+      "attachmentPoint": "SERVICE",
+      "description": "The annotation, which is used to configure the subscription.",
+      "typeConstraint": {
+        "name": "RabbitMQServiceConfig",
+        "links": [
+          {
+            "category": "internal",
+            "recordName": "RabbitMQServiceConfig"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ServiceConfig",
+      "attachmentPoint": "CLASS",
+      "description": "The annotation, which is used to configure the subscription.",
+      "typeConstraint": {
+        "name": "RabbitMQServiceConfig",
+        "links": [
+          {
+            "category": "internal",
+            "recordName": "RabbitMQServiceConfig"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Payload",
+      "attachmentPoint": "PARAMETER",
+      "description": "The annotation which is used to define the payload parameter in the `onMessage` service method.",
+      "typeConstraint": {
+        "name": "RabbitmqPayload",
+        "links": [
+          {
+            "category": "internal",
+            "recordName": "RabbitmqPayload"
+          }
+        ]
+      }
+    }
+  ]
+}
