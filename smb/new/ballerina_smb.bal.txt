@@ -1063,81 +1063,80 @@ client class Client {
 
 # Consumes files found in the watched directory on the SMB share, dispatching each to the handler matching its content type.
 # Listener `smb:Listener`: Polls the watched directory on the SMB share on its configured interval and dispatches each file event to the attached service.
-# The service identifier accepts a base path, e.g. `/orders`; it may be omitted.
 # An SMB service must declare at least one onFile* handler or onFileDelete, otherwise nothing is ever dispatched. onError alone does not count.
-# An SMB service needs its watched path from exactly one source: @smb:ServiceConfig { path } or the service identifier.
-# Prefer the `path` field of @smb:ServiceConfig unless the requirement says otherwise.
 # Mandatory: this service must carry the @smb:ServiceConfig annotation. Replace {...} with its fields, which are those of smb:SmbServiceConfig.
 @smb:ServiceConfig {...} // required
 service smb:Service on new smb:Listener(smb:ListenerConfiguration listenerConfig = {}) {
     # Invoked for each .txt, .log, or .md file found in the watched directory. Falls through to onFile when not declared.
     # + content - The file's text content.
-    # + caller - The share connection, for reading or writing other files while this one is being processed.
     # + fileInfo - The file's name, path, size, timestamps, and attributes.
+    # + caller - The share connection, for reading or writing other files while this one is being processed.
     # Required parameters: content, fileInfo
     # Optional parameters (may be omitted): caller
-    # Mandatory: this handler must carry the @smb:FunctionConfig annotation. Replace {...} with its fields, which are those of smb:FunctionConfiguration.
-    @smb:FunctionConfig {...} // required
-    remote function onFileText(string content, smb:Caller caller, smb:FileInfo fileInfo) returns error?; // optional
+    # Optional: this handler may carry the @smb:FunctionConfig annotation. Replace {...} with its fields, which are those of smb:FunctionConfiguration.
+    @smb:FunctionConfig {...} // optional
+    remote function onFileText(string content, smb:FileInfo fileInfo, smb:Caller caller) returns error?; // optional
 
     # Invoked for each .json file found in the watched directory. Falls through to onFile when not declared.
     # + content - The parsed content, bind a record type to project it, see the jsonContent data-binding rule.
-    # + caller - The share connection, for reading or writing other files while this one is being processed.
     # + fileInfo - The file's name, path, size, timestamps, and attributes.
+    # + caller - The share connection, for reading or writing other files while this one is being processed.
     # `content` may bind directly to: record {}
     # Required parameters: content, fileInfo
     # Optional parameters (may be omitted): caller
-    # Mandatory: this handler must carry the @smb:FunctionConfig annotation. Replace {...} with its fields, which are those of smb:FunctionConfiguration.
-    @smb:FunctionConfig {...} // required
-    remote function onFileJson(json content, smb:Caller caller, smb:FileInfo fileInfo) returns error?; // optional
+    # Optional: this handler may carry the @smb:FunctionConfig annotation. Replace {...} with its fields, which are those of smb:FunctionConfiguration.
+    @smb:FunctionConfig {...} // optional
+    remote function onFileJson(json content, smb:FileInfo fileInfo, smb:Caller caller) returns error?; // optional
 
     # Invoked for each .xml file found in the watched directory. Falls through to onFile when not declared.
     # + content - The parsed content, bind a record type to project it, see the xmlContent data-binding rule.
-    # + caller - The share connection, for reading or writing other files while this one is being processed.
     # + fileInfo - The file's name, path, size, timestamps, and attributes.
+    # + caller - The share connection, for reading or writing other files while this one is being processed.
     # `content` may bind directly to: record {}
     # Required parameters: content, fileInfo
     # Optional parameters (may be omitted): caller
-    # Mandatory: this handler must carry the @smb:FunctionConfig annotation. Replace {...} with its fields, which are those of smb:FunctionConfiguration.
-    @smb:FunctionConfig {...} // required
-    remote function onFileXml(xml content, smb:Caller caller, smb:FileInfo fileInfo) returns error?; // optional
+    # Optional: this handler may carry the @smb:FunctionConfig annotation. Replace {...} with its fields, which are those of smb:FunctionConfiguration.
+    @smb:FunctionConfig {...} // optional
+    remote function onFileXml(xml content, smb:FileInfo fileInfo, smb:Caller caller) returns error?; // optional
 
     # Invoked for each .csv file found in the watched directory. Declaring a stream parameter reads the file in chunks instead of loading it into memory.
     # + content - The parsed rows, see the csvContent data-binding rule for the batched and streamed forms.
-    # + caller - The share connection, for reading or writing other files while this one is being processed.
     # + fileInfo - The file's name, path, size, timestamps, and attributes.
+    # + caller - The share connection, for reading or writing other files while this one is being processed.
     # `content` may also be: record {}[], stream<string[], error?>, stream<record {}, error?>
     # Required parameters: content, fileInfo
     # Optional parameters (may be omitted): caller
-    # Mandatory: this handler must carry the @smb:FunctionConfig annotation. Replace {...} with its fields, which are those of smb:FunctionConfiguration.
-    @smb:FunctionConfig {...} // required
-    remote function onFileCsv(string[][] content, smb:Caller caller, smb:FileInfo fileInfo) returns error?; // optional
+    # Optional: this handler may carry the @smb:FunctionConfig annotation. Replace {...} with its fields, which are those of smb:FunctionConfiguration.
+    @smb:FunctionConfig {...} // optional
+    remote function onFileCsv(string[][] content, smb:FileInfo fileInfo, smb:Caller caller) returns error?; // optional
 
     # Invoked for any file no typed handler matched, and as the fallback when a typed handler is not declared. Content arrives as raw bytes.
     # + content - The file's bytes. Declare the stream form to read large files in chunks rather than loading them into memory.
-    # + caller - The share connection, for reading or writing other files while this one is being processed.
     # + fileInfo - The file's name, path, size, timestamps, and attributes.
+    # + caller - The share connection, for reading or writing other files while this one is being processed.
     # `content` may also be: stream<byte[], error?>
     # Required parameters: content, fileInfo
     # Optional parameters (may be omitted): caller
-    # Mandatory: this handler must carry the @smb:FunctionConfig annotation. Replace {...} with its fields, which are those of smb:FunctionConfiguration.
-    @smb:FunctionConfig {...} // required
-    remote function onFile(byte[] content, smb:Caller caller, smb:FileInfo fileInfo) returns error?; // optional
+    # Optional: this handler may carry the @smb:FunctionConfig annotation. Replace {...} with its fields, which are those of smb:FunctionConfiguration.
+    @smb:FunctionConfig {...} // optional
+    remote function onFile(byte[] content, smb:FileInfo fileInfo, smb:Caller caller) returns error?; // optional
 
     # Invoked when a file disappears from the watched directory. There is no content and no file metadata, because the file is already gone.
-    # + path - Path of the file that was deleted.
+    # + deletedFile - Path of the file that was deleted.
     # + caller - The share connection, for acting on the share in response to the deletion.
-    # Required parameters: path
+    # Required parameters: deletedFile
     # Optional parameters (may be omitted): caller
-    # Mandatory: this handler must carry the @smb:FunctionConfig annotation. Replace {...} with its fields, which are those of smb:FunctionConfiguration.
-    @smb:FunctionConfig {...} // required
-    remote function onFileDelete(string path, smb:Caller caller) returns error?; // optional
+    # Optional: this handler may carry the @smb:FunctionConfig annotation. Replace {...} with its fields, which are those of smb:FunctionConfiguration.
+    @smb:FunctionConfig {...} // optional
+    remote function onFileDelete(string deletedFile, smb:Caller caller) returns error?; // optional
 
     # Invoked when the listener fails to poll, read, or bind a file, and when a handler itself returns an error. Without it, failures are logged and polling continues.
     # + err - The failure that interrupted processing.
     # + caller - The share connection, for acting on the share while handling the failure.
     # Required parameters: err
     # Optional parameters (may be omitted): caller
+    # Optional: this handler may carry the @smb:FunctionConfig annotation. Replace {...} with its fields, which are those of smb:FunctionConfiguration.
+    @smb:FunctionConfig {...} // optional
     remote function onError(smb:Error err, smb:Caller caller) returns error?; // optional
 }
 

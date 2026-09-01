@@ -1616,15 +1616,15 @@ client class Caller {
 @ftp:ServiceConfig {...} // required
 service ftp:Service on new ftp:Listener(ftp:ListenerConfiguration listenerConfig = {}) {
     # Invoked for each .csv file found in the watched directory. Declaring a stream parameter reads the file in chunks instead of loading it into memory.
-    # + contents - The parsed rows, see the csvContent data-binding rule for the batched and streamed forms.
+    # + content - The parsed rows, see the csvContent data-binding rule for the batched and streamed forms.
     # + fileInfo - The file's name, path, size, and timestamps.
     # + caller - The FTP connection, for reading or writing other files while this one is being processed.
-    # `contents` may also be: record {}[], stream<string[], error?>, stream<record {}, error?>
-    # Required parameters: contents, fileInfo
+    # `content` may also be: record {}[], stream<string[], error?>, stream<record {}, error?>
+    # Required parameters: content, fileInfo
     # Optional parameters (may be omitted): caller
     # Optional: this handler may carry the @ftp:FunctionConfig annotation. Replace {...} with its fields, which are those of ftp:FtpFunctionConfig.
     @ftp:FunctionConfig {...} // optional
-    remote function onFileCsv(string[][] contents, ftp:FileInfo fileInfo, ftp:Caller caller) returns error?; // optional
+    remote function onFileCsv(string[][] content, ftp:FileInfo fileInfo, ftp:Caller caller) returns error?; // optional
 
     # Invoked for each .json file found in the watched directory.
     # + content - The parsed content, bind a record type to project it, see the jsonContent data-binding rule.
@@ -1658,22 +1658,22 @@ service ftp:Service on new ftp:Listener(ftp:ListenerConfiguration listenerConfig
     remote function onFile(byte[] content, ftp:FileInfo fileInfo) returns error?; // optional
 
     # Invoked when a file disappears from the watched directory. There is no content or file metadata, because the file is already gone.
-    # + deleteFiles - Path of the file that was deleted.
+    # + deletedFile - Path of the file that was deleted.
     # + caller - The FTP connection, for acting on the share in response to the deletion.
-    # Required parameters: deleteFiles
+    # Required parameters: deletedFile
     # Optional parameters (may be omitted): caller
     # Optional: this handler may carry the @ftp:FunctionConfig annotation. Replace {...} with its fields, which are those of ftp:FtpFunctionConfig.
     @ftp:FunctionConfig {...} // optional
-    remote function onFileDelete(string deleteFiles, ftp:Caller caller) returns error?; // optional
+    remote function onFileDelete(string deletedFile, ftp:Caller caller) returns error?; // optional
 
     # Invoked when the listener fails to poll, read, or bind a file, and when a handler itself returns an error. Without it, failures are logged and polling continues.
-    # + ftpError - The failure that interrupted processing.
+    # + err - The failure that interrupted processing.
     # + caller - The FTP connection, for acting on the share while handling the failure.
-    # Required parameters: ftpError
+    # Required parameters: err
     # Optional parameters (may be omitted): caller
     # Optional: this handler may carry the @ftp:FunctionConfig annotation. Replace {...} with its fields, which are those of ftp:FtpFunctionConfig.
     @ftp:FunctionConfig {...} // optional
-    remote function onError(ftp:Error ftpError, ftp:Caller caller) returns error?; // optional
+    remote function onError(ftp:Error err, ftp:Caller caller) returns error?; // optional
 
     # Invoked once per poll with the complete set of files added and deleted since the previous poll.
     # + watchEvent - The files added and deleted in this poll.

@@ -142,6 +142,7 @@ ballerinax/openai.finetunes	3.0.0
 ballerinax/ai.pgvector	1.0.5
 ballerinax/pinecone.vector	1.0.2
 ballerinax/weaviate	1.0.2
+ballerinax/aws	1.0.1
 ballerinax/aws.lambda	3.3.0
 ballerinax/aws.marketplace.mpe	1.0.0
 ballerinax/aws.marketplace.mpm	1.0.0

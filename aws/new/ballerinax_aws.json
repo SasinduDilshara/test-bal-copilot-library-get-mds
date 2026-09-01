@@ -1,0 +1,870 @@
+{
+  "name": "ballerinax/aws",
+  "description": "This module provides AWS authentication functionalities including credential resolution and AWS Signature Version 4 request signing.",
+  "readme": "## Overview\n\n[AWS](https://aws.amazon.com/) is a comprehensive cloud computing platform offering over 200 services, all authenticated through a common scheme: IAM credentials and [AWS Signature Version 4](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_aws-signing.html) request signing. This library implements that scheme once, so it does not need to be re-implemented per AWS service.\n\nThe library has two modules: the root module (`ballerinax/aws`) with the `Region` type and region-based endpoint resolution, and the `auth` submodule (`ballerinax/aws.auth`) with credential resolution across all standardized AWS credential sources and AWS Signature Version 4 request signing. It is the authentication foundation used by the `ballerinax/aws.*` connectors, and can also be used directly to call AWS services that do not have a dedicated connector yet.\n\n## Credential resolution\n\nThe `auth:CredentialProvider` class resolves AWS credentials from a configured source and caches them, refreshing expiring temporary credentials (STS, SSO, instance-profile) automatically. Create one per configured source, at initialization, and reuse it for the lifetime of the application:\n\n```ballerina\nimport ballerinax/aws.auth;\n\nauth:CredentialProvider credProvider \u003d check new (auth:DEFAULT_CREDENTIALS);\n```\n\nFetch credentials per request; expiring temporary credentials are renewed transparently:\n\n```ballerina\nauth:Credentials credentials \u003d check credProvider.getCredentials();\n```\n\nRelease the provider\u0027s resources (background refresh threads, HTTP connections for STS/SSO) when it is no longer needed:\n\n```ballerina\ncheck credProvider.close();\n```\n\n### Credential sources\n\n`auth:CredentialProvider` accepts any of the following configurations as its `AuthConfig`.\n\n#### Default credential provider chain\n\nResolves credentials automatically from the AWS SDK\u0027s default chain (environment variables, `~/.aws/credentials`, an EC2/ECS/EKS instance role, etc.) — no configuration needed. This is the preferred source when running on AWS infrastructure.\n\n```ballerina\nauth:CredentialProvider credProvider \u003d check new (auth:DEFAULT_CREDENTIALS);\n```\n\n#### Static credentials\n\nThe least preferred source for production use; prefer one of the sources below when possible.\n\n```ballerina\nauth:CredentialProvider credProvider \u003d check new ({\n    accessKeyId: \"AKIA...\",\n    secretAccessKey: \"...\"\n});\n```\n\n\u003e **Note:** See [Obtaining IAM user credentials](#obtaining-iam-user-credentials) below for a step-by-step walkthrough of creating an IAM user and its access keys in the AWS Console.\n\n#### Profile-based authentication\n\nReads credentials from a named profile in a local AWS credentials file (as created by `aws configure`).\n\n```ballerina\nauth:CredentialProvider credProvider \u003d check new ({\n    profileName: \"dev\"\n});\n```\n\n#### STS assume-role\n\nObtains temporary credentials by assuming an IAM role via AWS STS.\n\n```ballerina\nauth:CredentialProvider credProvider \u003d check new ({\n    roleArn: \"arn:aws:iam::123456789012:role/reporting-read-only\",\n    sourceCredentials: auth:DEFAULT_CREDENTIALS\n});\n```\n\n#### Web identity (EKS IRSA, CI/CD OIDC)\n\nExchanges a web identity (OIDC) token for temporary credentials via AWS STS.\n\n```ballerina\nauth:CredentialProvider credProvider \u003d check new ({\n    roleArn: \"arn:aws:iam::123456789012:role/order-service\",\n    webIdentityTokenFile: \"/var/run/secrets/eks.amazonaws.com/serviceaccount/token\"\n});\n```\n\n#### IAM Identity Center (SSO)\n\nRequires an active session created with `aws sso login`.\n\n```ballerina\nauth:CredentialProvider credProvider \u003d check new ({\n    ssoStartUrl: \"https://myorg.awsapps.com/start\",\n    ssoRegion: \"us-east-1\",\n    accountId: \"123456789012\",\n    roleName: \"DeveloperAccess\"\n});\n```\n\n#### External credential process\n\nExecutes an external command implementing the AWS `credential_process` contract, which must print a JSON credential document to stdout.\n\n```ballerina\nauth:CredentialProvider credProvider \u003d check new ({\n    command: [\"/usr/local/bin/aws_signing_helper\", \"credential-process\", \"--certificate\", \"/path/to/cert.pem\"]\n});\n```\n\n\u003e **Security note:** the configured command runs with the privileges of the running program. Prefer declaring it in `~/.aws/config` (`credential_process`) and using profile-based authentication or the default credential provider chain where possible.\n\n## Region and endpoint resolution\n\n`aws:Region` is a typed enum of all AWS regions. Endpoints are resolved using the AWS SDK\u0027s own endpoint metadata, covering all partitions and the FIPS/dualstack variants, with a standard-pattern fallback for regions newer than the bundled SDK:\n\n```ballerina\nimport ballerinax/aws;\n\nstring url \u003d aws:resolveEndpoint(\"events\", aws:US_EAST_1);\n// \"https://events.us-east-1.amazonaws.com\"\n\nstring host \u003d aws:resolveEndpointHost(\"events\", aws:US_EAST_1);\n// \"events.us-east-1.amazonaws.com\"\n```\n\n`EndpointConfig` selects the FIPS or dualstack variant, or overrides the endpoint entirely — useful for local testing against [LocalStack](https://www.localstack.cloud/) or similar:\n\n```ballerina\nstring testUrl \u003d aws:resolveEndpoint(\"events\", aws:US_EAST_1, {customEndpoint: \"http://localhost:4566\"});\n// \"http://localhost:4566\"\n\nstring fipsUrl \u003d aws:resolveEndpoint(\"events\", aws:US_EAST_1, {fips: true});\n// \"https://events-fips.us-east-1.amazonaws.com\"\n```\n\n## Request signing\n\n`auth:getSignedHeaders` signs a request with AWS Signature Version 4 and returns the headers to set on the outbound request. Use it to call any AWS service, including ones without a dedicated Ballerina connector.\n\nThe following example calls Amazon EventBridge\u0027s `PutEvents` over a plain `http:Client`:\n\n```ballerina\nimport ballerina/http;\nimport ballerinax/aws;\nimport ballerinax/aws.auth;\n\npublic function main() returns error? {\n    auth:CredentialProvider credProvider \u003d check new (auth:DEFAULT_CREDENTIALS);\n    string host \u003d aws:resolveEndpointHost(\"events\", aws:US_EAST_1);\n    http:Client eventBridge \u003d check new (\"https://\" + host);\n\n    json putEventsRequest \u003d {\n        \"Entries\": [\n            {\n                \"Source\": \"com.mycompany.orders\",\n                \"DetailType\": \"OrderPlaced\",\n                \"Detail\": {\"orderId\": \"o-1234\"}.toJsonString()\n            }\n        ]\n    };\n    byte[] payload \u003d putEventsRequest.toJsonString().toBytes();\n\n    auth:Credentials credentials \u003d check credProvider.getCredentials();\n    map\u003cstring\u003e signedHeaders \u003d check auth:getSignedHeaders({\n        method: \"POST\",\n        host,\n        headers: {\n            \"content-type\": \"application/x-amz-json-1.1\",\n            \"x-amz-target\": \"AWSEvents.PutEvents\"\n        },\n        payload\n    }, credentials, aws:US_EAST_1, \"events\");\n\n    http:Request request \u003d new;\n    request.setBinaryPayload(payload);\n    foreach [string, string] [name, value] in signedHeaders.entries() {\n        request.setHeader(name, value);\n    }\n    http:Response response \u003d check eventBridge-\u003eexecute(\"POST\", \"/\", request);\n}\n```\n\n## Errors\n\n`auth:Error` is the base error type for the `auth` module. `auth:CredentialResolutionError` is returned when a configured credential source cannot supply credentials — its `ErrorDetails` are populated when the failure originates from an AWS service call (e.g. STS or SSO). `auth:SigningError` is returned when signing a request fails.\n\n## Obtaining IAM user credentials\n\nIAM user access keys remain useful for local development, for CI systems without OIDC, and for the `sourceCredentials` of an assume-role chain. The steps below create such a user and its keys.\n\n### Login to AWS Console\n\nLog into the [AWS Management Console](https://console.aws.amazon.com/console). If you don\u0027t have an AWS account yet, you can create one by visiting the AWS [sign-up](https://aws.amazon.com/free/) page. Sign up is free, and you can explore many services under the Free Tier.\n\n### Create a user\n\n1. In the AWS Management Console, search for IAM in the services search bar.\n2. Click on IAM\n\n   ![create-user-1.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws/refs/heads/main/docs/setup/resources/create-user-1.png)\n\n3. Click Users\n\n   ![create-user-2.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws/refs/heads/main/docs/setup/resources/create-user-2.png)\n\n4. Click Create User\n\n   ![create-user-3.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws/refs/heads/main/docs/setup/resources/create-user-3.png)\n\n5. Provide a suitable name for the user and continue\n\n   ![specify-user-details.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws/refs/heads/main/docs/setup/resources/specify-user-details.png)\n\n6. Attach the permissions the application needs — by adding the user to a group, copying permissions from another user, or attaching policies directly — and click next. Grant only the actions your application calls.\n\n   ![set-user-permissions.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws/refs/heads/main/docs/setup/resources/set-user-permissions.png)\n\n7. Review and create the user\n\n   ![review-create-user.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws/refs/heads/main/docs/setup/resources/review-create-user.png)\n\n### Get user access keys\n\n1. Click the user that was created\n\n   ![users.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws/refs/heads/main/docs/setup/resources/users.png)\n\n2. Click `Create access key`\n\n   ![create-access-key-1.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws/refs/heads/main/docs/setup/resources/create-access-key-1.png)\n\n3. Click your use case and click next.\n\n   ![select-usecase.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws/refs/heads/main/docs/setup/resources/select-usecase.png)\n\n4. Record the access key ID and secret access key. The secret access key is shown only once — store it in a secret manager or a `Config.toml` that is excluded from version control, never in source.\n\n   ![retrieve-access-key.png](https://raw.githubusercontent.com/ballerina-platform/module-ballerinax-aws/refs/heads/main/docs/setup/resources/retrieve-access-key.png)\n\n\n## Module: aws.auth\n\n## Overview\n\nThe `auth` submodule of the [`ballerinax/aws`](https://central.ballerina.io/ballerinax/aws/latest) package provides AWS authentication: credential resolution across all standardized AWS credential sources (with automatic refresh) and AWS Signature Version 4 (SigV4) request signing. It is the authentication foundation used by the `ballerinax/aws.*` connectors, and can be used directly to call AWS services that do not have a dedicated connector yet.\n\nRegion and endpoint utilities live in the package\u0027s root module, [`ballerinax/aws`](https://central.ballerina.io/ballerinax/aws/latest).\n\n## Credential sources\n\nThe `AuthConfig` union covers all standardized AWS credential sources:\n\n| Config type | Source | Typical use |\n|---|---|---|\n| `StaticAuthConfig` | Explicit access keys (+ optional session token) | Tests, CI-injected secrets |\n| `ProfileAuthConfig` | A named profile in `~/.aws/credentials` | Developer machines |\n| `AssumeRoleConfig` | STS assume-role, composable over any base identity | Cross-account access, least privilege |\n| `WebIdentityConfig` | An OIDC token exchanged via STS | EKS IRSA, CI/CD OIDC |\n| `SsoAuthConfig` | An IAM Identity Center session (`aws sso login`) | Enterprise developer machines |\n| `ProcessAuthConfig` | An external `credential_process` command | IAM Roles Anywhere, credential brokers |\n| `DEFAULT_CREDENTIALS` | The default provider chain (env vars, SSO, profile, container, EC2 IMDS, …) | Production on AWS |\n\n## Quickstart\n\n### Step 1: Import the module\n\n```ballerina\nimport ballerinax/aws.auth;\n```\n\n### Step 2: Create a credential provider\n\nCreate a `CredentialProvider` once, at initialization. On AWS infrastructure the default provider chain resolves credentials automatically:\n\n```ballerina\nauth:CredentialProvider credProvider \u003d check new (auth:DEFAULT_CREDENTIALS);\n```\n\nOther credential sources use the same API with a different configuration — for example, STS assume-role composed over any base identity:\n\n```ballerina\nauth:CredentialProvider credProvider \u003d check new ({\n    roleArn: \"arn:aws:iam::123456789012:role/reporting-read-only\",\n    sourceCredentials: auth:DEFAULT_CREDENTIALS\n});\n```\n\n### Step 3: Resolve credentials\n\nFetch credentials per request; expiring temporary credentials (STS, SSO, instance profile) are renewed transparently:\n\n```ballerina\nauth:Credentials credentials \u003d check credProvider.getCredentials();\n```\n\nRelease the provider\u0027s resources when it is no longer needed:\n\n```ballerina\ncheck credProvider.close();\n```\n\n### Step 4: Sign a request\n\nSign requests to any AWS service — including services without a dedicated Ballerina connector. `getSignedHeaders` returns the headers to attach to the outbound request:\n\n```ballerina\nmap\u003cstring\u003e signedHeaders \u003d check auth:getSignedHeaders({\n    method: \"POST\",\n    host: \"sns.us-east-1.amazonaws.com\",\n    headers: {\"content-type\": \"application/x-www-form-urlencoded\"},\n    payload: \"Action\u003dCreateTopic\u0026Name\u003dorders\".toBytes()\n}, credentials, \"us-east-1\", \"sns\");\n```\n",
+  "typeDefs": [
+    {
+      "name": "AF_SOUTH_1",
+      "description": "",
+      "type": "Constant",
+      "value": "af-south-1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "AP_EAST_1",
+      "description": "",
+      "type": "Constant",
+      "value": "ap-east-1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "AP_EAST_2",
+      "description": "",
+      "type": "Constant",
+      "value": "ap-east-2",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "AP_NORTHEAST_1",
+      "description": "",
+      "type": "Constant",
+      "value": "ap-northeast-1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "AP_NORTHEAST_2",
+      "description": "",
+      "type": "Constant",
+      "value": "ap-northeast-2",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "AP_NORTHEAST_3",
+      "description": "",
+      "type": "Constant",
+      "value": "ap-northeast-3",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "AP_SOUTH_1",
+      "description": "",
+      "type": "Constant",
+      "value": "ap-south-1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "AP_SOUTH_2",
+      "description": "",
+      "type": "Constant",
+      "value": "ap-south-2",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "AP_SOUTHEAST_1",
+      "description": "",
+      "type": "Constant",
+      "value": "ap-southeast-1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "AP_SOUTHEAST_2",
+      "description": "",
+      "type": "Constant",
+      "value": "ap-southeast-2",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "AP_SOUTHEAST_3",
+      "description": "",
+      "type": "Constant",
+      "value": "ap-southeast-3",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "AP_SOUTHEAST_4",
+      "description": "",
+      "type": "Constant",
+      "value": "ap-southeast-4",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "AP_SOUTHEAST_5",
+      "description": "",
+      "type": "Constant",
+      "value": "ap-southeast-5",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "AP_SOUTHEAST_6",
+      "description": "",
+      "type": "Constant",
+      "value": "ap-southeast-6",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "AP_SOUTHEAST_7",
+      "description": "",
+      "type": "Constant",
+      "value": "ap-southeast-7",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "AWS_GLOBAL",
+      "description": "",
+      "type": "Constant",
+      "value": "aws-global",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "AWS_CN_GLOBAL",
+      "description": "",
+      "type": "Constant",
+      "value": "aws-cn-global",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "AWS_US_GOV_GLOBAL",
+      "description": "",
+      "type": "Constant",
+      "value": "aws-us-gov-global",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "AWS_ISO_GLOBAL",
+      "description": "",
+      "type": "Constant",
+      "value": "aws-iso-global",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "AWS_ISO_B_GLOBAL",
+      "description": "",
+      "type": "Constant",
+      "value": "aws-iso-b-global",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "AWS_ISO_E_GLOBAL",
+      "description": "",
+      "type": "Constant",
+      "value": "aws-iso-e-global",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "AWS_ISO_F_GLOBAL",
+      "description": "",
+      "type": "Constant",
+      "value": "aws-iso-f-global",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "CA_CENTRAL_1",
+      "description": "",
+      "type": "Constant",
+      "value": "ca-central-1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "CA_WEST_1",
+      "description": "",
+      "type": "Constant",
+      "value": "ca-west-1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "CN_NORTH_1",
+      "description": "",
+      "type": "Constant",
+      "value": "cn-north-1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "CN_NORTHWEST_1",
+      "description": "",
+      "type": "Constant",
+      "value": "cn-northwest-1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "EU_CENTRAL_1",
+      "description": "",
+      "type": "Constant",
+      "value": "eu-central-1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "EU_CENTRAL_2",
+      "description": "",
+      "type": "Constant",
+      "value": "eu-central-2",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "EU_NORTH_1",
+      "description": "",
+      "type": "Constant",
+      "value": "eu-north-1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "EU_SOUTH_1",
+      "description": "",
+      "type": "Constant",
+      "value": "eu-south-1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "EU_SOUTH_2",
+      "description": "",
+      "type": "Constant",
+      "value": "eu-south-2",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "EU_WEST_1",
+      "description": "",
+      "type": "Constant",
+      "value": "eu-west-1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "EU_WEST_2",
+      "description": "",
+      "type": "Constant",
+      "value": "eu-west-2",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "EU_WEST_3",
+      "description": "",
+      "type": "Constant",
+      "value": "eu-west-3",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "EU_ISOE_WEST_1",
+      "description": "",
+      "type": "Constant",
+      "value": "eu-isoe-west-1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "EUSC_DE_EAST_1",
+      "description": "",
+      "type": "Constant",
+      "value": "eusc-de-east-1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "IL_CENTRAL_1",
+      "description": "",
+      "type": "Constant",
+      "value": "il-central-1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "ME_CENTRAL_1",
+      "description": "",
+      "type": "Constant",
+      "value": "me-central-1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "ME_SOUTH_1",
+      "description": "",
+      "type": "Constant",
+      "value": "me-south-1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "MX_CENTRAL_1",
+      "description": "",
+      "type": "Constant",
+      "value": "mx-central-1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "SA_EAST_1",
+      "description": "",
+      "type": "Constant",
+      "value": "sa-east-1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "US_EAST_1",
+      "description": "",
+      "type": "Constant",
+      "value": "us-east-1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "US_EAST_2",
+      "description": "",
+      "type": "Constant",
+      "value": "us-east-2",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "US_GOV_EAST_1",
+      "description": "",
+      "type": "Constant",
+      "value": "us-gov-east-1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "US_GOV_WEST_1",
+      "description": "",
+      "type": "Constant",
+      "value": "us-gov-west-1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "US_ISO_EAST_1",
+      "description": "",
+      "type": "Constant",
+      "value": "us-iso-east-1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "US_ISO_WEST_1",
+      "description": "",
+      "type": "Constant",
+      "value": "us-iso-west-1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "US_ISOB_EAST_1",
+      "description": "",
+      "type": "Constant",
+      "value": "us-isob-east-1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "US_ISOB_WEST_1",
+      "description": "",
+      "type": "Constant",
+      "value": "us-isob-west-1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "US_ISOF_EAST_1",
+      "description": "",
+      "type": "Constant",
+      "value": "us-isof-east-1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "US_ISOF_SOUTH_1",
+      "description": "",
+      "type": "Constant",
+      "value": "us-isof-south-1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "US_WEST_1",
+      "description": "",
+      "type": "Constant",
+      "value": "us-west-1",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "US_WEST_2",
+      "description": "",
+      "type": "Constant",
+      "value": "us-west-2",
+      "varType": {
+        "name": "string"
+      }
+    },
+    {
+      "name": "ErrorDetails",
+      "description": "The shared error details record connectors. The fields are populated when the\nfailure originates from an AWS service call, and are left unset when the failure\noccurs before a response is received (e.g. an invalid configuration).",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "httpStatusCode",
+          "description": "The HTTP status code for the error",
+          "type": {
+            "name": "int"
+          },
+          "optional": true
+        },
+        {
+          "name": "httpStatusText",
+          "description": "The HTTP status text returned from the service",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "errorCode",
+          "description": "The error code associated with the response",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "errorMessage",
+          "description": "The human-readable error message provided by the service",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        },
+        {
+          "name": "requestId",
+          "description": "The unique identifier for the request, as assigned by AWS",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "Region",
+      "description": "AWS regions.",
+      "type": "Enum",
+      "members": [
+        {
+          "name": "US_WEST_2",
+          "description": ""
+        },
+        {
+          "name": "US_WEST_1",
+          "description": ""
+        },
+        {
+          "name": "US_ISOF_SOUTH_1",
+          "description": ""
+        },
+        {
+          "name": "US_ISOF_EAST_1",
+          "description": ""
+        },
+        {
+          "name": "US_ISOB_WEST_1",
+          "description": ""
+        },
+        {
+          "name": "US_ISOB_EAST_1",
+          "description": ""
+        },
+        {
+          "name": "US_ISO_WEST_1",
+          "description": ""
+        },
+        {
+          "name": "US_ISO_EAST_1",
+          "description": ""
+        },
+        {
+          "name": "US_GOV_WEST_1",
+          "description": ""
+        },
+        {
+          "name": "US_GOV_EAST_1",
+          "description": ""
+        },
+        {
+          "name": "US_EAST_2",
+          "description": ""
+        },
+        {
+          "name": "US_EAST_1",
+          "description": ""
+        },
+        {
+          "name": "SA_EAST_1",
+          "description": ""
+        },
+        {
+          "name": "MX_CENTRAL_1",
+          "description": ""
+        },
+        {
+          "name": "ME_SOUTH_1",
+          "description": ""
+        },
+        {
+          "name": "ME_CENTRAL_1",
+          "description": ""
+        },
+        {
+          "name": "IL_CENTRAL_1",
+          "description": ""
+        },
+        {
+          "name": "EUSC_DE_EAST_1",
+          "description": ""
+        },
+        {
+          "name": "EU_ISOE_WEST_1",
+          "description": ""
+        },
+        {
+          "name": "EU_WEST_3",
+          "description": ""
+        },
+        {
+          "name": "EU_WEST_2",
+          "description": ""
+        },
+        {
+          "name": "EU_WEST_1",
+          "description": ""
+        },
+        {
+          "name": "EU_SOUTH_2",
+          "description": ""
+        },
+        {
+          "name": "EU_SOUTH_1",
+          "description": ""
+        },
+        {
+          "name": "EU_NORTH_1",
+          "description": ""
+        },
+        {
+          "name": "EU_CENTRAL_2",
+          "description": ""
+        },
+        {
+          "name": "EU_CENTRAL_1",
+          "description": ""
+        },
+        {
+          "name": "CN_NORTHWEST_1",
+          "description": ""
+        },
+        {
+          "name": "CN_NORTH_1",
+          "description": ""
+        },
+        {
+          "name": "CA_WEST_1",
+          "description": ""
+        },
+        {
+          "name": "CA_CENTRAL_1",
+          "description": ""
+        },
+        {
+          "name": "AWS_ISO_F_GLOBAL",
+          "description": ""
+        },
+        {
+          "name": "AWS_ISO_E_GLOBAL",
+          "description": ""
+        },
+        {
+          "name": "AWS_ISO_B_GLOBAL",
+          "description": ""
+        },
+        {
+          "name": "AWS_ISO_GLOBAL",
+          "description": ""
+        },
+        {
+          "name": "AWS_US_GOV_GLOBAL",
+          "description": ""
+        },
+        {
+          "name": "AWS_CN_GLOBAL",
+          "description": ""
+        },
+        {
+          "name": "AWS_GLOBAL",
+          "description": ""
+        },
+        {
+          "name": "AP_SOUTHEAST_7",
+          "description": ""
+        },
+        {
+          "name": "AP_SOUTHEAST_6",
+          "description": ""
+        },
+        {
+          "name": "AP_SOUTHEAST_5",
+          "description": ""
+        },
+        {
+          "name": "AP_SOUTHEAST_4",
+          "description": ""
+        },
+        {
+          "name": "AP_SOUTHEAST_3",
+          "description": ""
+        },
+        {
+          "name": "AP_SOUTHEAST_2",
+          "description": ""
+        },
+        {
+          "name": "AP_SOUTHEAST_1",
+          "description": ""
+        },
+        {
+          "name": "AP_SOUTH_2",
+          "description": ""
+        },
+        {
+          "name": "AP_SOUTH_1",
+          "description": ""
+        },
+        {
+          "name": "AP_NORTHEAST_3",
+          "description": ""
+        },
+        {
+          "name": "AP_NORTHEAST_2",
+          "description": ""
+        },
+        {
+          "name": "AP_NORTHEAST_1",
+          "description": ""
+        },
+        {
+          "name": "AP_EAST_2",
+          "description": ""
+        },
+        {
+          "name": "AP_EAST_1",
+          "description": ""
+        },
+        {
+          "name": "AF_SOUTH_1",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "EndpointConfig",
+      "description": "Endpoint resolution options.",
+      "type": "Record",
+      "fields": [
+        {
+          "name": "fips",
+          "description": "Use the FIPS 140-validated endpoint variant (`{service}-fips.{region}...`)",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "dualstack",
+          "description": "Use the dualstack (IPv4/IPv6) endpoint variant (`...api.aws`)",
+          "type": {
+            "name": "boolean"
+          },
+          "optional": true
+        },
+        {
+          "name": "customEndpoint",
+          "description": "Full endpoint URL override (e.g. `http://localhost:4566`). When set,\nall other options are ignored and the value is returned as given",
+          "type": {
+            "name": "string"
+          },
+          "optional": true
+        }
+      ]
+    }
+  ],
+  "clients": [],
+  "functions": [
+    {
+      "name": "resolveEndpoint",
+      "type": "Normal Function",
+      "description": "Resolves the HTTPS endpoint URL for an AWS service in a region, using the\nAWS SDK\u0027s endpoint metadata (all partitions, FIPS/dualstack variants,\nper-service exceptions), with a standard-pattern fallback for regions newer\nthan the bundled SDK. A `customEndpoint` overrides both.\n```ballerina\nstring url \u003d auth:resolveEndpoint(\"sns\", auth:US_EAST_1);\n// \"https://sns.us-east-1.amazonaws.com\"\nstring testUrl \u003d auth:resolveEndpoint(\"sqs\", auth:US_EAST_1, {customEndpoint: \"http://localhost:4566\"});\n// \"http://localhost:4566\"\n```\n",
+      "parameters": [
+        {
+          "name": "serviceName",
+          "description": "The service\u0027s endpoint prefix (e.g. `sns`, `dynamodb`)",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "region",
+          "description": "Target region",
+          "type": {
+            "name": "\"us-west-2\"|\"us-west-1\"|\"us-isof-south-1\"|\"us-isof-east-1\"|\"us-isob-west-1\"|\"us-isob-east-1\"|\"us-iso-west-1\"|\"us-iso-east-1\"|\"us-gov-west-1\"|\"us-gov-east-1\"|\"us-east-2\"|\"us-east-1\"|\"sa-east-1\"|\"mx-central-1\"|\"me-south-1\"|\"me-central-1\"|\"il-central-1\"|\"eusc-de-east-1\"|\"eu-isoe-west-1\"|\"eu-west-3\"|\"eu-west-2\"|\"eu-west-1\"|\"eu-south-2\"|\"eu-south-1\"|\"eu-north-1\"|\"eu-central-2\"|\"eu-central-1\"|\"cn-northwest-1\"|\"cn-north-1\"|\"ca-west-1\"|\"ca-central-1\"|\"aws-iso-f-global\"|\"aws-iso-e-global\"|\"aws-iso-b-global\"|\"aws-iso-global\"|\"aws-us-gov-global\"|\"aws-cn-global\"|\"aws-global\"|\"ap-southeast-7\"|\"ap-southeast-6\"|\"ap-southeast-5\"|\"ap-southeast-4\"|\"ap-southeast-3\"|\"ap-southeast-2\"|\"ap-southeast-1\"|\"ap-south-2\"|\"ap-south-1\"|\"ap-northeast-3\"|\"ap-northeast-2\"|\"ap-northeast-1\"|\"ap-east-2\"|\"ap-east-1\"|\"af-south-1\"|string"
+          }
+        },
+        {
+          "name": "config",
+          "description": "Endpoint options",
+          "type": {
+            "name": "EndpointConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "EndpointConfig"
+              }
+            ]
+          },
+          "optional": true,
+          "default": "{}"
+        }
+      ],
+      "return": {
+        "description": "The endpoint URL (e.g. `https://sns.us-east-1.amazonaws.com`)",
+        "type": {
+          "name": "string"
+        }
+      }
+    },
+    {
+      "name": "resolveEndpointHost",
+      "type": "Normal Function",
+      "description": "Resolves only the host part of the endpoint.\n```ballerina\nstring host \u003d auth:resolveEndpointHost(\"sns\", auth:US_EAST_1);\n// \"sns.us-east-1.amazonaws.com\"\n```\n",
+      "parameters": [
+        {
+          "name": "serviceName",
+          "description": "The service\u0027s endpoint prefix (e.g. `sns`, `dynamodb`)",
+          "type": {
+            "name": "string"
+          }
+        },
+        {
+          "name": "region",
+          "description": "Target region",
+          "type": {
+            "name": "\"us-west-2\"|\"us-west-1\"|\"us-isof-south-1\"|\"us-isof-east-1\"|\"us-isob-west-1\"|\"us-isob-east-1\"|\"us-iso-west-1\"|\"us-iso-east-1\"|\"us-gov-west-1\"|\"us-gov-east-1\"|\"us-east-2\"|\"us-east-1\"|\"sa-east-1\"|\"mx-central-1\"|\"me-south-1\"|\"me-central-1\"|\"il-central-1\"|\"eusc-de-east-1\"|\"eu-isoe-west-1\"|\"eu-west-3\"|\"eu-west-2\"|\"eu-west-1\"|\"eu-south-2\"|\"eu-south-1\"|\"eu-north-1\"|\"eu-central-2\"|\"eu-central-1\"|\"cn-northwest-1\"|\"cn-north-1\"|\"ca-west-1\"|\"ca-central-1\"|\"aws-iso-f-global\"|\"aws-iso-e-global\"|\"aws-iso-b-global\"|\"aws-iso-global\"|\"aws-us-gov-global\"|\"aws-cn-global\"|\"aws-global\"|\"ap-southeast-7\"|\"ap-southeast-6\"|\"ap-southeast-5\"|\"ap-southeast-4\"|\"ap-southeast-3\"|\"ap-southeast-2\"|\"ap-southeast-1\"|\"ap-south-2\"|\"ap-south-1\"|\"ap-northeast-3\"|\"ap-northeast-2\"|\"ap-northeast-1\"|\"ap-east-2\"|\"ap-east-1\"|\"af-south-1\"|string"
+          }
+        },
+        {
+          "name": "config",
+          "description": "Endpoint options; a `customEndpoint` is returned with its scheme stripped",
+          "type": {
+            "name": "EndpointConfig",
+            "links": [
+              {
+                "category": "internal",
+                "recordName": "EndpointConfig"
+              }
+            ]
+          },
+          "optional": true,
+          "default": "{}"
+        }
+      ],
+      "return": {
+        "description": "The endpoint host (e.g. `sns.us-east-1.amazonaws.com`)",
+        "type": {
+          "name": "string"
+        }
+      }
+    }
+  ],
+  "services": [],
+  "annotations": []
+}
